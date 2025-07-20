@@ -134,7 +134,7 @@ const ModernPhone: React.FC<ModernPhoneProps> = ({
 
 
       {/* Main screen - video display with rounded corners */}
-      <mesh position={[0, 0, 0.0176]}>
+      <mesh position={[0, 0, 0.03 ]}>
         <planeGeometry args={[0.71, 1.56]} />
         {/* @ts-ignore - custom shader material */}
         <roundedVideoMaterialImpl 

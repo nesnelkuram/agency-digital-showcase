@@ -9,48 +9,74 @@ const Header3D: React.FC = () => {
   const [parallaxOffset, setParallaxOffset] = useState(0);
   const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
   const headerRef = useRef<HTMLElement>(null);
+  const animationFrameRef = useRef<number>();
   
   // How many viewport-heights to scroll before parallax ends
   const PARALLAX_DURATION_VIEWPORTS = 5;
 
   useEffect(() => {
+    let ticking = false;
+    
     const handleScroll = () => {
-      if (!headerRef.current) return;
+      if (!ticking) {
+        ticking = true;
+        animationFrameRef.current = requestAnimationFrame(() => {
+          if (!headerRef.current) {
+            ticking = false;
+            return;
+          }
 
-      const scrollY = window.scrollY;
-      const { offsetTop: headerTopOffset, offsetHeight: headerClientHeight } = headerRef.current;
-      const viewportHeight = window.innerHeight;
+          const scrollY = window.scrollY;
+          const { offsetTop: headerTopOffset, offsetHeight: headerClientHeight } = headerRef.current;
+          const viewportHeight = window.innerHeight;
 
-      const scrollRelativeToStickyActive = Math.max(0, scrollY - headerTopOffset);
-      const parallaxActiveScrollRange = headerClientHeight - viewportHeight;
+          const scrollRelativeToStickyActive = Math.max(0, scrollY - headerTopOffset);
+          const parallaxActiveScrollRange = headerClientHeight - viewportHeight;
 
-      if (parallaxActiveScrollRange <= 0) {
-        setParallaxOffset(0);
-        return;
+          if (parallaxActiveScrollRange <= 0) {
+            setParallaxOffset(0);
+            ticking = false;
+            return;
+          }
+          
+          let effectiveParallaxScroll = Math.max(0, Math.min(scrollRelativeToStickyActive, parallaxActiveScrollRange));
+          if (scrollY < headerTopOffset) {
+            effectiveParallaxScroll = 0;
+          }
+
+          const scrollProgress = effectiveParallaxScroll / parallaxActiveScrollRange;
+          const MAX_OFFSET_PERCENT = 120;
+          const newParallaxOffset = scrollProgress * MAX_OFFSET_PERCENT;
+
+          setParallaxOffset(newParallaxOffset);
+          ticking = false;
+        });
       }
-      
-      let effectiveParallaxScroll = Math.max(0, Math.min(scrollRelativeToStickyActive, parallaxActiveScrollRange));
-      if (scrollY < headerTopOffset) {
-        effectiveParallaxScroll = 0;
-      }
-
-      const scrollProgress = effectiveParallaxScroll / parallaxActiveScrollRange;
-      const MAX_OFFSET_PERCENT = 120;
-      const newParallaxOffset = scrollProgress * MAX_OFFSET_PERCENT;
-
-      setParallaxOffset(newParallaxOffset);
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll();
 
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
   }, []);
 
   const phoneConfigs = useMemo(() => {
-    const colsPerRow = Array(12).fill(4); // 12 rows, 4 columns each
+    const colsPerRow = Array(12).fill(4); // 12 rows, 4 columns each = 48 phones
     const totalPhones = colsPerRow.reduce((sum, count) => sum + count, 0);
     return Array.from({ length: totalPhones }).map((_, idx) => {
+      // En soldaki telefonlar (her satırın ilk telefonu) Dikey_2_1.mp4 göstersin
+      if (idx % 4 === 0) { // Her satırın ilk telefonu (0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44)
+        return {
+          key: `phone-${idx}`,
+          videoSrc: '/videos/Dikey_2_1.mp4',
+          altText: 'Dikey video 2.1',
+        };
+      }
       const videoIdx = idx % HEADER_VIDEOS.length;
       return {
         key: `phone-${idx}`,
@@ -82,7 +108,7 @@ const Header3D: React.FC = () => {
             shadows
             camera={{
               position: [16, -10, 20],   // Tam karşıdan bakış
-              fov: 10,
+              fov: 8,
               near: 0.1,
               far: 1000,
             }}
@@ -97,11 +123,8 @@ const Header3D: React.FC = () => {
             style={{ width: '100%', height: '100%' }}
           >
             <CameraController 
-              lookAt={[0, 0, 0]}  // lookAt (rotation verilirse kullanılmaz)
-              rotation={[0.5, 0.7, 0.4]}     // [x, y, z] Radyan cinsinden
-              // x: Yukarı/aşağı (pitch) - örnek: 0.5 radyan
-              // y: Sağa/sola (yaw) - örnek: 0.785 radyan (45 derece)
-              // z: Yana yatma (roll) - örnek: 0 radyan
+              lookAt={[0, 0, 0]}
+              rotation={[0.5, 0.7, 0.4]}
             />
             <ambientLight intensity={0.7} />
             <directionalLight position={[10, 40, 5]} intensity={1.2} castShadow />
@@ -111,7 +134,7 @@ const Header3D: React.FC = () => {
               <Environment preset="studio" />
               <group rotation={[0, 0, 0]} scale={1.3} position={[0, 0, 0]}>
                 {(() => {
-                  const colsPerRow = Array(12).fill(4);
+                  const colsPerRow = Array(12).fill(4);  // 12 satır
                   let idx = 0;
                   return colsPerRow.map((numCols, row) => {
                     const slice = phoneConfigs.slice(idx, idx + numCols);
@@ -122,17 +145,17 @@ const Header3D: React.FC = () => {
                           const movingDown = col % 2 !== 0;
                           const spacingX = 1;
                           const spacingY = 1.8;
-                          const isSel = selectedPhone === cfg.key;
+                          const isSelected = selectedPhone === cfg.key;
                           const x = (col - 1.5) * spacingX;  // Ortalamak için
                           const y = (row - 6) * spacingY + (movingDown ? -parallaxOffset * 0.015 : parallaxOffset * 0.015);
-                          const z = isSel ? 2 : 0;
+                          const z = 0;  // Z pozisyonu sabit, animasyon component içinde
                           return (
                             <AnimatedPhone
                               key={cfg.key}
                               videoSrc={cfg.videoSrc}
                               position={[x, y, z]}
-                              isSelected={isSel}
-                              onClick={() => setSelectedPhone(isSel ? null : cfg.key)}
+                              isSelected={isSelected}
+                              onClick={() => setSelectedPhone(isSelected ? null : cfg.key)}
                             />
                           );
                         })}

@@ -1,0 +1,15 @@
+# GitHub'a push etmek için komutlar:
+
+# 1. GitHub'da yeni bir repository oluşturun (örnek: agency-digital-showcase)
+
+# 2. Remote origin ekleyin (YOUR_USERNAME'i kendi GitHub kullanıcı adınızla değiştirin):
+git remote add origin https://github.com/YOUR_USERNAME/agency-digital-showcase.git
+
+# 3. Branch'i main olarak yeniden adlandırın (eğer master ise):
+git branch -M main
+
+# 4. GitHub'a push edin:
+git push -u origin main
+
+# Alternatif: SSH kullanıyorsanız:
+# git remote add origin git@github.com:YOUR_USERNAME/agency-digital-showcase.git
