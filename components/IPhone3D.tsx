@@ -25,7 +25,7 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
     const texture = new THREE.TextureLoader().load(videoSrc);
     texture.minFilter = THREE.LinearFilter;
     texture.magFilter = THREE.LinearFilter;
-    texture.format = THREE.RGBFormat;
+    texture.generateMipmaps = false;
     texture.colorSpace = THREE.SRGBColorSpace;
     return texture;
   }, [videoSrc]);
@@ -150,6 +150,9 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
       
       adjustedTexture.wrapS = THREE.ClampToEdgeWrapping;
       adjustedTexture.wrapT = THREE.ClampToEdgeWrapping;
+      adjustedTexture.generateMipmaps = false;
+      adjustedTexture.minFilter = THREE.LinearFilter;
+      adjustedTexture.magFilter = THREE.LinearFilter;
       adjustedTexture.needsUpdate = true;
       
       // Create new material with adjusted video

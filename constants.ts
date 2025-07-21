@@ -39,3 +39,19 @@ export const HEADER_VIDEOS: VideoInfo[] = [
 // This constant is used in PhoneMockup.tsx for styling its aspect ratio.
 // export const PHONE_ASPECT_RATIO_NUMBER = 9 / 19.5; // Example: 0.4615
 // The Tailwind class `aspect-[9/19.5]` is used directly for simplicity.
+
+export const PHONE_IMAGES = [
+  // Picsum ile rastgele fotoğraflar - 9:16 oranında (iPhone ekran oranı)
+  { id: 'img1', src: 'https://picsum.photos/1080/1920?random=1', alt: 'Mobile app showcase 1' },
+  { id: 'img2', src: 'https://picsum.photos/1080/1920?random=2', alt: 'Mobile app showcase 2' },
+  { id: 'img3', src: 'https://picsum.photos/1080/1920?random=3', alt: 'Mobile app showcase 3' },
+  { id: 'img4', src: 'https://picsum.photos/1080/1920?random=4', alt: 'Mobile app showcase 4' },
+  { id: 'img5', src: 'https://picsum.photos/1080/1920?random=5', alt: 'Mobile app showcase 5' },
+  { id: 'img6', src: 'https://picsum.photos/1080/1920?random=6', alt: 'Mobile app showcase 6' },
+  { id: 'img7', src: 'https://picsum.photos/1080/1920?random=7', alt: 'Mobile app showcase 7' },
+  { id: 'img8', src: 'https://picsum.photos/1080/1920?random=8', alt: 'Mobile app showcase 8' },
+  { id: 'img9', src: 'https://picsum.photos/1080/1920?random=9', alt: 'Mobile app showcase 9' },
+  { id: 'img10', src: 'https://picsum.photos/1080/1920?random=10', alt: 'Mobile app showcase 10' },
+  { id: 'img11', src: 'https://picsum.photos/1080/1920?random=11', alt: 'Mobile app showcase 11' },
+  { id: 'img12', src: 'https://picsum.photos/1080/1920?random=12', alt: 'Mobile app showcase 12' },
+];

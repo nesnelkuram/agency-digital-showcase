@@ -3,7 +3,7 @@ import { Canvas, useThree } from '@react-three/fiber';
 import { Environment } from '@react-three/drei';
 import * as THREE from 'three';
 import AnimatedPhone from './AnimatedPhone';
-import { HEADER_VIDEOS } from '../constants';
+import { PHONE_IMAGES } from '../constants';
 
 const Header3D: React.FC = () => {
   const [parallaxOffset, setParallaxOffset] = useState(0);
@@ -12,7 +12,7 @@ const Header3D: React.FC = () => {
   const animationFrameRef = useRef<number>();
   
   // How many viewport-heights to scroll before parallax ends
-  const PARALLAX_DURATION_VIEWPORTS = 5;
+  const PARALLAX_DURATION_VIEWPORTS = 2.5; // Daha kısa scroll mesafesi
 
   useEffect(() => {
     let ticking = false;
@@ -45,10 +45,23 @@ const Header3D: React.FC = () => {
           }
 
           const scrollProgress = effectiveParallaxScroll / parallaxActiveScrollRange;
-          const MAX_OFFSET_PERCENT = 120;
+          const MAX_OFFSET_PERCENT = 60; // Azaltıldı - telefonlar viewport'ta kalacak
           const newParallaxOffset = scrollProgress * MAX_OFFSET_PERCENT;
 
+          // Debug log'ları
+          console.log('Scroll Debug:', {
+            scrollY,
+            headerTopOffset,
+            headerClientHeight,
+            viewportHeight,
+            scrollRelativeToStickyActive,
+            parallaxActiveScrollRange,
+            scrollProgress,
+            newParallaxOffset
+          });
+          
           setParallaxOffset(newParallaxOffset);
+          
           ticking = false;
         });
       }
@@ -69,19 +82,11 @@ const Header3D: React.FC = () => {
     const colsPerRow = Array(12).fill(4); // 12 rows, 4 columns each = 48 phones
     const totalPhones = colsPerRow.reduce((sum, count) => sum + count, 0);
     return Array.from({ length: totalPhones }).map((_, idx) => {
-      // En soldaki telefonlar (her satırın ilk telefonu) Dikey_2_1.mp4 göstersin
-      if (idx % 4 === 0) { // Her satırın ilk telefonu (0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44)
-        return {
-          key: `phone-${idx}`,
-          videoSrc: '/videos/Dikey_2_1.mp4',
-          altText: 'Dikey video 2.1',
-        };
-      }
-      const videoIdx = idx % HEADER_VIDEOS.length;
+      const imageIdx = idx % PHONE_IMAGES.length;
       return {
         key: `phone-${idx}`,
-        videoSrc: HEADER_VIDEOS[videoIdx].src,
-        altText: HEADER_VIDEOS[videoIdx].alt,
+        videoSrc: PHONE_IMAGES[imageIdx].src, // IPhone3D hala videoSrc prop'unu bekliyor
+        altText: PHONE_IMAGES[imageIdx].alt,
       };
     });
   }, []);
@@ -99,9 +104,7 @@ const Header3D: React.FC = () => {
           className="absolute inset-0 z-10 flex justify-center items-center"
           style={{ 
             perspective: '1000px', 
-            perspectiveOrigin: '60% 40%',  // adjusted vanishing point
-            opacity: 0,
-            animation: 'fade-in 1.2s ease-out 0.8s forwards'
+            perspectiveOrigin: '60% 40%'  // adjusted vanishing point
           }}
         >
           <Canvas
@@ -120,7 +123,12 @@ const Header3D: React.FC = () => {
               depth: true,
             }}
             dpr={[1, 2]}
-            style={{ width: '100%', height: '100%' }}
+            style={{ 
+              width: '100%', 
+              height: '100%',
+              opacity: 0,
+              animation: 'fade-in 1.2s ease-out 0.8s forwards'
+            }}
           >
             <CameraController 
               lookAt={[0, 0, 0]}
@@ -145,10 +153,29 @@ const Header3D: React.FC = () => {
                           const movingDown = col % 2 !== 0;
                           const spacingX = 1;
                           const spacingY = 1.8;
-                          const isSelected = selectedPhone === cfg.key;
                           const x = (col - 1.5) * spacingX;  // Ortalamak için
-                          const y = (row - 6) * spacingY + (movingDown ? -parallaxOffset * 0.015 : parallaxOffset * 0.015);
+                          // En üst satırdaki telefonların aşağı inmesini engelle
+                          const baseY = (row - 6) * spacingY;
+                          const offsetMultiplier = 0.06; // Daha yavaş hareket
+                          let yOffset;
+                          
+                          if (movingDown) {
+                            // Çift sütunlar (aşağı hareket) - en üst satır için sınırlama
+                            yOffset = -parallaxOffset * offsetMultiplier;
+                            // En üst satırdaki telefonların çok fazla aşağı inmesini engelle
+                            if (row === 0) {
+                              yOffset = Math.max(yOffset, -spacingY * 0.5); // Maksimum yarım satır aşağı
+                            }
+                          } else {
+                            // Tek sütunlar (yukarı hareket)
+                            yOffset = parallaxOffset * offsetMultiplier;
+                          }
+                          
+                          const y = baseY + yOffset;
+                          
+                          
                           const z = 0;  // Z pozisyonu sabit, animasyon component içinde
+                          const isSelected = selectedPhone === cfg.key;
                           return (
                             <AnimatedPhone
                               key={cfg.key}
@@ -211,7 +238,7 @@ const Header3D: React.FC = () => {
 // Camera Controller Component
 function CameraController({ 
   lookAt,
-  rotation = [0, 0, 0]
+  rotation = [0, 0, 0] 
 }: { 
   lookAt?: [number, number, number];
   rotation?: [number, number, number]; // [x, y, z] Euler angles in radians
@@ -219,13 +246,12 @@ function CameraController({
   const { camera } = useThree();
   
   useEffect(() => {
-    // Önce rotation'ı uygula
-    camera.rotation.set(rotation[0], rotation[1], rotation[2]);
-    
-    // Eğer lookAt verilmişse ve rotation sıfırsa, lookAt kullan
-    if (lookAt && rotation.every(r => r === 0)) {
-      camera.lookAt(new THREE.Vector3(...lookAt));
+    if (lookAt) {
+      camera.lookAt(...lookAt);
     }
+    
+    // Apply rotation
+    camera.rotation.set(...rotation);
     
     camera.updateProjectionMatrix();
   }, [camera, lookAt, rotation]);
