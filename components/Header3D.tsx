@@ -9,6 +9,8 @@ import { PHONE_IMAGES, PHONE_MEDIA_CONTENT } from '../constants';
 const Header3D: React.FC = () => {
   const [parallaxOffset, setParallaxOffset] = useState(0);
   const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
+  const [isClosing, setIsClosing] = useState(false);
+  const [lastSelectedPhone, setLastSelectedPhone] = useState<string | null>(null);
   const headerRef = useRef<HTMLElement>(null);
   const animationFrameRef = useRef<number>();
   
@@ -308,7 +310,20 @@ const Header3D: React.FC = () => {
                                 isSelected={isSelected}
                                 shouldFall={shouldFall}
                                 fallDelay={fallDelay}
-                                onClick={() => setSelectedPhone(isSelected ? null : cfg.key)}
+                                onClick={() => {
+                                  if (isSelected) {
+                                    setIsClosing(true);
+                                    setLastSelectedPhone(selectedPhone);
+                                    setSelectedPhone(null);  // Phone moves immediately
+                                    setTimeout(() => {
+                                      setIsClosing(false);
+                                      setLastSelectedPhone(null);
+                                    }, 800);
+                                  } else {
+                                    setSelectedPhone(cfg.key);
+                                    setLastSelectedPhone(cfg.key);
+                                  }
+                                }}
                                 onDeselect={() => setSelectedPhone(null)}
                               />
                             );
@@ -321,7 +336,20 @@ const Header3D: React.FC = () => {
                                 isSelected={isSelected}
                                 shouldFall={shouldFall}
                                 fallDelay={fallDelay}
-                                onClick={() => setSelectedPhone(isSelected ? null : cfg.key)}
+                                onClick={() => {
+                                  if (isSelected) {
+                                    setIsClosing(true);
+                                    setLastSelectedPhone(selectedPhone);
+                                    setSelectedPhone(null);  // Phone moves immediately
+                                    setTimeout(() => {
+                                      setIsClosing(false);
+                                      setLastSelectedPhone(null);
+                                    }, 800);
+                                  } else {
+                                    setSelectedPhone(cfg.key);
+                                    setLastSelectedPhone(cfg.key);
+                                  }
+                                }}
                               />
                             );
                           }
@@ -339,45 +367,80 @@ const Header3D: React.FC = () => {
         {/* Expanding circle background - only in header section */}
         <div 
           className={`absolute bg-[#fffceb] rounded-full transition-all ${
-            selectedPhone ? 'z-30' : 'z-10'
+            selectedPhone || isClosing ? 'z-30' : 'z-10'
           }`}
           style={{
-            // Original circle center is at 84% horizontal, 26% vertical
-            width: selectedPhone ? '400vw' : '100vh',
-            height: selectedPhone ? '400vw' : '100vh',
-            left: '84%',
-            top: '26%',
+            // Circle expands when selected, shrinks when closing
+            width: isClosing ? '100vh' : (selectedPhone ? '400vw' : '100vh'),
+            height: isClosing ? '100vh' : (selectedPhone ? '400vw' : '100vh'),
+            // Position changes based on state
+            left: isClosing ? '84%' : (selectedPhone ? '60%' : '84%'),
+            top: isClosing ? '26%' : (selectedPhone ? '50%' : '26%'),
             transform: 'translate(-50%, -50%)',
-            transitionDuration: selectedPhone ? '2000ms' : '1500ms',
-            transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)',
+            transitionDuration: isClosing ? '2800ms' : (selectedPhone ? '2500ms' : '2000ms'),
+            transitionDelay: '0ms', // Always immediate
+            transitionTimingFunction: isClosing 
+              ? 'cubic-bezier(0.4, 0, 0.2, 1)' // smooth contraction
+              : 'cubic-bezier(0.25, 0.46, 0.45, 0.94)', // smooth expansion
           }}
-          onClick={() => selectedPhone && setSelectedPhone(null)}
+          onClick={() => {
+            if (selectedPhone) {
+              setIsClosing(true);
+              setLastSelectedPhone(selectedPhone);
+              setSelectedPhone(null);  // Phone moves immediately
+              setTimeout(() => {
+                setIsClosing(false);
+                setLastSelectedPhone(null);
+              }, 800);
+            }
+          }}
         />
         
         {/* Project details - shown when phone is selected */}
-        {selectedPhone && (
+        {(selectedPhone || isClosing) && (
           <div className="absolute inset-0 z-40 pointer-events-none flex h-full">
             {/* Left side - Project details */}
-            <div className={`w-1/2 p-16 flex flex-col justify-center transition-all duration-700 delay-500 pointer-events-auto ${
-              selectedPhone ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-10'
-            }`}>
+            <div className={`w-1/2 p-16 flex flex-col justify-center pointer-events-auto`}
+                 style={{
+                   opacity: isClosing ? 0 : 1,
+                   transform: isClosing ? 'translateY(30px)' : 'translateY(0)',
+                   transition: 'all 800ms cubic-bezier(0.4, 0, 0.2, 1)',
+                   transitionDelay: isClosing ? '0ms' : '600ms'
+                 }}>
               {(() => {
-                const selectedConfig = phoneConfigs.find(cfg => cfg.key === selectedPhone);
+                const phoneKey = isClosing ? lastSelectedPhone : selectedPhone;
+                const selectedConfig = phoneConfigs.find(cfg => cfg.key === phoneKey);
                 const project = selectedConfig?.project;
                 if (!project) return null;
                 
                 return (
                   <>
-                    <h2 className="font-ramillas text-5xl mb-2 text-neutral-900">
+                    <h2 className="font-ramillas text-5xl mb-2 text-neutral-900"
+                        style={{
+                          opacity: 0,
+                          animation: !isClosing && selectedPhone ? 'fadeInUpSmooth 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.8s forwards' : isClosing ? 'fadeOutDown 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards' : 'none'
+                        }}>
                       <span className="font-bold">{project.title}</span>
                     </h2>
-                    <h3 className="font-ramillas text-3xl mb-6 text-neutral-600 font-normal italic">
+                    <h3 className="font-ramillas text-3xl mb-6 text-neutral-600 font-normal italic"
+                        style={{
+                          opacity: 0,
+                          animation: !isClosing && selectedPhone ? 'fadeInUpSmooth 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) 1s forwards' : isClosing ? 'fadeOutDown 0.8s cubic-bezier(0.4, 0, 0.2, 1) 0.05s forwards' : 'none'
+                        }}>
                       {project.subtitle}
                     </h3>
-                    <p className="font-grotesk text-xl text-neutral-700 mb-8 leading-relaxed">
+                    <p className="font-grotesk text-xl text-neutral-700 mb-8 leading-relaxed"
+                        style={{
+                          opacity: 0,
+                          animation: !isClosing && selectedPhone ? 'fadeInUpSmooth 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) 1.2s forwards' : isClosing ? 'fadeOutDown 0.8s cubic-bezier(0.4, 0, 0.2, 1) 0.1s forwards' : 'none'
+                        }}>
                       {project.description}
                     </p>
-                    <div className="flex gap-3 flex-wrap">
+                    <div className="flex gap-3 flex-wrap"
+                         style={{
+                           opacity: 0,
+                           animation: !isClosing && selectedPhone ? 'fadeInUpSmooth 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) 1.4s forwards' : isClosing ? 'fadeOutDown 0.8s cubic-bezier(0.4, 0, 0.2, 1) 0.15s forwards' : 'none'
+                         }}>
                       {project.tags.map((tag, i) => (
                         <span key={i} className="font-grotesk px-4 py-2 bg-neutral-200 rounded-full text-sm">
                           {tag}
@@ -395,7 +458,12 @@ const Header3D: React.FC = () => {
         )}
 
         {/* Content Layer */}
-        <div className={`relative z-20 text-left max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-4xl p-6 sm:p-8 md:p-12 lg:p-16 xl:p-20 transition-opacity duration-300 ${selectedPhone ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+        <div className={`relative z-20 text-left max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-4xl p-6 sm:p-8 md:p-12 lg:p-16 xl:p-20 transition-all ${selectedPhone ? 'opacity-0 translate-y-12 pointer-events-none' : 'opacity-100 translate-y-0'}`}
+             style={{
+               transitionDuration: selectedPhone ? '800ms' : '1000ms',
+               transitionDelay: selectedPhone ? '0ms' : '200ms',
+               transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)'
+             }}>
           <div >
             <h1
               className="font-ramillas text-neutral-900 mb-6"

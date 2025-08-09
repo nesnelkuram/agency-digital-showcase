@@ -1,4 +1,4 @@
-import React, { useRef, Suspense, useState, useEffect } from 'react';
+import React, { useRef, Suspense, useState, useEffect, useMemo } from 'react';
 import { animated, useSpring } from '@react-spring/three';
 import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
@@ -26,6 +26,9 @@ const AnimatedPhoneVideo: React.FC<AnimatedPhoneVideoProps> = ({
 }) => {
   const { camera } = useThree();
   const [playState, setPlayState] = useState<PlayState>('idle');
+  // Generate random delays and rotation direction (only calculated once)
+  const rotationStartDelay = useMemo(() => Math.random() * 2000 + 200, []); // 200-2200ms random delay
+  const rotationDirection = useMemo(() => Math.random() > 0.5 ? 1 : -1, []); // Random rotation direction
   
   // Handle play state changes
   const handlePlayStateChange = (newState: PlayState) => {
@@ -55,8 +58,8 @@ const AnimatedPhoneVideo: React.FC<AnimatedPhoneVideoProps> = ({
     z: 1.4      
   } : shouldFall ? {
     x: position[0],
-    y: position[1],      // Keep same height
-    z: position[2] - 50  // Move far back behind the scene
+    y: position[1],  // Keep same height
+    z: position[2] - 60  // Move backward away from camera
   } : {
     x: position[0],
     y: position[1],
@@ -69,30 +72,40 @@ const AnimatedPhoneVideo: React.FC<AnimatedPhoneVideoProps> = ({
     y: Math.PI * 2,      // 360 degree rotation
     z: 0
   } : shouldFall ? {
-    x: Math.PI * 0.2,    // Slight forward tilt
-    y: Math.PI * 2,      // Full 360 rotation while falling
-    z: Math.PI * 0.1     // Slight side rotation
+    x: 0,                // No tilt
+    y: Math.PI * 2 * rotationDirection,      // 360 degrees - one full rotation (random direction)
+    z: 0                 // No side rotation
   } : {
     x: 0,
     y: 0,
     z: 0
   };
   
-  // Smooth animation with spring
-  const { posX, posY, posZ, rotX, rotY, rotZ, scale, opacity } = useSpring({
+  // Smooth animation with spring - position and rotation separate
+  const { posX, posY, posZ, scale, opacity } = useSpring({
     posX: targetPosition.x,
     posY: targetPosition.y,
     posZ: targetPosition.z,
+    scale: isSelected ? 1.2 : shouldFall ? 0.8 : 1,
+    opacity: shouldFall ? 0 : 1,  // Fade out when moving back
+    config: { 
+      mass: shouldFall ? 10 : (isSelected ? 2 : 3),
+      tension: shouldFall ? 8 : (isSelected ? 60 : 40),
+      friction: shouldFall ? 35 : (isSelected ? 25 : 30),
+      delay: shouldFall ? (fallDelay * 2) : 0  // Staggered position movement
+    }
+  });
+
+  // Separate rotation animation with its own delay
+  const { rotX, rotY, rotZ } = useSpring({
     rotX: targetRotation.x,
     rotY: targetRotation.y,
     rotZ: targetRotation.z,
-    scale: isSelected ? 1.2 : shouldFall ? 0.7 : 1,
-    opacity: shouldFall ? 0 : 1,  // Fade out when moving back
     config: { 
-      mass: shouldFall ? 2 : (isSelected ? 2 : 3),
-      tension: shouldFall ? 50 : (isSelected ? 60 : 40),
-      friction: shouldFall ? 25 : (isSelected ? 25 : 30),
-      delay: shouldFall ? fallDelay : 0  // Sequential delay for falling
+      mass: isSelected ? 2 : 4,
+      tension: isSelected ? 60 : 20,
+      friction: isSelected ? 25 : 25,
+      delay: shouldFall ? rotationStartDelay : 0  // Random delay for rotation only
     }
   });
 

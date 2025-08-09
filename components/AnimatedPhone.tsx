@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useMemo } from 'react';
 import { animated, useSpring } from '@react-spring/three';
 import IPhone3D from './IPhone3D';
 
@@ -19,6 +19,9 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
   shouldFall = false,
   fallDelay = 0
 }) => {
+  // Generate random delays and rotation direction (only calculated once)
+  const rotationStartDelay = useMemo(() => Math.random() * 2000 + 200, []); // 200-2200ms random delay
+  const rotationDirection = useMemo(() => Math.random() > 0.5 ? 1 : -1, []); // Random rotation direction
   
   // Kamera FOV'u 8 derece ve rotation'ı dikkate alarak telefonu viewport'ta tut
   const targetPosition = isSelected ? {
@@ -27,8 +30,8 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
     z: 6      // Kameraya yakın ama tamamı görünecek mesafede
   } : shouldFall ? {
     x: position[0],
-    y: position[1],      // Keep same height
-    z: position[2] - 50  // Move far back behind the scene
+    y: position[1],  // Keep same height
+    z: position[2] - 60  // Move backward away from camera
   } : {
     x: position[0],
     y: position[1],
@@ -42,30 +45,40 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
     y: Math.PI * 2.3,      // 360 derece Y ekseninde dönüş
     z: 0
   } : shouldFall ? {
-    x: Math.PI * 0.2,    // Slight forward tilt
-    y: Math.PI * 2,      // Full 360 rotation while falling
-    z: Math.PI * 0.1     // Slight side rotation
+    x: 0,                // No tilt
+    y: Math.PI * 2 * rotationDirection,      // 360 degrees - one full rotation (random direction)
+    z: 0                 // No side rotation
   } : {
     x: 0,
     y: 0,
     z: 0
   };
   
-  // Yavaş ve yumuşak animasyon
-  const { posX, posY, posZ, rotX, rotY, rotZ, scale, opacity } = useSpring({
+  // Yavaş ve yumuşak animasyon - position ve rotation ayrı
+  const { posX, posY, posZ, scale, opacity } = useSpring({
     posX: targetPosition.x,
     posY: targetPosition.y,
     posZ: targetPosition.z,
+    scale: shouldFall ? 0.8 : 1,  // Slight shrink when moving back
+    opacity: shouldFall ? 0 : 1,  // Fade out when moving back
+    config: { 
+      mass: shouldFall ? 10 : 3,      // Heavy for slow initial movement
+      tension: shouldFall ? 8 : 40,   // Low tension for slow start
+      friction: shouldFall ? 35 : 30, // High friction
+      delay: shouldFall ? (fallDelay * 2) : 0  // Staggered position movement
+    }
+  });
+
+  // Separate rotation animation with its own delay
+  const { rotX, rotY, rotZ } = useSpring({
     rotX: targetRotation.x,
     rotY: targetRotation.y,
     rotZ: targetRotation.z,
-    scale: shouldFall ? 0.7 : 1,  // Shrink when moving back
-    opacity: shouldFall ? 0 : 1,  // Fade out when moving back
     config: { 
-      mass: shouldFall ? 2 : 3,      // Medium mass for smooth backward motion
-      tension: shouldFall ? 50 : 40,  // Medium tension for controlled movement
-      friction: shouldFall ? 25 : 30,  // Medium friction for smooth stop
-      delay: shouldFall ? fallDelay : 0  // Sequential delay for falling
+      mass: 4,
+      tension: 20,
+      friction: 25,
+      delay: shouldFall ? rotationStartDelay : 0  // Random delay for rotation only
     }
   });
 
