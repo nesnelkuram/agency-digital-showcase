@@ -62,28 +62,28 @@ export const PHONE_MEDIA_CONTENT: MediaContent[] = [
   {
     id: 'media1',
     thumbnail: 'https://picsum.photos/1080/1920?random=1',
-    preview: 'https://www.exit109.com/~dnn/clips/RW20seconds_1.mp4', // 20 sn kısa klip
-    fullVideo: 'https://www.exit109.com/~dnn/clips/RW20seconds_1.mp4',
+    preview: '/videos/preview/1.webm', // Yerel WebM video
+    fullVideo: '/videos/preview/1.webm',
     alt: 'Showcase video 1',
-    duration: 20,
+    duration: 10,
     type: 'video'
   },
   {
     id: 'media2',
     thumbnail: 'https://picsum.photos/1080/1920?random=2',
-    preview: 'https://www.exit109.com/~dnn/clips/RW20seconds_2.mp4',
-    fullVideo: 'https://www.exit109.com/~dnn/clips/RW20seconds_2.mp4',
+    preview: '/videos/preview/1.webm', // Aynı video farklı telefonda
+    fullVideo: '/videos/preview/1.webm',
     alt: 'Showcase video 2',
-    duration: 20,
+    duration: 10,
     type: 'video'
   },
   {
     id: 'media3',
     thumbnail: 'https://picsum.photos/1080/1920?random=3',
-    preview: 'https://www.exit109.com/~dnn/clips/bbb_480_688.mp4',
-    fullVideo: 'https://www.exit109.com/~dnn/clips/bbb_480_688.mp4',
-    alt: 'Big Buck Bunny mobile',
-    duration: 30,
+    preview: '/videos/preview/1.webm', // Test için aynı video
+    fullVideo: '/videos/preview/1.webm',
+    alt: 'Showcase video 3',
+    duration: 10,
     type: 'video'
   },
   {
