@@ -1,6 +1,5 @@
-import React, { useMemo, useEffect, useRef } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { useGLTF } from '@react-three/drei';
-import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
 interface IPhone3DProps {
@@ -23,50 +22,6 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
   // Load iPhone model
   const { scene } = useGLTF('/models/iphone_14_pro_max/scene.gltf') as any;
   
-  // Store video element reference for aspect ratio
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  
-  // Create texture - handle both images and videos
-  const imageTexture = useMemo(() => {
-    // Check if it's a video file
-    if (videoSrc.endsWith('.webm') || videoSrc.endsWith('.mp4')) {
-      const video = document.createElement('video');
-      video.src = videoSrc;
-      video.crossOrigin = 'anonymous';
-      video.loop = true;
-      video.muted = true;
-      video.playsInline = true;
-      video.autoplay = true;
-      
-      // Store video reference
-      videoRef.current = video;
-      
-      // Only play if near camera
-      if (isNearCamera) {
-        video.play().catch(err => {
-          console.warn('Video autoplay failed:', err);
-        });
-      } else {
-        video.pause();
-      }
-      
-      const texture = new THREE.VideoTexture(video);
-      texture.minFilter = THREE.LinearFilter;
-      texture.magFilter = THREE.LinearFilter;
-      texture.generateMipmaps = false;
-      texture.colorSpace = THREE.SRGBColorSpace;
-      return texture;
-    } else {
-      // Regular image
-      const texture = new THREE.TextureLoader().load(videoSrc);
-      texture.minFilter = THREE.LinearFilter;
-      texture.magFilter = THREE.LinearFilter;
-      texture.generateMipmaps = false;
-      texture.colorSpace = THREE.SRGBColorSpace;
-      return texture;
-    }
-  }, [videoSrc]);
-
   // Clone the scene to avoid modifying the original
   const clonedScene = useMemo(() => {
     const cloned = scene.clone();
@@ -144,28 +99,18 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
       });
     }
     
-    // Apply video to the found screen mesh
+    // Apply black screen to the found screen mesh
     if (screenMesh) {
       console.log(`\n✓ FOUND SCREEN: ${screenMesh.name}`);
       const mesh = screenMesh.mesh;
       
-      // Don't clone video textures - use directly
-      // Simple horizontal flip for correct orientation
-      imageTexture.repeat.set(-1, 1);
-      imageTexture.offset.set(1, 0);
-      
-      // Set proper texture settings
-      imageTexture.wrapS = THREE.ClampToEdgeWrapping;
-      imageTexture.wrapT = THREE.ClampToEdgeWrapping;
-      imageTexture.needsUpdate = true;
-      
-      // Create new material with video texture
+      // Make screen black for now
       mesh.material = new THREE.MeshBasicMaterial({
-        map: imageTexture,
+        color: 0x000000,
         toneMapped: false
       });
       
-      console.log('✓ Applied video texture with correct aspect ratio');
+      console.log('✓ Applied black screen');
     } else {
       console.log('\n❌ Could not find screen mesh!');
     }
@@ -184,53 +129,44 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
           child.material = new THREE.MeshStandardMaterial({
             color: '#e5e5e7',
             metalness: 0.95,
-            roughness: 0.15
+            roughness: 0.05,
+            envMapIntensity: 1
+          });
+        }
+        
+        // Make any glass or lens darker
+        if (meshName.includes('glass') || 
+            meshName.includes('lens') ||
+            meshName.includes('camera')) {
+          child.material = new THREE.MeshStandardMaterial({
+            color: '#1a1a1a',
+            metalness: 0.9,
+            roughness: 0.1,
+            envMapIntensity: 0.5
           });
         }
       }
     });
-  }, [clonedScene, imageTexture]);
-
-  // Control video playback based on distance
-  useEffect(() => {
-    if (videoRef.current) {
-      if (isNearCamera) {
-        videoRef.current.play().catch(() => {});
-      } else {
-        videoRef.current.pause();
-      }
-    }
-  }, [isNearCamera]);
-
-  // Update video texture every frame when playing
-  useFrame(() => {
-    // Update texture if it's a video and near camera
-    if (imageTexture instanceof THREE.VideoTexture && isNearCamera) {
-      imageTexture.needsUpdate = true;
-    }
-  });
+  }, [clonedScene, videoSrc, isNearCamera]);
 
   // Calculate scale once and memoize it
   const calculatedScale = useMemo(() => {
     const box = new THREE.Box3().setFromObject(clonedScene);
     const size = box.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
     
-    // ModernPhone dimensions: [0.75, 1.6, 0.08]
-    const targetHeight = 1.6;
-    const currentHeight = size.y;
+    // Target size: slightly larger than ModernPhone
+    const targetSize = 1.8;
+    const scaleValue = targetSize / maxDim;
     
-    // Calculate scale factor to match ModernPhone height
-    const scaleFactor = targetHeight / currentHeight;
-    
-    console.log('Calculated scale factor:', scaleFactor);
-    return scaleFactor;
-  }, [clonedScene]);
+    console.log('Calculated scale for iPhone:', scaleValue);
+    return scaleValue * scale;
+  }, [clonedScene, scale]);
 
   return (
     <group 
       position={position} 
-      rotation={rotation} 
-      scale={scale * calculatedScale}
+      rotation={rotation}
       onClick={onClick}
       onPointerOver={(e) => {
         e.stopPropagation();
@@ -241,7 +177,10 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
         document.body.style.cursor = 'auto';
       }}
     >
-      <primitive object={clonedScene} />
+      <primitive 
+        object={clonedScene} 
+        scale={calculatedScale}
+      />
     </group>
   );
 };

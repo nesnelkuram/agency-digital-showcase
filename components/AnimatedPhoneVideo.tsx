@@ -11,6 +11,8 @@ interface AnimatedPhoneVideoProps {
   isSelected: boolean;
   onClick: () => void;
   onDeselect: () => void;
+  shouldFall?: boolean;
+  fallDelay?: number;
 }
 
 const AnimatedPhoneVideo: React.FC<AnimatedPhoneVideoProps> = ({ 
@@ -18,7 +20,9 @@ const AnimatedPhoneVideo: React.FC<AnimatedPhoneVideoProps> = ({
   position, 
   isSelected, 
   onClick,
-  onDeselect
+  onDeselect,
+  shouldFall = false,
+  fallDelay = 0
 }) => {
   const { camera } = useThree();
   const [playState, setPlayState] = useState<PlayState>('idle');
@@ -49,6 +53,10 @@ const AnimatedPhoneVideo: React.FC<AnimatedPhoneVideoProps> = ({
     x: -1,       
     y: 0.1,      
     z: 1.4      
+  } : shouldFall ? {
+    x: position[0],
+    y: position[1],      // Keep same height
+    z: position[2] - 50  // Move far back behind the scene
   } : {
     x: position[0],
     y: position[1],
@@ -60,6 +68,10 @@ const AnimatedPhoneVideo: React.FC<AnimatedPhoneVideoProps> = ({
     x: Math.PI / 6,      // 30 degree tilt
     y: Math.PI * 2,      // 360 degree rotation
     z: 0
+  } : shouldFall ? {
+    x: Math.PI * 0.2,    // Slight forward tilt
+    y: Math.PI * 2,      // Full 360 rotation while falling
+    z: Math.PI * 0.1     // Slight side rotation
   } : {
     x: 0,
     y: 0,
@@ -67,18 +79,20 @@ const AnimatedPhoneVideo: React.FC<AnimatedPhoneVideoProps> = ({
   };
   
   // Smooth animation with spring
-  const { posX, posY, posZ, rotX, rotY, rotZ, scale } = useSpring({
+  const { posX, posY, posZ, rotX, rotY, rotZ, scale, opacity } = useSpring({
     posX: targetPosition.x,
     posY: targetPosition.y,
     posZ: targetPosition.z,
     rotX: targetRotation.x,
     rotY: targetRotation.y,
     rotZ: targetRotation.z,
-    scale: isSelected ? 1.2 : 1,
+    scale: isSelected ? 1.2 : shouldFall ? 0.7 : 1,
+    opacity: shouldFall ? 0 : 1,  // Fade out when moving back
     config: { 
-      mass: isSelected ? 2 : 3,
-      tension: isSelected ? 60 : 40,
-      friction: isSelected ? 25 : 30
+      mass: shouldFall ? 2 : (isSelected ? 2 : 3),
+      tension: shouldFall ? 50 : (isSelected ? 60 : 40),
+      friction: shouldFall ? 25 : (isSelected ? 25 : 30),
+      delay: shouldFall ? fallDelay : 0  // Sequential delay for falling
     }
   });
 

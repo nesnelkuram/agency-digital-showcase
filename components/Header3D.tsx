@@ -13,7 +13,7 @@ const Header3D: React.FC = () => {
   const animationFrameRef = useRef<number>();
   
   // How many viewport-heights to scroll before parallax ends
-  const PARALLAX_DURATION_VIEWPORTS = 2.5; // Daha kısa scroll mesafesi
+  const PARALLAX_DURATION_VIEWPORTS = 5; // Original value for extended parallax viewing
 
   useEffect(() => {
     let ticking = false;
@@ -46,20 +46,8 @@ const Header3D: React.FC = () => {
           }
 
           const scrollProgress = effectiveParallaxScroll / parallaxActiveScrollRange;
-          const MAX_OFFSET_PERCENT = 60; // Azaltıldı - telefonlar viewport'ta kalacak
+          const MAX_OFFSET_PERCENT = 120; // Original value from working version
           const newParallaxOffset = scrollProgress * MAX_OFFSET_PERCENT;
-
-          // Debug log'ları
-          console.log('Scroll Debug:', {
-            scrollY,
-            headerTopOffset,
-            headerClientHeight,
-            viewportHeight,
-            scrollRelativeToStickyActive,
-            parallaxActiveScrollRange,
-            scrollProgress,
-            newParallaxOffset
-          });
           
           setParallaxOffset(newParallaxOffset);
           
@@ -79,11 +67,88 @@ const Header3D: React.FC = () => {
     };
   }, []);
 
+  // Project data for each phone
+  const projectData = [
+    {
+      title: "Mandarin Oriental",
+      subtitle: "Istanbul",
+      description: "Boğaz'ın eşsiz manzarasında lüks ve konforun buluştuğu nokta. 5 yıldızlı otel deneyimini sinematik bir hikayeye dönüştürdük.",
+      tags: ["Luxury Hotel", "Bosphorus", "5 Stars"]
+    },
+    {
+      title: "Four Seasons",
+      subtitle: "Sultanahmet",
+      description: "Tarihi yarımadanın kalbinde, Osmanlı mimarisinin modern konforla harmanlandığı benzersiz bir deneyim.",
+      tags: ["Historic", "Ottoman Style", "Premium"]
+    },
+    {
+      title: "Soho House",
+      subtitle: "Istanbul",
+      description: "Yaratıcı ruhların buluşma noktası. Sanat, tasarım ve sosyal yaşamın kesiştiği modern bir üyelik kulübü.",
+      tags: ["Members Club", "Creative", "Social"]
+    },
+    {
+      title: "Raffles",
+      subtitle: "Zorlu Center",
+      description: "Şehrin yeni lüks ikonu. Modern mimarinin ve sofistike tasarımın mükemmel uyumu.",
+      tags: ["Modern", "Luxury", "City View"]
+    },
+    {
+      title: "Edition",
+      subtitle: "Bodrum",
+      description: "Ege'nin mavisiyle buluşan çağdaş tasarım. Plaj kulübünden gece hayatına uzanan dinamik bir yaşam.",
+      tags: ["Beach Club", "Aegean", "Lifestyle"]
+    },
+    {
+      title: "Park Hyatt",
+      subtitle: "Maçka",
+      description: "İş ve sosyal hayatın kesişim noktasında, şehrin nabzını tutan prestijli bir adres.",
+      tags: ["Business", "City Center", "Premium"]
+    },
+    {
+      title: "W Hotel",
+      subtitle: "Akaretler",
+      description: "Genç ve dinamik enerjinin modern lüksle buluştuğu, şehrin en cool adresi.",
+      tags: ["Trendy", "Nightlife", "Young"]
+    },
+    {
+      title: "St. Regis",
+      subtitle: "Nişantaşı",
+      description: "Zarafet ve protokolün adresi. Geleneksel butler servisi ile unutulmaz bir konaklama deneyimi.",
+      tags: ["Elegant", "Butler Service", "Classic"]
+    },
+    {
+      title: "Shangri-La",
+      subtitle: "Bosphorus",
+      description: "Asya'nın misafirperverliği Boğaz'ın büyüsüyle buluşuyor. Huzur ve lüksün mükemmel dengesi.",
+      tags: ["Asian Hospitality", "Spa", "Wellness"]
+    },
+    {
+      title: "Swissotel",
+      subtitle: "The Bosphorus",
+      description: "İsviçre hassasiyeti ve Türk misafirperverliğinin eşsiz birleşimi. Kongre ve etkinliklerin vazgeçilmez adresi.",
+      tags: ["Conference", "Swiss Quality", "Events"]
+    },
+    {
+      title: "Çırağan Palace",
+      subtitle: "Kempinski",
+      description: "Osmanlı sarayından otele dönüşen tarihi mekan. Sultanlara layık bir konaklama deneyimi.",
+      tags: ["Palace", "Historic", "Royal"]
+    },
+    {
+      title: "Maxx Royal",
+      subtitle: "Bodrum",
+      description: "Her şey dahil lüks konseptinin zirvesi. Ailelere özel tasarlanmış tatil cenneti.",
+      tags: ["All Inclusive", "Family", "Resort"]
+    }
+  ];
+
   const phoneConfigs = useMemo(() => {
     const colsPerRow = Array(12).fill(4); // 12 rows, 4 columns each = 48 phones
     const totalPhones = colsPerRow.reduce((sum, count) => sum + count, 0);
     return Array.from({ length: totalPhones }).map((_, idx) => {
       const mediaIdx = idx % PHONE_MEDIA_CONTENT.length;
+      const projectIdx = idx % projectData.length;
       const row = Math.floor(idx / 4); // Her satırda 4 telefon var
       // İlk 3 satır (12 telefon) video olsun - performans için
       const useNewSystem = row < 3;
@@ -94,7 +159,8 @@ const Header3D: React.FC = () => {
           media: PHONE_MEDIA_CONTENT[mediaIdx],
           videoSrc: undefined,
           altText: undefined,
-          isVideo: true as const
+          isVideo: true as const,
+          project: projectData[projectIdx]
         };
       } else {
         // Geri kalanlar eski sistem
@@ -104,7 +170,8 @@ const Header3D: React.FC = () => {
           media: undefined,
           videoSrc: PHONE_IMAGES[imageIdx].src,
           altText: PHONE_IMAGES[imageIdx].alt,
-          isVideo: false as const
+          isVideo: false as const,
+          project: projectData[projectIdx]
         };
       }
     });
@@ -113,10 +180,10 @@ const Header3D: React.FC = () => {
   return (
     <header 
       ref={headerRef} 
-      className="relative w-full" 
+      className="relative w-full block" 
       style={{ height: `${PARALLAX_DURATION_VIEWPORTS * 100}vh` }}
     >
-      <div className="sticky top-0 h-screen w-full overflow-hidden flex items-center">
+      <div className="sticky top-0 h-screen w-full overflow-hidden flex items-center bg-[#ebeef8] z-10">
         
         {/* Logo */}
         <div className="absolute top-12 z-50" style={{ left: '5.5%' }}>
@@ -165,7 +232,7 @@ const Header3D: React.FC = () => {
           <Canvas
             shadows
             camera={{
-              position: [16, -10, 20],   // Tam karşıdan bakış
+              position: [16, -8, 20],   // Slightly higher camera for better view
               fov: 8,
               near: 0.1,
               far: 1000,
@@ -195,7 +262,7 @@ const Header3D: React.FC = () => {
 
             <Suspense fallback={null}>
               <Environment preset="studio" />
-              <group rotation={[0, 0, 0]} scale={1.3} position={[0, 0, 0]}>
+              <group rotation={[0, 0, 0]} scale={1.1} position={[0, 0, 0]}>
                 {(() => {
                   const colsPerRow = Array(12).fill(4);  // 12 satır
                   let idx = 0;
@@ -206,31 +273,30 @@ const Header3D: React.FC = () => {
                       <group key={`row-${row}`}>
                         {slice.map((cfg, col) => {
                           const movingDown = col % 2 !== 0;
-                          const spacingX = 1;
-                          const spacingY = 1.8;
-                          const x = (col - 1.5) * spacingX;  // Ortalamak için
-                          // En üst satırdaki telefonların aşağı inmesini engelle
-                          const baseY = (row - 6) * spacingY;
-                          const offsetMultiplier = 0.06; // Daha yavaş hareket
-                          let yOffset;
+                          const spacingX = 1.1;  // Increased horizontal spacing
+                          const spacingY = 2;  // Increased vertical spacing
+                          const x = (col - 1.5) * spacingX;  // Original centering
+                          // Original positioning from working version
+                          const baseY = (row - 6) * spacingY;  // Original position
+                          const offsetMultiplier = 0.025; // Increased movement for more visible parallax
                           
-                          if (movingDown) {
-                            // Çift sütunlar (aşağı hareket) - en üst satır için sınırlama
-                            yOffset = -parallaxOffset * offsetMultiplier;
-                            // En üst satırdaki telefonların çok fazla aşağı inmesini engelle
-                            if (row === 0) {
-                              yOffset = Math.max(yOffset, -spacingY * 0.5); // Maksimum yarım satır aşağı
-                            }
-                          } else {
-                            // Tek sütunlar (yukarı hareket)
-                            yOffset = parallaxOffset * offsetMultiplier;
-                          }
-                          
+                          // Simple parallax offset like in original
+                          const yOffset = movingDown ? -parallaxOffset * offsetMultiplier : parallaxOffset * offsetMultiplier;
                           const y = baseY + yOffset;
                           
                           
                           const z = 0;  // Z pozisyonu sabit, animasyon component içinde
                           const isSelected = selectedPhone === cfg.key;
+                          const shouldFall = !!(selectedPhone && !isSelected);
+                          
+                          // Calculate fall delay based on distance from selected phone
+                          let fallDelay = 0;
+                          if (shouldFall && selectedPhone) {
+                            const selectedIdx = phoneConfigs.findIndex(p => p.key === selectedPhone);
+                            const currentIdx = phoneConfigs.findIndex(p => p.key === cfg.key);
+                            const distance = Math.abs(currentIdx - selectedIdx);
+                            fallDelay = distance * 30; // 30ms delay per phone distance
+                          }
                           
                           // Use video component for media content, regular for images
                           if (cfg.isVideo && cfg.media) {
@@ -240,6 +306,8 @@ const Header3D: React.FC = () => {
                                 media={cfg.media}
                                 position={[x, y, z]}
                                 isSelected={isSelected}
+                                shouldFall={shouldFall}
+                                fallDelay={fallDelay}
                                 onClick={() => setSelectedPhone(isSelected ? null : cfg.key)}
                                 onDeselect={() => setSelectedPhone(null)}
                               />
@@ -251,6 +319,8 @@ const Header3D: React.FC = () => {
                                 videoSrc={cfg.videoSrc}
                                 position={[x, y, z]}
                                 isSelected={isSelected}
+                                shouldFall={shouldFall}
+                                fallDelay={fallDelay}
                                 onClick={() => setSelectedPhone(isSelected ? null : cfg.key)}
                               />
                             );
@@ -266,8 +336,66 @@ const Header3D: React.FC = () => {
           </Canvas>
         </div>
 
+        {/* Expanding circle background - only in header section */}
+        <div 
+          className={`absolute bg-[#fffceb] rounded-full transition-all ${
+            selectedPhone ? 'z-30' : 'z-10'
+          }`}
+          style={{
+            // Original circle center is at 84% horizontal, 26% vertical
+            width: selectedPhone ? '400vw' : '100vh',
+            height: selectedPhone ? '400vw' : '100vh',
+            left: '84%',
+            top: '26%',
+            transform: 'translate(-50%, -50%)',
+            transitionDuration: selectedPhone ? '2000ms' : '1500ms',
+            transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)',
+          }}
+          onClick={() => selectedPhone && setSelectedPhone(null)}
+        />
+        
+        {/* Project details - shown when phone is selected */}
+        {selectedPhone && (
+          <div className="absolute inset-0 z-40 pointer-events-none flex h-full">
+            {/* Left side - Project details */}
+            <div className={`w-1/2 p-16 flex flex-col justify-center transition-all duration-700 delay-500 pointer-events-auto ${
+              selectedPhone ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-10'
+            }`}>
+              {(() => {
+                const selectedConfig = phoneConfigs.find(cfg => cfg.key === selectedPhone);
+                const project = selectedConfig?.project;
+                if (!project) return null;
+                
+                return (
+                  <>
+                    <h2 className="font-ramillas text-5xl mb-2 text-neutral-900">
+                      <span className="font-bold">{project.title}</span>
+                    </h2>
+                    <h3 className="font-ramillas text-3xl mb-6 text-neutral-600 font-normal italic">
+                      {project.subtitle}
+                    </h3>
+                    <p className="font-grotesk text-xl text-neutral-700 mb-8 leading-relaxed">
+                      {project.description}
+                    </p>
+                    <div className="flex gap-3 flex-wrap">
+                      {project.tags.map((tag, i) => (
+                        <span key={i} className="font-grotesk px-4 py-2 bg-neutral-200 rounded-full text-sm">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+            
+            {/* Right side - Empty for phone */}
+            <div className="w-1/2" />
+          </div>
+        )}
+
         {/* Content Layer */}
-        <div  className="relative z-20 text-left max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-4xl p-6 sm:p-8 md:p-12 lg:p-16 xl:p-20">
+        <div className={`relative z-20 text-left max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-4xl p-6 sm:p-8 md:p-12 lg:p-16 xl:p-20 transition-opacity duration-300 ${selectedPhone ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
           <div >
             <h1
               className="font-ramillas text-neutral-900 mb-6"

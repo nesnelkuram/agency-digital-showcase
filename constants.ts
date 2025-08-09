@@ -40,29 +40,30 @@ export const HEADER_VIDEOS: VideoInfo[] = [
 // export const PHONE_ASPECT_RATIO_NUMBER = 9 / 19.5; // Example: 0.4615
 // The Tailwind class `aspect-[9/19.5]` is used directly for simplicity.
 
-// MP4 formatı daha iyi performans için
+// MP4 formatı daha iyi performans için - 13 farklı video karışık dağıtım
 export const PHONE_IMAGES = [
-  { id: 'img1', src: '/videos/preview/1.mp4', alt: 'Mobile video 1' },
-  { id: 'img2', src: '/videos/preview/1.mp4', alt: 'Mobile video 2' },
-  { id: 'img3', src: '/videos/preview/1.mp4', alt: 'Mobile video 3' },
-  { id: 'img4', src: '/videos/preview/1.mp4', alt: 'Mobile video 4' },
-  { id: 'img5', src: '/videos/preview/1.mp4', alt: 'Mobile video 5' },
-  { id: 'img6', src: '/videos/preview/1.mp4', alt: 'Mobile video 6' },
-  { id: 'img7', src: '/videos/preview/1.mp4', alt: 'Mobile video 7' },
-  { id: 'img8', src: '/videos/preview/1.mp4', alt: 'Mobile video 8' },
+  { id: 'img1', src: '/videos/preview/7.mp4', alt: 'Mobile video 1' },
+  { id: 'img2', src: '/videos/preview/3.mp4', alt: 'Mobile video 2' },
+  { id: 'img3', src: '/videos/preview/11.mp4', alt: 'Mobile video 3' },
+  { id: 'img4', src: '/videos/preview/5.mp4', alt: 'Mobile video 4' },
+  { id: 'img5', src: '/videos/preview/9.mp4', alt: 'Mobile video 5' },
+  { id: 'img6', src: '/videos/preview/2.mp4', alt: 'Mobile video 6' },
+  { id: 'img7', src: '/videos/preview/10.mp4', alt: 'Mobile video 7' },
+  { id: 'img8', src: '/videos/preview/6.mp4', alt: 'Mobile video 8' },
   { id: 'img9', src: '/videos/preview/1.mp4', alt: 'Mobile video 9' },
-  { id: 'img10', src: '/videos/preview/1.mp4', alt: 'Mobile video 10' },
-  { id: 'img11', src: '/videos/preview/1.mp4', alt: 'Mobile video 11' },
-  { id: 'img12', src: '/videos/preview/1.mp4', alt: 'Mobile video 12' },
+  { id: 'img10', src: '/videos/preview/8.mp4', alt: 'Mobile video 10' },
+  { id: 'img11', src: '/videos/preview/4.mp4', alt: 'Mobile video 11' },
+  { id: 'img12', src: '/videos/preview/11.mp4', alt: 'Mobile video 12' },
 ];
 
-// Tüm telefonlar için video içeriği - MP4 formatında
+// Tüm telefonlar için video içeriği - MP4 formatında karışık dağıtım
+const videoNumbers = [10, 7, 3, 11, 5, 9, 2, 10, 6, 1, 8, 4];
 export const PHONE_MEDIA_CONTENT: MediaContent[] = [
-  ...Array.from({ length: 12 }, (_, i) => ({
+  ...videoNumbers.map((num, i) => ({
     id: `media${i + 1}`,
     thumbnail: '/images/photo1.jpg', // Statik thumbnail
-    preview: '/videos/preview/1.mp4',  // MP4 format
-    fullVideo: '/videos/preview/1.mp4',
+    preview: `/videos/preview/${num}.mp4`,  // Karışık video dağıtımı
+    fullVideo: `/videos/preview/${num}.mp4`,
     alt: `Video showcase ${i + 1}`,
     duration: 10,
     type: 'video' as const

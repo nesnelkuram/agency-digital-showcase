@@ -1,8 +1,5 @@
-import React, { useRef, Suspense } from 'react';
+import React, { Suspense } from 'react';
 import { animated, useSpring } from '@react-spring/three';
-import { useThree } from '@react-three/fiber';
-import * as THREE from 'three';
-import ModernPhone from './ModernPhone';
 import IPhone3D from './IPhone3D';
 
 interface AnimatedPhoneProps {
@@ -10,42 +7,44 @@ interface AnimatedPhoneProps {
   position: [number, number, number];
   isSelected: boolean;
   onClick: () => void;
+  shouldFall?: boolean;
+  fallDelay?: number;
 }
 
 const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({ 
   videoSrc, 
   position, 
   isSelected, 
-  onClick 
+  onClick,
+  shouldFall = false,
+  fallDelay = 0
 }) => {
-  const { camera } = useThree();
-  
-  // Kamera pozisyonu [16, -10, 20] ve rotation [0.5, 0.7, 0.4]
-  const cameraPosition = new THREE.Vector3(16, -10, 20);
-  const cameraRotation = new THREE.Euler(0.5, 0.7, 0.4);
   
   // Kamera FOV'u 8 derece ve rotation'ı dikkate alarak telefonu viewport'ta tut
   const targetPosition = isSelected ? {
-    x: -1,       // Kamera rotation'ı nedeniyle sağa kaydır
-    y: 0.1,      // Kamera rotation'ı ve FOV için aşağıda tut
-    z: 1.4      // Kameraya yakın ama tamamı görünecek mesafede
+    x: 4.4,       // Kamera rotation'ı nedeniyle sağa kaydır
+    y: -1,      // Kamera rotation'ı ve FOV için aşağıda tut
+    z: 6      // Kameraya yakın ama tamamı görünecek mesafede
+  } : shouldFall ? {
+    x: position[0],
+    y: position[1],      // Keep same height
+    z: position[2] - 50  // Move far back behind the scene
   } : {
     x: position[0],
     y: position[1],
     z: position[2]
   };
   
-  // Telefon kameraya tam karşıdan baksın
-  const phonePos = new THREE.Vector3(targetPosition.x, targetPosition.y, targetPosition.z);
-  const lookAtDirection = cameraPosition.clone().sub(phonePos);
-  const phoneToCamera = Math.atan2(lookAtDirection.x, lookAtDirection.z);
-  
   // X ekseni: Üstten öne doğru eğilme
   // Y ekseni: Soldan sağa dönüş
   const targetRotation = isSelected ? {
-    x: Math.PI / 3,      // 30 derece öne eğilme
+    x: Math.PI / 4,      // 30 derece öne eğilme
     y: Math.PI * 2.3,      // 360 derece Y ekseninde dönüş
     z: 0
+  } : shouldFall ? {
+    x: Math.PI * 0.2,    // Slight forward tilt
+    y: Math.PI * 2,      // Full 360 rotation while falling
+    z: Math.PI * 0.1     // Slight side rotation
   } : {
     x: 0,
     y: 0,
@@ -53,18 +52,20 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
   };
   
   // Yavaş ve yumuşak animasyon
-  const { posX, posY, posZ, rotX, rotY, rotZ, scale } = useSpring({
+  const { posX, posY, posZ, rotX, rotY, rotZ, scale, opacity } = useSpring({
     posX: targetPosition.x,
     posY: targetPosition.y,
     posZ: targetPosition.z,
     rotX: targetRotation.x,
     rotY: targetRotation.y,
     rotZ: targetRotation.z,
-    scale: 1,  // Büyütme yok
+    scale: shouldFall ? 0.7 : 1,  // Shrink when moving back
+    opacity: shouldFall ? 0 : 1,  // Fade out when moving back
     config: { 
-      mass: 3,      // Daha ağır (yavaş hareket)
-      tension: 40,  // Çok düşük tension (daha yavaş)
-      friction: 30  // Orta friction
+      mass: shouldFall ? 2 : 3,      // Medium mass for smooth backward motion
+      tension: shouldFall ? 50 : 40,  // Medium tension for controlled movement
+      friction: shouldFall ? 25 : 30,  // Medium friction for smooth stop
+      delay: shouldFall ? fallDelay : 0  // Sequential delay for falling
     }
   });
 
@@ -99,7 +100,7 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
       ) : (
         // Basit placeholder viewport dışı için
         <mesh>
-          <boxGeometry args={[0.75, 1.6, 0.08]} />
+          <boxGeometry args={[0.75, 1.6, 9]} />
           <meshBasicMaterial color="#1a1a1a" />
         </mesh>
       )}
