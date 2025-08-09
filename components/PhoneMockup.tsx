@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 
 interface PhoneMockupProps {
   videoSrc: string;
@@ -7,6 +7,19 @@ interface PhoneMockupProps {
 }
 
 const PhoneMockup: React.FC<PhoneMockupProps> = ({ videoSrc, className, altText }) => {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const handlePlayPause = () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
   return (
     <div 
       className={`relative ${className}`}
@@ -19,7 +32,7 @@ const PhoneMockup: React.FC<PhoneMockupProps> = ({ videoSrc, className, altText 
     >
       {/* Phone body with metallic frame - iPhone 15/16 style */}
       <div 
-        className="relative bg-gradient-to-b from-neutral-900 to-neutral-800 rounded-[3rem] overflow-hidden aspect-[9/19] shadow-2xl"
+        className="relative bg-gradient-to-b from-neutral-900 to-neutral-800 rounded-[3rem] overflow-hidden aspect-[9/16] shadow-2xl"
         style={{
           boxShadow: `
             0 25px 50px rgba(0, 0, 0, 0.4),
@@ -50,7 +63,7 @@ const PhoneMockup: React.FC<PhoneMockupProps> = ({ videoSrc, className, altText 
           }}
         >
           {/* Screen area with subtle reflection */}
-          <div className="absolute inset-[3px] rounded-[2.4rem] overflow-hidden">
+          <div className="absolute inset-[3px] rounded-[2.4rem] overflow-hidden bg-black">
             {/* Glass reflection overlay */}
             <div 
               className="absolute inset-0 z-20 pointer-events-none"
@@ -61,17 +74,49 @@ const PhoneMockup: React.FC<PhoneMockupProps> = ({ videoSrc, className, altText 
             
             {/* Video content */}
             <video
+              ref={videoRef}
               key={videoSrc}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
               src={videoSrc}
-              autoPlay
               loop
               muted
               playsInline
               aria-label={altText}
+              onPlay={() => setIsPlaying(true)}
+              onPause={() => setIsPlaying(false)}
             >
               Your browser does not support the video tag.
             </video>
+            
+            {/* Play button overlay */}
+            {!isPlaying && (
+              <div 
+                className="absolute inset-0 flex items-center justify-center cursor-pointer"
+                style={{ zIndex: 25 }}
+                onClick={handlePlayPause}
+              >
+              <div 
+                className="w-20 h-20 bg-white/80 rounded-full flex items-center justify-center shadow-lg backdrop-blur-sm transition-all duration-300 hover:bg-white/90"
+                style={{
+                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3), 0 0 40px rgba(255, 255, 255, 0.2)',
+                }}
+              >
+                {/* Play icon */}
+                <svg 
+                  width="28" 
+                  height="28" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  className="ml-1"
+                >
+                  <path 
+                    d="M8 5v14l11-7z" 
+                    fill="rgba(0, 0, 0, 0.8)"
+                  />
+                </svg>
+              </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
