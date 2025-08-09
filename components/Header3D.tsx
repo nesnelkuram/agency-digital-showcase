@@ -85,9 +85,8 @@ const Header3D: React.FC = () => {
     return Array.from({ length: totalPhones }).map((_, idx) => {
       const mediaIdx = idx % PHONE_MEDIA_CONTENT.length;
       const row = Math.floor(idx / 4); // Her satırda 4 telefon var
-      // Videolu telefonları aralara dağıt - belirli indekslerde
-      const videoIndices = [5, 9, 14, 18, 22, 27, 31, 36, 40, 45]; // Karışık dağılım
-      const useNewSystem = videoIndices.includes(idx);
+      // İlk 3 satır (12 telefon) video olsun - performans için
+      const useNewSystem = row < 3;
       
       if (useNewSystem) {
         return {

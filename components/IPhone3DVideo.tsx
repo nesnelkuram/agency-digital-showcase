@@ -156,7 +156,18 @@ const IPhone3DVideo: React.FC<IPhone3DVideoProps> = ({
     // Find screen mesh - Strategy 1: By emissive map
     screenMesh = texturedMeshes.find(item => item.hasEmissive);
     
-    // Strategy 2: Find the front-most textured mesh
+    // Strategy 2: Find by name patterns
+    if (!screenMesh) {
+      screenMesh = texturedMeshes.find(item => {
+        const name = item.name.toLowerCase();
+        return name.includes('screen') || 
+               name.includes('display') || 
+               name.includes('wallpaper') ||
+               name.includes('glass');
+      });
+    }
+    
+    // Strategy 3: Find the front-most textured mesh
     if (!screenMesh && texturedMeshes.length > 0) {
       screenMesh = texturedMeshes.reduce((prev, curr) => {
         return curr.mesh.position.z > prev.mesh.position.z ? curr : prev;

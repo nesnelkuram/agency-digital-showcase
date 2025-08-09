@@ -1,5 +1,6 @@
 import React, { useMemo, useEffect } from 'react';
 import { useGLTF } from '@react-three/drei';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
 interface IPhone3DProps {
@@ -20,14 +21,38 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
   // Load iPhone model
   const { scene } = useGLTF('/models/iphone_14_pro_max/scene.gltf') as any;
   
-  // Create video texture - exactly like ModernPhone
+  // Create texture - handle both images and videos
   const imageTexture = useMemo(() => {
-    const texture = new THREE.TextureLoader().load(videoSrc);
-    texture.minFilter = THREE.LinearFilter;
-    texture.magFilter = THREE.LinearFilter;
-    texture.generateMipmaps = false;
-    texture.colorSpace = THREE.SRGBColorSpace;
-    return texture;
+    // Check if it's a video file
+    if (videoSrc.endsWith('.webm') || videoSrc.endsWith('.mp4')) {
+      const video = document.createElement('video');
+      video.src = videoSrc;
+      video.crossOrigin = 'anonymous';
+      video.loop = true;
+      video.muted = true;
+      video.playsInline = true;
+      video.autoplay = true;
+      
+      // Try to play
+      video.play().catch(err => {
+        console.warn('Video autoplay failed:', err);
+      });
+      
+      const texture = new THREE.VideoTexture(video);
+      texture.minFilter = THREE.LinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+      texture.generateMipmaps = false;
+      texture.colorSpace = THREE.SRGBColorSpace;
+      return texture;
+    } else {
+      // Regular image
+      const texture = new THREE.TextureLoader().load(videoSrc);
+      texture.minFilter = THREE.LinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+      texture.generateMipmaps = false;
+      texture.colorSpace = THREE.SRGBColorSpace;
+      return texture;
+    }
   }, [videoSrc]);
 
   // Clone the scene to avoid modifying the original
@@ -186,6 +211,13 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
       }
     });
   }, [clonedScene, imageTexture]);
+
+  // Update video texture on each frame if it's a video
+  useFrame(() => {
+    if (imageTexture instanceof THREE.VideoTexture) {
+      imageTexture.needsUpdate = true;
+    }
+  });
 
   // Calculate scale once and memoize it
   const calculatedScale = useMemo(() => {
