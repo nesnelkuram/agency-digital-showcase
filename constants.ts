@@ -40,28 +40,28 @@ export const HEADER_VIDEOS: VideoInfo[] = [
 // export const PHONE_ASPECT_RATIO_NUMBER = 9 / 19.5; // Example: 0.4615
 // The Tailwind class `aspect-[9/19.5]` is used directly for simplicity.
 
-// Geçici olarak eski yapıyı koruyoruz, yavaş yavaş MediaContent'e geçeceğiz
+// Public klasöründeki görselleri kullanalım
 export const PHONE_IMAGES = [
-  // Picsum ile rastgele fotoğraflar - 9:16 oranında (iPhone ekran oranı)
-  { id: 'img1', src: 'https://picsum.photos/1080/1920?random=1', alt: 'Mobile app showcase 1' },
-  { id: 'img2', src: 'https://picsum.photos/1080/1920?random=2', alt: 'Mobile app showcase 2' },
-  { id: 'img3', src: 'https://picsum.photos/1080/1920?random=3', alt: 'Mobile app showcase 3' },
-  { id: 'img4', src: 'https://picsum.photos/1080/1920?random=4', alt: 'Mobile app showcase 4' },
-  { id: 'img5', src: 'https://picsum.photos/1080/1920?random=5', alt: 'Mobile app showcase 5' },
-  { id: 'img6', src: 'https://picsum.photos/1080/1920?random=6', alt: 'Mobile app showcase 6' },
-  { id: 'img7', src: 'https://picsum.photos/1080/1920?random=7', alt: 'Mobile app showcase 7' },
-  { id: 'img8', src: 'https://picsum.photos/1080/1920?random=8', alt: 'Mobile app showcase 8' },
-  { id: 'img9', src: 'https://picsum.photos/1080/1920?random=9', alt: 'Mobile app showcase 9' },
-  { id: 'img10', src: 'https://picsum.photos/1080/1920?random=10', alt: 'Mobile app showcase 10' },
-  { id: 'img11', src: 'https://picsum.photos/1080/1920?random=11', alt: 'Mobile app showcase 11' },
-  { id: 'img12', src: 'https://picsum.photos/1080/1920?random=12', alt: 'Mobile app showcase 12' },
+  { id: 'img1', src: '/images/photo1.jpg', alt: 'Mobile app showcase 1' },
+  { id: 'img2', src: '/images/photo2.jpg', alt: 'Mobile app showcase 2' },
+  { id: 'img3', src: '/images/photo3.jpg', alt: 'Mobile app showcase 3' },
+  { id: 'img4', src: '/images/photo4.jpg', alt: 'Mobile app showcase 4' },
+  // Geri kalanlar için aynı görselleri tekrar kullanalım
+  { id: 'img5', src: '/images/photo1.jpg', alt: 'Mobile app showcase 5' },
+  { id: 'img6', src: '/images/photo2.jpg', alt: 'Mobile app showcase 6' },
+  { id: 'img7', src: '/images/photo3.jpg', alt: 'Mobile app showcase 7' },
+  { id: 'img8', src: '/images/photo4.jpg', alt: 'Mobile app showcase 8' },
+  { id: 'img9', src: '/images/photo1.jpg', alt: 'Mobile app showcase 9' },
+  { id: 'img10', src: '/images/photo2.jpg', alt: 'Mobile app showcase 10' },
+  { id: 'img11', src: '/images/photo3.jpg', alt: 'Mobile app showcase 11' },
+  { id: 'img12', src: '/images/photo4.jpg', alt: 'Mobile app showcase 12' },
 ];
 
 // Yeni medya içeriği yapısı - animasyonlu önizlemeler için
 export const PHONE_MEDIA_CONTENT: MediaContent[] = [
   {
     id: 'media1',
-    thumbnail: 'https://picsum.photos/1080/1920?random=1',
+    thumbnail: '/images/photo1.jpg',
     preview: '/videos/preview/1.webm', // Yerel WebM video
     fullVideo: '/videos/preview/1.webm',
     alt: 'Showcase video 1',
@@ -70,7 +70,7 @@ export const PHONE_MEDIA_CONTENT: MediaContent[] = [
   },
   {
     id: 'media2',
-    thumbnail: 'https://picsum.photos/1080/1920?random=2',
+    thumbnail: '/images/photo2.jpg',
     preview: '/videos/preview/1.webm', // Aynı video farklı telefonda
     fullVideo: '/videos/preview/1.webm',
     alt: 'Showcase video 2',
@@ -79,7 +79,7 @@ export const PHONE_MEDIA_CONTENT: MediaContent[] = [
   },
   {
     id: 'media3',
-    thumbnail: 'https://picsum.photos/1080/1920?random=3',
+    thumbnail: '/images/photo3.jpg',
     preview: '/videos/preview/1.webm', // Test için aynı video
     fullVideo: '/videos/preview/1.webm',
     alt: 'Showcase video 3',
@@ -88,29 +88,29 @@ export const PHONE_MEDIA_CONTENT: MediaContent[] = [
   },
   {
     id: 'media4',
-    thumbnail: 'https://picsum.photos/1080/1920?random=4',
+    thumbnail: '/images/photo4.jpg',
     alt: 'Static image showcase',
     type: 'image'
   },
   {
     id: 'media5',
-    thumbnail: 'https://picsum.photos/1080/1920?random=5',
-    preview: 'https://www.exit109.com/~dnn/clips/sintel_480_688.mp4',
-    fullVideo: 'https://www.exit109.com/~dnn/clips/sintel_480_688.mp4',
-    alt: 'Sintel mobile',
-    duration: 25,
+    thumbnail: '/images/photo1.jpg',
+    preview: '/videos/preview/1.webm',
+    fullVideo: '/videos/preview/1.webm',
+    alt: 'Video showcase 5',
+    duration: 10,
     type: 'video'
   },
   {
     id: 'media6',
-    thumbnail: 'https://picsum.photos/1080/1920?random=6',
+    thumbnail: '/images/photo2.jpg',
     alt: 'Static showcase 6',
     type: 'image'
   },
   // Geri kalanlar için statik görseller
   ...Array.from({ length: 6 }, (_, i) => ({
     id: `media${i + 7}`,
-    thumbnail: `https://picsum.photos/1080/1920?random=${i + 7}`,
+    thumbnail: `/images/photo${(i % 4) + 1}.jpg`,
     alt: `Showcase ${i + 7}`,
     type: 'image' as const
   }))
