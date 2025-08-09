@@ -40,29 +40,29 @@ export const HEADER_VIDEOS: VideoInfo[] = [
 // export const PHONE_ASPECT_RATIO_NUMBER = 9 / 19.5; // Example: 0.4615
 // The Tailwind class `aspect-[9/19.5]` is used directly for simplicity.
 
-// Tüm telefonlar için 1.webm kullan
+// MP4 formatı daha iyi performans için
 export const PHONE_IMAGES = [
-  { id: 'img1', src: '/videos/preview/1.webm', alt: 'Mobile video 1' },
-  { id: 'img2', src: '/videos/preview/1.webm', alt: 'Mobile video 2' },
-  { id: 'img3', src: '/videos/preview/1.webm', alt: 'Mobile video 3' },
-  { id: 'img4', src: '/videos/preview/1.webm', alt: 'Mobile video 4' },
-  { id: 'img5', src: '/videos/preview/1.webm', alt: 'Mobile video 5' },
-  { id: 'img6', src: '/videos/preview/1.webm', alt: 'Mobile video 6' },
-  { id: 'img7', src: '/videos/preview/1.webm', alt: 'Mobile video 7' },
-  { id: 'img8', src: '/videos/preview/1.webm', alt: 'Mobile video 8' },
-  { id: 'img9', src: '/videos/preview/1.webm', alt: 'Mobile video 9' },
-  { id: 'img10', src: '/videos/preview/1.webm', alt: 'Mobile video 10' },
-  { id: 'img11', src: '/videos/preview/1.webm', alt: 'Mobile video 11' },
-  { id: 'img12', src: '/videos/preview/1.webm', alt: 'Mobile video 12' },
+  { id: 'img1', src: '/videos/preview/1.mp4', alt: 'Mobile video 1' },
+  { id: 'img2', src: '/videos/preview/1.mp4', alt: 'Mobile video 2' },
+  { id: 'img3', src: '/videos/preview/1.mp4', alt: 'Mobile video 3' },
+  { id: 'img4', src: '/videos/preview/1.mp4', alt: 'Mobile video 4' },
+  { id: 'img5', src: '/videos/preview/1.mp4', alt: 'Mobile video 5' },
+  { id: 'img6', src: '/videos/preview/1.mp4', alt: 'Mobile video 6' },
+  { id: 'img7', src: '/videos/preview/1.mp4', alt: 'Mobile video 7' },
+  { id: 'img8', src: '/videos/preview/1.mp4', alt: 'Mobile video 8' },
+  { id: 'img9', src: '/videos/preview/1.mp4', alt: 'Mobile video 9' },
+  { id: 'img10', src: '/videos/preview/1.mp4', alt: 'Mobile video 10' },
+  { id: 'img11', src: '/videos/preview/1.mp4', alt: 'Mobile video 11' },
+  { id: 'img12', src: '/videos/preview/1.mp4', alt: 'Mobile video 12' },
 ];
 
-// Tüm telefonlar için video içeriği
+// Tüm telefonlar için video içeriği - MP4 formatında
 export const PHONE_MEDIA_CONTENT: MediaContent[] = [
   ...Array.from({ length: 12 }, (_, i) => ({
     id: `media${i + 1}`,
-    thumbnail: '/videos/preview/1.webm',
-    preview: '/videos/preview/1.webm',
-    fullVideo: '/videos/preview/1.webm',
+    thumbnail: '/images/photo1.jpg', // Statik thumbnail
+    preview: '/videos/preview/1.mp4',  // MP4 format
+    fullVideo: '/videos/preview/1.mp4',
     alt: `Video showcase ${i + 1}`,
     duration: 10,
     type: 'video' as const

@@ -70,6 +70,7 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
 
   // LOD - viewport dışındaki telefonları optimize et
   const isInViewport = Math.abs(position[1]) < 10;  // Daha agresif culling
+  const isNearCamera = Math.abs(position[1]) < 5;   // Yakın telefonlar için video oynat
 
   return (
     <animated.group 
@@ -92,6 +93,7 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
             videoSrc={videoSrc}
             rotation={[0, 0, 0]}
             onClick={onClick}
+            isNearCamera={isNearCamera}
           />
         </Suspense>
       ) : (

@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect, useRef } from 'react';
 import { useGLTF } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
@@ -9,6 +9,7 @@ interface IPhone3DProps {
   rotation?: [number, number, number];
   scale?: number;
   onClick?: () => void;
+  isNearCamera?: boolean;
 }
 
 const IPhone3D: React.FC<IPhone3DProps> = ({ 
@@ -16,10 +17,14 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
   position = [0, 0, 0], 
   rotation = [0, 0, 0],
   scale = 1,
-  onClick
+  onClick,
+  isNearCamera = true
 }) => {
   // Load iPhone model
   const { scene } = useGLTF('/models/iphone_14_pro_max/scene.gltf') as any;
+  
+  // Store video element reference for aspect ratio
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   
   // Create texture - handle both images and videos
   const imageTexture = useMemo(() => {
@@ -33,10 +38,17 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
       video.playsInline = true;
       video.autoplay = true;
       
-      // Try to play
-      video.play().catch(err => {
-        console.warn('Video autoplay failed:', err);
-      });
+      // Store video reference
+      videoRef.current = video;
+      
+      // Only play if near camera
+      if (isNearCamera) {
+        video.play().catch(err => {
+          console.warn('Video autoplay failed:', err);
+        });
+      } else {
+        video.pause();
+      }
       
       const texture = new THREE.VideoTexture(video);
       texture.minFilter = THREE.LinearFilter;
@@ -137,12 +149,15 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
       console.log(`\n✓ FOUND SCREEN: ${screenMesh.name}`);
       const mesh = screenMesh.mesh;
       
-      // Clone and adjust video texture
+      // Clone and adjust texture
       const adjustedTexture = imageTexture.clone();
       
-      // Fit video to screen without stretching - fill the screen (crop if needed)
-      // Video is 9:16 (0.5625)
-      const videoAspect = 9 / 16;
+      // Get actual video aspect ratio if it's a video
+      let videoAspect = 9 / 16; // default for images
+      if (videoRef.current && videoRef.current.videoWidth > 0) {
+        videoAspect = videoRef.current.videoWidth / videoRef.current.videoHeight;
+        console.log(`Video dimensions: ${videoRef.current.videoWidth}x${videoRef.current.videoHeight}`);
+      }
       
       // Get screen mesh aspect ratio
       mesh.geometry.computeBoundingBox();
@@ -164,14 +179,15 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
         scaleY = screenAspect / videoAspect;
         offsetY = (scaleY - 1) / 2;
       } else {
-        // Screen is taller - fit height, crop width
+        // Screen is taller - fit height, crop width  
         scaleX = videoAspect / screenAspect;
         offsetX = (scaleX - 1) / 2;
       }
       
-      // Apply scale with horizontal flip
+      // Apply scale with horizontal flip and correct centering
       adjustedTexture.repeat.set(-1 / scaleX, 1 / scaleY);
       adjustedTexture.offset.set(1 - offsetX / scaleX, offsetY / scaleY);
+      adjustedTexture.center.set(0.5, 0.5);
       
       adjustedTexture.wrapS = THREE.ClampToEdgeWrapping;
       adjustedTexture.wrapT = THREE.ClampToEdgeWrapping;
@@ -212,10 +228,27 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
     });
   }, [clonedScene, imageTexture]);
 
-  // Update video texture on each frame if it's a video
+  // Control video playback based on distance
+  useEffect(() => {
+    if (videoRef.current) {
+      if (isNearCamera) {
+        videoRef.current.play().catch(() => {});
+      } else {
+        videoRef.current.pause();
+      }
+    }
+  }, [isNearCamera]);
+
+  // Frame throttling for video updates - update every 3 frames
+  const frameCount = useRef(0);
   useFrame(() => {
-    if (imageTexture instanceof THREE.VideoTexture) {
-      imageTexture.needsUpdate = true;
+    // Only update texture if video is playing and near camera
+    if (imageTexture instanceof THREE.VideoTexture && isNearCamera) {
+      frameCount.current++;
+      if (frameCount.current % 3 === 0) {
+        imageTexture.needsUpdate = true;
+        frameCount.current = 0;
+      }
     }
   });
 
