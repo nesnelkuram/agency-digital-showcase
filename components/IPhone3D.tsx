@@ -149,56 +149,19 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
       console.log(`\n✓ FOUND SCREEN: ${screenMesh.name}`);
       const mesh = screenMesh.mesh;
       
-      // Clone and adjust texture
-      const adjustedTexture = imageTexture.clone();
+      // Don't clone video textures - use directly
+      // Simple horizontal flip for correct orientation
+      imageTexture.repeat.set(-1, 1);
+      imageTexture.offset.set(1, 0);
       
-      // Get actual video aspect ratio if it's a video
-      let videoAspect = 9 / 16; // default for images
-      if (videoRef.current && videoRef.current.videoWidth > 0) {
-        videoAspect = videoRef.current.videoWidth / videoRef.current.videoHeight;
-        console.log(`Video dimensions: ${videoRef.current.videoWidth}x${videoRef.current.videoHeight}`);
-      }
+      // Set proper texture settings
+      imageTexture.wrapS = THREE.ClampToEdgeWrapping;
+      imageTexture.wrapT = THREE.ClampToEdgeWrapping;
+      imageTexture.needsUpdate = true;
       
-      // Get screen mesh aspect ratio
-      mesh.geometry.computeBoundingBox();
-      const bbox = mesh.geometry.boundingBox;
-      const screenWidth = bbox.max.x - bbox.min.x;
-      const screenHeight = bbox.max.y - bbox.min.y;
-      const screenAspect = screenWidth / screenHeight;
-      
-      console.log(`Screen aspect: ${screenAspect.toFixed(3)}, Video aspect: ${videoAspect.toFixed(3)}`);
-      
-      // Cover mode: fill the entire screen, crop excess
-      let scaleX = 1;
-      let scaleY = 1;
-      let offsetX = 0;
-      let offsetY = 0;
-      
-      if (screenAspect > videoAspect) {
-        // Screen is wider - fit width, crop height
-        scaleY = screenAspect / videoAspect;
-        offsetY = (scaleY - 1) / 2;
-      } else {
-        // Screen is taller - fit height, crop width  
-        scaleX = videoAspect / screenAspect;
-        offsetX = (scaleX - 1) / 2;
-      }
-      
-      // Apply scale with horizontal flip and correct centering
-      adjustedTexture.repeat.set(-1 / scaleX, 1 / scaleY);
-      adjustedTexture.offset.set(1 - offsetX / scaleX, offsetY / scaleY);
-      adjustedTexture.center.set(0.5, 0.5);
-      
-      adjustedTexture.wrapS = THREE.ClampToEdgeWrapping;
-      adjustedTexture.wrapT = THREE.ClampToEdgeWrapping;
-      adjustedTexture.generateMipmaps = false;
-      adjustedTexture.minFilter = THREE.LinearFilter;
-      adjustedTexture.magFilter = THREE.LinearFilter;
-      adjustedTexture.needsUpdate = true;
-      
-      // Create new material with adjusted video
+      // Create new material with video texture
       mesh.material = new THREE.MeshBasicMaterial({
-        map: adjustedTexture,
+        map: imageTexture,
         toneMapped: false
       });
       
@@ -239,16 +202,11 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
     }
   }, [isNearCamera]);
 
-  // Frame throttling for video updates - update every 3 frames
-  const frameCount = useRef(0);
+  // Update video texture every frame when playing
   useFrame(() => {
-    // Only update texture if video is playing and near camera
+    // Update texture if it's a video and near camera
     if (imageTexture instanceof THREE.VideoTexture && isNearCamera) {
-      frameCount.current++;
-      if (frameCount.current % 3 === 0) {
-        imageTexture.needsUpdate = true;
-        frameCount.current = 0;
-      }
+      imageTexture.needsUpdate = true;
     }
   });
 
