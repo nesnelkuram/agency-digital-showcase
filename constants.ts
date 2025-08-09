@@ -1,4 +1,4 @@
-import { VideoInfo } from './types';
+import { VideoInfo, MediaContent } from './types';
 
 export const HEADER_VIDEOS: VideoInfo[] = [
   // Yerel optimize edilmiş dikey video
@@ -40,6 +40,7 @@ export const HEADER_VIDEOS: VideoInfo[] = [
 // export const PHONE_ASPECT_RATIO_NUMBER = 9 / 19.5; // Example: 0.4615
 // The Tailwind class `aspect-[9/19.5]` is used directly for simplicity.
 
+// Geçici olarak eski yapıyı koruyoruz, yavaş yavaş MediaContent'e geçeceğiz
 export const PHONE_IMAGES = [
   // Picsum ile rastgele fotoğraflar - 9:16 oranında (iPhone ekran oranı)
   { id: 'img1', src: 'https://picsum.photos/1080/1920?random=1', alt: 'Mobile app showcase 1' },
@@ -54,4 +55,63 @@ export const PHONE_IMAGES = [
   { id: 'img10', src: 'https://picsum.photos/1080/1920?random=10', alt: 'Mobile app showcase 10' },
   { id: 'img11', src: 'https://picsum.photos/1080/1920?random=11', alt: 'Mobile app showcase 11' },
   { id: 'img12', src: 'https://picsum.photos/1080/1920?random=12', alt: 'Mobile app showcase 12' },
+];
+
+// Yeni medya içeriği yapısı - animasyonlu önizlemeler için
+export const PHONE_MEDIA_CONTENT: MediaContent[] = [
+  {
+    id: 'media1',
+    thumbnail: 'https://picsum.photos/1080/1920?random=1',
+    preview: 'https://www.exit109.com/~dnn/clips/RW20seconds_1.mp4', // 20 sn kısa klip
+    fullVideo: 'https://www.exit109.com/~dnn/clips/RW20seconds_1.mp4',
+    alt: 'Showcase video 1',
+    duration: 20,
+    type: 'video'
+  },
+  {
+    id: 'media2',
+    thumbnail: 'https://picsum.photos/1080/1920?random=2',
+    preview: 'https://www.exit109.com/~dnn/clips/RW20seconds_2.mp4',
+    fullVideo: 'https://www.exit109.com/~dnn/clips/RW20seconds_2.mp4',
+    alt: 'Showcase video 2',
+    duration: 20,
+    type: 'video'
+  },
+  {
+    id: 'media3',
+    thumbnail: 'https://picsum.photos/1080/1920?random=3',
+    preview: 'https://www.exit109.com/~dnn/clips/bbb_480_688.mp4',
+    fullVideo: 'https://www.exit109.com/~dnn/clips/bbb_480_688.mp4',
+    alt: 'Big Buck Bunny mobile',
+    duration: 30,
+    type: 'video'
+  },
+  {
+    id: 'media4',
+    thumbnail: 'https://picsum.photos/1080/1920?random=4',
+    alt: 'Static image showcase',
+    type: 'image'
+  },
+  {
+    id: 'media5',
+    thumbnail: 'https://picsum.photos/1080/1920?random=5',
+    preview: 'https://www.exit109.com/~dnn/clips/sintel_480_688.mp4',
+    fullVideo: 'https://www.exit109.com/~dnn/clips/sintel_480_688.mp4',
+    alt: 'Sintel mobile',
+    duration: 25,
+    type: 'video'
+  },
+  {
+    id: 'media6',
+    thumbnail: 'https://picsum.photos/1080/1920?random=6',
+    alt: 'Static showcase 6',
+    type: 'image'
+  },
+  // Geri kalanlar için statik görseller
+  ...Array.from({ length: 6 }, (_, i) => ({
+    id: `media${i + 7}`,
+    thumbnail: `https://picsum.photos/1080/1920?random=${i + 7}`,
+    alt: `Showcase ${i + 7}`,
+    type: 'image' as const
+  }))
 ];

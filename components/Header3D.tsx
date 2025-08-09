@@ -3,7 +3,8 @@ import { Canvas, useThree } from '@react-three/fiber';
 import { Environment } from '@react-three/drei';
 import * as THREE from 'three';
 import AnimatedPhone from './AnimatedPhone';
-import { PHONE_IMAGES } from '../constants';
+import AnimatedPhoneVideo from './AnimatedPhoneVideo';
+import { PHONE_IMAGES, PHONE_MEDIA_CONTENT } from '../constants';
 
 const Header3D: React.FC = () => {
   const [parallaxOffset, setParallaxOffset] = useState(0);
@@ -82,12 +83,29 @@ const Header3D: React.FC = () => {
     const colsPerRow = Array(12).fill(4); // 12 rows, 4 columns each = 48 phones
     const totalPhones = colsPerRow.reduce((sum, count) => sum + count, 0);
     return Array.from({ length: totalPhones }).map((_, idx) => {
-      const imageIdx = idx % PHONE_IMAGES.length;
-      return {
-        key: `phone-${idx}`,
-        videoSrc: PHONE_IMAGES[imageIdx].src, // IPhone3D hala videoSrc prop'unu bekliyor
-        altText: PHONE_IMAGES[imageIdx].alt,
-      };
+      const mediaIdx = idx % PHONE_MEDIA_CONTENT.length;
+      const row = Math.floor(idx / 4); // Her satırda 4 telefon var
+      const useNewSystem = row < 3; // İlk 3 satır (12 telefon) için yeni sistem
+      
+      if (useNewSystem) {
+        return {
+          key: `phone-${idx}`,
+          media: PHONE_MEDIA_CONTENT[mediaIdx],
+          videoSrc: undefined,
+          altText: undefined,
+          isVideo: true as const
+        };
+      } else {
+        // Geri kalanlar eski sistem
+        const imageIdx = idx % PHONE_IMAGES.length;
+        return {
+          key: `phone-${idx}`,
+          media: undefined,
+          videoSrc: PHONE_IMAGES[imageIdx].src,
+          altText: PHONE_IMAGES[imageIdx].alt,
+          isVideo: false as const
+        };
+      }
     });
   }, []);
 
@@ -212,15 +230,31 @@ const Header3D: React.FC = () => {
                           
                           const z = 0;  // Z pozisyonu sabit, animasyon component içinde
                           const isSelected = selectedPhone === cfg.key;
-                          return (
-                            <AnimatedPhone
-                              key={cfg.key}
-                              videoSrc={cfg.videoSrc}
-                              position={[x, y, z]}
-                              isSelected={isSelected}
-                              onClick={() => setSelectedPhone(isSelected ? null : cfg.key)}
-                            />
-                          );
+                          
+                          // Use video component for media content, regular for images
+                          if (cfg.isVideo && cfg.media) {
+                            return (
+                              <AnimatedPhoneVideo
+                                key={cfg.key}
+                                media={cfg.media}
+                                position={[x, y, z]}
+                                isSelected={isSelected}
+                                onClick={() => setSelectedPhone(isSelected ? null : cfg.key)}
+                                onDeselect={() => setSelectedPhone(null)}
+                              />
+                            );
+                          } else if (!cfg.isVideo && cfg.videoSrc) {
+                            return (
+                              <AnimatedPhone
+                                key={cfg.key}
+                                videoSrc={cfg.videoSrc}
+                                position={[x, y, z]}
+                                isSelected={isSelected}
+                                onClick={() => setSelectedPhone(isSelected ? null : cfg.key)}
+                              />
+                            );
+                          }
+                          return null;
                         })}
                       </group>
                     );
