@@ -98,10 +98,46 @@ const Header3D: React.FC = () => {
       style={{ height: `${PARALLAX_DURATION_VIEWPORTS * 100}vh` }}
     >
       <div className="sticky top-0 h-screen w-full overflow-hidden flex items-center">
+        
+        {/* Logo */}
+        <div className="absolute top-12 z-50" style={{ left: '5.5%' }}>
+          <img 
+            src="/images/intibalogo.svg" 
+            alt="intiba" 
+            style={{ 
+              height: '25px',
+              width: 'auto'
+            }} 
+          />
+        </div>
+        
+        {/* Updated Background */}
+        <div className="absolute inset-0 z-0">
+          {/* Base background color #ebeef8 */}
+          <div 
+            className="absolute inset-0"
+            style={{
+              background: '#ebeef8'
+            }}
+          />
+          
+          {/* Triangle area with #fffceb */}
+          <div 
+            className="absolute"
+            style={{
+              bottom: 0,
+              right: 0,
+              width: '100%',
+              height: '100%',
+              background: '#fffceb',
+              clipPath: 'circle(50% at 84% 26%)',
+            }}
+          />
+        </div>
 
         {/* 3D Phone Grid Layer */}
         <div 
-          className="absolute inset-0 z-10 flex justify-center items-center"
+          className="absolute inset-0 z-40 flex justify-center items-center"
           style={{ 
             perspective: '1000px', 
             perspectiveOrigin: '60% 40%'  // adjusted vanishing point
@@ -196,37 +232,51 @@ const Header3D: React.FC = () => {
         </div>
 
         {/* Content Layer */}
-        <div className="relative z-30 text-left max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl p-6 sm:p-8 md:p-12 lg:p-16 xl:p-20">
-          <h1
-            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold mb-4 sm:mb-6 leading-tight"
-            style={{ opacity: 0, animation: 'fade-in-left 0.8s ease-out 0.2s forwards' }}
-          >
-            <span className="block bg-clip-text text-transparent bg-gradient-to-r from-purple-500 via-pink-500 to-red-600">
-              Digital Prowess,
-            </span>
-            <span className="block mt-1 sm:mt-2 text-neutral-900">Creative Edge.</span>
-          </h1>
-          <p
-            className="text-sm sm:text-base md:text-lg lg:text-xl text-neutral-600 mb-6 sm:mb-8 md:mb-10"
-            style={{ opacity: 0, animation: 'fade-in-left 0.8s ease-out 0.4s forwards' }}
-          >
-            We fuse innovative strategy with cutting-edge design and technology to forge digital experiences that captivate and convert for forward-thinking brands.
-          </p>
+        <div  className="relative z-20 text-left max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-4xl p-6 sm:p-8 md:p-12 lg:p-16 xl:p-20">
+          <div >
+            <h1
+              className="font-ramillas text-neutral-900 mb-6"
+              style={{ 
+                fontSize: '65px',
+                lineHeight: '1.15',
+                letterSpacing: '-0.02em',
+                opacity: 0, 
+                animation: 'fade-in-left 0.8s ease-out 0.3s forwards' 
+              }}
+            >
+              <div>
+                <span className="font-normal">Cinematic </span>
+                <span className="font-bold">Excellence </span>
+                <span className="font-normal">in</span>
+              </div>
+              <div className="font-normal italic">
+                Hospitality & Lifestyle
+              </div>
+            </h1>
+            <p
+              className="text-neutral-700 mb-8 sm:mb-10"
+              style={{ 
+                fontSize: '22px',
+                letterSpacing: '-0.01em',
+                opacity: 0, 
+                animation: 'fade-in-left 0.8s ease-out 0.4s forwards' 
+              }}
+            >
+              <span className="mr-1">—</span>From <span className="font-semibold">Bodrum</span>, with Precision
+            </p>
+          </div>
           <div
             className="flex flex-col sm:flex-row justify-start items-start sm:items-center gap-3 sm:gap-4"
             style={{ opacity: 0, animation: 'fade-in-left 0.8s ease-out 0.6s forwards' }}
           >
             <a
               href="#start"
-              className="w-full sm:w-auto px-6 py-3 sm:px-8 sm:py-3.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 text-base md:text-lg"
+              className="w-full sm:w-auto px-6 py-3 sm:px-8 sm:py-3.5 bg-neutral-900 hover:bg-neutral-800 text-white font-medium rounded-md shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 text-base md:text-lg flex items-center gap-2"
             >
-              Launch Your Vision
-            </a>
-            <a
-              href="#work"
-              className="w-full sm:w-auto px-6 py-3 sm:px-8 sm:py-3.5 bg-transparent border-2 border-purple-500 hover:bg-purple-600 hover:text-white text-purple-600 font-semibold rounded-lg shadow-md transition-all duration-300 ease-in-out transform hover:scale-105 text-base md:text-lg"
-            >
-              See Our Portfolio
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+              </svg>
+              Get a Quote Now
             </a>
           </div>
         </div>

@@ -1,0 +1,230 @@
+/* Font Face Definitions */
+@font-face {
+  font-family: 'TT Ramillas';
+  src: url('/fonts/TT Ramillas Trial Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'TT Ramillas';
+  src: url('/fonts/TT Ramillas Trial Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'TT Ramillas';
+  src: url('/fonts/TT Ramillas Trial Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'TT Ramillas';
+  src: url('/fonts/TT Ramillas Trial Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'TT Ramillas';
+  src: url('/fonts/TT Ramillas Trial Black.ttf') format('truetype');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'TT Ramillas';
+  src: url('/fonts/TT Ramillas Trial Italic.ttf') format('truetype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'HK Grotesk';
+  src: url('/fonts/HankenGrotesk-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'HK Grotesk';
+  src: url('/fonts/HankenGrotesk-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'HK Grotesk';
+  src: url('/fonts/HankenGrotesk-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'HK Grotesk';
+  src: url('/fonts/HankenGrotesk-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'HK Grotesk';
+  src: url('/fonts/HankenGrotesk-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'HK Grotesk';
+  src: url('/fonts/HankenGrotesk-Italic.ttf') format('truetype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  width: 100%;
+  min-height: 100vh;
+}
+
+body {
+  width: 100%;
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+}
+
+body {
+  background-color: white;
+  color: #171717;
+  font-family: 'HK Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Typography Classes */
+.font-ramillas {
+  font-family: 'TT Ramillas', serif;
+}
+
+.font-grotesk {
+  font-family: 'HK Grotesk', sans-serif;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* Animations */
+@keyframes fade-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fade-in {
+  from { 
+    opacity: 0; 
+  }
+  to { 
+    opacity: 1; 
+  }
+}
+
+/* Iridescent gradient animations */
+@keyframes iridescent {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes iridescentFloat {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1);
+    opacity: 0.7;
+  }
+  25% {
+    transform: translate(50px, -30px) scale(1.1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translate(-30px, 50px) scale(0.95);
+    opacity: 0.8;
+  }
+  75% {
+    transform: translate(-50px, -20px) scale(1.05);
+    opacity: 0.6;
+  }
+}
+
+@keyframes shimmerRotate {
+  0% {
+    transform: rotate(0deg) scale(1.5);
+  }
+  100% {
+    transform: rotate(360deg) scale(1.5);
+  }
+}
+
+@keyframes holoWave {
+  0% {
+    transform: translateX(0) translateY(0);
+  }
+  50% {
+    transform: translateX(50px) translateY(-50px);
+  }
+  100% {
+    transform: translateX(100px) translateY(-100px);
+  }
+}
+
+@keyframes lightRefraction {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 0.6;
+  }
+  25% {
+    transform: scale(1.2) rotate(90deg);
+    opacity: 0.4;
+  }
+  50% {
+    transform: scale(0.9) rotate(180deg);
+    opacity: 0.7;
+  }
+  75% {
+    transform: scale(1.1) rotate(270deg);
+    opacity: 0.5;
+  }
+}
