@@ -127,32 +127,69 @@ const IPhone3DVideo: React.FC<IPhone3DVideoProps> = ({
   useEffect(() => {
     if (!textureRef.current) return;
     
+    console.log('=== ANALYZING IPHONE MODEL FOR VIDEO ===');
+    let meshCount = 0;
+    let texturedMeshes: any[] = [];
     let screenMesh: any = null;
     
+    // First, analyze all meshes
+    clonedScene.traverse((child: any) => {
+      if (child.isMesh) {
+        meshCount++;
+        console.log(`[${meshCount}] Mesh: ${child.name}`);
+        
+        // Collect textured meshes
+        if (child.material && (child.material.map || child.material.emissiveMap)) {
+          texturedMeshes.push({
+            mesh: child,
+            name: child.name,
+            hasMap: !!child.material.map,
+            hasEmissive: !!child.material.emissiveMap
+          });
+        }
+      }
+    });
+    
+    console.log(`Total meshes: ${meshCount}`);
+    console.log(`Textured meshes: ${texturedMeshes.length}`);
+    
+    // Find screen mesh - Strategy 1: By emissive map
+    screenMesh = texturedMeshes.find(item => item.hasEmissive);
+    
+    // Strategy 2: Find the front-most textured mesh
+    if (!screenMesh && texturedMeshes.length > 0) {
+      screenMesh = texturedMeshes.reduce((prev, curr) => {
+        return curr.mesh.position.z > prev.mesh.position.z ? curr : prev;
+      });
+    }
+    
+    // Apply texture to screen
+    if (screenMesh) {
+      console.log(`✓ FOUND SCREEN: ${screenMesh.name}`);
+      const mesh = screenMesh.mesh;
+      
+      // Clone texture and adjust
+      const adjustedTexture = textureRef.current.clone();
+      
+      // Flip horizontally for correct orientation
+      adjustedTexture.repeat.set(-1, 1);
+      adjustedTexture.offset.set(1, 0);
+      
+      mesh.material = new THREE.MeshBasicMaterial({
+        map: adjustedTexture,
+        toneMapped: false
+      });
+    } else {
+      console.warn('⚠️ Could not find screen mesh!');
+    }
+    
+    // Style the frame
     clonedScene.traverse((child: any) => {
       if (child.isMesh) {
         const meshName = child.name.toLowerCase();
-        
-        // Find screen mesh
-        if (meshName.includes('screen') || 
-            meshName.includes('display') ||
-            meshName.includes('wallpaper')) {
-          screenMesh = child;
-          
-          // Apply texture to screen
-          const adjustedTexture = textureRef.current.clone();
-          adjustedTexture.repeat.set(-1, 1);
-          adjustedTexture.offset.set(1, 0);
-          
-          child.material = new THREE.MeshBasicMaterial({
-            map: adjustedTexture,
-            toneMapped: false
-          });
-        }
-        // Style the frame
-        else if (meshName.includes('frame') || 
-                 meshName.includes('body') ||
-                 meshName.includes('case')) {
+        if (meshName.includes('frame') || 
+            meshName.includes('body') ||
+            meshName.includes('case')) {
           child.material = new THREE.MeshStandardMaterial({
             color: '#e5e5e7',
             metalness: 0.95,
