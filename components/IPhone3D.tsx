@@ -99,18 +99,78 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
       });
     }
     
-    // Apply black screen to the found screen mesh
+    // Apply image texture to the found screen mesh
     if (screenMesh) {
       console.log(`\n✓ FOUND SCREEN: ${screenMesh.name}`);
       const mesh = screenMesh.mesh;
       
-      // Make screen black for now
+      // Remap UV coordinates to be uniform (0-1 range)
+      if (mesh.geometry && mesh.geometry.attributes.uv) {
+        const uvAttribute = mesh.geometry.attributes.uv;
+        const uvArray = uvAttribute.array;
+        
+        // Get bounds of current UVs
+        let minU = Infinity, maxU = -Infinity;
+        let minV = Infinity, maxV = -Infinity;
+        
+        for (let i = 0; i < uvArray.length; i += 2) {
+          minU = Math.min(minU, uvArray[i]);
+          maxU = Math.max(maxU, uvArray[i]);
+          minV = Math.min(minV, uvArray[i + 1]);
+          maxV = Math.max(maxV, uvArray[i + 1]);
+        }
+        
+        console.log('Original UV bounds:', { minU, maxU, minV, maxV });
+        
+        // Normalize UVs to 0-1 range
+        const rangeU = maxU - minU || 1;
+        const rangeV = maxV - minV || 1;
+        
+        for (let i = 0; i < uvArray.length; i += 2) {
+          uvArray[i] = (uvArray[i] - minU) / rangeU;
+          uvArray[i + 1] = (uvArray[i + 1] - minV) / rangeV;
+        }
+        
+        // Mark UV attribute as needing update
+        uvAttribute.needsUpdate = true;
+        mesh.geometry.attributes.uv.needsUpdate = true;
+        mesh.geometry.uvsNeedUpdate = true;
+        
+        console.log('✓ Remapped UV coordinates to uniform 0-1 range');
+      }
+      
+      // Create video element and texture
+      const video = document.createElement('video');
+      video.src = videoSrc;
+      video.crossOrigin = 'anonymous';
+      video.loop = true;
+      video.muted = true;
+      video.autoplay = true;
+      video.playsInline = true;
+      
+      // Start playing the video
+      video.play().catch(e => console.log('Video play error:', e));
+      
+      const videoTexture = new THREE.VideoTexture(video);
+      videoTexture.minFilter = THREE.LinearFilter;
+      videoTexture.magFilter = THREE.LinearFilter;
+      videoTexture.generateMipmaps = false;
+      videoTexture.colorSpace = THREE.SRGBColorSpace;
+      
+      // Apply UV adjustments
+      videoTexture.wrapS = THREE.ClampToEdgeWrapping;
+      videoTexture.wrapT = THREE.ClampToEdgeWrapping;
+      
+      // Flip horizontally for correct orientation
+      videoTexture.repeat.set(-1, 1);
+      videoTexture.offset.set(1, 0);
+      
       mesh.material = new THREE.MeshBasicMaterial({
-        color: 0x000000,
+        map: videoTexture,
         toneMapped: false
       });
       
-      console.log('✓ Applied black screen');
+      console.log('✓ Applied video texture to screen');
     } else {
       console.log('\n❌ Could not find screen mesh!');
     }
