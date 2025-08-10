@@ -7,9 +7,19 @@ interface SimpleLoadingScreenProps {
 
 const SimpleLoadingScreen: React.FC<SimpleLoadingScreenProps> = ({ onLoadComplete, progress }) => {
   const [fadeOut, setFadeOut] = useState(false);
+  const [minimumTimePassed, setMinimumTimePassed] = useState(false);
+  
+  // Ensure minimum display time of 2 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMinimumTimePassed(true);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, []);
   
   useEffect(() => {
-    if (progress >= 100 && !fadeOut) {
+    if (progress >= 100 && minimumTimePassed && !fadeOut) {
+      console.log('[LoadingScreen] Starting fade out - all assets loaded');
       // Start fade out
       setTimeout(() => {
         setFadeOut(true);
@@ -20,7 +30,7 @@ const SimpleLoadingScreen: React.FC<SimpleLoadingScreenProps> = ({ onLoadComplet
         onLoadComplete();
       }, 1000);
     }
-  }, [progress, fadeOut, onLoadComplete]);
+  }, [progress, minimumTimePassed, fadeOut, onLoadComplete]);
 
   return (
     <div className={`fixed inset-0 z-[9999] bg-[#fffceb] flex flex-col items-center justify-center transition-opacity duration-500 ${
@@ -40,6 +50,11 @@ const SimpleLoadingScreen: React.FC<SimpleLoadingScreenProps> = ({ onLoadComplet
           style={{ width: `${progress}%` }}
         />
       </div>
+      
+      {/* Progress percentage for debugging */}
+      <p className="mt-2 text-xs text-gray-500">
+        {Math.round(progress)}%
+      </p>
     </div>
   );
 };

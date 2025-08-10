@@ -54,14 +54,17 @@ export const HEADER_VIDEOS: VideoInfo[] = [
 const getBlobUrl = (fileName: string, type: 'full' | 'preview' = 'full'): string => {
   // First try the specific type (full videos are now all uploaded)
   if (type === 'full' && blobUrls.full && blobUrls.full[fileName]) {
+    console.log(`[getBlobUrl] Found full video in Blob: ${fileName}`);
     return blobUrls.full[fileName];
   }
   if (type === 'preview' && blobUrls.preview && blobUrls.preview[fileName]) {
+    console.log(`[getBlobUrl] Found preview video in Blob: ${fileName}`);
     return blobUrls.preview[fileName];
   }
   
   // Check 'other' category as fallback
   if (blobUrls.other && blobUrls.other[fileName]) {
+    console.log(`[getBlobUrl] Found video in 'other' category: ${fileName}`);
     return blobUrls.other[fileName];
   }
   
@@ -70,7 +73,7 @@ const getBlobUrl = (fileName: string, type: 'full' | 'preview' = 'full'): string
     ? `/videos/preview/${fileName}` 
     : `/videos/full/${fileName}`;
   
-  console.warn(`Video not found in Blob: ${type}/${fileName}, using local fallback`);
+  console.error(`[getBlobUrl] Video NOT found in Blob: ${type}/${fileName}, using local fallback`);
   return fallbackPath;
 };
 

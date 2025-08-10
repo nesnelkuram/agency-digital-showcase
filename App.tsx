@@ -58,16 +58,19 @@ const App: React.FC = () => {
     assetsToLoad.videos.forEach(src => {
       const video = document.createElement('video');
       video.src = src;
-      video.preload = 'metadata';
+      video.preload = 'auto'; // Changed to auto for better loading
+      video.muted = true; // Ensure muted for autoplay policy
       
       const handleLoad = () => {
+        console.log(`[App] Video ready: ${src}`);
         updateProgress();
-        video.removeEventListener('loadedmetadata', handleLoad);
+        video.removeEventListener('canplaythrough', handleLoad);
       };
       
-      video.addEventListener('loadedmetadata', handleLoad);
-      video.addEventListener('error', () => {
-        console.warn(`Failed to load video: ${src}`);
+      // Use canplaythrough for better loading detection
+      video.addEventListener('canplaythrough', handleLoad);
+      video.addEventListener('error', (e) => {
+        console.error(`[App] Failed to load video: ${src}`, video.error);
         updateProgress(); // Count as loaded even if failed
       });
       
@@ -102,13 +105,13 @@ const App: React.FC = () => {
         });
     });
     
-    // Fallback timeout after 10 seconds
+    // Fallback timeout after 20 seconds (increased for video loading)
     const timeout = setTimeout(() => {
       if (loadingProgress < 100) {
-        console.warn('Loading timeout reached, proceeding anyway');
+        console.warn('[App] Loading timeout reached after 20s, proceeding anyway');
         setLoadingProgress(100);
       }
-    }, 10000);
+    }, 20000);
     
     return () => clearTimeout(timeout);
   }, []);

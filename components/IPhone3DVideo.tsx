@@ -48,7 +48,7 @@ const IPhone3DVideo: React.FC<IPhone3DVideoProps> = ({
     if (currentSource.isVideo) {
       const video = document.createElement('video');
       video.src = currentSource.src;
-      video.crossOrigin = 'anonymous';
+      // Remove crossOrigin - Vercel Blob handles CORS properly
       video.loop = currentSource.loop;
       video.muted = true;
       video.playsInline = true;
@@ -73,9 +73,18 @@ const IPhone3DVideo: React.FC<IPhone3DVideoProps> = ({
       
       // Play full video when state is playing
       if (playState === 'playing' && !currentSource.loop) {
+        console.log(`[IPhone3DVideo] Attempting to play full video: ${currentSource.src}`);
         const playTimer = setTimeout(() => {
           if (video.paused) {
-            video.play().catch(() => {}); // Silently fail
+            video.play().catch((err) => {
+              console.error(`[IPhone3DVideo] Failed to play full video: ${err.message}`, currentSource.src);
+              // Retry once after a delay
+              setTimeout(() => {
+                video.play().catch((retryErr) => {
+                  console.error(`[IPhone3DVideo] Retry failed: ${retryErr.message}`);
+                });
+              }, 500);
+            });
           }
         }, 200);
       }
@@ -96,6 +105,16 @@ const IPhone3DVideo: React.FC<IPhone3DVideoProps> = ({
         // Handle video end
         video.addEventListener('ended', () => {
           onPlayStateChange('ready');
+        });
+        
+        // Add error logging
+        video.addEventListener('error', (e) => {
+          console.error(`[IPhone3DVideo] Video error for ${currentSource.src}:`, video.error);
+        });
+        
+        // Log when video is ready
+        video.addEventListener('canplaythrough', () => {
+          console.log(`[IPhone3DVideo] Full video ready: ${currentSource.src}`);
         });
       }
       
