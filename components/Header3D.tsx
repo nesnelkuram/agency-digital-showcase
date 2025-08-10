@@ -11,11 +11,18 @@ const Header3D: React.FC = () => {
   const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
   const [isClosing, setIsClosing] = useState(false);
   const [lastSelectedPhone, setLastSelectedPhone] = useState<string | null>(null);
+  const [hasEntered, setHasEntered] = useState(false); // Start as false for entrance animation
   const headerRef = useRef<HTMLElement>(null);
   const animationFrameRef = useRef<number>();
   
   // How many viewport-heights to scroll before parallax ends
   const PARALLAX_DURATION_VIEWPORTS = 5; // Original value for extended parallax viewing
+  
+  // Trigger entrance animation on mount (after loading screen)
+  useEffect(() => {
+    // Start immediately
+    setHasEntered(true);
+  }, []);
 
   useEffect(() => {
     let ticking = false;
@@ -300,6 +307,9 @@ const Header3D: React.FC = () => {
                             fallDelay = distance * 30; // 30ms delay per phone distance
                           }
                           
+                          // Calculate entrance delay based on index - minimal delay for quick entrance
+                          const entranceDelay = phoneConfigs.findIndex(p => p.key === cfg.key) * 10;
+                          
                           // Use video component for media content, regular for images
                           if (cfg.isVideo && cfg.media) {
                             return (
@@ -336,6 +346,8 @@ const Header3D: React.FC = () => {
                                 isSelected={isSelected}
                                 shouldFall={shouldFall}
                                 fallDelay={fallDelay}
+                                hasEntered={hasEntered}
+                                entranceDelay={entranceDelay}
                                 onClick={() => {
                                   if (isSelected) {
                                     setIsClosing(true);
@@ -400,13 +412,7 @@ const Header3D: React.FC = () => {
         {(selectedPhone || isClosing) && (
           <div className="absolute inset-0 z-40 pointer-events-none flex h-full">
             {/* Left side - Project details */}
-            <div className={`w-1/2 p-16 flex flex-col justify-center pointer-events-auto`}
-                 style={{
-                   opacity: isClosing ? 0 : 1,
-                   transform: isClosing ? 'translateY(30px)' : 'translateY(0)',
-                   transition: 'all 800ms cubic-bezier(0.4, 0, 0.2, 1)',
-                   transitionDelay: isClosing ? '0ms' : '600ms'
-                 }}>
+            <div className={`w-1/2 p-16 flex flex-col justify-center pointer-events-auto`}>
               {(() => {
                 const phoneKey = isClosing ? lastSelectedPhone : selectedPhone;
                 const selectedConfig = phoneConfigs.find(cfg => cfg.key === phoneKey);
@@ -415,31 +421,35 @@ const Header3D: React.FC = () => {
                 
                 return (
                   <>
-                    <h2 className="font-ramillas text-5xl mb-2 text-neutral-900"
+                    <h2 className="font-ramillas text-5xl mb-2 text-neutral-900 transition-all duration-700"
                         style={{
-                          opacity: 0,
-                          animation: !isClosing && selectedPhone ? 'fadeInUpSmooth 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.8s forwards' : isClosing ? 'fadeOutDown 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards' : 'none'
+                          opacity: isClosing ? 0 : (selectedPhone ? 1 : 0),
+                          transform: isClosing ? 'translateY(30px)' : (selectedPhone ? 'translateY(0)' : 'translateY(30px)'),
+                          transitionDelay: isClosing ? '0ms' : '600ms'
                         }}>
                       <span className="font-bold">{project.title}</span>
                     </h2>
-                    <h3 className="font-ramillas text-3xl mb-6 text-neutral-600 font-normal italic"
+                    <h3 className="font-ramillas text-3xl mb-6 text-neutral-600 font-normal italic transition-all duration-700"
                         style={{
-                          opacity: 0,
-                          animation: !isClosing && selectedPhone ? 'fadeInUpSmooth 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) 1s forwards' : isClosing ? 'fadeOutDown 0.8s cubic-bezier(0.4, 0, 0.2, 1) 0.05s forwards' : 'none'
+                          opacity: isClosing ? 0 : (selectedPhone ? 1 : 0),
+                          transform: isClosing ? 'translateY(30px)' : (selectedPhone ? 'translateY(0)' : 'translateY(30px)'),
+                          transitionDelay: isClosing ? '50ms' : '800ms'
                         }}>
                       {project.subtitle}
                     </h3>
-                    <p className="font-grotesk text-xl text-neutral-700 mb-8 leading-relaxed"
+                    <p className="font-grotesk text-xl text-neutral-700 mb-8 leading-relaxed transition-all duration-700"
                         style={{
-                          opacity: 0,
-                          animation: !isClosing && selectedPhone ? 'fadeInUpSmooth 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) 1.2s forwards' : isClosing ? 'fadeOutDown 0.8s cubic-bezier(0.4, 0, 0.2, 1) 0.1s forwards' : 'none'
+                          opacity: isClosing ? 0 : (selectedPhone ? 1 : 0),
+                          transform: isClosing ? 'translateY(30px)' : (selectedPhone ? 'translateY(0)' : 'translateY(30px)'),
+                          transitionDelay: isClosing ? '100ms' : '1000ms'
                         }}>
                       {project.description}
                     </p>
-                    <div className="flex gap-3 flex-wrap"
+                    <div className="flex gap-3 flex-wrap transition-all duration-700"
                          style={{
-                           opacity: 0,
-                           animation: !isClosing && selectedPhone ? 'fadeInUpSmooth 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) 1.4s forwards' : isClosing ? 'fadeOutDown 0.8s cubic-bezier(0.4, 0, 0.2, 1) 0.15s forwards' : 'none'
+                           opacity: isClosing ? 0 : (selectedPhone ? 1 : 0),
+                           transform: isClosing ? 'translateY(30px)' : (selectedPhone ? 'translateY(0)' : 'translateY(30px)'),
+                           transitionDelay: isClosing ? '150ms' : '1200ms'
                          }}>
                       {project.tags.map((tag, i) => (
                         <span key={i} className="font-grotesk px-4 py-2 bg-neutral-200 rounded-full text-sm">
@@ -458,8 +468,9 @@ const Header3D: React.FC = () => {
         )}
 
         {/* Content Layer */}
-        <div className={`relative z-20 text-left max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-4xl p-6 sm:p-8 md:p-12 lg:p-16 xl:p-20 transition-all ${selectedPhone ? 'opacity-0 translate-y-12 pointer-events-none' : 'opacity-100 translate-y-0'}`}
+        <div className={`relative z-20 text-left max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-4xl p-6 sm:p-8 md:p-12 lg:p-16 xl:p-20 transition-opacity ${selectedPhone ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
              style={{
+               transform: selectedPhone ? 'translateY(12px)' : 'translateY(0)',
                transitionDuration: selectedPhone ? '800ms' : '1000ms',
                transitionDelay: selectedPhone ? '0ms' : '200ms',
                transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)'
