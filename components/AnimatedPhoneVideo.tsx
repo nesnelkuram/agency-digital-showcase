@@ -26,6 +26,7 @@ const AnimatedPhoneVideo: React.FC<AnimatedPhoneVideoProps> = ({
 }) => {
   const { camera } = useThree();
   const [playState, setPlayState] = useState<PlayState>('idle');
+  const [isVisible, setIsVisible] = useState(true);
   // Generate random delays and rotation direction (only calculated once)
   const rotationStartDelay = useMemo(() => Math.random() * 2000 + 200, []); // 200-2200ms random delay
   const rotationDirection = useMemo(() => Math.random() > 0.5 ? 1 : -1, []); // Random rotation direction
@@ -43,6 +44,32 @@ const AnimatedPhoneVideo: React.FC<AnimatedPhoneVideoProps> = ({
       }, 2000); // 2 second animation
     }
   };
+  
+  // Check visibility and manage video state
+  useEffect(() => {
+    const checkVisibility = () => {
+      // Calculate distance from camera
+      const distance = Math.sqrt(
+        Math.pow(position[0] - camera.position.x, 2) +
+        Math.pow(position[1] - camera.position.y, 2) +
+        Math.pow(position[2] - camera.position.z, 2)
+      );
+      
+      // Only render phones within reasonable distance
+      const shouldBeVisible = distance < 15;
+      setIsVisible(shouldBeVisible);
+      
+      // Pause video if not visible and not selected
+      if (!shouldBeVisible && !isSelected && playState !== 'idle') {
+        setPlayState('idle');
+      }
+    };
+    
+    checkVisibility();
+    const interval = setInterval(checkVisibility, 1000); // Check every second
+    
+    return () => clearInterval(interval);
+  }, [position, camera.position.x, camera.position.y, camera.position.z, isSelected, playState]);
   
   // Reset state when deselected
   useEffect(() => {
@@ -109,8 +136,8 @@ const AnimatedPhoneVideo: React.FC<AnimatedPhoneVideoProps> = ({
     }
   });
 
-  // LOD - viewport optimization
-  const isInViewport = Math.abs(position[1]) < 10;
+  // LOD - use our visibility check instead
+  const isInViewport = isVisible && Math.abs(position[1]) < 10;
   
   // Pause video when out of viewport
   useEffect(() => {
@@ -129,7 +156,7 @@ const AnimatedPhoneVideo: React.FC<AnimatedPhoneVideoProps> = ({
       rotation-z={rotZ}
       scale={scale}
     >
-      {isInViewport ? (
+      {isInViewport && isVisible ? (
         <Suspense fallback={
           <mesh>
             <boxGeometry args={[0.75, 1.6, 0.08]} />

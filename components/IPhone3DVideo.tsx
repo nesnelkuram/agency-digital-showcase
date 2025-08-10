@@ -52,7 +52,15 @@ const IPhone3DVideo: React.FC<IPhone3DVideoProps> = ({
       video.loop = currentSource.loop;
       video.muted = true;
       video.playsInline = true;
-      video.preload = currentSource.loop ? 'auto' : 'metadata';
+      
+      // Optimize preload strategy
+      if (playState === 'playing') {
+        video.preload = 'auto'; // Full load only when playing
+      } else if (currentSource.loop) {
+        video.preload = 'metadata'; // Minimal load for preview
+      } else {
+        video.preload = 'none'; // No preload for full videos until needed
+      }
       
       // Auto-play preview videos
       if (currentSource.loop) {

@@ -152,14 +152,14 @@ const Header3D: React.FC = () => {
   ];
 
   const phoneConfigs = useMemo(() => {
-    const colsPerRow = Array(12).fill(4); // 12 rows, 4 columns each = 48 phones
+    const colsPerRow = Array(6).fill(4); // 6 rows, 4 columns each = 24 phones (reduced from 48)
     const totalPhones = colsPerRow.reduce((sum, count) => sum + count, 0);
     return Array.from({ length: totalPhones }).map((_, idx) => {
       const mediaIdx = idx % PHONE_MEDIA_CONTENT.length;
       const projectIdx = idx % projectData.length;
       const row = Math.floor(idx / 4); // Her satırda 4 telefon var
-      // İlk 3 satır (12 telefon) video olsun - performans için
-      const useNewSystem = row < 3;
+      // İlk 2 satır (8 telefon) video olsun - performans için
+      const useNewSystem = row < 2;
       
       if (useNewSystem) {
         return {
