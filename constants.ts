@@ -1,8 +1,14 @@
 import { VideoInfo, MediaContent } from './types';
-import blobUrlsData from './blob-urls.json';
+import allBlobUrls from './all-blob-urls.json';
 
 // Type for blob URLs
-const blobUrls: Record<string, string> = blobUrlsData as Record<string, string>;
+interface BlobUrls {
+  full: Record<string, string>;
+  preview: Record<string, string>;
+  other: Record<string, string>;
+}
+
+const blobUrls = allBlobUrls as BlobUrls;
 
 export const HEADER_VIDEOS: VideoInfo[] = [
   // Yerel optimize edilmiş dikey video
@@ -44,14 +50,22 @@ export const HEADER_VIDEOS: VideoInfo[] = [
 // export const PHONE_ASPECT_RATIO_NUMBER = 9 / 19.5; // Example: 0.4615
 // The Tailwind class `aspect-[9/19.5]` is used directly for simplicity.
 
-// Helper function to get blob URL or fallback to local
-const getBlobUrl = (fileName: string): string => {
-  // Try to get from blob URLs first
-  if (blobUrls && blobUrls[fileName]) {
-    return blobUrls[fileName];
+// Helper function to get blob URL (no fallback - all from CDN)
+const getBlobUrl = (fileName: string, type: 'full' | 'preview' = 'full'): string => {
+  // First try the specific type
+  if (type === 'preview' && blobUrls.preview[fileName]) {
+    return blobUrls.preview[fileName];
   }
-  // Fallback to local file
-  return `/videos/full/${fileName}`;
+  if (type === 'full' && blobUrls.full[fileName]) {
+    return blobUrls.full[fileName];
+  }
+  // Then try the 'other' category (old format)
+  if (blobUrls.other[fileName]) {
+    return blobUrls.other[fileName];
+  }
+  // If not found, return empty (should not happen if all videos are uploaded)
+  console.warn(`Video not found in Blob: ${type}/${fileName}`);
+  return '';
 };
 
 // MP4 formatı - Her satırda farklı videolar, sütunlar arası tekrar yok
@@ -80,7 +94,7 @@ export const PHONE_IMAGES = Array.from({ length: 48 }, (_, idx) => {
   
   return {
     id: `img${idx + 1}`,
-    src: `/videos/preview/${videoNum}.mp4`,
+    src: getBlobUrl(`${videoNum}.mp4`, 'preview'),  // Use Blob URL for preview
     alt: `Mobile video ${idx + 1}`
   };
 });
@@ -103,8 +117,8 @@ export const PHONE_MEDIA_CONTENT: MediaContent[] = Array.from({ length: 12 }, (_
   return {
     id: `media${idx + 1}`,
     thumbnail: '/images/photo1.jpg',
-    preview: `/videos/preview/${videoNum}.mp4`,
-    fullVideo: getBlobUrl(`${videoNum}.mp4`),  // Use Blob URL from CDN
+    preview: getBlobUrl(`${videoNum}.mp4`, 'preview'),  // Blob URL for preview
+    fullVideo: getBlobUrl(`${videoNum}.mp4`, 'full'),  // Blob URL for full
     alt: `Video showcase ${idx + 1}`,
     duration: 10,
     type: 'video' as const
