@@ -54,17 +54,14 @@ export const HEADER_VIDEOS: VideoInfo[] = [
 const getBlobUrl = (fileName: string, type: 'full' | 'preview' = 'full'): string => {
   // First try the specific type (full videos are now all uploaded)
   if (type === 'full' && blobUrls.full && blobUrls.full[fileName]) {
-    console.log(`[getBlobUrl] Found full video in Blob: ${fileName}`);
     return blobUrls.full[fileName];
   }
   if (type === 'preview' && blobUrls.preview && blobUrls.preview[fileName]) {
-    console.log(`[getBlobUrl] Found preview video in Blob: ${fileName}`);
     return blobUrls.preview[fileName];
   }
   
   // Check 'other' category as fallback
   if (blobUrls.other && blobUrls.other[fileName]) {
-    console.log(`[getBlobUrl] Found video in 'other' category: ${fileName}`);
     return blobUrls.other[fileName];
   }
   
@@ -103,7 +100,7 @@ export const PHONE_IMAGES = Array.from({ length: 48 }, (_, idx) => {
   
   return {
     id: `img${idx + 1}`,
-    src: `/videos/preview/${videoNum}.mp4`,  // Use local files for preview (faster)
+    src: getBlobUrl(`${videoNum}.mp4`, 'preview'),  // Use Blob URLs for preview
     alt: `Mobile video ${idx + 1}`
   };
 });
@@ -126,8 +123,8 @@ export const PHONE_MEDIA_CONTENT: MediaContent[] = Array.from({ length: 12 }, (_
   return {
     id: `media${idx + 1}`,
     thumbnail: '/images/photo1.jpg',
-    preview: `/videos/preview/${videoNum}.mp4`,  // Local files for faster preview
-    fullVideo: getBlobUrl(`${videoNum}.mp4`, 'full'),  // Blob URL for full video only
+    preview: getBlobUrl(`${videoNum}.mp4`, 'preview'),  // Blob URL for preview
+    fullVideo: getBlobUrl(`${videoNum}.mp4`, 'full'),  // Blob URL for full video
     alt: `Video showcase ${idx + 1}`,
     duration: 10,
     type: 'video' as const

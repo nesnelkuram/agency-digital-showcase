@@ -13,22 +13,14 @@ const App: React.FC = () => {
   const [loadingProgress, setLoadingProgress] = useState(0);
   
   useEffect(() => {
+    // Import PHONE_MEDIA_CONTENT to get actual video URLs
+    const { PHONE_MEDIA_CONTENT } = require('./constants');
+    
     // Preload critical assets
     const assetsToLoad = {
       videos: [
-        // First 12 preview videos for visible phones
-        '/videos/preview/1.mp4',
-        '/videos/preview/2.mp4',
-        '/videos/preview/3.mp4',
-        '/videos/preview/4.mp4',
-        '/videos/preview/5.mp4',
-        '/videos/preview/6.mp4',
-        '/videos/preview/7.mp4',
-        '/videos/preview/8.mp4',
-        '/videos/preview/9.mp4',
-        '/videos/preview/10..mp4',
-        '/videos/preview/11.mp4',
-        '/videos/preview/12.mp4',
+        // Get preview URLs from first 12 phones
+        ...PHONE_MEDIA_CONTENT.slice(0, 12).map(media => media.preview)
       ],
       images: [
         '/images/intibalogo.svg',
