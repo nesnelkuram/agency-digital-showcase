@@ -50,22 +50,28 @@ export const HEADER_VIDEOS: VideoInfo[] = [
 // export const PHONE_ASPECT_RATIO_NUMBER = 9 / 19.5; // Example: 0.4615
 // The Tailwind class `aspect-[9/19.5]` is used directly for simplicity.
 
-// Helper function to get blob URL (no fallback - all from CDN)
+// Helper function to get blob URL
 const getBlobUrl = (fileName: string, type: 'full' | 'preview' = 'full'): string => {
-  // First try the specific type
-  if (type === 'preview' && blobUrls.preview[fileName]) {
-    return blobUrls.preview[fileName];
-  }
-  if (type === 'full' && blobUrls.full[fileName]) {
-    return blobUrls.full[fileName];
-  }
-  // Then try the 'other' category (old format)
-  if (blobUrls.other[fileName]) {
+  // First check 'other' category (most videos are here from initial upload)
+  if (blobUrls.other && blobUrls.other[fileName]) {
     return blobUrls.other[fileName];
   }
-  // If not found, return empty (should not happen if all videos are uploaded)
-  console.warn(`Video not found in Blob: ${type}/${fileName}`);
-  return '';
+  
+  // Then try the specific type
+  if (type === 'preview' && blobUrls.preview && blobUrls.preview[fileName]) {
+    return blobUrls.preview[fileName];
+  }
+  if (type === 'full' && blobUrls.full && blobUrls.full[fileName]) {
+    return blobUrls.full[fileName];
+  }
+  
+  // Fallback to local files if not found in blob
+  const fallbackPath = type === 'preview' 
+    ? `/videos/preview/${fileName}` 
+    : `/videos/full/${fileName}`;
+  
+  console.warn(`Video not found in Blob: ${type}/${fileName}, using local fallback`);
+  return fallbackPath;
 };
 
 // MP4 formatı - Her satırda farklı videolar, sütunlar arası tekrar yok

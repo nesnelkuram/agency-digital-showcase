@@ -13,36 +13,104 @@ const App: React.FC = () => {
   const [loadingProgress, setLoadingProgress] = useState(0);
   
   useEffect(() => {
-    // Create a loading manager to track all assets
-    const loadingManager = new THREE.LoadingManager();
-    
-    loadingManager.onStart = (url, itemsLoaded, itemsTotal) => {
-      console.log(`Started loading: ${url}`);
+    // Preload critical assets
+    const assetsToLoad = {
+      videos: [
+        // First 12 preview videos for visible phones
+        '/videos/preview/1.mp4',
+        '/videos/preview/2.mp4',
+        '/videos/preview/3.mp4',
+        '/videos/preview/4.mp4',
+        '/videos/preview/5.mp4',
+        '/videos/preview/6.mp4',
+        '/videos/preview/7.mp4',
+        '/videos/preview/8.mp4',
+        '/videos/preview/9.mp4',
+        '/videos/preview/10..mp4',
+        '/videos/preview/11.mp4',
+        '/videos/preview/12.mp4',
+      ],
+      images: [
+        '/images/intibalogo.svg',
+        '/images/photo1.jpg'
+      ],
+      models: [
+        '/models/iphone_14_pro_max/scene.gltf'
+      ]
     };
     
-    loadingManager.onProgress = (url, itemsLoaded, itemsTotal) => {
-      const progress = (itemsLoaded / itemsTotal) * 100;
+    const totalAssets = assetsToLoad.videos.length + assetsToLoad.images.length + assetsToLoad.models.length;
+    let loadedAssets = 0;
+    
+    const updateProgress = () => {
+      loadedAssets++;
+      const progress = (loadedAssets / totalAssets) * 100;
       setLoadingProgress(progress);
-      console.log(`Loading progress: ${progress}%`);
-    };
-    
-    loadingManager.onLoad = () => {
-      console.log('All assets loaded!');
-      setLoadingProgress(100);
-    };
-    
-    // Simulate loading for demo (replace with actual asset loading)
-    let progress = 0;
-    const interval = setInterval(() => {
-      progress += Math.random() * 15;
-      if (progress >= 100) {
-        progress = 100;
-        clearInterval(interval);
+      console.log(`Loading progress: ${progress.toFixed(0)}% (${loadedAssets}/${totalAssets})`);
+      
+      if (loadedAssets === totalAssets) {
+        console.log('All critical assets loaded!');
+        setLoadingProgress(100);
       }
-      setLoadingProgress(progress);
-    }, 200);
+    };
     
-    return () => clearInterval(interval);
+    // Preload videos
+    assetsToLoad.videos.forEach(src => {
+      const video = document.createElement('video');
+      video.src = src;
+      video.preload = 'metadata';
+      
+      const handleLoad = () => {
+        updateProgress();
+        video.removeEventListener('loadedmetadata', handleLoad);
+      };
+      
+      video.addEventListener('loadedmetadata', handleLoad);
+      video.addEventListener('error', () => {
+        console.warn(`Failed to load video: ${src}`);
+        updateProgress(); // Count as loaded even if failed
+      });
+      
+      video.load();
+    });
+    
+    // Preload images
+    assetsToLoad.images.forEach(src => {
+      const img = new Image();
+      img.onload = updateProgress;
+      img.onerror = () => {
+        console.warn(`Failed to load image: ${src}`);
+        updateProgress();
+      };
+      img.src = src;
+    });
+    
+    // Preload GLTF models
+    assetsToLoad.models.forEach(src => {
+      fetch(src)
+        .then(response => {
+          if (response.ok) {
+            updateProgress();
+          } else {
+            console.warn(`Failed to load model: ${src}`);
+            updateProgress();
+          }
+        })
+        .catch(() => {
+          console.warn(`Failed to load model: ${src}`);
+          updateProgress();
+        });
+    });
+    
+    // Fallback timeout after 10 seconds
+    const timeout = setTimeout(() => {
+      if (loadingProgress < 100) {
+        console.warn('Loading timeout reached, proceeding anyway');
+        setLoadingProgress(100);
+      }
+    }, 10000);
+    
+    return () => clearTimeout(timeout);
   }, []);
   
   const handleLoadComplete = () => {
