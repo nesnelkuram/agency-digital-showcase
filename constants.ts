@@ -1,4 +1,8 @@
 import { VideoInfo, MediaContent } from './types';
+import blobUrlsData from './blob-urls.json';
+
+// Type for blob URLs
+const blobUrls: Record<string, string> = blobUrlsData as Record<string, string>;
 
 export const HEADER_VIDEOS: VideoInfo[] = [
   // Yerel optimize edilmiş dikey video
@@ -39,6 +43,16 @@ export const HEADER_VIDEOS: VideoInfo[] = [
 // This constant is used in PhoneMockup.tsx for styling its aspect ratio.
 // export const PHONE_ASPECT_RATIO_NUMBER = 9 / 19.5; // Example: 0.4615
 // The Tailwind class `aspect-[9/19.5]` is used directly for simplicity.
+
+// Helper function to get blob URL or fallback to local
+const getBlobUrl = (fileName: string): string => {
+  // Try to get from blob URLs first
+  if (blobUrls && blobUrls[fileName]) {
+    return blobUrls[fileName];
+  }
+  // Fallback to local file
+  return `/videos/full/${fileName}`;
+};
 
 // MP4 formatı - Her satırda farklı videolar, sütunlar arası tekrar yok
 // 48 telefon için video dağılımı (12 satır x 4 sütun)
@@ -90,7 +104,7 @@ export const PHONE_MEDIA_CONTENT: MediaContent[] = Array.from({ length: 12 }, (_
     id: `media${idx + 1}`,
     thumbnail: '/images/photo1.jpg',
     preview: `/videos/preview/${videoNum}.mp4`,
-    fullVideo: `/videos/full/${videoNum}.mp4`,  // Full version in /videos/full folder
+    fullVideo: getBlobUrl(`${videoNum}.mp4`),  // Use Blob URL from CDN
     alt: `Video showcase ${idx + 1}`,
     duration: 10,
     type: 'video' as const
