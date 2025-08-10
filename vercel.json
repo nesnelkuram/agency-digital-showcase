@@ -1,9 +1,4 @@
 {
-  "functions": {
-    "api/**/*": {
-      "maxDuration": 10
-    }
-  },
   "headers": [
     {
       "source": "/videos/(.*)",
