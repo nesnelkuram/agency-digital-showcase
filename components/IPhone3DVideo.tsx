@@ -62,14 +62,22 @@ const IPhone3DVideo: React.FC<IPhone3DVideoProps> = ({
         video.preload = 'none'; // No preload for full videos until needed
       }
       
-      // Auto-play preview videos
-      if (currentSource.loop) {
-        video.play().catch(err => console.warn('Preview play failed:', err));
+      // Auto-play preview videos with delay to prevent conflicts
+      if (currentSource.loop && playState !== 'playing') {
+        const playTimer = setTimeout(() => {
+          if (video.paused) {
+            video.play().catch(() => {}); // Silently fail
+          }
+        }, 100);
       }
       
       // Play full video when state is playing
-      if (playState === 'playing') {
-        video.play().catch(err => console.warn('Video play failed:', err));
+      if (playState === 'playing' && !currentSource.loop) {
+        const playTimer = setTimeout(() => {
+          if (video.paused) {
+            video.play().catch(() => {}); // Silently fail
+          }
+        }, 200);
       }
       
       const texture = new THREE.VideoTexture(video);
@@ -92,9 +100,17 @@ const IPhone3DVideo: React.FC<IPhone3DVideoProps> = ({
       }
       
       return () => {
-        video.pause();
-        video.src = '';
-        texture.dispose();
+        // Properly cleanup video
+        if (video && !video.paused) {
+          video.pause();
+        }
+        if (video) {
+          video.removeAttribute('src');
+          video.load();
+        }
+        if (texture) {
+          texture.dispose();
+        }
       };
     } else {
       // Static image texture

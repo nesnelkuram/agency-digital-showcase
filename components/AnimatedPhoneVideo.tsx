@@ -55,8 +55,8 @@ const AnimatedPhoneVideo: React.FC<AnimatedPhoneVideoProps> = ({
         Math.pow(position[2] - camera.position.z, 2)
       );
       
-      // Only render phones within reasonable distance
-      const shouldBeVisible = distance < 15;
+      // Only render phones within reasonable distance (increased for better visibility)
+      const shouldBeVisible = distance < 25;
       setIsVisible(shouldBeVisible);
       
       // Pause video if not visible and not selected

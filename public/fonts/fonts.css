@@ -1,0 +1,30 @@
+/* Simplified font loading - only load essential fonts */
+
+@font-face {
+    font-family: 'TT Ramillas';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('./agency-digital-showcase/TT Ramillas Trial Regular.woff') format('woff');
+}
+
+@font-face {
+    font-family: 'TT Ramillas';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('./agency-digital-showcase/TT Ramillas Trial Bold.woff') format('woff');
+}
+
+@font-face {
+    font-family: 'TT Ramillas';
+    font-style: normal;
+    font-weight: 900;
+    font-display: swap;
+    src: url('./agency-digital-showcase/TT Ramillas Trial Black.woff') format('woff');
+}
+
+/* Fallback to system fonts if custom fonts fail */
+body {
+    font-family: 'TT Ramillas', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+}
