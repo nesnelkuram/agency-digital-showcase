@@ -7,15 +7,13 @@ import Contact from './components/Contact';
 import Footer from './components/Footer';
 import SimpleLoadingScreen from './components/SimpleLoadingScreen';
 import * as THREE from 'three';
+import { PHONE_MEDIA_CONTENT } from './constants';
 
 const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
   
   useEffect(() => {
-    // Import PHONE_MEDIA_CONTENT to get actual video URLs
-    const { PHONE_MEDIA_CONTENT } = require('./constants');
-    
     // Preload critical assets
     const assetsToLoad = {
       videos: [

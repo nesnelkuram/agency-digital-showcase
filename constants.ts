@@ -51,7 +51,7 @@ export const HEADER_VIDEOS: VideoInfo[] = [
 // The Tailwind class `aspect-[9/19.5]` is used directly for simplicity.
 
 // Helper function to get blob URL
-const getBlobUrl = (fileName: string, type: 'full' | 'preview' = 'full'): string => {
+export const getBlobUrl = (fileName: string, type: 'full' | 'preview' = 'full'): string => {
   // First try the specific type (full videos are now all uploaded)
   if (type === 'full' && blobUrls.full && blobUrls.full[fileName]) {
     return blobUrls.full[fileName];
