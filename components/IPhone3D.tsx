@@ -9,6 +9,8 @@ interface IPhone3DProps {
   scale?: number;
   onClick?: () => void;
   isNearCamera?: boolean;
+  isSelected?: boolean;
+  enableSound?: boolean;
 }
 
 const IPhone3D: React.FC<IPhone3DProps> = ({ 
@@ -17,7 +19,9 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
   rotation = [0, 0, 0],
   scale = 1,
   onClick,
-  isNearCamera = true
+  isNearCamera = true,
+  isSelected = false,
+  enableSound = false
 }) => {
   // Load iPhone model
   const { scene } = useGLTF('/models/iphone_14_pro_max/scene.gltf') as any;
@@ -43,6 +47,21 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
     return cloned;
   }, [scene]);
 
+  // Cleanup on component unmount
+  useEffect(() => {
+    return () => {
+      // When component unmounts, stop and mute the video
+      clonedScene.traverse((child: any) => {
+        if (child.isMesh && child.__video) {
+          const video = child.__video;
+          video.muted = true;
+          video.volume = 0;
+          video.pause();
+        }
+      });
+    };
+  }, [clonedScene]);
+  
   // Find and update materials
   useEffect(() => {
     // First, let's analyze the model structure
@@ -139,12 +158,13 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
         console.log('✓ Remapped UV coordinates to uniform 0-1 range');
       }
       
+      
       // Create video element and texture with performance optimizations
       const video = document.createElement('video');
       video.src = videoSrc;
       video.crossOrigin = 'anonymous';
       video.loop = true;
-      video.muted = true;
+      video.muted = !enableSound;  // Only mute if sound is not enabled
       video.autoplay = true;
       video.playsInline = true;
       video.setAttribute('playsinline', 'true');
@@ -228,9 +248,9 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
         }
       }
     });
-  }, [clonedScene, videoSrc]);
+  }, [clonedScene, videoSrc, enableSound]);
 
-  // Control video playback based on viewport visibility
+  // Control video playback based on viewport visibility AND selection state
   useEffect(() => {
     if (!clonedScene) return;
     
@@ -244,17 +264,16 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
     if (screenMesh && screenMesh.__video) {
       const video = screenMesh.__video;
       
-      // Always play videos initially, then control based on viewport
       // Small delay to ensure video element is ready
       setTimeout(() => {
-        if (isNearCamera) {
+        // Only play if near camera AND not a different phone that's selected
+        if (isNearCamera && (isSelected || !enableSound)) {
           // Video is in viewport - ensure it's playing
           if (video.paused) {
             video.play().catch(() => {});
           }
         } else {
-          // Video is far from camera - pause to save resources  
-          // But only if entrance animation is complete
+          // Video is far from camera OR another phone is selected - pause
           if (!video.paused) {
             video.pause();
           }
@@ -268,7 +287,32 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
         screenMesh.__video.pause();
       }
     };
-  }, [clonedScene, isNearCamera]);
+  }, [clonedScene, isNearCamera, isSelected, enableSound]);
+  
+  // Control sound based on selection state - immediate mute when deselected
+  useEffect(() => {
+    if (!clonedScene) return;
+    
+    let screenMesh: any = null;
+    clonedScene.traverse((child: any) => {
+      if (child.isMesh && child.__video) {
+        screenMesh = child;
+      }
+    });
+    
+    if (screenMesh && screenMesh.__video) {
+      const video = screenMesh.__video;
+      
+      // Immediately control mute state based on selection
+      if (isSelected && enableSound) {
+        video.muted = false;
+        video.volume = 1.0;
+      } else {
+        video.muted = true;
+        video.volume = 0;
+      }
+    }
+  }, [clonedScene, enableSound, isSelected]);
 
   // Calculate scale once and memoize it
   const calculatedScale = useMemo(() => {

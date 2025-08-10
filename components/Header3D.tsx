@@ -245,7 +245,7 @@ const Header3D: React.FC = () => {
               fov: 8,
               near: 0.1,
               far: 1000,
-            }}
+            }}y
             gl={{
               antialias: false,  // Disable antialiasing for better performance
               alpha: true,
@@ -343,6 +343,7 @@ const Header3D: React.FC = () => {
                               <AnimatedPhone
                                 key={cfg.key}
                                 videoSrc={cfg.videoSrc}
+                                fullVideoSrc={cfg.videoSrc?.replace('/preview/', '/full/')}
                                 position={[x, y, z]}
                                 isSelected={isSelected}
                                 shouldFall={shouldFall}

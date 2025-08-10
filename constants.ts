@@ -40,32 +40,59 @@ export const HEADER_VIDEOS: VideoInfo[] = [
 // export const PHONE_ASPECT_RATIO_NUMBER = 9 / 19.5; // Example: 0.4615
 // The Tailwind class `aspect-[9/19.5]` is used directly for simplicity.
 
-// MP4 formatı daha iyi performans için - 13 farklı video karışık dağıtım
-export const PHONE_IMAGES = [
-  { id: 'img1', src: '/videos/preview/7.mp4', alt: 'Mobile video 1' },
-  { id: 'img2', src: '/videos/preview/3.mp4', alt: 'Mobile video 2' },
-  { id: 'img3', src: '/videos/preview/11.mp4', alt: 'Mobile video 3' },
-  { id: 'img4', src: '/videos/preview/5.mp4', alt: 'Mobile video 4' },
-  { id: 'img5', src: '/videos/preview/9.mp4', alt: 'Mobile video 5' },
-  { id: 'img6', src: '/videos/preview/2.mp4', alt: 'Mobile video 6' },
-  { id: 'img7', src: '/videos/preview/10.mp4', alt: 'Mobile video 7' },
-  { id: 'img8', src: '/videos/preview/6.mp4', alt: 'Mobile video 8' },
-  { id: 'img9', src: '/videos/preview/1.mp4', alt: 'Mobile video 9' },
-  { id: 'img10', src: '/videos/preview/8.mp4', alt: 'Mobile video 10' },
-  { id: 'img11', src: '/videos/preview/4.mp4', alt: 'Mobile video 11' },
-  { id: 'img12', src: '/videos/preview/11.mp4', alt: 'Mobile video 12' },
-];
+// MP4 formatı - Her satırda farklı videolar, sütunlar arası tekrar yok
+// 48 telefon için video dağılımı (12 satır x 4 sütun)
+export const PHONE_IMAGES = Array.from({ length: 48 }, (_, idx) => {
+  const col = idx % 4;  // 0, 1, 2, 3
+  const row = Math.floor(idx / 4);  // 0-11
+  
+  // Her satır için farklı video setleri
+  const videoSets = [
+    [8, 1, 3, 5],      // Satır 0
+    [12, 11, 6, 2],    // Satır 1
+    [4, 7, 9, '10.'],  // Satır 2
+    [13, 5, 8, 1],     // Satır 3
+    [3, 2, 12, 11],    // Satır 4
+    [6, '10.', 4, 7],  // Satır 5
+    [9, 1, 13, 5],     // Satır 6
+    [8, 11, 3, 2],     // Satır 7
+    [12, 7, 6, '10.'], // Satır 8
+    [4, 5, 9, 1],      // Satır 9
+    [13, 2, 8, 11],    // Satır 10
+    [3, '10.', 12, 7]  // Satır 11
+  ];
+  
+  const videoNum = videoSets[row][col];
+  
+  return {
+    id: `img${idx + 1}`,
+    src: `/videos/preview/${videoNum}.mp4`,
+    alt: `Mobile video ${idx + 1}`
+  };
+});
 
-// Tüm telefonlar için video içeriği - MP4 formatında karışık dağıtım
-const videoNumbers = [10, 7, 3, 11, 5, 9, 2, 10, 6, 1, 8, 4];
-export const PHONE_MEDIA_CONTENT: MediaContent[] = [
-  ...videoNumbers.map((num, i) => ({
-    id: `media${i + 1}`,
-    thumbnail: '/images/photo1.jpg', // Statik thumbnail
-    preview: `/videos/preview/${num}.mp4`,  // Karışık video dağıtımı
-    fullVideo: `/videos/preview/${num}.mp4`,
-    alt: `Video showcase ${i + 1}`,
+// Tüm telefonlar için video içeriği - İlk 3 satırdan alınıyor
+// İlk 12 telefon için (3 satır x 4 sütun)
+export const PHONE_MEDIA_CONTENT: MediaContent[] = Array.from({ length: 12 }, (_, idx) => {
+  const col = idx % 4;  // 0, 1, 2, 3
+  const row = Math.floor(idx / 4);  // 0-2
+  
+  // İlk 3 satır için video setleri
+  const videoSets = [
+    [8, 1, 3, 5],      // Satır 0
+    [12, 11, 6, 2],    // Satır 1
+    [4, 7, 9, '10.']   // Satır 2
+  ];
+  
+  const videoNum = videoSets[row][col];
+  
+  return {
+    id: `media${idx + 1}`,
+    thumbnail: '/images/photo1.jpg',
+    preview: `/videos/preview/${videoNum}.mp4`,
+    fullVideo: `/videos/full/${videoNum}.mp4`,  // Full version in /videos/full folder
+    alt: `Video showcase ${idx + 1}`,
     duration: 10,
     type: 'video' as const
-  }))
-];
+  };
+});

@@ -4,6 +4,7 @@ import IPhone3D from './IPhone3D';
 
 interface AnimatedPhoneProps {
   videoSrc: string;
+  fullVideoSrc?: string;  // Full video URL for selected state
   position: [number, number, number];
   isSelected: boolean;
   onClick: () => void;
@@ -14,7 +15,8 @@ interface AnimatedPhoneProps {
 }
 
 const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({ 
-  videoSrc, 
+  videoSrc,
+  fullVideoSrc,
   position, 
   isSelected, 
   onClick,
@@ -118,7 +120,8 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
     const timer = setTimeout(() => setForcePlay(false), 3000);
     return () => clearTimeout(timer);
   }, []);
-  const isNearCamera = forcePlay || Math.abs(position[1]) < 6;   // Force play initially, then viewport-based
+  // Don't play videos on non-selected phones when one is selected
+  const isNearCamera = (forcePlay || Math.abs(position[1]) < 6) && !shouldFall;   // Stop playing when falling
 
   return (
     <animated.group 
@@ -138,10 +141,13 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
           </mesh>
         }>
           <IPhone3D
-            videoSrc={videoSrc}
+            key={`${isSelected ? 'full' : 'preview'}-${videoSrc}`}  // Force re-render when video changes
+            videoSrc={isSelected ? (fullVideoSrc || videoSrc) : videoSrc}  // Use full video only when selected
             rotation={[0, 0, 0]}
             onClick={onClick}
             isNearCamera={isNearCamera}
+            isSelected={isSelected}
+            enableSound={isSelected}  // Only enable sound when selected
           />
         </Suspense>
       ) : (
