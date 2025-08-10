@@ -1,7 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef, Suspense } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { Environment } from '@react-three/drei';
-import * as THREE from 'three';
 import AnimatedPhone from './AnimatedPhone';
 import AnimatedPhoneVideo from './AnimatedPhoneVideo';
 import { PHONE_IMAGES, PHONE_MEDIA_CONTENT } from '../constants';
@@ -245,7 +244,7 @@ const Header3D: React.FC = () => {
               fov: 8,
               near: 0.1,
               far: 1000,
-            }}y
+            }}
             gl={{
               antialias: false,  // Disable antialiasing for better performance
               alpha: true,
@@ -393,6 +392,37 @@ const Header3D: React.FC = () => {
             transform: 'translate(-50%, -50%)',
             transitionDuration: isClosing ? '2800ms' : (selectedPhone ? '2500ms' : '2000ms'),
             transitionDelay: '0ms', // Always immediate
+            transitionTimingFunction: isClosing 
+              ? 'cubic-bezier(0.4, 0, 0.2, 1)' // smooth contraction
+              : 'cubic-bezier(0.25, 0.46, 0.45, 0.94)', // smooth expansion
+          }}
+          onClick={() => {
+            if (selectedPhone) {
+              setIsClosing(true);
+              setLastSelectedPhone(selectedPhone);
+              setSelectedPhone(null);  // Phone moves immediately
+              setTimeout(() => {
+                setIsClosing(false);
+                setLastSelectedPhone(null);
+              }, 800);
+            }
+          }}
+        />
+        
+        {/* Blue expanding circle background - between yellow bg and phone */}
+        <div 
+          className={`absolute bg-[#EBEEF8] rounded-full transition-all`}
+          style={{
+            zIndex: selectedPhone || isClosing ? 35 : 9,
+            // Hidden when not selected, expands when selected
+            width: isClosing ? '0' : (selectedPhone ? '120vh' : '0'),
+            height: isClosing ? '0' : (selectedPhone ? '120vh' : '0'),
+            // Position at top right, behind phones
+            left: '84%',
+            top: '26%',
+            transform: 'translate(-50%, -50%)',
+            transitionDuration: isClosing ? '2800ms' : (selectedPhone ? '2500ms' : '2000ms'),
+            transitionDelay: '0ms',
             transitionTimingFunction: isClosing 
               ? 'cubic-bezier(0.4, 0, 0.2, 1)' // smooth contraction
               : 'cubic-bezier(0.25, 0.46, 0.45, 0.94)', // smooth expansion
