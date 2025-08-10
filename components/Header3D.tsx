@@ -247,13 +247,14 @@ const Header3D: React.FC = () => {
               far: 1000,
             }}
             gl={{
-              antialias: true,
+              antialias: false,  // Disable antialiasing for better performance
               alpha: true,
               powerPreference: 'high-performance',
               stencil: false,
               depth: true,
+              preserveDrawingBuffer: false,  // Better performance
             }}
-            dpr={[1, 2]}
+            dpr={[1, 1.5]}  // Reduce max DPR for better performance
             style={{ 
               width: '100%', 
               height: '100%',

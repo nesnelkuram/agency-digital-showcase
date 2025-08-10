@@ -1,4 +1,4 @@
-import React, { Suspense, useMemo } from 'react';
+import React, { Suspense, useMemo, useState, useEffect } from 'react';
 import { animated, useSpring } from '@react-spring/three';
 import IPhone3D from './IPhone3D';
 
@@ -112,7 +112,13 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
   // LOD - viewport dışındaki telefonları optimize et
   // During entrance animation, always render the phone (no culling)
   const isInViewport = !hasEntered || Math.abs(position[1]) < 10;  // No culling during entrance
-  const isNearCamera = Math.abs(position[1]) < 5;   // Yakın telefonlar için video oynat
+  // All videos play initially for 3 seconds, then based on viewport
+  const [forcePlay, setForcePlay] = useState(true);
+  useEffect(() => {
+    const timer = setTimeout(() => setForcePlay(false), 3000);
+    return () => clearTimeout(timer);
+  }, []);
+  const isNearCamera = forcePlay || Math.abs(position[1]) < 6;   // Force play initially, then viewport-based
 
   return (
     <animated.group 

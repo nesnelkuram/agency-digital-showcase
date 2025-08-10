@@ -139,7 +139,7 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
         console.log('✓ Remapped UV coordinates to uniform 0-1 range');
       }
       
-      // Create video element and texture
+      // Create video element and texture with performance optimizations
       const video = document.createElement('video');
       video.src = videoSrc;
       video.crossOrigin = 'anonymous';
@@ -147,15 +147,35 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
       video.muted = true;
       video.autoplay = true;
       video.playsInline = true;
+      video.setAttribute('playsinline', 'true');
+      video.setAttribute('webkit-playsinline', 'true');
       
-      // Start playing the video
-      video.play().catch(e => console.log('Video play error:', e));
+      // Performance optimizations
+      video.preload = 'auto';  // Preload for smooth playback
+      video.playbackRate = 1.0;
+      
+      // Store video reference on mesh for later control
+      (mesh as any).__video = video;
+      
+      // Always try to play the video - it will be controlled by visibility
+      video.play().catch(e => {
+        console.log('Video autoplay blocked, will retry on user interaction');
+        // Retry on first user interaction
+        const retryPlay = () => {
+          video.play().catch(() => {});
+          window.removeEventListener('click', retryPlay);
+          window.removeEventListener('touchstart', retryPlay);
+        };
+        window.addEventListener('click', retryPlay, { once: true });
+        window.addEventListener('touchstart', retryPlay, { once: true });
+      });
       
       const videoTexture = new THREE.VideoTexture(video);
-      videoTexture.minFilter = THREE.LinearFilter;
-      videoTexture.magFilter = THREE.LinearFilter;
+      videoTexture.minFilter = THREE.LinearFilter;  // Better quality for visible videos
+      videoTexture.magFilter = THREE.LinearFilter;  // Better quality for visible videos
       videoTexture.generateMipmaps = false;
       videoTexture.colorSpace = THREE.SRGBColorSpace;
+      videoTexture.format = THREE.RGBFormat;  // Simpler format
       
       // Apply UV adjustments
       videoTexture.wrapS = THREE.ClampToEdgeWrapping;
@@ -167,7 +187,8 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
       
       mesh.material = new THREE.MeshBasicMaterial({
         map: videoTexture,
-        toneMapped: false
+        toneMapped: false,
+        side: THREE.FrontSide  // Only render front side
       });
       
       console.log('✓ Applied video texture to screen');
@@ -207,7 +228,47 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
         }
       }
     });
-  }, [clonedScene, videoSrc, isNearCamera]);
+  }, [clonedScene, videoSrc]);
+
+  // Control video playback based on viewport visibility
+  useEffect(() => {
+    if (!clonedScene) return;
+    
+    let screenMesh: any = null;
+    clonedScene.traverse((child: any) => {
+      if (child.isMesh && child.__video) {
+        screenMesh = child;
+      }
+    });
+    
+    if (screenMesh && screenMesh.__video) {
+      const video = screenMesh.__video;
+      
+      // Always play videos initially, then control based on viewport
+      // Small delay to ensure video element is ready
+      setTimeout(() => {
+        if (isNearCamera) {
+          // Video is in viewport - ensure it's playing
+          if (video.paused) {
+            video.play().catch(() => {});
+          }
+        } else {
+          // Video is far from camera - pause to save resources  
+          // But only if entrance animation is complete
+          if (!video.paused) {
+            video.pause();
+          }
+        }
+      }, 100);
+    }
+    
+    return () => {
+      // Cleanup on unmount
+      if (screenMesh && screenMesh.__video) {
+        screenMesh.__video.pause();
+      }
+    };
+  }, [clonedScene, isNearCamera]);
 
   // Calculate scale once and memoize it
   const calculatedScale = useMemo(() => {
