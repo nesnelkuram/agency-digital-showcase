@@ -94,7 +94,7 @@ export const PHONE_IMAGES = Array.from({ length: 48 }, (_, idx) => {
   
   return {
     id: `img${idx + 1}`,
-    src: getBlobUrl(`${videoNum}.mp4`, 'preview'),  // Use Blob URL for preview
+    src: `/videos/preview/${videoNum}.mp4`,  // Use local files for preview (faster)
     alt: `Mobile video ${idx + 1}`
   };
 });
@@ -117,8 +117,8 @@ export const PHONE_MEDIA_CONTENT: MediaContent[] = Array.from({ length: 12 }, (_
   return {
     id: `media${idx + 1}`,
     thumbnail: '/images/photo1.jpg',
-    preview: getBlobUrl(`${videoNum}.mp4`, 'preview'),  // Blob URL for preview
-    fullVideo: getBlobUrl(`${videoNum}.mp4`, 'full'),  // Blob URL for full
+    preview: `/videos/preview/${videoNum}.mp4`,  // Local files for faster preview
+    fullVideo: getBlobUrl(`${videoNum}.mp4`, 'full'),  // Blob URL for full video only
     alt: `Video showcase ${idx + 1}`,
     duration: 10,
     type: 'video' as const

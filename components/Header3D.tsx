@@ -307,8 +307,8 @@ const Header3D: React.FC = () => {
                             fallDelay = distance * 30; // 30ms delay per phone distance
                           }
                           
-                          // Calculate entrance delay based on index - minimal delay for quick entrance
-                          const entranceDelay = phoneConfigs.findIndex(p => p.key === cfg.key) * 10;
+                          // Calculate entrance delay based on row and column for better stagger
+                          const entranceDelay = hasEntered ? 0 : (row * 60 + col * 30); // Row-based stagger
                           
                           // Use video component for media content, regular for images
                           if (cfg.isVideo && cfg.media) {

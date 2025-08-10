@@ -86,9 +86,9 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
     scale: shouldFall ? 0.8 : (hasEntered ? 1 : 0.5),  // Start small, grow to normal
     opacity: shouldFall ? 0 : (hasEntered ? 1 : 0),  // Start invisible then fade in
     config: { 
-      mass: shouldFall ? 10 : (hasEntered ? 1.5 : 5),      // Smooth entrance
-      tension: shouldFall ? 8 : (hasEntered ? 40 : 20),   // Normal speed
-      friction: shouldFall ? 35 : (hasEntered ? 22 : 25), // Normal resistance
+      mass: shouldFall ? 8 : (hasEntered ? 1 : 3),      // Much lighter for faster response
+      tension: shouldFall ? 12 : (hasEntered ? 60 : 40),   // Higher tension for quicker animation
+      friction: shouldFall ? 30 : (hasEntered ? 18 : 20), // Lower friction for smoother motion
       delay: shouldFall ? (fallDelay * 2) : (hasEntered ? entranceDelay : 0)  // Staggered entrance
     }
   });
@@ -104,20 +104,20 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
     rotY: targetRotation.y,
     rotZ: targetRotation.z,
     config: { 
-      mass: shouldFall ? 4 : (hasEntered ? 3 : 4),
-      tension: shouldFall ? 20 : (hasEntered ? 25 : 20),
-      friction: shouldFall ? 25 : (hasEntered ? 22 : 25),
-      delay: shouldFall ? rotationStartDelay : (hasEntered ? entranceDelay + 100 : 0)  // Slight delay for rotation
+      mass: shouldFall ? 3 : (hasEntered ? 2 : 3),  // Lighter mass
+      tension: shouldFall ? 30 : (hasEntered ? 50 : 40),  // Higher tension
+      friction: shouldFall ? 22 : (hasEntered ? 18 : 20),  // Lower friction
+      delay: shouldFall ? rotationStartDelay : (hasEntered ? entranceDelay : 0)  // No extra delay
     }
   });
 
   // LOD - viewport dışındaki telefonları optimize et
   // During entrance animation, always render the phone (no culling)
   const isInViewport = !hasEntered || Math.abs(position[1]) < 10;  // No culling during entrance
-  // All videos play initially for 3 seconds, then based on viewport
+  // All videos play initially for 1 second, then based on viewport
   const [forcePlay, setForcePlay] = useState(true);
   useEffect(() => {
-    const timer = setTimeout(() => setForcePlay(false), 3000);
+    const timer = setTimeout(() => setForcePlay(false), 1000); // Reduced from 3s to 1s
     return () => clearTimeout(timer);
   }, []);
   // Don't play videos on non-selected phones when one is selected
