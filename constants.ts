@@ -52,20 +52,20 @@ export const HEADER_VIDEOS: VideoInfo[] = [
 
 // Helper function to get blob URL
 const getBlobUrl = (fileName: string, type: 'full' | 'preview' = 'full'): string => {
-  // First check 'other' category (most videos are here from initial upload)
+  // First try the specific type (full videos are now all uploaded)
+  if (type === 'full' && blobUrls.full && blobUrls.full[fileName]) {
+    return blobUrls.full[fileName];
+  }
+  if (type === 'preview' && blobUrls.preview && blobUrls.preview[fileName]) {
+    return blobUrls.preview[fileName];
+  }
+  
+  // Check 'other' category as fallback
   if (blobUrls.other && blobUrls.other[fileName]) {
     return blobUrls.other[fileName];
   }
   
-  // Then try the specific type
-  if (type === 'preview' && blobUrls.preview && blobUrls.preview[fileName]) {
-    return blobUrls.preview[fileName];
-  }
-  if (type === 'full' && blobUrls.full && blobUrls.full[fileName]) {
-    return blobUrls.full[fileName];
-  }
-  
-  // Fallback to local files if not found in blob
+  // Fallback to local files if not found in blob (shouldn't happen)
   const fallbackPath = type === 'preview' 
     ? `/videos/preview/${fileName}` 
     : `/videos/full/${fileName}`;
