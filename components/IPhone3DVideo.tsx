@@ -48,36 +48,33 @@ const IPhone3DVideo: React.FC<IPhone3DVideoProps> = ({
     if (currentSource.isVideo) {
       const video = document.createElement('video');
       video.src = currentSource.src;
-      // Remove crossOrigin - Vercel Blob handles CORS properly
+      // Don't set crossOrigin for Blob URLs
+      if (!currentSource.src.includes('blob.vercel-storage.com')) {
+        video.crossOrigin = 'anonymous';
+      }
       video.loop = currentSource.loop;
       video.muted = true;
       video.playsInline = true;
+      video.preload = currentSource.loop ? 'auto' : 'metadata';
       
-      // Optimize preload strategy
-      if (playState === 'playing') {
-        video.preload = 'auto'; // Full load only when playing
-      } else {
-        video.preload = 'metadata'; // Minimal load for all non-playing videos
+      // Add load event listener to track when video is ready
+      video.addEventListener('loadedmetadata', () => {
+        console.log(`Video loaded: ${currentSource.src.substring(0, 50)}...`);
+      });
+      
+      video.addEventListener('error', (e) => {
+        console.error(`Video error for ${currentSource.src}:`, e);
+      });
+      
+      // Auto-play preview videos
+      if (currentSource.loop) {
+        video.play().catch(err => console.warn(`Preview play failed for ${currentSource.src}:`, err));
       }
       
-      // Don't auto-play preview videos - wait for user interaction
-      
       // Play full video when state is playing
-      if (playState === 'playing' && !currentSource.loop) {
-        console.log(`[IPhone3DVideo] Attempting to play full video: ${currentSource.src}`);
-        const playTimer = setTimeout(() => {
-          if (video.paused) {
-            video.play().catch((err) => {
-              console.error(`[IPhone3DVideo] Failed to play full video: ${err.message}`, currentSource.src);
-              // Retry once after a delay
-              setTimeout(() => {
-                video.play().catch((retryErr) => {
-                  console.error(`[IPhone3DVideo] Retry failed: ${retryErr.message}`);
-                });
-              }, 500);
-            });
-          }
-        }, 200);
+      if (playState === 'playing') {
+        console.log(`Playing full video: ${currentSource.src}`);
+        video.play().catch(err => console.warn(`Full video play failed for ${currentSource.src}:`, err));
       }
       
       const texture = new THREE.VideoTexture(video);

@@ -11,38 +11,36 @@ interface BlobUrls {
 const blobUrls = allBlobUrls as BlobUrls;
 
 export const HEADER_VIDEOS: VideoInfo[] = [
-  // Yerel optimize edilmiş dikey video
+  // Blob Storage'dan videolar
   { 
-    id: 'vid1_dikey_2_1', 
-    src: '/videos/Dikey_2_1.mp4',  // 4.1MB - optimize boyut
-    alt: 'Dikey video 2.1' 
-  },
-  // Exit109 kısa video klipleri
-  { 
-    id: 'vid2_rw20', 
-    src: 'https://www.exit109.com/~dnn/clips/RW20seconds_1.mp4', 
-    alt: 'RW 20 seconds clip 1' 
+    id: 'vid1', 
+    src: getBlobUrl('1.mp4', 'preview'),
+    alt: 'Video 1' 
   },
   { 
-    id: 'vid3_rw20_2', 
-    src: 'https://www.exit109.com/~dnn/clips/RW20seconds_2.mp4', 
-    alt: 'RW 20 seconds clip 2' 
+    id: 'vid2', 
+    src: getBlobUrl('2.mp4', 'preview'),
+    alt: 'Video 2' 
   },
   { 
-    id: 'vid4_clips', 
-    src: 'https://www.exit109.com/~dnn/clips/RW20seconds.mp4',
-    alt: 'RW 20 seconds original' 
-  },
-  // Mobile format videolar
-  { 
-    id: 'vid5_bunny', 
-    src: 'https://www.exit109.com/~dnn/clips/bbb_480_688.mp4',
-    alt: 'Big Buck Bunny mobile' 
+    id: 'vid3', 
+    src: getBlobUrl('3.mp4', 'preview'),
+    alt: 'Video 3' 
   },
   { 
-    id: 'vid6_sintel', 
-    src: 'https://www.exit109.com/~dnn/clips/sintel_480_688.mp4',
-    alt: 'Sintel mobile format' 
+    id: 'vid4', 
+    src: getBlobUrl('4.mp4', 'preview'),
+    alt: 'Video 4' 
+  },
+  { 
+    id: 'vid5', 
+    src: getBlobUrl('5.mp4', 'preview'),
+    alt: 'Video 5' 
+  },
+  { 
+    id: 'vid6', 
+    src: getBlobUrl('6.mp4', 'preview'),
+    alt: 'Video 6' 
   },
 ];
 
@@ -50,28 +48,35 @@ export const HEADER_VIDEOS: VideoInfo[] = [
 // export const PHONE_ASPECT_RATIO_NUMBER = 9 / 19.5; // Example: 0.4615
 // The Tailwind class `aspect-[9/19.5]` is used directly for simplicity.
 
-// Helper function to get blob URL
+// Helper function to get blob URL - all videos now in Blob Storage
 export const getBlobUrl = (fileName: string, type: 'full' | 'preview' = 'full'): string => {
-  // First try the specific type (full videos are now all uploaded)
-  if (type === 'full' && blobUrls.full && blobUrls.full[fileName]) {
-    return blobUrls.full[fileName];
-  }
-  if (type === 'preview' && blobUrls.preview && blobUrls.preview[fileName]) {
-    return blobUrls.preview[fileName];
+  // For full videos - all are now uploaded
+  if (type === 'full') {
+    if (blobUrls.full[fileName]) {
+      return blobUrls.full[fileName];
+    }
+    // Fallback to preview if full not found
+    if (blobUrls.preview[fileName]) {
+      console.warn(`⚠️ Using preview as full video: ${fileName}`);
+      return blobUrls.preview[fileName];
+    }
   }
   
-  // Check 'other' category as fallback
-  if (blobUrls.other && blobUrls.other[fileName]) {
-    return blobUrls.other[fileName];
+  // For preview videos
+  if (type === 'preview') {
+    if (blobUrls.preview[fileName]) {
+      return blobUrls.preview[fileName];
+    }
+    // Fallback to full if preview not found
+    if (blobUrls.full[fileName]) {
+      console.warn(`⚠️ Using full as preview: ${fileName}`);
+      return blobUrls.full[fileName];
+    }
   }
   
-  // Fallback to local files if not found in blob (shouldn't happen)
-  const fallbackPath = type === 'preview' 
-    ? `/videos/preview/${fileName}` 
-    : `/videos/full/${fileName}`;
-  
-  console.error(`[getBlobUrl] Video NOT found in Blob: ${type}/${fileName}, using local fallback`);
-  return fallbackPath;
+  // Video not found - should not happen as all videos are uploaded
+  console.error(`❌ Video not found in Blob: ${type}/${fileName}`);
+  return '';
 };
 
 // MP4 formatı - Her satırda farklı videolar, sütunlar arası tekrar yok
