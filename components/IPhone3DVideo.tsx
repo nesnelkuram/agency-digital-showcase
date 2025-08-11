@@ -154,11 +154,12 @@ const IPhone3DVideo: React.FC<IPhone3DVideoProps> = ({
     return cloned;
   }, [scene]);
 
-  // Update screen material with current texture
+  // Store screen mesh reference
+  const screenMeshRef = useRef<any>(null);
+  
+  // Find and setup screen mesh once
   useEffect(() => {
-    if (!textureRef.current) return;
-    
-    console.log('=== ANALYZING IPHONE MODEL FOR VIDEO ===');
+    console.log('=== FINDING SCREEN MESH ===');
     let meshCount = 0;
     let texturedMeshes: any[] = [];
     let screenMesh: any = null;
@@ -167,7 +168,6 @@ const IPhone3DVideo: React.FC<IPhone3DVideoProps> = ({
     clonedScene.traverse((child: any) => {
       if (child.isMesh) {
         meshCount++;
-        console.log(`[${meshCount}] Mesh: ${child.name}`);
         
         // Collect textured meshes
         if (child.material && (child.material.map || child.material.emissiveMap)) {
@@ -205,22 +205,9 @@ const IPhone3DVideo: React.FC<IPhone3DVideoProps> = ({
       });
     }
     
-    // Apply texture to screen
     if (screenMesh) {
       console.log(`✓ FOUND SCREEN: ${screenMesh.name}`);
-      const mesh = screenMesh.mesh;
-      
-      // Clone texture and adjust
-      const adjustedTexture = textureRef.current.clone();
-      
-      // Flip horizontally for correct orientation
-      adjustedTexture.repeat.set(-1, 1);
-      adjustedTexture.offset.set(1, 0);
-      
-      mesh.material = new THREE.MeshBasicMaterial({
-        map: adjustedTexture,
-        toneMapped: false
-      });
+      screenMeshRef.current = screenMesh.mesh;
     } else {
       console.warn('⚠️ Could not find screen mesh!');
     }
@@ -240,7 +227,30 @@ const IPhone3DVideo: React.FC<IPhone3DVideoProps> = ({
         }
       }
     });
-  }, [clonedScene, textureRef.current]);
+  }, [clonedScene]);
+  
+  // Update screen texture when it changes
+  useEffect(() => {
+    if (!textureRef.current || !screenMeshRef.current) return;
+    
+    console.log('Updating screen texture');
+    
+    // Don't clone, use directly
+    const texture = textureRef.current;
+    
+    // Flip horizontally for correct orientation
+    texture.repeat.set(-1, 1);
+    texture.offset.set(1, 0);
+    
+    // Update or create material
+    screenMeshRef.current.material = new THREE.MeshBasicMaterial({
+      map: texture,
+      toneMapped: false
+    });
+    
+    // Force update
+    screenMeshRef.current.material.needsUpdate = true;
+  }, [currentSource]);
 
   // Calculate scale
   const calculatedScale = useMemo(() => {
