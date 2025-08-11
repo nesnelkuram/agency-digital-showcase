@@ -28,7 +28,7 @@ export const useVideoTexture = ({
     video.loop = loop;
     video.muted = muted;
     video.playsInline = true;
-    video.preload = loop ? 'auto' : 'metadata'; // Loop videolar için auto preload
+    video.preload = 'metadata'; // Always use metadata for faster load
     
     videoRef.current = video;
 

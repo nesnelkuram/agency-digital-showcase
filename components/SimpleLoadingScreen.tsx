@@ -9,11 +9,11 @@ const SimpleLoadingScreen: React.FC<SimpleLoadingScreenProps> = ({ onLoadComplet
   const [fadeOut, setFadeOut] = useState(false);
   const [minimumTimePassed, setMinimumTimePassed] = useState(false);
   
-  // Ensure minimum display time of 2 seconds
+  // Ensure minimum display time of 1 second
   useEffect(() => {
     const timer = setTimeout(() => {
       setMinimumTimePassed(true);
-    }, 2000);
+    }, 1000);
     return () => clearTimeout(timer);
   }, []);
   

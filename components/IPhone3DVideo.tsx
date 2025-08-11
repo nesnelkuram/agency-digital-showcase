@@ -56,20 +56,11 @@ const IPhone3DVideo: React.FC<IPhone3DVideoProps> = ({
       // Optimize preload strategy
       if (playState === 'playing') {
         video.preload = 'auto'; // Full load only when playing
-      } else if (currentSource.loop) {
-        video.preload = 'metadata'; // Minimal load for preview
       } else {
-        video.preload = 'none'; // No preload for full videos until needed
+        video.preload = 'metadata'; // Minimal load for all non-playing videos
       }
       
-      // Auto-play preview videos with delay to prevent conflicts
-      if (currentSource.loop && playState !== 'playing') {
-        const playTimer = setTimeout(() => {
-          if (video.paused) {
-            video.play().catch(() => {}); // Silently fail
-          }
-        }, 100);
-      }
+      // Don't auto-play preview videos - wait for user interaction
       
       // Play full video when state is playing
       if (playState === 'playing' && !currentSource.loop) {

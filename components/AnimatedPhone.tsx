@@ -114,14 +114,10 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
   // LOD - viewport dışındaki telefonları optimize et
   // During entrance animation, always render the phone (no culling)
   const isInViewport = !hasEntered || Math.abs(position[1]) < 10;  // No culling during entrance
-  // All videos play initially for 1 second, then based on viewport
-  const [forcePlay, setForcePlay] = useState(true);
-  useEffect(() => {
-    const timer = setTimeout(() => setForcePlay(false), 1000); // Reduced from 3s to 1s
-    return () => clearTimeout(timer);
-  }, []);
+  
   // Don't play videos on non-selected phones when one is selected
-  const isNearCamera = (forcePlay || Math.abs(position[1]) < 6) && !shouldFall;   // Stop playing when falling
+  // Videos only play when near camera, not during initial load
+  const isNearCamera = Math.abs(position[1]) < 6 && !shouldFall;   // Stop playing when falling
 
   return (
     <animated.group 

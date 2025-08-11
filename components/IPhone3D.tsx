@@ -165,30 +165,19 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
       video.crossOrigin = 'anonymous';
       video.loop = true;
       video.muted = !enableSound;  // Only mute if sound is not enabled
-      video.autoplay = true;
+      video.autoplay = false;  // Disabled for faster initial load
       video.playsInline = true;
       video.setAttribute('playsinline', 'true');
       video.setAttribute('webkit-playsinline', 'true');
       
       // Performance optimizations
-      video.preload = 'auto';  // Preload for smooth playback
+      video.preload = 'metadata';  // Only preload metadata for faster initial load
       video.playbackRate = 1.0;
       
       // Store video reference on mesh for later control
       (mesh as any).__video = video;
       
-      // Always try to play the video - it will be controlled by visibility
-      video.play().catch(e => {
-        console.log('Video autoplay blocked, will retry on user interaction');
-        // Retry on first user interaction
-        const retryPlay = () => {
-          video.play().catch(() => {});
-          window.removeEventListener('click', retryPlay);
-          window.removeEventListener('touchstart', retryPlay);
-        };
-        window.addEventListener('click', retryPlay, { once: true });
-        window.addEventListener('touchstart', retryPlay, { once: true });
-      });
+      // Don't autoplay - will be controlled by user interaction and visibility
       
       const videoTexture = new THREE.VideoTexture(video);
       videoTexture.minFilter = THREE.LinearFilter;  // Better quality for visible videos
@@ -266,14 +255,14 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
       
       // Small delay to ensure video element is ready
       setTimeout(() => {
-        // Only play if near camera AND not a different phone that's selected
-        if (isNearCamera && (isSelected || !enableSound)) {
-          // Video is in viewport - ensure it's playing
+        // Only play if near camera AND user has interacted (scrolled)
+        if (isNearCamera && (isSelected || !enableSound) && window.scrollY > 50) {
+          // Video is in viewport and user has scrolled - play it
           if (video.paused) {
             video.play().catch(() => {});
           }
         } else {
-          // Video is far from camera OR another phone is selected - pause
+          // Video is far from camera OR no user interaction - pause
           if (!video.paused) {
             video.pause();
           }
