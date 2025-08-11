@@ -10,6 +10,38 @@ interface BlobUrls {
 
 const blobUrls = allBlobUrls as BlobUrls;
 
+// Helper function to get blob URL - all videos now in Blob Storage
+export const getBlobUrl = (fileName: string, type: 'full' | 'preview' = 'full'): string => {
+  // For full videos - all are now uploaded
+  if (type === 'full') {
+    if (blobUrls.full[fileName]) {
+      return blobUrls.full[fileName];
+    }
+    // Fallback to preview if full not found
+    if (blobUrls.preview[fileName]) {
+      console.warn(`⚠️ Using preview as full video: ${fileName}`);
+      return blobUrls.preview[fileName];
+    }
+  }
+  
+  // For preview videos
+  if (type === 'preview') {
+    if (blobUrls.preview[fileName]) {
+      return blobUrls.preview[fileName];
+    }
+    // Fallback to full if preview not found
+    if (blobUrls.full[fileName]) {
+      console.warn(`⚠️ Using full as preview: ${fileName}`);
+      return blobUrls.full[fileName];
+    }
+  }
+  
+  // Video not found - fallback to local for development
+  console.warn(`⚠️ Video not found in Blob: ${type}/${fileName}, using local fallback`);
+  const localPath = type === 'preview' ? `/videos/preview/${fileName}` : `/videos/full/${fileName}`;
+  return localPath;
+};
+
 export const HEADER_VIDEOS: VideoInfo[] = [
   // Blob Storage'dan videolar
   { 
@@ -43,42 +75,6 @@ export const HEADER_VIDEOS: VideoInfo[] = [
     alt: 'Video 6' 
   },
 ];
-
-// This constant is used in PhoneMockup.tsx for styling its aspect ratio.
-// export const PHONE_ASPECT_RATIO_NUMBER = 9 / 19.5; // Example: 0.4615
-// The Tailwind class `aspect-[9/19.5]` is used directly for simplicity.
-
-// Helper function to get blob URL - all videos now in Blob Storage
-export const getBlobUrl = (fileName: string, type: 'full' | 'preview' = 'full'): string => {
-  // For full videos - all are now uploaded
-  if (type === 'full') {
-    if (blobUrls.full[fileName]) {
-      return blobUrls.full[fileName];
-    }
-    // Fallback to preview if full not found
-    if (blobUrls.preview[fileName]) {
-      console.warn(`⚠️ Using preview as full video: ${fileName}`);
-      return blobUrls.preview[fileName];
-    }
-  }
-  
-  // For preview videos
-  if (type === 'preview') {
-    if (blobUrls.preview[fileName]) {
-      return blobUrls.preview[fileName];
-    }
-    // Fallback to full if preview not found
-    if (blobUrls.full[fileName]) {
-      console.warn(`⚠️ Using full as preview: ${fileName}`);
-      return blobUrls.full[fileName];
-    }
-  }
-  
-  // Video not found - fallback to local for development
-  console.warn(`⚠️ Video not found in Blob: ${type}/${fileName}, using local fallback`);
-  const localPath = type === 'preview' ? `/videos/preview/${fileName}` : `/videos/full/${fileName}`;
-  return localPath;
-};
 
 // MP4 formatı - Her satırda farklı videolar, sütunlar arası tekrar yok
 // 48 telefon için video dağılımı (12 satır x 4 sütun)
