@@ -10,34 +10,9 @@ interface BlobUrls {
 
 const blobUrls = allBlobUrls as BlobUrls;
 
-// Helper function to get blob URL - all videos now in Blob Storage
+// Helper function to get video URL - temporarily using local files only
 export const getBlobUrl = (fileName: string, type: 'full' | 'preview' = 'full'): string => {
-  // For full videos - all are now uploaded
-  if (type === 'full') {
-    if (blobUrls.full[fileName]) {
-      return blobUrls.full[fileName];
-    }
-    // Fallback to preview if full not found
-    if (blobUrls.preview[fileName]) {
-      console.warn(`⚠️ Using preview as full video: ${fileName}`);
-      return blobUrls.preview[fileName];
-    }
-  }
-  
-  // For preview videos
-  if (type === 'preview') {
-    if (blobUrls.preview[fileName]) {
-      return blobUrls.preview[fileName];
-    }
-    // Fallback to full if preview not found
-    if (blobUrls.full[fileName]) {
-      console.warn(`⚠️ Using full as preview: ${fileName}`);
-      return blobUrls.full[fileName];
-    }
-  }
-  
-  // Video not found - fallback to local for development
-  console.warn(`⚠️ Video not found in Blob: ${type}/${fileName}, using local fallback`);
+  // Temporarily use local files only until Blob Storage is fixed
   const localPath = type === 'preview' ? `/videos/preview/${fileName}` : `/videos/full/${fileName}`;
   return localPath;
 };
