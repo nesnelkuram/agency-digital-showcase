@@ -74,9 +74,10 @@ export const getBlobUrl = (fileName: string, type: 'full' | 'preview' = 'full'):
     }
   }
   
-  // Video not found - should not happen as all videos are uploaded
-  console.error(`❌ Video not found in Blob: ${type}/${fileName}`);
-  return '';
+  // Video not found - fallback to local for development
+  console.warn(`⚠️ Video not found in Blob: ${type}/${fileName}, using local fallback`);
+  const localPath = type === 'preview' ? `/videos/preview/${fileName}` : `/videos/full/${fileName}`;
+  return localPath;
 };
 
 // MP4 formatı - Her satırda farklı videolar, sütunlar arası tekrar yok
