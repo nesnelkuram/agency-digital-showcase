@@ -6,20 +6,42 @@ import About from './components/About';
 import Contact from './components/Contact';
 import Footer from './components/Footer';
 import SimpleLoadingScreen from './components/SimpleLoadingScreen';
+import CustomCursor from './components/CustomCursor';
 import * as THREE from 'three';
-import { PHONE_MEDIA_CONTENT } from './constants';
+import { PHONE_MEDIA_CONTENT, PHONE_IMAGES } from './constants';
+import { videoCache } from './utils/videoCache';
 
 const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
+  const [isHoveringPhone, setIsHoveringPhone] = useState(false);
+  
+  // Add custom cursor class to body
+  useEffect(() => {
+    document.body.classList.add('custom-cursor-active');
+    return () => {
+      document.body.classList.remove('custom-cursor-active');
+    };
+  }, []);
   
   useEffect(() => {
-    // Preload critical assets
-    const assetsToLoad = {
-      videos: [
-        // Get preview URLs from first 12 phones
-        ...PHONE_MEDIA_CONTENT.slice(0, 12).map(media => media.preview)
-      ],
+    // Get priority videos from PHONE_IMAGES (first 12)
+    const priorityVideos = Array.from(new Set(
+      PHONE_IMAGES.slice(0, 12).map(phone => phone.src)
+    ));
+    
+    // Also add preview videos from PHONE_MEDIA_CONTENT
+    PHONE_MEDIA_CONTENT.slice(0, 12).forEach(media => {
+      if (media.preview) {
+        priorityVideos.push(media.preview);
+      }
+    });
+    
+    // Remove duplicates
+    const uniqueVideos = Array.from(new Set(priorityVideos));
+    
+    // Other assets to load
+    const otherAssets = {
       images: [
         '/images/intibalogo.svg',
         '/images/photo1.jpg'
@@ -29,7 +51,7 @@ const App: React.FC = () => {
       ]
     };
     
-    const totalAssets = assetsToLoad.videos.length + assetsToLoad.images.length + assetsToLoad.models.length;
+    const totalAssets = uniqueVideos.length + otherAssets.images.length + otherAssets.models.length;
     let loadedAssets = 0;
     
     const updateProgress = () => {
@@ -44,30 +66,18 @@ const App: React.FC = () => {
       }
     };
     
-    // Preload videos with metadata only for faster initial load
-    assetsToLoad.videos.forEach(src => {
-      const video = document.createElement('video');
-      video.src = src;
-      video.preload = 'metadata'; // Only load metadata for faster initial load
-      video.muted = true; // Ensure muted for autoplay policy
-      
-      const handleLoad = () => {
+    // Preload videos using video cache
+    const loadVideos = async () => {
+      for (const videoUrl of uniqueVideos) {
+        await videoCache.preloadVideo(videoUrl);
         updateProgress();
-        video.removeEventListener('loadedmetadata', handleLoad);
-      };
-      
-      // Use loadedmetadata for faster initial load
-      video.addEventListener('loadedmetadata', handleLoad);
-      video.addEventListener('error', (e) => {
-        console.error(`[App] Failed to load video: ${src}`, video.error);
-        updateProgress(); // Count as loaded even if failed
-      });
-      
-      video.load();
-    });
+      }
+    };
+    
+    loadVideos();
     
     // Preload images
-    assetsToLoad.images.forEach(src => {
+    otherAssets.images.forEach(src => {
       const img = new Image();
       img.onload = updateProgress;
       img.onerror = () => {
@@ -78,7 +88,7 @@ const App: React.FC = () => {
     });
     
     // Preload GLTF models
-    assetsToLoad.models.forEach(src => {
+    otherAssets.models.forEach(src => {
       fetch(src)
         .then(response => {
           if (response.ok) {
@@ -115,7 +125,8 @@ const App: React.FC = () => {
   
   return (
     <div className="min-h-screen">
-      <Header3D />
+      <CustomCursor isHoveringPhone={isHoveringPhone} />
+      <Header3D setIsHoveringPhone={setIsHoveringPhone} />
       
       {/* Services Section */}
       <Services />

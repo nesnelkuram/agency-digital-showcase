@@ -12,6 +12,7 @@ interface AnimatedPhoneProps {
   fallDelay?: number;
   hasEntered?: boolean;
   entranceDelay?: number;
+  onHoverChange?: (isHovering: boolean) => void;
 }
 
 const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({ 
@@ -23,8 +24,57 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
   shouldFall = false,
   fallDelay = 0,
   hasEntered = false,
-  entranceDelay = 0
+  entranceDelay = 0,
+  onHoverChange
 }) => {
+  // Loading state for full video
+  const [isLoadingFullVideo, setIsLoadingFullVideo] = useState(false);
+  
+  // When selected, manage loading state for full video
+  useEffect(() => {
+    if (isSelected && fullVideoSrc) {
+      // Show loading while video starts streaming
+      setIsLoadingFullVideo(true);
+      
+      // Create a video element to check loading state
+      const testVideo = document.createElement('video');
+      testVideo.src = fullVideoSrc;
+      testVideo.preload = 'metadata';
+      
+      // Hide loading when video can start playing
+      const handleCanPlay = () => {
+        setIsLoadingFullVideo(false);
+        testVideo.remove();
+      };
+      
+      // Also handle errors
+      const handleError = () => {
+        console.error('Failed to load full video:', fullVideoSrc);
+        setIsLoadingFullVideo(false);
+        testVideo.remove();
+      };
+      
+      testVideo.addEventListener('canplay', handleCanPlay);
+      testVideo.addEventListener('error', handleError);
+      
+      // Fallback timer in case events don't fire
+      const fallbackTimer = setTimeout(() => {
+        setIsLoadingFullVideo(false);
+        testVideo.remove();
+      }, 3000); // 3 second fallback
+      
+      return () => {
+        clearTimeout(fallbackTimer);
+        testVideo.removeEventListener('canplay', handleCanPlay);
+        testVideo.removeEventListener('error', handleError);
+        testVideo.remove();
+        setIsLoadingFullVideo(false);
+      };
+    } else {
+      setIsLoadingFullVideo(false);
+    }
+  }, [isSelected, fullVideoSrc]);
+  
   // Generate random delays and rotation direction (only calculated once)
   const rotationStartDelay = useMemo(() => Math.random() * 2000 + 200, []); // 200-2200ms random delay
   const rotationDirection = useMemo(() => Math.random() > 0.5 ? 1 : -1, []); // Random rotation direction
@@ -128,6 +178,8 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
       rotation-y={rotY}
       rotation-z={rotZ}
       scale={scale}
+      onPointerEnter={() => onHoverChange?.(true)}
+      onPointerLeave={() => onHoverChange?.(false)}
     >
       {isInViewport ? (
         <Suspense fallback={
@@ -140,6 +192,7 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
             key={`${isSelected ? 'full' : 'preview'}-${videoSrc}`}  // Force re-render when video changes
             videoSrc={isSelected ? (fullVideoSrc || videoSrc) : videoSrc}  // Use full video only when selected
             rotation={[0, 0, 0]}
+            isLoading={isSelected && isLoadingFullVideo}
             onClick={onClick}
             isNearCamera={isNearCamera}
             isSelected={isSelected}

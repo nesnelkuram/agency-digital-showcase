@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import PlayButton from './PlayButton';
 import { MediaContent, PlayState } from '../types';
+import { videoCache } from '../utils/videoCache';
 
 interface IPhone3DVideoProps {
   media: MediaContent;

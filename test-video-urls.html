@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Video URLs</title>
+</head>
+<body>
+    <h1>Testing Blob Storage Video URLs</h1>
+    <div id="results"></div>
+    
+    <script>
+        const baseUrl = 'https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com';
+        const folders = ['preview', 'full'];
+        const results = { preview: [], full: [] };
+        
+        async function testUrl(url) {
+            try {
+                const response = await fetch(url, { method: 'HEAD' });
+                return response.ok;
+            } catch (error) {
+                return false;
+            }
+        }
+        
+        async function testAllUrls() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p>Testing URLs...</p>';
+            
+            for (const folder of folders) {
+                console.log(`Testing ${folder} folder...`);
+                for (let i = 1; i <= 12; i++) {
+                    const paddedNumber = i.toString().padStart(2, '0');
+                    const url = `${baseUrl}/videos/${folder}/${paddedNumber}.mp4`;
+                    
+                    console.log(`Testing: ${url}`);
+                    const isAccessible = await testUrl(url);
+                    
+                    if (isAccessible) {
+                        results[folder].push(url);
+                        console.log(`✓ Found: ${url}`);
+                    } else {
+                        console.log(`✗ Not found: ${url}`);
+                    }
+                    
+                    // Small delay to avoid overwhelming the server
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+            }
+            
+            // Display results
+            resultsDiv.innerHTML = `
+                <h2>Results:</h2>
+                <pre>${JSON.stringify(results, null, 2)}</pre>
+                <p>Total preview videos: ${results.preview.length}</p>
+                <p>Total full videos: ${results.full.length}</p>
+            `;
+            
+            console.log('Final results:', results);
+        }
+        
+        // Start testing when page loads
+        window.addEventListener('load', testAllUrls);
+    </script>
+</body>
+</html>

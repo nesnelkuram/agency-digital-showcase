@@ -1,0 +1,167 @@
+{
+  "baseUrl": "https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com",
+  "videos": {
+    "preview": {
+      "01": {
+        "filename": "01.mp4",
+        "url": "https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/01.mp4",
+        "size": 841498,
+        "contentType": "video/mp4"
+      },
+      "02": {
+        "filename": "02.mp4", 
+        "url": "https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/02.mp4",
+        "size": 1051174,
+        "contentType": "video/mp4"
+      },
+      "03": {
+        "filename": "03.mp4",
+        "url": "https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/03.mp4", 
+        "size": 2257606,
+        "contentType": "video/mp4"
+      },
+      "04": {
+        "filename": "04.mp4",
+        "url": "https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/04.mp4",
+        "size": 1986359,
+        "contentType": "video/mp4"
+      },
+      "05": {
+        "filename": "05.mp4",
+        "url": "https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/05.mp4",
+        "size": 2351829,
+        "contentType": "video/mp4"
+      },
+      "06": {
+        "filename": "06.mp4",
+        "url": "https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/06.mp4",
+        "size": 3816314,
+        "contentType": "video/mp4"
+      },
+      "07": {
+        "filename": "07.mp4",
+        "url": "https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/07.mp4",
+        "size": 3290455,
+        "contentType": "video/mp4"
+      },
+      "08": {
+        "filename": "08.mp4",
+        "url": "https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/08.mp4",
+        "size": 3580278,
+        "contentType": "video/mp4"
+      },
+      "09": {
+        "filename": "09.mp4",
+        "url": "https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/09.mp4",
+        "size": 3255008,
+        "contentType": "video/mp4"
+      },
+      "010": {
+        "filename": "010.mp4",
+        "url": "https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/010.mp4",
+        "size": 1992494,
+        "contentType": "video/mp4"
+      },
+      "011": {
+        "filename": "011.mp4",
+        "url": "https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/011.mp4",
+        "size": 1646006,
+        "contentType": "video/mp4"
+      },
+      "012": {
+        "filename": "012.mp4",
+        "url": "https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/012.mp4",
+        "size": 2383155,
+        "contentType": "video/mp4"
+      }
+    },
+    "full": {
+      "01": {
+        "filename": "01.mp4",
+        "url": "https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/full/01.mp4",
+        "size": 11207619,
+        "contentType": "video/mp4"
+      },
+      "02": {
+        "filename": "02.mp4",
+        "url": "https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/full/02.mp4",
+        "size": 5223030,
+        "contentType": "video/mp4"
+      },
+      "03": {
+        "filename": "03.mp4",
+        "url": "https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/full/03.mp4",
+        "size": 10666298,
+        "contentType": "video/mp4"
+      },
+      "04": {
+        "filename": "04.mp4", 
+        "url": "https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/full/04.mp4",
+        "size": 7627941,
+        "contentType": "video/mp4"
+      },
+      "05": {
+        "filename": "05.mp4",
+        "url": "https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/full/05.mp4",
+        "size": 8629451,
+        "contentType": "video/mp4"
+      },
+      "06": {
+        "filename": "06.mp4",
+        "url": "https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/full/06.mp4",
+        "size": 9353978,
+        "contentType": "video/mp4"
+      },
+      "07": {
+        "filename": "07.mp4",
+        "url": "https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/full/07.mp4",
+        "size": 6711558,
+        "contentType": "video/mp4"
+      },
+      "08": {
+        "filename": "08.mp4",
+        "url": "https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/full/08.mp4",
+        "size": 17117507,
+        "contentType": "video/mp4"
+      },
+      "09": {
+        "filename": "09.mp4",
+        "url": "https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/full/09.mp4",
+        "size": 12966546,
+        "contentType": "video/mp4"
+      },
+      "010": {
+        "filename": "010.mp4",
+        "url": "https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/full/010.mp4",
+        "size": 3238803,
+        "contentType": "video/mp4"
+      },
+      "011": {
+        "filename": "011.mp4",
+        "url": "https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/full/011.mp4",
+        "size": 23632589,
+        "contentType": "video/mp4"
+      },
+      "012": {
+        "filename": "012.mp4",
+        "url": "https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/full/012.mp4",
+        "size": 12241851,
+        "contentType": "video/mp4"
+      }
+    }
+  },
+  "summary": {
+    "totalVideos": 24,
+    "previewVideos": 12,
+    "fullVideos": 12,
+    "availableNumbers": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+    "namingPattern": {
+      "1-9": "Zero-padded 2 digits (01.mp4, 02.mp4, ... 09.mp4)",
+      "10-12": "Zero-padded 3 digits (010.mp4, 011.mp4, 012.mp4)"
+    }
+  },
+  "urlPatterns": {
+    "preview": "https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/{filename}",
+    "full": "https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/full/{filename}"
+  }
+}

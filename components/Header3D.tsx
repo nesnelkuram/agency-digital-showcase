@@ -2,26 +2,32 @@ import React, { useMemo, useState, useEffect, useRef, Suspense } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { Environment } from '@react-three/drei';
 import AnimatedPhone from './AnimatedPhone';
-import AnimatedPhoneVideo from './AnimatedPhoneVideo';
 import { PHONE_IMAGES, PHONE_MEDIA_CONTENT } from '../constants';
 
-const Header3D: React.FC = () => {
+interface Header3DProps {
+  setIsHoveringPhone?: (isHovering: boolean) => void;
+}
+
+const Header3D: React.FC<Header3DProps> = ({ setIsHoveringPhone }) => {
   const [parallaxOffset, setParallaxOffset] = useState(0);
   const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
   const [isClosing, setIsClosing] = useState(false);
   const [lastSelectedPhone, setLastSelectedPhone] = useState<string | null>(null);
   const [hasEntered, setHasEntered] = useState(false); // Start as false for entrance animation
+  const [showContent, setShowContent] = useState(true); // Always show content since App.tsx handles loading
   const headerRef = useRef<HTMLElement>(null);
   const animationFrameRef = useRef<number>();
+  
+  // Trigger entrance animation after component mounts
+  useEffect(() => {
+    setTimeout(() => setHasEntered(true), 100);
+  }, []);
   
   // How many viewport-heights to scroll before parallax ends
   const PARALLAX_DURATION_VIEWPORTS = 5; // Original value for extended parallax viewing
   
-  // Trigger entrance animation on mount (after loading screen)
-  useEffect(() => {
-    // Start immediately
-    setHasEntered(true);
-  }, []);
+  // Don't trigger entrance animation until videos are loaded
+  // (This is now handled in the preload effect above)
 
   useEffect(() => {
     let ticking = false;
@@ -152,36 +158,18 @@ const Header3D: React.FC = () => {
   ];
 
   const phoneConfigs = useMemo(() => {
-    const colsPerRow = Array(12).fill(4); // 12 rows, 4 columns each = 48 phones
+    const colsPerRow = Array(7).fill(3); // 7 rows, 3 columns each = 21 phones
     const totalPhones = colsPerRow.reduce((sum, count) => sum + count, 0);
     return Array.from({ length: totalPhones }).map((_, idx) => {
-      const mediaIdx = idx % PHONE_MEDIA_CONTENT.length;
+      const imageIdx = idx % PHONE_IMAGES.length;
       const projectIdx = idx % projectData.length;
-      const row = Math.floor(idx / 4); // Her satırda 4 telefon var
-      // İlk 3 satır (12 telefon) video olsun - performans için
-      const useNewSystem = row < 3;
-      
-      if (useNewSystem) {
-        return {
-          key: `phone-${idx}`,
-          media: PHONE_MEDIA_CONTENT[mediaIdx],
-          videoSrc: undefined,
-          altText: undefined,
-          isVideo: true as const,
-          project: projectData[projectIdx]
-        };
-      } else {
-        // Geri kalanlar eski sistem
-        const imageIdx = idx % PHONE_IMAGES.length;
-        return {
-          key: `phone-${idx}`,
-          media: undefined,
-          videoSrc: PHONE_IMAGES[imageIdx].src,
-          altText: PHONE_IMAGES[imageIdx].alt,
-          isVideo: false as const,
-          project: projectData[projectIdx]
-        };
-      }
+      // Tüm telefonlar için AnimatedPhone kullan
+      return {
+        key: `phone-${idx}`,
+        videoSrc: PHONE_IMAGES[imageIdx].src,
+        altText: PHONE_IMAGES[imageIdx].alt,
+        project: projectData[projectIdx]
+      };
     });
   }, []);
 
@@ -257,8 +245,8 @@ const Header3D: React.FC = () => {
             style={{ 
               width: '100%', 
               height: '100%',
-              opacity: 0,
-              animation: 'fade-in 1.2s ease-out 0.8s forwards'
+              opacity: showContent ? 0 : 0,
+              animation: showContent ? 'fade-in 1.2s ease-out 0.8s forwards' : 'none'
             }}
           >
             <CameraController 
@@ -273,7 +261,7 @@ const Header3D: React.FC = () => {
               <Environment preset="studio" />
               <group rotation={[0, 0, 0]} scale={1.1} position={[0, 0, 0]}>
                 {(() => {
-                  const colsPerRow = Array(12).fill(4);  // 12 satır
+                  const colsPerRow = Array(7).fill(3);  // 7 satır, 3 sütun
                   let idx = 0;
                   return colsPerRow.map((numCols, row) => {
                     const slice = phoneConfigs.slice(idx, idx + numCols);
@@ -282,11 +270,11 @@ const Header3D: React.FC = () => {
                       <group key={`row-${row}`}>
                         {slice.map((cfg, col) => {
                           const movingDown = col % 2 !== 0;
-                          const spacingX = 1.1;  // Increased horizontal spacing
-                          const spacingY = 2;  // Increased vertical spacing
-                          const x = (col - 1.5) * spacingX;  // Original centering
-                          // Original positioning from working version
-                          const baseY = (row - 6) * spacingY;  // Original position
+                          const spacingX = 1.1;  // Equal horizontal spacing
+                          const spacingY = 2.0;  // Equal vertical spacing
+                          const x = (col - 1) * spacingX;  // Center 3 columns (0, 1, 2 -> -1, 0, 1)
+                          // Adjusted for 7 rows
+                          const baseY = (row - 3) * spacingY;  // Center 7 rows
                           const offsetMultiplier = 0.025; // Increased movement for more visible parallax
                           
                           // Simple parallax offset like in original
@@ -310,63 +298,39 @@ const Header3D: React.FC = () => {
                           // Calculate entrance delay based on row and column for better stagger
                           const entranceDelay = hasEntered ? 0 : (row * 60 + col * 30); // Row-based stagger
                           
-                          // Use video component for media content, regular for images
-                          if (cfg.isVideo && cfg.media) {
-                            return (
-                              <AnimatedPhoneVideo
-                                key={cfg.key}
-                                media={cfg.media}
-                                position={[x, y, z]}
-                                isSelected={isSelected}
-                                shouldFall={shouldFall}
-                                fallDelay={fallDelay}
-                                onClick={() => {
-                                  if (isSelected) {
-                                    setIsClosing(true);
-                                    setLastSelectedPhone(selectedPhone);
-                                    setSelectedPhone(null);  // Phone moves immediately
-                                    setTimeout(() => {
-                                      setIsClosing(false);
-                                      setLastSelectedPhone(null);
-                                    }, 800);
-                                  } else {
-                                    setSelectedPhone(cfg.key);
-                                    setLastSelectedPhone(cfg.key);
-                                  }
-                                }}
-                                onDeselect={() => setSelectedPhone(null)}
-                              />
-                            );
-                          } else if (!cfg.isVideo && cfg.videoSrc) {
-                            return (
-                              <AnimatedPhone
-                                key={cfg.key}
-                                videoSrc={cfg.videoSrc}
-                                fullVideoSrc={cfg.videoSrc?.replace('/preview/', '/full/')}
-                                position={[x, y, z]}
-                                isSelected={isSelected}
-                                shouldFall={shouldFall}
-                                fallDelay={fallDelay}
-                                hasEntered={hasEntered}
-                                entranceDelay={entranceDelay}
-                                onClick={() => {
-                                  if (isSelected) {
-                                    setIsClosing(true);
-                                    setLastSelectedPhone(selectedPhone);
-                                    setSelectedPhone(null);  // Phone moves immediately
-                                    setTimeout(() => {
-                                      setIsClosing(false);
-                                      setLastSelectedPhone(null);
-                                    }, 800);
-                                  } else {
-                                    setSelectedPhone(cfg.key);
-                                    setLastSelectedPhone(cfg.key);
-                                  }
-                                }}
-                              />
-                            );
-                          }
-                          return null;
+                          // All phones use AnimatedPhone
+                          return (
+                            <AnimatedPhone
+                              key={cfg.key}
+                              videoSrc={cfg.videoSrc}
+                              fullVideoSrc={cfg.videoSrc?.replace('/preview/', '/full/')}
+                              position={[x, y, z]}
+                              isSelected={isSelected}
+                              shouldFall={shouldFall}
+                              fallDelay={fallDelay}
+                              hasEntered={hasEntered}
+                              entranceDelay={entranceDelay}
+                              onHoverChange={(isHovering) => {
+                                if (setIsHoveringPhone) {
+                                  setIsHoveringPhone(isHovering);
+                                }
+                              }}
+                              onClick={() => {
+                                if (isSelected) {
+                                  setIsClosing(true);
+                                  setLastSelectedPhone(selectedPhone);
+                                  setSelectedPhone(null);  // Phone moves immediately
+                                  setTimeout(() => {
+                                    setIsClosing(false);
+                                    setLastSelectedPhone(null);
+                                  }, 800);
+                                } else {
+                                  setSelectedPhone(cfg.key);
+                                  setLastSelectedPhone(cfg.key);
+                                }
+                              }}
+                            />
+                          );
                         })}
                       </group>
                     );
@@ -515,7 +479,7 @@ const Header3D: React.FC = () => {
                 lineHeight: '1.15',
                 letterSpacing: '-0.02em',
                 opacity: 0, 
-                animation: 'fade-in-left 0.8s ease-out 0.3s forwards' 
+                animation: showContent ? 'fade-in-left 0.8s ease-out 0.3s forwards' : 'none' 
               }}
             >
               <div>
@@ -533,7 +497,7 @@ const Header3D: React.FC = () => {
                 fontSize: '22px',
                 letterSpacing: '-0.01em',
                 opacity: 0, 
-                animation: 'fade-in-left 0.8s ease-out 0.4s forwards' 
+                animation: showContent ? 'fade-in-left 0.8s ease-out 0.4s forwards' : 'none' 
               }}
             >
               <span className="mr-1">—</span>From <span className="font-semibold">Bodrum</span>, with Precision
@@ -541,7 +505,7 @@ const Header3D: React.FC = () => {
           </div>
           <div
             className="flex flex-col sm:flex-row justify-start items-start sm:items-center gap-3 sm:gap-4"
-            style={{ opacity: 0, animation: 'fade-in-left 0.8s ease-out 0.6s forwards' }}
+            style={{ opacity: 0, animation: showContent ? 'fade-in-left 0.8s ease-out 0.6s forwards' : 'none' }}
           >
             <a
               href="#start"

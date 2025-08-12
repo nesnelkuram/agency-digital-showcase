@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { videoCache } from '../utils/videoCache';
 
 interface PhoneMockupProps {
   videoSrc: string;
@@ -8,7 +9,11 @@ interface PhoneMockupProps {
 
 const PhoneMockup: React.FC<PhoneMockupProps> = ({ videoSrc, className, altText }) => {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [videoReady, setVideoReady] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const handlePlayPause = () => {
     if (videoRef.current) {
@@ -20,8 +25,73 @@ const PhoneMockup: React.FC<PhoneMockupProps> = ({ videoSrc, className, altText 
       setIsPlaying(!isPlaying);
     }
   };
+
+  // Subscribe to video cache status
+  useEffect(() => {
+    const unsubscribe = videoCache.subscribe(videoSrc, (entry) => {
+      if (entry.status === 'loaded') {
+        setVideoReady(true);
+        setIsLoading(false);
+        setHasError(false);
+      } else if (entry.status === 'error') {
+        setVideoReady(false);
+        setIsLoading(false);
+        setHasError(true);
+      } else if (entry.status === 'loading') {
+        setIsLoading(true);
+      }
+    });
+
+    // Start preloading if not already cached
+    if (!videoCache.isReady(videoSrc)) {
+      videoCache.preloadVideo(videoSrc);
+    }
+
+    return unsubscribe;
+  }, [videoSrc]);
+
+  // Auto-play when video element is ready
+  useEffect(() => {
+    if (videoRef.current && videoReady) {
+      videoRef.current.play().catch(() => {
+        // Silently handle autoplay restrictions
+      });
+    }
+  }, [videoReady]);
+
+  // Intersection Observer for pausing when out of view
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting && videoRef.current && isPlaying) {
+            // Pause when out of view to save resources
+            videoRef.current.pause();
+          } else if (entry.isIntersecting && videoRef.current && !isPlaying && videoReady) {
+            // Resume when back in view
+            videoRef.current.play().catch(() => {});
+          }
+        });
+      },
+      {
+        threshold: 0.1,
+        rootMargin: '50px'
+      }
+    );
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    return () => {
+      if (containerRef.current) {
+        observer.unobserve(containerRef.current);
+      }
+    };
+  }, [isPlaying, videoReady]);
   return (
     <div 
+      ref={containerRef}
       className={`relative ${className}`}
       style={{
         transformStyle: 'preserve-3d',
@@ -72,24 +142,48 @@ const PhoneMockup: React.FC<PhoneMockupProps> = ({ videoSrc, className, altText 
               }}
             ></div>
             
+            {/* Loading state */}
+            {(isLoading || !videoReady) && !hasError && (
+              <div className="absolute inset-0 flex items-center justify-center bg-neutral-900">
+                <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            )}
+            
+            {/* Error state */}
+            {hasError && (
+              <div className="absolute inset-0 flex items-center justify-center bg-neutral-900">
+                <div className="text-white/50 text-xs text-center px-4">
+                  <svg className="w-8 h-8 mx-auto mb-2 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Video unavailable
+                </div>
+              </div>
+            )}
+            
             {/* Video content */}
             <video
               ref={videoRef}
               key={videoSrc}
-              className="w-full h-full object-contain"
-              src={videoSrc}
+              className={`w-full h-full object-contain ${videoReady ? 'visible' : 'invisible'}`}
+              src={videoReady ? videoSrc : undefined}
               loop
               muted
               playsInline
+              preload="metadata"
+              autoPlay
               aria-label={altText}
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
+              onError={(e) => {
+                console.error('Video playback error:', videoSrc, e);
+              }}
             >
               Your browser does not support the video tag.
             </video>
             
-            {/* Play button overlay */}
-            {!isPlaying && (
+            {/* Play button overlay - only show when loaded and not playing */}
+            {!isPlaying && videoReady && !hasError && (
               <div 
                 className="absolute inset-0 flex items-center justify-center cursor-pointer"
                 style={{ zIndex: 25 }}

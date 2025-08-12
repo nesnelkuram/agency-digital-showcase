@@ -10,11 +10,28 @@ interface BlobUrls {
 
 const blobUrls = allBlobUrls as BlobUrls;
 
-// Helper function to get video URL - temporarily using local files only
+// Helper function to get video URL
 export const getBlobUrl = (fileName: string, type: 'full' | 'preview' = 'full'): string => {
-  // Temporarily use local files only until Blob Storage is fixed
-  const localPath = type === 'preview' ? `/videos/preview/${fileName}` : `/videos/full/${fileName}`;
-  return localPath;
+  // Extract video number from filename (e.g., "1.mp4" -> "1", "10.mp4" -> "10")
+  const videoNum = fileName.replace('.mp4', '').replace('.', '');
+  const numericValue = parseInt(videoNum);
+  
+  // Blob Storage uses different padding: 01-09 for 1-9, and 010-012 for 10-12
+  let blobFileName: string;
+  if (numericValue >= 10) {
+    // 10-12 use 3-digit format: 010, 011, 012
+    blobFileName = `0${numericValue}.mp4`;
+  } else {
+    // 1-9 use 2-digit format: 01, 02, ..., 09
+    blobFileName = `${videoNum.padStart(2, '0')}.mp4`;
+  }
+  
+  // Direct Blob Storage URL
+  const blobBaseUrl = 'https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com';
+  const blobPath = type === 'preview' ? `/videos/preview/${blobFileName}` : `/videos/full/${blobFileName}`;
+  
+  console.log(`Using Blob Storage: ${blobBaseUrl}${blobPath}`);
+  return `${blobBaseUrl}${blobPath}`;
 };
 
 export const HEADER_VIDEOS: VideoInfo[] = [
@@ -57,20 +74,20 @@ export const PHONE_IMAGES = Array.from({ length: 48 }, (_, idx) => {
   const col = idx % 4;  // 0, 1, 2, 3
   const row = Math.floor(idx / 4);  // 0-11
   
-  // Her satır için farklı video setleri
+  // Her satır için farklı video setleri (1-12 arası videolar)
   const videoSets = [
     [8, 1, 3, 5],      // Satır 0
     [12, 11, 6, 2],    // Satır 1
-    [4, 7, 9, '10.'],  // Satır 2
-    [13, 5, 8, 1],     // Satır 3
+    [4, 7, 9, 10],     // Satır 2
+    [1, 5, 8, 3],      // Satır 3
     [3, 2, 12, 11],    // Satır 4
-    [6, '10.', 4, 7],  // Satır 5
-    [9, 1, 13, 5],     // Satır 6
+    [6, 10, 4, 7],     // Satır 5
+    [9, 1, 5, 8],      // Satır 6
     [8, 11, 3, 2],     // Satır 7
-    [12, 7, 6, '10.'], // Satır 8
+    [12, 7, 6, 10],    // Satır 8
     [4, 5, 9, 1],      // Satır 9
-    [13, 2, 8, 11],    // Satır 10
-    [3, '10.', 12, 7]  // Satır 11
+    [2, 8, 11, 3],     // Satır 10
+    [3, 10, 12, 7]     // Satır 11
   ];
   
   const videoNum = videoSets[row][col];
@@ -92,7 +109,7 @@ export const PHONE_MEDIA_CONTENT: MediaContent[] = Array.from({ length: 12 }, (_
   const videoSets = [
     [8, 1, 3, 5],      // Satır 0
     [12, 11, 6, 2],    // Satır 1
-    [4, 7, 9, '10.']   // Satır 2
+    [4, 7, 9, 10]      // Satır 2
   ];
   
   const videoNum = videoSets[row][col];
