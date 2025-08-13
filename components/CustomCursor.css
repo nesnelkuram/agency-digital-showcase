@@ -15,7 +15,6 @@ body.custom-cursor-active * {
   transform: translate(-50%, -50%);
   transition: opacity 0.3s ease;
   opacity: 0;
-  mix-blend-mode: difference;
 }
 
 .custom-cursor.visible {
@@ -24,27 +23,22 @@ body.custom-cursor-active * {
 
 /* Cursor dot - the main cursor element */
 .cursor-dot {
-  width: 12px;
-  height: 12px;
-  background: linear-gradient(45deg, #00ffff, #ff00ff);
+  width: 10px;
+  height: 10px;
+  background: #000;
   border-radius: 50%;
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  box-shadow: 
-    0 0 20px rgba(0, 255, 255, 0.5),
-    0 0 40px rgba(255, 0, 255, 0.3),
-    inset 0 0 10px rgba(255, 255, 255, 0.5);
+  transition: all 0.15s ease;
 }
 
 /* When hovering over phone */
 .custom-cursor.hovering .cursor-dot {
-  width: 24px;
-  height: 24px;
-  background: linear-gradient(45deg, #ff00ff, #00ffff, #ff00ff);
-  animation: pulse-glow 1.5s ease-in-out infinite;
+  width: 6px;
+  height: 6px;
+  background: #000;
 }
 
 /* Cursor ring with rotating text */
@@ -53,29 +47,26 @@ body.custom-cursor-active * {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 140px;
-  height: 140px;
-  animation: scale-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  width: 120px;
+  height: 120px;
+  animation: scale-in 0.3s ease;
 }
 
 /* SVG for rotating text */
 .rotating-text {
   width: 100%;
   height: 100%;
-  animation: rotate 8s linear infinite;
+  animation: rotate 6s linear infinite;
 }
 
 /* Circular text styling */
 .circular-text {
-  fill: #00ffff;
-  font-family: 'Courier New', monospace;
-  font-size: 14px;
-  font-weight: bold;
+  fill: #000;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 10px;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 4px;
-  text-shadow: 
-    0 0 10px rgba(0, 255, 255, 0.8),
-    0 0 20px rgba(0, 255, 255, 0.5);
+  letter-spacing: 2.5px;
 }
 
 /* Animations */
@@ -90,62 +81,11 @@ body.custom-cursor-active * {
 
 @keyframes scale-in {
   from {
-    transform: translate(-50%, -50%) scale(0);
+    transform: translate(-50%, -50%) scale(0.8);
     opacity: 0;
   }
   to {
     transform: translate(-50%, -50%) scale(1);
     opacity: 1;
-  }
-}
-
-@keyframes pulse-glow {
-  0%, 100% {
-    box-shadow: 
-      0 0 30px rgba(0, 255, 255, 0.8),
-      0 0 60px rgba(255, 0, 255, 0.5),
-      inset 0 0 15px rgba(255, 255, 255, 0.8);
-  }
-  50% {
-    box-shadow: 
-      0 0 40px rgba(0, 255, 255, 1),
-      0 0 80px rgba(255, 0, 255, 0.7),
-      inset 0 0 20px rgba(255, 255, 255, 1);
-  }
-}
-
-/* Retro CRT effect for extra style */
-.custom-cursor::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 200%;
-  height: 200%;
-  background: 
-    repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 2px,
-      rgba(0, 255, 255, 0.03) 2px,
-      rgba(0, 255, 255, 0.03) 4px
-    );
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.custom-cursor.hovering::before {
-  opacity: 1;
-  animation: scanlines 8s linear infinite;
-}
-
-@keyframes scanlines {
-  0% {
-    transform: translate(-50%, -50%) translateY(0);
-  }
-  100% {
-    transform: translate(-50%, -50%) translateY(10px);
   }
 }
