@@ -9,7 +9,19 @@ const CustomCursor: React.FC<CustomCursorProps> = ({ isHoveringPhone = false }) 
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isVisible, setIsVisible] = useState(false);
   const cursorRef = useRef<HTMLDivElement>(null);
-  const textRef = useRef<HTMLDivElement>(null);
+
+  // Hide default cursor when hovering over phones
+  useEffect(() => {
+    if (isHoveringPhone) {
+      document.body.style.cursor = 'none';
+    } else {
+      document.body.style.cursor = '';
+    }
+    
+    return () => {
+      document.body.style.cursor = '';
+    };
+  }, [isHoveringPhone]);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -38,33 +50,45 @@ const CustomCursor: React.FC<CustomCursorProps> = ({ isHoveringPhone = false }) 
 
   return (
     <>
-      <div
-        ref={cursorRef}
-        className={`custom-cursor ${isHoveringPhone ? 'hovering' : ''} ${isVisible ? 'visible' : ''}`}
-        style={{
-          left: `${position.x}px`,
-          top: `${position.y}px`,
-        }}
-      >
-        <div className="cursor-dot"></div>
-        {isHoveringPhone && (
+      {isHoveringPhone && isVisible && (
+        <div
+          ref={cursorRef}
+          className="custom-cursor"
+          style={{
+            left: `${position.x}px`,
+            top: `${position.y}px`,
+            mixBlendMode: 'difference' as any
+          }}
+        >
           <div className="cursor-ring">
             <svg className="rotating-text" viewBox="0 0 200 200">
               <defs>
                 <path
                   id="circle-path"
-                  d="M 100, 100 m -60, 0 a 60,60 0 1,1 120,0 a 60,60 0 1,1 -120,0"
+                  d="M 100, 100 m -50, 0 a 50,50 0 1,1 100,0 a 50,50 0 1,1 -100,0"
                 />
               </defs>
-              <text className="circular-text">
+              <text className="circular-text" fill="white">
                 <textPath href="#circle-path" startOffset="0%">
-                  CLICK THE VIDEO • CLICK THE VIDEO • 
+                  CLICK THE PHONE 
                 </textPath>
               </text>
             </svg>
+            {/* Custom cursor icon from SVG file */}
+            <div className="cursor-center-icon">
+              <img 
+                src="/images/cursor.svg" 
+                alt="Click cursor" 
+                style={{ 
+                  width: '32px', 
+                  height: '32px',
+                  filter: 'invert(1)' // Make it white for difference mode
+                }}
+              />
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </>
   );
 };

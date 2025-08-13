@@ -6,7 +6,6 @@ import About from './components/About';
 import Contact from './components/Contact';
 import Footer from './components/Footer';
 import SimpleLoadingScreen from './components/SimpleLoadingScreen';
-import CustomCursor from './components/CustomCursor';
 import * as THREE from 'three';
 import { PHONE_MEDIA_CONTENT, PHONE_IMAGES } from './constants';
 import { videoCache } from './utils/videoCache';
@@ -14,15 +13,6 @@ import { videoCache } from './utils/videoCache';
 const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
-  const [isHoveringPhone, setIsHoveringPhone] = useState(false);
-  
-  // Add custom cursor class to body
-  useEffect(() => {
-    document.body.classList.add('custom-cursor-active');
-    return () => {
-      document.body.classList.remove('custom-cursor-active');
-    };
-  }, []);
   
   useEffect(() => {
     // Get priority videos from PHONE_IMAGES (first 12)
@@ -66,11 +56,15 @@ const App: React.FC = () => {
       }
     };
     
-    // Preload videos using video cache
+    // Preload videos using video cache with batch loading
     const loadVideos = async () => {
-      for (const videoUrl of uniqueVideos) {
-        await videoCache.preloadVideo(videoUrl);
-        updateProgress();
+      // Load videos in parallel batches for faster loading
+      const batchSize = 4;
+      for (let i = 0; i < uniqueVideos.length; i += batchSize) {
+        const batch = uniqueVideos.slice(i, i + batchSize);
+        await Promise.all(batch.map(url => 
+          videoCache.preloadVideo(url).then(() => updateProgress())
+        ));
       }
     };
     
@@ -125,8 +119,7 @@ const App: React.FC = () => {
   
   return (
     <div className="min-h-screen">
-      <CustomCursor isHoveringPhone={isHoveringPhone} />
-      <Header3D setIsHoveringPhone={setIsHoveringPhone} />
+      <Header3D />
       
       {/* Services Section */}
       <Services />

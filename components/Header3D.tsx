@@ -2,19 +2,15 @@ import React, { useMemo, useState, useEffect, useRef, Suspense } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { Environment } from '@react-three/drei';
 import AnimatedPhone from './AnimatedPhone';
-import { PHONE_IMAGES, PHONE_MEDIA_CONTENT } from '../constants';
+import { PHONE_IMAGES } from '../constants';
 
-interface Header3DProps {
-  setIsHoveringPhone?: (isHovering: boolean) => void;
-}
-
-const Header3D: React.FC<Header3DProps> = ({ setIsHoveringPhone }) => {
+const Header3D: React.FC = () => {
   const [parallaxOffset, setParallaxOffset] = useState(0);
   const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
   const [isClosing, setIsClosing] = useState(false);
   const [lastSelectedPhone, setLastSelectedPhone] = useState<string | null>(null);
   const [hasEntered, setHasEntered] = useState(false); // Start as false for entrance animation
-  const [showContent, setShowContent] = useState(true); // Always show content since App.tsx handles loading
+  const [showContent] = useState(true); // Always show content since App.tsx handles loading
   const headerRef = useRef<HTMLElement>(null);
   const animationFrameRef = useRef<number>();
   
@@ -193,6 +189,67 @@ const Header3D: React.FC<Header3DProps> = ({ setIsHoveringPhone }) => {
           />
         </div>
         
+        {/* Static cursor indicator - hide when phone is selected */}
+        <div 
+          className="absolute z-50" 
+          style={{ 
+            right: '20%', 
+            top: '10%',
+            opacity: selectedPhone ? 0 : 1,
+            transition: 'opacity 0.5s ease',
+            pointerEvents: selectedPhone ? 'none' : 'auto'
+          }}
+        >
+          <div style={{ width: '160px', height: '160px', position: 'relative' }}>
+            <style>{`
+              @keyframes rotate-indicator {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(360deg); }
+              }
+            `}</style>
+            <svg 
+              viewBox="0 0 200 200" 
+              style={{ 
+                width: '100%', 
+                height: '100%',
+                animation: 'rotate-indicator 6s linear infinite'
+              }}
+            >
+              <defs>
+                <path
+                  id="static-circle-path"
+                  d="M 100, 100 m -60, 0 a 60,60 0 1,1 120,0 a 60,60 0 1,1 -120,0"
+                />
+              </defs>
+              <text 
+                fill="rgba(51, 51, 51, 1)" 
+                fontSize="16" 
+                fontWeight="900" 
+                textTransform="uppercase" 
+                letterSpacing="1"
+                fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+              >
+                <textPath href="#static-circle-path" startOffset="0%">
+                  CLICK THE PHONE • CLICK THE PHONE • 
+                </textPath>
+              </text>
+            </svg>
+            {/* Center cursor icon */}
+            <img 
+              src="/images/cursor.svg" 
+              alt="Click cursor" 
+              style={{ 
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: '48px', 
+                height: '48px'
+              }}
+            />
+          </div>
+        </div>
+        
         {/* Updated Background */}
         <div className="absolute inset-0 z-0">
           {/* Base background color #ebeef8 */}
@@ -245,8 +302,9 @@ const Header3D: React.FC<Header3DProps> = ({ setIsHoveringPhone }) => {
             style={{ 
               width: '100%', 
               height: '100%',
-              opacity: showContent ? 0 : 0,
-              animation: showContent ? 'fade-in 1.2s ease-out 0.8s forwards' : 'none'
+              opacity: showContent ? 1 : 0,
+              animation: showContent ? 'fade-in 1.2s ease-out 0.2s forwards' : 'none',
+              cursor: `url('/images/cursor.svg') 16 16, pointer`
             }}
           >
             <CameraController 
@@ -310,11 +368,6 @@ const Header3D: React.FC<Header3DProps> = ({ setIsHoveringPhone }) => {
                               fallDelay={fallDelay}
                               hasEntered={hasEntered}
                               entranceDelay={entranceDelay}
-                              onHoverChange={(isHovering) => {
-                                if (setIsHoveringPhone) {
-                                  setIsHoveringPhone(isHovering);
-                                }
-                              }}
                               onClick={() => {
                                 if (isSelected) {
                                   setIsClosing(true);

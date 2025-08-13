@@ -12,7 +12,6 @@ interface AnimatedPhoneProps {
   fallDelay?: number;
   hasEntered?: boolean;
   entranceDelay?: number;
-  onHoverChange?: (isHovering: boolean) => void;
 }
 
 const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({ 
@@ -24,8 +23,7 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
   shouldFall = false,
   fallDelay = 0,
   hasEntered = false,
-  entranceDelay = 0,
-  onHoverChange
+  entranceDelay = 0
 }) => {
   // Loading state for full video
   const [isLoadingFullVideo, setIsLoadingFullVideo] = useState(false);
@@ -178,8 +176,6 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
       rotation-y={rotY}
       rotation-z={rotZ}
       scale={scale}
-      onPointerEnter={() => onHoverChange?.(true)}
-      onPointerLeave={() => onHoverChange?.(false)}
     >
       {isInViewport ? (
         <Suspense fallback={

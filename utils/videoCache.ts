@@ -97,7 +97,7 @@ class VideoCache {
   }
 
   // Preload multiple videos in batches
-  async preloadBatch(urls: string[], batchSize: number = 3): Promise<Map<string, boolean>> {
+  async preloadBatch(urls: string[], batchSize: number = 6): Promise<Map<string, boolean>> {
     const results = new Map<string, boolean>();
     
     for (let i = 0; i < urls.length; i += batchSize) {

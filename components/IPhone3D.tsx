@@ -515,14 +515,6 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
       position={position} 
       rotation={rotation}
       onClick={onClick}
-      onPointerOver={(e) => {
-        e.stopPropagation();
-        // Don't change cursor style - let CustomCursor handle it
-      }}
-      onPointerOut={(e) => {
-        e.stopPropagation();
-        // Don't change cursor style - let CustomCursor handle it
-      }}
     >
       <primitive 
         object={clonedScene} 
