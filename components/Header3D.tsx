@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect, useRef, Suspense } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { Environment } from '@react-three/drei';
 import AnimatedPhone from './AnimatedPhone';
-import { PHONE_IMAGES } from '../constants';
+import { getPhoneImages } from '../constants';
 
 const Header3D: React.FC = () => {
   const [parallaxOffset, setParallaxOffset] = useState(0);
@@ -11,6 +11,9 @@ const Header3D: React.FC = () => {
   const [lastSelectedPhone, setLastSelectedPhone] = useState<string | null>(null);
   const [hasEntered, setHasEntered] = useState(false); // Start as false for entrance animation
   const [showContent] = useState(true); // Always show content since App.tsx handles loading
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [isCategoryChanging, setIsCategoryChanging] = useState(false);
+  const [phonesShouldFall, setPhonesShouldFall] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
   const animationFrameRef = useRef<number>();
   
@@ -18,6 +21,40 @@ const Header3D: React.FC = () => {
   useEffect(() => {
     setTimeout(() => setHasEntered(true), 100);
   }, []);
+
+  // Handle category change
+  const handleCategoryChange = (category: string) => {
+    if (category === selectedCategory || isCategoryChanging) return;
+    
+    // Immediate visual feedback - change category right away
+    setSelectedCategory(category);
+    
+    // Close any open phone first
+    if (selectedPhone) {
+      setSelectedPhone(null);
+      setIsClosing(true);
+      setTimeout(() => {
+        setIsClosing(false);
+        setLastSelectedPhone(null);
+      }, 800);
+    }
+    
+    // Start animation
+    setIsCategoryChanging(true);
+    setPhonesShouldFall(true);  // Make all phones fall
+    
+    // After phones have fallen, reset and bring them back
+    setTimeout(() => {
+      setHasEntered(false);
+      setPhonesShouldFall(false);  // Stop falling
+      
+      // Re-trigger entrance animation with new videos
+      setTimeout(() => {
+        setHasEntered(true);
+        setIsCategoryChanging(false);
+      }, 50);
+    }, 600);  // Shorter wait for fall animation
+  };
   
   // How many viewport-heights to scroll before parallax ends
   const PARALLAX_DURATION_VIEWPORTS = 5; // Original value for extended parallax viewing
@@ -154,20 +191,21 @@ const Header3D: React.FC = () => {
   ];
 
   const phoneConfigs = useMemo(() => {
+    const phoneImages = getPhoneImages(selectedCategory);
     const colsPerRow = Array(7).fill(3); // 7 rows, 3 columns each = 21 phones
     const totalPhones = colsPerRow.reduce((sum, count) => sum + count, 0);
     return Array.from({ length: totalPhones }).map((_, idx) => {
-      const imageIdx = idx % PHONE_IMAGES.length;
+      const imageIdx = idx % phoneImages.length;
       const projectIdx = idx % projectData.length;
       // Tüm telefonlar için AnimatedPhone kullan
       return {
         key: `phone-${idx}`,
-        videoSrc: PHONE_IMAGES[imageIdx].src,
-        altText: PHONE_IMAGES[imageIdx].alt,
+        videoSrc: phoneImages[imageIdx].src,
+        altText: phoneImages[imageIdx].alt,
         project: projectData[projectIdx]
       };
     });
-  }, []);
+  }, [selectedCategory]);
 
   return (
     <header 
@@ -189,14 +227,16 @@ const Header3D: React.FC = () => {
           />
         </div>
         
-        {/* Static cursor indicator - hide when phone is selected */}
+        {/* Static cursor indicator - animated entrance and hide when phone is selected */}
         <div 
           className="absolute z-50" 
           style={{ 
             right: '20%', 
             top: '10%',
-            opacity: selectedPhone ? 0 : 1,
-            transition: 'opacity 0.5s ease',
+            opacity: selectedPhone ? 0 : (hasEntered ? 1 : 0),
+            transform: hasEntered ? 'scale(1) translateY(0)' : 'scale(0.5) translateY(30px)',
+            transition: 'all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            transitionDelay: hasEntered ? '0.5s' : '0s',
             pointerEvents: selectedPhone ? 'none' : 'auto'
           }}
         >
@@ -205,6 +245,20 @@ const Header3D: React.FC = () => {
               @keyframes rotate-indicator {
                 from { transform: rotate(0deg); }
                 to { transform: rotate(360deg); }
+              }
+              @keyframes fade-in-bounce {
+                0% { 
+                  opacity: 0;
+                  transform: scale(0.3) rotate(-180deg);
+                }
+                50% {
+                  opacity: 0.8;
+                  transform: scale(1.1) rotate(90deg);
+                }
+                100% { 
+                  opacity: 1;
+                  transform: scale(1) rotate(0deg);
+                }
               }
             `}</style>
             <svg 
@@ -225,19 +279,17 @@ const Header3D: React.FC = () => {
                 fill="rgba(51, 51, 51, 1)" 
                 fontSize="16" 
                 fontWeight="900" 
-                textTransform="uppercase" 
                 letterSpacing="1"
                 fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+                style={{ textTransform: "uppercase" }}
               >
                 <textPath href="#static-circle-path" startOffset="0%">
                   CLICK THE PHONE • CLICK THE PHONE • 
                 </textPath>
               </text>
             </svg>
-            {/* Center cursor icon */}
-            <img 
-              src="/images/cursor.svg" 
-              alt="Click cursor" 
+            {/* Center cursor icon with animation */}
+            <div 
               style={{ 
                 position: 'absolute',
                 top: '50%',
@@ -246,7 +298,18 @@ const Header3D: React.FC = () => {
                 width: '48px', 
                 height: '48px'
               }}
-            />
+            >
+              <img 
+                src="/images/cursor.svg" 
+                alt="Click cursor" 
+                style={{ 
+                  width: '100%', 
+                  height: '100%',
+                  opacity: hasEntered ? 1 : 0,
+                  animation: hasEntered ? 'fade-in-bounce 1s ease-out 0.7s both' : 'none'
+                }}
+              />
+            </div>
           </div>
         </div>
         
@@ -276,7 +339,7 @@ const Header3D: React.FC = () => {
 
         {/* 3D Phone Grid Layer */}
         <div 
-          className="absolute inset-0 z-40 flex justify-center items-center"
+          className="absolute inset-0 z-40 flex justify-center items-center pointer-events-none"
           style={{ 
             perspective: '1000px', 
             perspectiveOrigin: '60% 40%'  // adjusted vanishing point
@@ -304,7 +367,8 @@ const Header3D: React.FC = () => {
               height: '100%',
               opacity: showContent ? 1 : 0,
               animation: showContent ? 'fade-in 1.2s ease-out 0.2s forwards' : 'none',
-              cursor: `url('/images/cursor.svg') 16 16, pointer`
+              cursor: `url('/images/cursor.svg') 16 16, pointer`,
+              pointerEvents: 'auto'
             }}
           >
             <CameraController 
@@ -342,7 +406,7 @@ const Header3D: React.FC = () => {
                           
                           const z = 0;  // Z pozisyonu sabit, animasyon component içinde
                           const isSelected = selectedPhone === cfg.key;
-                          const shouldFall = !!(selectedPhone && !isSelected);
+                          const shouldFall = phonesShouldFall || !!(selectedPhone && !isSelected);
                           
                           // Calculate fall delay based on distance from selected phone
                           let fallDelay = 0;
@@ -517,7 +581,7 @@ const Header3D: React.FC = () => {
         )}
 
         {/* Content Layer */}
-        <div className={`relative z-20 text-left max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-4xl p-6 sm:p-8 md:p-12 lg:p-16 xl:p-20 transition-opacity ${selectedPhone ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+        <div className={`relative z-50 text-left max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-4xl p-6 sm:p-8 md:p-12 lg:p-16 xl:p-20 transition-opacity ${selectedPhone ? 'opacity-0' : 'opacity-100'}`}
              style={{
                transform: selectedPhone ? 'translateY(12px)' : 'translateY(0)',
                transitionDuration: selectedPhone ? '800ms' : '1000ms',
@@ -557,18 +621,124 @@ const Header3D: React.FC = () => {
             </p>
           </div>
           <div
-            className="flex flex-col sm:flex-row justify-start items-start sm:items-center gap-3 sm:gap-4"
-            style={{ opacity: 0, animation: showContent ? 'fade-in-left 0.8s ease-out 0.6s forwards' : 'none' }}
+            style={{ 
+              opacity: 0, 
+              animation: showContent ? 'fade-in-left 0.8s ease-out 0.6s forwards' : 'none',
+              pointerEvents: 'auto',
+              position: 'relative',
+              zIndex: 100
+            }}
           >
-            <a
-              href="#start"
-              className="w-full sm:w-auto px-6 py-3 sm:px-8 sm:py-3.5 bg-neutral-900 hover:bg-neutral-800 text-white font-medium rounded-md shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 text-base md:text-lg flex items-center gap-2"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-              </svg>
-              Get a Quote Now
-            </a>
+            {/* First row - 4 buttons */}
+            <div className="flex flex-wrap gap-3 mb-3">
+              <button
+                onClick={() => handleCategoryChange('all')}
+                className={`px-4 py-2 font-grotesk font-bold rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 text-sm ${
+                  selectedCategory === 'all' 
+                    ? 'bg-neutral-900 text-white' 
+                    : 'text-neutral-900 hover:opacity-80'
+                }`}
+                style={{
+                  backgroundColor: selectedCategory === 'all' ? undefined : '#fffceb'
+                }}
+              >
+                All Works
+              </button>
+              <button
+                onClick={() => handleCategoryChange('gastronomy')}
+                className={`px-4 py-2 font-grotesk font-bold rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 text-sm ${
+                  selectedCategory === 'gastronomy' 
+                    ? 'bg-neutral-900 text-white' 
+                    : 'text-neutral-900 hover:opacity-80'
+                }`}
+                style={{
+                  backgroundColor: selectedCategory === 'gastronomy' ? undefined : '#fffceb'
+                }}
+              >
+                Gastronomy
+              </button>
+              <button
+                onClick={() => handleCategoryChange('fashion')}
+                className={`px-4 py-2 font-grotesk font-bold rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 text-sm ${
+                  selectedCategory === 'fashion' 
+                    ? 'bg-neutral-900 text-white' 
+                    : 'text-neutral-900 hover:opacity-80'
+                }`}
+                style={{
+                  backgroundColor: selectedCategory === 'fashion' ? undefined : '#fffceb'
+                }}
+              >
+                Fashion
+              </button>
+              <button
+                onClick={() => handleCategoryChange('lifestyle')}
+                className={`px-4 py-2 font-grotesk font-bold rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 text-sm ${
+                  selectedCategory === 'lifestyle' 
+                    ? 'bg-neutral-900 text-white' 
+                    : 'text-neutral-900 hover:opacity-80'
+                }`}
+                style={{
+                  backgroundColor: selectedCategory === 'lifestyle' ? undefined : '#fffceb'
+                }}
+              >
+                Lifestyle
+              </button>
+            </div>
+            {/* Second row - 4 buttons */}
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={() => handleCategoryChange('corporate')}
+                className={`px-4 py-2 font-grotesk font-bold rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 text-sm ${
+                  selectedCategory === 'corporate' 
+                    ? 'bg-neutral-900 text-white' 
+                    : 'text-neutral-900 hover:opacity-80'
+                }`}
+                style={{
+                  backgroundColor: selectedCategory === 'corporate' ? undefined : '#fffceb'
+                }}
+              >
+                Corporate
+              </button>
+              <button
+                onClick={() => handleCategoryChange('events')}
+                className={`px-4 py-2 font-grotesk font-bold rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 text-sm ${
+                  selectedCategory === 'events' 
+                    ? 'bg-neutral-900 text-white' 
+                    : 'text-neutral-900 hover:opacity-80'
+                }`}
+                style={{
+                  backgroundColor: selectedCategory === 'events' ? undefined : '#fffceb'
+                }}
+              >
+                Events
+              </button>
+              <button
+                onClick={() => handleCategoryChange('hotels')}
+                className={`px-4 py-2 font-grotesk font-bold rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 text-sm ${
+                  selectedCategory === 'hotels' 
+                    ? 'bg-neutral-900 text-white' 
+                    : 'text-neutral-900 hover:opacity-80'
+                }`}
+                style={{
+                  backgroundColor: selectedCategory === 'hotels' ? undefined : '#fffceb'
+                }}
+              >
+                Hotels
+              </button>
+              <button
+                onClick={() => handleCategoryChange('education')}
+                className={`px-4 py-2 font-grotesk font-bold rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 text-sm ${
+                  selectedCategory === 'education' 
+                    ? 'bg-neutral-900 text-white' 
+                    : 'text-neutral-900 hover:opacity-80'
+                }`}
+                style={{
+                  backgroundColor: selectedCategory === 'education' ? undefined : '#fffceb'
+                }}
+              >
+                Education
+              </button>
+            </div>
           </div>
         </div>
       </div>

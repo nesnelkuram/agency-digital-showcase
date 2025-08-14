@@ -88,7 +88,7 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
   } : shouldFall ? {
     x: position[0],
     y: position[1],  // Keep same height
-    z: position[2] - 60  // Move backward away from camera
+    z: position[2] - 50  // Fall backward away from camera
   } : hasEntered ? {
     x: position[0],
     y: position[1],
@@ -134,10 +134,10 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
     scale: shouldFall ? 0.8 : (hasEntered ? 1 : 0.5),  // Start small, grow to normal
     opacity: shouldFall ? 0 : (hasEntered ? 1 : 0),  // Start invisible then fade in
     config: { 
-      mass: shouldFall ? 8 : (hasEntered ? 1 : 3),      // Much lighter for faster response
-      tension: shouldFall ? 12 : (hasEntered ? 60 : 40),   // Higher tension for quicker animation
-      friction: shouldFall ? 30 : (hasEntered ? 18 : 20), // Lower friction for smoother motion
-      delay: shouldFall ? (fallDelay * 2) : (hasEntered ? entranceDelay : 0)  // Staggered entrance
+      mass: shouldFall ? 2 : (hasEntered ? 1 : 3),      // Much lighter for faster fall
+      tension: shouldFall ? 80 : (hasEntered ? 60 : 40),   // Higher tension for quicker animation
+      friction: shouldFall ? 20 : (hasEntered ? 18 : 20), // Lower friction for smoother motion
+      delay: shouldFall ? (fallDelay * 0.5) : (hasEntered ? entranceDelay : 0)  // Shorter delay for fall
     }
   });
 
@@ -152,10 +152,10 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
     rotY: targetRotation.y,
     rotZ: targetRotation.z,
     config: { 
-      mass: shouldFall ? 3 : (hasEntered ? 2 : 3),  // Lighter mass
-      tension: shouldFall ? 30 : (hasEntered ? 50 : 40),  // Higher tension
-      friction: shouldFall ? 22 : (hasEntered ? 18 : 20),  // Lower friction
-      delay: shouldFall ? rotationStartDelay : (hasEntered ? entranceDelay : 0)  // No extra delay
+      mass: shouldFall ? 2 : (hasEntered ? 2 : 3),  // Lighter mass for faster animation
+      tension: shouldFall ? 60 : (hasEntered ? 50 : 40),  // Higher tension for quicker response
+      friction: shouldFall ? 18 : (hasEntered ? 18 : 20),  // Lower friction for smoother motion
+      delay: shouldFall ? (rotationStartDelay * 0.3) : (hasEntered ? entranceDelay : 0)  // Much shorter delay
     }
   });
 
