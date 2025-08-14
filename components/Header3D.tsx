@@ -414,7 +414,7 @@ const Header3D: React.FC = () => {
                           }
                           
                           // Calculate entrance delay based on row and column for better stagger
-                          const entranceDelay = hasEntered ? 0 : (row * 10 + col * 5); // Much faster stagger
+                          const entranceDelay = hasEntered ? 0 : (row * 20 + col * 10); // Smoother stagger for entrance
                           
                           // All phones use AnimatedPhone
                           return (

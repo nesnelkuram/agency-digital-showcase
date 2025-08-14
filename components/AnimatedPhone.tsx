@@ -135,9 +135,9 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
     scale: shouldFall ? 0.8 : (hasEntered ? 1 : 0.5),  // Start small, grow to normal
     opacity: shouldFall ? 0 : (hasEntered ? 1 : 0),  // Start invisible then fade in
     config: { 
-      mass: shouldFall ? 8 : (hasEntered ? 0.5 : 1),      // Much lighter for instant entrance
-      tension: shouldFall ? 20 : (hasEntered ? 120 : 80),   // Much higher tension for quick entrance
-      friction: shouldFall ? 30 : (hasEntered ? 12 : 15), // Lower friction for faster motion
+      mass: shouldFall ? 8 : (isSelected ? 1.5 : (hasEntered ? 1.2 : 1)),      // Heavier for smoother animations
+      tension: shouldFall ? 20 : (isSelected ? 70 : (hasEntered ? 70 : 80)),   // Lower tension for smoother motion
+      friction: shouldFall ? 30 : (isSelected ? 20 : (hasEntered ? 18 : 15)), // Higher friction for smoother feel
       delay: shouldFall ? (fallDelay * 1) : (hasEntered ? 0 : 0)  // No delay for entrance when already entered
     }
   });
@@ -153,9 +153,9 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
     rotY: targetRotation.y,
     rotZ: targetRotation.z,
     config: { 
-      mass: shouldFall ? 5 : (hasEntered ? 0.5 : 2),  // Much lighter for instant rotation
-      tension: shouldFall ? 25 : (hasEntered ? 100 : 50),  // Higher tension for faster response
-      friction: shouldFall ? 28 : (hasEntered ? 12 : 18),  // Lower friction for faster motion
+      mass: shouldFall ? 5 : (isSelected ? 1.8 : (hasEntered ? 1.2 : 2)),  // Heavier for smoother rotation
+      tension: shouldFall ? 25 : (isSelected ? 60 : (hasEntered ? 70 : 50)),  // Lower tension for smoother response
+      friction: shouldFall ? 28 : (isSelected ? 22 : (hasEntered ? 18 : 18)),  // Higher friction for smoother motion
       delay: shouldFall ? (rotationStartDelay * 0.7) : (hasEntered ? 0 : 0)  // No delay for entrance
     }
   });
