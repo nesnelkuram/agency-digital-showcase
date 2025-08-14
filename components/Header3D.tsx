@@ -9,18 +9,13 @@ const Header3D: React.FC = () => {
   const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
   const [isClosing, setIsClosing] = useState(false);
   const [lastSelectedPhone, setLastSelectedPhone] = useState<string | null>(null);
-  const [hasEntered, setHasEntered] = useState(false); // Start as false for entrance animation
+  const [hasEntered, setHasEntered] = useState(true); // Start as true for immediate display
   const [showContent] = useState(true); // Always show content since App.tsx handles loading
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isCategoryChanging, setIsCategoryChanging] = useState(false);
   const [phonesShouldFall, setPhonesShouldFall] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
   const animationFrameRef = useRef<number>();
-  
-  // Trigger entrance animation after component mounts
-  useEffect(() => {
-    setTimeout(() => setHasEntered(true), 100);
-  }, []);
 
   // Handle category change
   const handleCategoryChange = (category: string) => {
@@ -53,7 +48,7 @@ const Header3D: React.FC = () => {
         setHasEntered(true);
         setIsCategoryChanging(false);
       }, 50);
-    }, 600);  // Shorter wait for fall animation
+    }, 1000);  // Longer wait for fall animation to complete
   };
   
   // How many viewport-heights to scroll before parallax ends
@@ -418,7 +413,7 @@ const Header3D: React.FC = () => {
                           }
                           
                           // Calculate entrance delay based on row and column for better stagger
-                          const entranceDelay = hasEntered ? 0 : (row * 60 + col * 30); // Row-based stagger
+                          const entranceDelay = hasEntered ? 0 : (row * 10 + col * 5); // Much faster stagger
                           
                           // All phones use AnimatedPhone
                           return (
@@ -726,17 +721,17 @@ const Header3D: React.FC = () => {
                 Hotels
               </button>
               <button
-                onClick={() => handleCategoryChange('education')}
+                onClick={() => handleCategoryChange('interview')}
                 className={`px-4 py-2 font-grotesk font-bold rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 text-sm ${
-                  selectedCategory === 'education' 
+                  selectedCategory === 'interview' 
                     ? 'bg-neutral-900 text-white' 
                     : 'text-neutral-900 hover:opacity-80'
                 }`}
                 style={{
-                  backgroundColor: selectedCategory === 'education' ? undefined : '#fffceb'
+                  backgroundColor: selectedCategory === 'interview' ? undefined : '#fffceb'
                 }}
               >
-                Education
+                Interview
               </button>
             </div>
           </div>
