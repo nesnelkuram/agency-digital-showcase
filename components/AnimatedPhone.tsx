@@ -1,6 +1,7 @@
 import React, { Suspense, useMemo, useState, useEffect } from 'react';
 import { animated, useSpring } from '@react-spring/three';
 import IPhone3D from './IPhone3D';
+import { videoCache } from '../utils/videoCache';
 
 interface AnimatedPhoneProps {
   videoSrc: string;
@@ -166,6 +167,16 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
   // Don't play videos on non-selected phones when one is selected
   // Videos only play when near camera, not during initial load
   const isNearCamera = Math.abs(position[1]) < 6 && !shouldFall;   // Stop playing when falling
+  
+  // Preload video when phone is near viewport
+  useEffect(() => {
+    if (isNearCamera && videoSrc && !videoCache.isReady(videoSrc)) {
+      const timer = setTimeout(() => {
+        videoCache.preloadVideo(videoSrc);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isNearCamera, videoSrc]);
 
   return (
     <animated.group 

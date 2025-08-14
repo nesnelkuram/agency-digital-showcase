@@ -150,6 +150,17 @@ class VideoCache {
     this.cache.clear();
     this.listeners.clear();
   }
+  
+  // Clean up specific video
+  cleanupVideo(url: string) {
+    const entry = this.cache.get(url);
+    if (entry?.blob) {
+      const blobUrl = URL.createObjectURL(entry.blob);
+      URL.revokeObjectURL(blobUrl);
+    }
+    this.cache.delete(url);
+    this.listeners.delete(url);
+  }
 }
 
 // Export singleton instance

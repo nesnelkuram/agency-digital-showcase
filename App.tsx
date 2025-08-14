@@ -1,110 +1,64 @@
-import React, { useState, useEffect } from 'react';
-import Header3D from './components/Header3D';
-import Services from './components/Services';
-import Portfolio from './components/Portfolio';
-import About from './components/About';
-import Contact from './components/Contact';
-import Footer from './components/Footer';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import SimpleLoadingScreen from './components/SimpleLoadingScreen';
-import * as THREE from 'three';
 import { PHONE_MEDIA_CONTENT, PHONE_IMAGES } from './constants';
 import { videoCache } from './utils/videoCache';
+
+// Lazy load heavy components
+const Header3D = lazy(() => import('./components/Header3D'));
+const Services = lazy(() => import('./components/Services'));
+const Portfolio = lazy(() => import('./components/Portfolio'));
+const About = lazy(() => import('./components/About'));
+const Contact = lazy(() => import('./components/Contact'));
+const Footer = lazy(() => import('./components/Footer'));
 
 const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
   
   useEffect(() => {
-    // Get priority videos from PHONE_IMAGES (first 12)
+    // Only preload critical assets for initial view
+    const criticalAssets = [
+      '/images/intibalogo.svg',
+      '/images/cursor.svg'
+    ];
+    
+    // Get only first 6 videos for initial load
     const priorityVideos = Array.from(new Set(
-      PHONE_IMAGES.slice(0, 12).map(phone => phone.src)
+      PHONE_IMAGES.slice(0, 6).map(phone => phone.src)
     ));
     
-    // Also add preview videos from PHONE_MEDIA_CONTENT
-    PHONE_MEDIA_CONTENT.slice(0, 12).forEach(media => {
-      if (media.preview) {
-        priorityVideos.push(media.preview);
-      }
-    });
-    
-    // Remove duplicates
-    const uniqueVideos = Array.from(new Set(priorityVideos));
-    
-    // Other assets to load
-    const otherAssets = {
-      images: [
-        '/images/intibalogo.svg',
-        '/images/photo1.jpg'
-      ],
-      models: [
-        '/models/iphone_14_pro_max/scene.gltf'
-      ]
-    };
-    
-    const totalAssets = uniqueVideos.length + otherAssets.images.length + otherAssets.models.length;
+    const totalAssets = criticalAssets.length + priorityVideos.length;
     let loadedAssets = 0;
     
     const updateProgress = () => {
       loadedAssets++;
       const progress = (loadedAssets / totalAssets) * 100;
       setLoadingProgress(progress);
-      console.log(`Loading progress: ${progress.toFixed(0)}% (${loadedAssets}/${totalAssets})`);
       
       if (loadedAssets === totalAssets) {
-        console.log('All critical assets loaded!');
         setLoadingProgress(100);
       }
     };
     
-    // Preload videos using video cache with batch loading
-    const loadVideos = async () => {
-      // Load videos in parallel batches for faster loading
-      const batchSize = 4;
-      for (let i = 0; i < uniqueVideos.length; i += batchSize) {
-        const batch = uniqueVideos.slice(i, i + batchSize);
-        await Promise.all(batch.map(url => 
-          videoCache.preloadVideo(url).then(() => updateProgress())
-        ));
-      }
-    };
-    
-    loadVideos();
-    
-    // Preload images
-    otherAssets.images.forEach(src => {
+    // Preload critical images
+    criticalAssets.forEach(src => {
       const img = new Image();
       img.onload = updateProgress;
-      img.onerror = () => {
-        console.warn(`Failed to load image: ${src}`);
-        updateProgress();
-      };
+      img.onerror = updateProgress;
       img.src = src;
     });
     
-    // Preload GLTF models
-    otherAssets.models.forEach(src => {
-      fetch(src)
-        .then(response => {
-          if (response.ok) {
-            updateProgress();
-          } else {
-            console.warn(`Failed to load model: ${src}`);
-            updateProgress();
-          }
-        })
-        .catch(() => {
-          console.warn(`Failed to load model: ${src}`);
-          updateProgress();
-        });
+    // Preload priority videos
+    priorityVideos.forEach(url => {
+      videoCache.preloadVideo(url).then(updateProgress).catch(updateProgress);
     });
     
-    // Fallback timeout after 8 seconds (reduced since we're only loading metadata)
+    // Faster timeout - 3 seconds
     const timeout = setTimeout(() => {
       if (loadingProgress < 100) {
-        console.warn('[App] Loading timeout reached after 8s, proceeding anyway');
         setLoadingProgress(100);
       }
-    }, 8000);
+    }, 3000);
     
     return () => clearTimeout(timeout);
   }, []);
@@ -119,22 +73,17 @@ const App: React.FC = () => {
   
   return (
     <div className="min-h-screen">
-      <Header3D />
+      <Suspense fallback={<div className="h-screen bg-[#ebeef8]" />}>
+        <Header3D />
+      </Suspense>
       
-      {/* Services Section */}
-      <Services />
-      
-      {/* Portfolio Section */}
-      <Portfolio />
-      
-      {/* About Section */}
-      <About />
-      
-      {/* Contact Section */}
-      <Contact />
-      
-      {/* Footer */}
-      <Footer />
+      <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
+        <Services />
+        <Portfolio />
+        <About />
+        <Contact />
+        <Footer />
+      </Suspense>
     </div>
   );
 };

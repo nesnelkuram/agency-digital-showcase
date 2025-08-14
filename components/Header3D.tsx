@@ -355,8 +355,9 @@ const Header3D: React.FC = () => {
               stencil: false,
               depth: true,
               preserveDrawingBuffer: false,  // Better performance
+              failIfMajorPerformanceCaveat: false,
             }}
-            dpr={[1, 1.5]}  // Reduce max DPR for better performance
+            dpr={[1, Math.min(window.devicePixelRatio, 2)]}  // Limit DPR to 2 max
             style={{ 
               width: '100%', 
               height: '100%',
