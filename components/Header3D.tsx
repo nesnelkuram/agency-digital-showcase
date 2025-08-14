@@ -3,6 +3,7 @@ import { Canvas, useThree } from '@react-three/fiber';
 import { Environment } from '@react-three/drei';
 import AnimatedPhone from './AnimatedPhone';
 import { getPhoneImages } from '../constants';
+import { useBreakpoint } from '../hooks/useMediaQuery';
 
 const Header3D: React.FC = () => {
   const [parallaxOffset, setParallaxOffset] = useState(0);
@@ -185,9 +186,13 @@ const Header3D: React.FC = () => {
     }
   ];
 
+  const { isMobile, isTablet } = useBreakpoint();
+  
   const phoneConfigs = useMemo(() => {
     const phoneImages = getPhoneImages(selectedCategory);
-    const colsPerRow = Array(7).fill(3); // 7 rows, 3 columns each = 21 phones
+    // Responsive grid: Mobile (3x3), Tablet (3x5), Desktop (3x7)
+    const rows = isMobile ? 3 : isTablet ? 5 : 7;
+    const colsPerRow = Array(rows).fill(3);
     const totalPhones = colsPerRow.reduce((sum, count) => sum + count, 0);
     return Array.from({ length: totalPhones }).map((_, idx) => {
       const imageIdx = idx % phoneImages.length;
@@ -343,8 +348,8 @@ const Header3D: React.FC = () => {
           <Canvas
             shadows
             camera={{
-              position: [16, -8, 20],   // Slightly higher camera for better view
-              fov: 8,
+              position: isMobile ? [10, -5, 15] : [16, -8, 20],   // Closer camera on mobile
+              fov: isMobile ? 12 : 8,  // Wider FOV on mobile
               near: 0.1,
               far: 1000,
             }}
@@ -377,7 +382,7 @@ const Header3D: React.FC = () => {
 
             <Suspense fallback={null}>
               <Environment preset="studio" />
-              <group rotation={[0, 0, 0]} scale={1.1} position={[0, 0, 0]}>
+              <group rotation={[0, 0, 0]} scale={isMobile ? 1.5 : isTablet ? 1.3 : 1.1} position={[0, 0, 0]}>
                 {(() => {
                   const colsPerRow = Array(7).fill(3);  // 7 satır, 3 sütun
                   let idx = 0;
@@ -388,8 +393,8 @@ const Header3D: React.FC = () => {
                       <group key={`row-${row}`}>
                         {slice.map((cfg, col) => {
                           const movingDown = col % 2 !== 0;
-                          const spacingX = 1.1;  // Equal horizontal spacing
-                          const spacingY = 2.0;  // Equal vertical spacing
+                          const spacingX = isMobile ? 1.3 : 1.1;  // Wider spacing on mobile
+                          const spacingY = isMobile ? 2.5 : 2.0;  // Taller spacing on mobile
                           const x = (col - 1) * spacingX;  // Center 3 columns (0, 1, 2 -> -1, 0, 1)
                           // Adjusted for 7 rows
                           const baseY = (row - 3) * spacingY;  // Center 7 rows
@@ -586,9 +591,9 @@ const Header3D: React.FC = () => {
              }}>
           <div >
             <h1
-              className="font-ramillas text-neutral-900 mb-6"
+              className="font-ramillas text-neutral-900 mb-4 md:mb-6"
               style={{ 
-                fontSize: '65px',
+                fontSize: 'clamp(32px, 5vw, 65px)',
                 lineHeight: '1.15',
                 letterSpacing: '-0.02em',
                 opacity: 0, 
@@ -605,9 +610,9 @@ const Header3D: React.FC = () => {
               </div>
             </h1>
             <p
-              className="text-neutral-700 mb-8 sm:mb-10"
+              className="text-neutral-700 mb-6 sm:mb-8 md:mb-10"
               style={{ 
-                fontSize: '22px',
+                fontSize: 'clamp(16px, 2.5vw, 22px)',
                 letterSpacing: '-0.01em',
                 opacity: 0, 
                 animation: showContent ? 'fade-in-left 0.8s ease-out 0.4s forwards' : 'none' 
@@ -617,6 +622,7 @@ const Header3D: React.FC = () => {
             </p>
           </div>
           <div
+            className="w-full overflow-x-auto md:overflow-visible"
             style={{ 
               opacity: 0, 
               animation: showContent ? 'fade-in-left 0.8s ease-out 0.6s forwards' : 'none',
@@ -625,8 +631,8 @@ const Header3D: React.FC = () => {
               zIndex: 100
             }}
           >
-            {/* First row - 4 buttons */}
-            <div className="flex flex-wrap gap-3 mb-3">
+            {/* Mobile: horizontal scroll, Desktop: 2 rows */}
+            <div className="flex md:flex-wrap gap-3 md:mb-3 min-w-max md:min-w-0">
               <button
                 onClick={() => handleCategoryChange('all')}
                 className={`px-4 py-2 font-grotesk font-bold rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 text-sm ${
@@ -679,9 +685,8 @@ const Header3D: React.FC = () => {
               >
                 Lifestyle
               </button>
-            </div>
-            {/* Second row - 4 buttons */}
-            <div className="flex flex-wrap gap-3">
+            {/* Desktop only: line break for second row */}
+            <div className="hidden md:block w-full h-0"></div>
               <button
                 onClick={() => handleCategoryChange('corporate')}
                 className={`px-4 py-2 font-grotesk font-bold rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 text-sm ${
