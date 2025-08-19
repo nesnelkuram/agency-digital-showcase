@@ -1,0 +1,169 @@
+{
+  "videos": [
+    {
+      "id": "01",
+      "filename": "01.mp4",
+      "title": "Mandarin Oriental",
+      "location": "Istanbul",
+      "category": "hotels",
+      "description": "Boğaz'ın eşsiz manzarasında lüks ve konforun buluştuğu nokta. Dünya standartlarında hizmet anlayışı ile 5 yıldızlı otel deneyimini sinematik bir hikayeye dönüştürdük.",
+      "tags": ["Luxury Hotel", "Bosphorus View", "5 Stars", "Fine Dining", "Spa & Wellness"],
+      "year": 2024,
+      "duration": "45s",
+      "services": ["Video Production", "Drone Footage", "Color Grading", "Motion Graphics"]
+    },
+    {
+      "id": "02",
+      "filename": "02.mp4",
+      "title": "Nusr-Et Steakhouse",
+      "location": "Dubai",
+      "category": "gastronomy",
+      "description": "Salt Bae'nin ikonik restoranında lezzet ve performansın mükemmel uyumu. Her bir et kesiminin sanatsal sunumunu görsel bir şölene dönüştürdük.",
+      "tags": ["Fine Dining", "Steakhouse", "Luxury Restaurant", "Celebrity Chef", "Dubai Marina"],
+      "year": 2024,
+      "duration": "30s",
+      "services": ["Food Videography", "Slow Motion", "Brand Storytelling"]
+    },
+    {
+      "id": "03",
+      "filename": "03.mp4",
+      "title": "Vakko Fashion Show",
+      "location": "Istanbul",
+      "category": "fashion",
+      "description": "Türk modasının öncü markası Vakko'nun 2024 İlkbahar/Yaz koleksiyonu defilesi. Zarafet ve modernliğin kusursuz birleşimi.",
+      "tags": ["High Fashion", "Runway Show", "Turkish Design", "Luxury Brand", "SS24 Collection"],
+      "year": 2024,
+      "duration": "60s",
+      "services": ["Fashion Film", "Multi-Camera Setup", "Live Streaming", "Post Production"]
+    },
+    {
+      "id": "04",
+      "filename": "04.mp4",
+      "title": "Microsoft Türkiye",
+      "location": "Istanbul",
+      "category": "corporate",
+      "description": "Microsoft'un Türkiye ofisi için hazırlanan kurumsal tanıtım filmi. İnovasyon ve teknolojinin iş dünyasındaki dönüştürücü gücü.",
+      "tags": ["Tech Company", "Corporate Film", "Innovation", "Digital Transformation", "AI & Cloud"],
+      "year": 2023,
+      "duration": "90s",
+      "services": ["Corporate Video", "Interview Setup", "Animation", "Voiceover"]
+    },
+    {
+      "id": "05",
+      "filename": "05.mp4",
+      "title": "D-Marin Göcek",
+      "location": "Göcek, Muğla",
+      "category": "lifestyle",
+      "description": "Akdeniz'in en prestijli marinasında lüks yat yaşamı. Masmavi sularda özgürlük ve konforun eşsiz birleşimi.",
+      "tags": ["Luxury Marina", "Yachting", "Mediterranean", "Premium Lifestyle", "Turquoise Coast"],
+      "year": 2024,
+      "duration": "50s",
+      "services": ["Aerial Videography", "Marine Filming", "Lifestyle Content", "Color Correction"]
+    },
+    {
+      "id": "06",
+      "filename": "06.mp4",
+      "title": "Zorlu Center Opening",
+      "location": "Istanbul",
+      "category": "events",
+      "description": "Zorlu PSM'nin yeni sezon açılış galası. Sanat, kültür ve eğlencenin buluştuğu muhteşem bir gece.",
+      "tags": ["Grand Opening", "Cultural Event", "Performance Arts", "VIP Gala", "Red Carpet"],
+      "year": 2024,
+      "duration": "120s",
+      "services": ["Event Coverage", "Multi-Cam Production", "Live Edit", "Highlight Reel"]
+    },
+    {
+      "id": "07",
+      "filename": "07.mp4",
+      "title": "Soho House",
+      "location": "Istanbul",
+      "category": "lifestyle",
+      "description": "Yaratıcı ruhların buluşma noktası. Sanat, tasarım ve sosyal yaşamın kesiştiği özel üyelik kulübünün atmosferi.",
+      "tags": ["Members Club", "Creative Space", "Rooftop Pool", "Art & Design", "Social Hub"],
+      "year": 2023,
+      "duration": "40s",
+      "services": ["Lifestyle Film", "Interior Videography", "Ambiance Capture", "Music Selection"]
+    },
+    {
+      "id": "08",
+      "filename": "08.mp4",
+      "title": "Beymen",
+      "location": "Istanbul & Bodrum",
+      "category": "fashion",
+      "description": "Beymen'in yaz koleksiyonu için Bodrum'da çekilen moda filmi. Ege'nin büyüleyici atmosferinde lüks ve stil.",
+      "tags": ["Luxury Fashion", "Summer Collection", "Beach Wear", "Turkish Riviera", "Premium Brand"],
+      "year": 2024,
+      "duration": "45s",
+      "services": ["Fashion Film", "Location Scouting", "Model Direction", "Styling"]
+    },
+    {
+      "id": "09",
+      "filename": "09.mp4",
+      "title": "TEDx Istanbul",
+      "location": "Istanbul",
+      "category": "events",
+      "description": "Fikirlerin Değer Bulduğu Platform. TEDx Istanbul 2024 konferansının ilham verici konuşmacıları ve fikirleri.",
+      "tags": ["Conference", "Thought Leaders", "Innovation Talks", "Ideas Worth Spreading", "Networking"],
+      "year": 2024,
+      "duration": "180s",
+      "services": ["Conference Recording", "Multi-Track Audio", "Speaker Highlights", "Social Media Content"]
+    },
+    {
+      "id": "10",
+      "filename": "10.mp4",
+      "title": "Koç University",
+      "location": "Istanbul",
+      "category": "education",
+      "description": "Türkiye'nin önde gelen üniversitesinin kampüs yaşamı ve akademik mükemmeliyeti. Geleceğin liderlerinin yetiştiği ortam.",
+      "tags": ["Higher Education", "Campus Life", "Academic Excellence", "Research University", "Student Stories"],
+      "year": 2023,
+      "duration": "75s",
+      "services": ["Educational Film", "Campus Tour", "Student Interviews", "Drone Footage"]
+    },
+    {
+      "id": "11",
+      "filename": "11.mp4",
+      "title": "Four Seasons Bosphorus",
+      "location": "Istanbul",
+      "category": "hotels",
+      "description": "Osmanlı sarayından ilham alan mimari ve çağdaş lüksün buluşması. Boğaz'ın incisi Four Seasons'ta unutulmaz anlar.",
+      "tags": ["Ottoman Palace", "Waterfront Hotel", "Historic Luxury", "Bosphorus", "Fine Dining"],
+      "year": 2024,
+      "duration": "55s",
+      "services": ["Hotel Showcase", "Architectural Videography", "Guest Experience", "Aerial Views"]
+    },
+    {
+      "id": "12",
+      "filename": "12.mp4",
+      "title": "CEO Summit 2024",
+      "location": "Bodrum",
+      "category": "interview",
+      "description": "Türkiye'nin en etkili CEO'larının bir araya geldiği zirve. Liderlik, vizyon ve geleceğe dair öngörüler.",
+      "tags": ["Executive Interview", "Business Leaders", "CEO Insights", "Leadership Summit", "Strategic Vision"],
+      "year": 2024,
+      "duration": "240s",
+      "services": ["Interview Setup", "Multi-Camera", "Professional Audio", "Post Production", "Graphics Package"]
+    }
+  ],
+  "categories": {
+    "all": "Tüm Projeler",
+    "gastronomy": "Gastronomi & Restoran",
+    "fashion": "Moda & Tekstil",
+    "lifestyle": "Yaşam Tarzı & Lüks",
+    "corporate": "Kurumsal & İş Dünyası",
+    "events": "Etkinlik & Organizasyon",
+    "hotels": "Otel & Konaklama",
+    "education": "Eğitim & Akademi",
+    "interview": "Röportaj & Söyleşi"
+  },
+  "services": {
+    "video_production": "Video Prodüksiyon",
+    "drone_footage": "Drone Çekimi",
+    "color_grading": "Renk Düzenleme",
+    "motion_graphics": "Motion Graphics",
+    "live_streaming": "Canlı Yayın",
+    "post_production": "Post Prodüksiyon",
+    "animation": "Animasyon",
+    "sound_design": "Ses Tasarımı"
+  }
+}

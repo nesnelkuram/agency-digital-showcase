@@ -2,10 +2,14 @@ import React, { useMemo, useState, useEffect, useRef, Suspense } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { Environment } from '@react-three/drei';
 import AnimatedPhone from './AnimatedPhone';
-import { getPhoneImages } from '../constants';
+import { PHONE_IMAGES } from '../constants';
 import { useBreakpoint } from '../hooks/useMediaQuery';
 
-const Header3D: React.FC = () => {
+interface Header3DProps {
+  onOpenQuote?: () => void;
+}
+
+const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
   const [parallaxOffset, setParallaxOffset] = useState(0);
   const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
   const [isClosing, setIsClosing] = useState(false);
@@ -16,7 +20,7 @@ const Header3D: React.FC = () => {
   const [isCategoryChanging, setIsCategoryChanging] = useState(false);
   const [phonesShouldFall, setPhonesShouldFall] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
-  const animationFrameRef = useRef<number>();
+  const animationFrameRef = useRef<number | undefined>();
 
   // Handle category change
   const handleCategoryChange = (category: string) => {
@@ -189,11 +193,14 @@ const Header3D: React.FC = () => {
   const { isMobile, isTablet } = useBreakpoint();
   
   const phoneConfigs = useMemo(() => {
-    const phoneImages = getPhoneImages(selectedCategory);
+    // Use PHONE_IMAGES directly - category filtering can be added later if needed
+    const phoneImages = PHONE_IMAGES;
     // Responsive grid: Mobile (3x3), Tablet (3x5), Desktop (3x7)
     const rows = isMobile ? 3 : isTablet ? 5 : 7;
-    const colsPerRow = Array(rows).fill(3);
-    const totalPhones = colsPerRow.reduce((sum, count) => sum + count, 0);
+    const totalPhones = rows * 3; // 3 columns per row
+    
+    console.log(`[Header3D] Creating ${totalPhones} phones (${rows} rows x 3 cols)`);
+    
     return Array.from({ length: totalPhones }).map((_, idx) => {
       const imageIdx = idx % phoneImages.length;
       const projectIdx = idx % projectData.length;
@@ -205,7 +212,7 @@ const Header3D: React.FC = () => {
         project: projectData[projectIdx]
       };
     });
-  }, [selectedCategory]);
+  }, [isMobile, isTablet, selectedCategory]);
 
   return (
     <header 
@@ -384,7 +391,8 @@ const Header3D: React.FC = () => {
               <Environment preset="studio" />
               <group rotation={[0, 0, 0]} scale={isMobile ? 1.5 : isTablet ? 1.3 : 1.1} position={[0, 0, 0]}>
                 {(() => {
-                  const colsPerRow = Array(7).fill(3);  // 7 satır, 3 sütun
+                  const rows = isMobile ? 3 : isTablet ? 5 : 7;
+                  const colsPerRow = Array(rows).fill(3);  // Dynamic rows, 3 sütun
                   let idx = 0;
                   return colsPerRow.map((numCols, row) => {
                     const slice = phoneConfigs.slice(idx, idx + numCols);
@@ -396,8 +404,9 @@ const Header3D: React.FC = () => {
                           const spacingX = isMobile ? 1.3 : 1.1;  // Wider spacing on mobile
                           const spacingY = isMobile ? 2.5 : 2.0;  // Taller spacing on mobile
                           const x = (col - 1) * spacingX;  // Center 3 columns (0, 1, 2 -> -1, 0, 1)
-                          // Adjusted for 7 rows
-                          const baseY = (row - 3) * spacingY;  // Center 7 rows
+                          // Dynamic centering based on actual row count
+                          const centerOffset = Math.floor(rows / 2);
+                          const baseY = (row - centerOffset) * spacingY;  // Center rows dynamically
                           const offsetMultiplier = 0.025; // Increased movement for more visible parallax
                           
                           // Simple parallax offset like in original
@@ -738,6 +747,70 @@ const Header3D: React.FC = () => {
                 }}
               >
                 Interview
+              </button>
+            </div>
+            
+            {/* Call to Action Button */}
+            <div
+              className="mt-8 md:mt-10"
+              style={{ 
+                opacity: 0, 
+                animation: showContent ? 'fade-in-left 0.8s ease-out 0.8s forwards' : 'none',
+                pointerEvents: 'auto',
+                position: 'relative',
+                zIndex: 100
+              }}
+            >
+              <button
+                onClick={() => {
+                  if (onOpenQuote) {
+                    onOpenQuote();
+                  } else {
+                    // Fallback to scroll to contact section
+                    const contactSection = document.querySelector('#contact');
+                    if (contactSection) {
+                      contactSection.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }
+                }}
+                className="group relative px-6 py-3 font-grotesk font-bold text-sm rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-xl flex items-center gap-3"
+                style={{
+                  backgroundColor: '#333333',
+                  color: 'white',
+                  border: '2px solid transparent'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = '#333333';
+                  e.currentTarget.style.borderColor = '#333333';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#333333';
+                  e.currentTarget.style.color = 'white';
+                  e.currentTarget.style.borderColor = 'transparent';
+                }}
+              >
+                {/* Calendar Icon */}
+                <svg 
+                  className="w-5 h-5 relative z-10" 
+                  fill="currentColor" 
+                  viewBox="0 0 20 20"
+                >
+                  <path 
+                    fillRule="evenodd" 
+                    d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" 
+                    clipRule="evenodd" 
+                  />
+                </svg>
+                <span className="relative z-10">Get a Quote Now</span>
+                <div 
+                  className="absolute inset-0 rounded-lg transition-all duration-300 ease-in-out"
+                  style={{
+                    backgroundColor: '#fffceb',
+                    transform: 'scale(0)',
+                    zIndex: -1
+                  }}
+                ></div>
               </button>
             </div>
           </div>

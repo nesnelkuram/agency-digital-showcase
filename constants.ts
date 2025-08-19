@@ -68,156 +68,36 @@ export const HEADER_VIDEOS: VideoInfo[] = [
   },
 ];
 
-// Category video sets
-export const CATEGORY_VIDEO_SETS: Record<string, number[][]> = {
-  all: [
-    [1, 5, 9, 2],      // Satır 0
-    [6, 10, 3, 7],     // Satır 1  
-    [11, 4, 8, 12],    // Satır 2
-    [2, 7, 11, 4],     // Satır 3
-    [8, 12, 5, 9],     // Satır 4
-    [3, 6, 10, 1],     // Satır 5
-    [7, 11, 4, 8],     // Satır 6
-    [12, 2, 9, 3],     // Satır 7
-    [5, 10, 1, 6],     // Satır 8
-    [9, 3, 7, 11],     // Satır 9
-    [4, 8, 12, 5],     // Satır 10
-    [10, 1, 6, 2]      // Satır 11
-  ],
-  gastronomy: [
-    [1, 2, 3, 4],
-    [3, 4, 1, 2],
-    [2, 1, 4, 3],
-    [4, 3, 2, 1],
-    [1, 2, 3, 4],
-    [3, 4, 1, 2],
-    [2, 1, 4, 3],
-    [4, 3, 2, 1],
-    [1, 2, 3, 4],
-    [3, 4, 1, 2],
-    [2, 1, 4, 3],
-    [4, 3, 2, 1]
-  ],
-  fashion: [
-    [5, 6, 7, 8],
-    [7, 8, 5, 6],
-    [6, 5, 8, 7],
-    [8, 7, 6, 5],
-    [5, 6, 7, 8],
-    [7, 8, 5, 6],
-    [6, 5, 8, 7],
-    [8, 7, 6, 5],
-    [5, 6, 7, 8],
-    [7, 8, 5, 6],
-    [6, 5, 8, 7],
-    [8, 7, 6, 5]
-  ],
-  corporate: [
-    [9, 10, 11, 12],
-    [11, 12, 9, 10],
-    [10, 9, 12, 11],
-    [12, 11, 10, 9],
-    [9, 10, 11, 12],
-    [11, 12, 9, 10],
-    [10, 9, 12, 11],
-    [12, 11, 10, 9],
-    [9, 10, 11, 12],
-    [11, 12, 9, 10],
-    [10, 9, 12, 11],
-    [12, 11, 10, 9]
-  ],
-  motion: [
-    [1, 3, 5, 7],
-    [9, 11, 2, 4],
-    [6, 8, 10, 12],
-    [2, 4, 6, 8],
-    [10, 12, 1, 3],
-    [5, 7, 9, 11],
-    [1, 3, 5, 7],
-    [9, 11, 2, 4],
-    [6, 8, 10, 12],
-    [2, 4, 6, 8],
-    [10, 12, 1, 3],
-    [5, 7, 9, 11]
-  ],
-  events: [
-    [2, 4, 6, 8],
-    [10, 12, 1, 3],
-    [5, 7, 9, 11],
-    [1, 3, 5, 7],
-    [8, 10, 12, 2],
-    [4, 6, 8, 10],
-    [11, 1, 3, 5],
-    [7, 9, 11, 1],
-    [2, 4, 6, 8],
-    [10, 12, 2, 4],
-    [6, 8, 10, 12],
-    [3, 5, 7, 9]
-  ],
-  hotels: [
-    [11, 9, 7, 5],
-    [3, 1, 12, 10],
-    [8, 6, 4, 2],
-    [2, 12, 10, 8],
-    [6, 4, 2, 11],
-    [9, 7, 5, 3],
-    [1, 11, 9, 7],
-    [5, 3, 1, 12],
-    [10, 8, 6, 4],
-    [4, 2, 12, 10],
-    [8, 6, 4, 2],
-    [11, 9, 7, 5]
-  ],
-  interview: [
-    [12, 11, 10, 9],
-    [8, 7, 6, 5],
-    [4, 3, 2, 1],
-    [1, 2, 3, 4],
-    [5, 6, 7, 8],
-    [9, 10, 11, 12],
-    [12, 10, 8, 6],
-    [4, 2, 11, 9],
-    [7, 5, 3, 1],
-    [1, 3, 5, 7],
-    [9, 11, 2, 4],
-    [6, 8, 10, 12]
-  ],
-  lifestyle: [
-    [3, 6, 9, 12],
-    [2, 5, 8, 11],
-    [1, 4, 7, 10],
-    [10, 7, 4, 1],
-    [11, 8, 5, 2],
-    [12, 9, 6, 3],
-    [3, 6, 9, 12],
-    [2, 5, 8, 11],
-    [1, 4, 7, 10],
-    [10, 7, 4, 1],
-    [11, 8, 5, 2],
-    [12, 9, 6, 3]
-  ]
-};
-
-// Function to get phone images based on category
-export const getPhoneImages = (category: string = 'all') => {
-  const videoSets = CATEGORY_VIDEO_SETS[category] || CATEGORY_VIDEO_SETS.all;
-  
-  return Array.from({ length: 48 }, (_, idx) => {
-    const col = idx % 4;  // 0, 1, 2, 3
-    const row = Math.floor(idx / 4);  // 0-11
-    const videoNum = videoSets[row][col];
-    
-    return {
-      id: `img${idx + 1}`,
-      src: getBlobUrl(`${videoNum}.mp4`, 'preview'),  // Use Blob URLs for preview
-      alt: `Mobile video ${idx + 1}`
-    };
-  });
-};
-
 // MP4 formatı - Her satırda farklı videolar, sütunlar arası tekrar yok
 // 48 telefon için video dağılımı (12 satır x 4 sütun)
-export const PHONE_IMAGES = getPhoneImages('all');
+export const PHONE_IMAGES = Array.from({ length: 48 }, (_, idx) => {
+  const col = idx % 4;  // 0, 1, 2, 3
+  const row = Math.floor(idx / 4);  // 0-11
+  
+  // Her satır için farklı video setleri (1-12 arası videolar)
+  const videoSets = [
+    [8, 1, 3, 5],      // Satır 0
+    [12, 11, 6, 2],    // Satır 1
+    [4, 7, 9, 10],     // Satır 2
+    [1, 5, 8, 3],      // Satır 3
+    [3, 2, 12, 11],    // Satır 4
+    [6, 10, 4, 7],     // Satır 5
+    [9, 1, 5, 8],      // Satır 6
+    [8, 11, 3, 2],     // Satır 7
+    [12, 7, 6, 10],    // Satır 8
+    [4, 5, 9, 1],      // Satır 9
+    [2, 8, 11, 3],     // Satır 10
+    [3, 10, 12, 7]     // Satır 11
+  ];
+  
+  const videoNum = videoSets[row][col];
+  
+  return {
+    id: `img${idx + 1}`,
+    src: getBlobUrl(`${videoNum}.mp4`, 'preview'),  // Use Blob URLs for preview
+    alt: `Mobile video ${idx + 1}`
+  };
+});
 
 // Tüm telefonlar için video içeriği - İlk 3 satırdan alınıyor
 // İlk 12 telefon için (3 satır x 4 sütun)
@@ -244,3 +124,4 @@ export const PHONE_MEDIA_CONTENT: MediaContent[] = Array.from({ length: 12 }, (_
     type: 'video' as const
   };
 });
+
