@@ -2,8 +2,9 @@ import React, { useMemo, useState, useEffect, useRef, Suspense } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { Environment } from '@react-three/drei';
 import AnimatedPhone from './AnimatedPhone';
-import { PHONE_IMAGES } from '../constants';
+import { PHONE_IMAGES, ALL_MEDIA_CONTENT } from '../constants';
 import { useBreakpoint } from '../hooks/useMediaQuery';
+import { getVideosByCategory } from '../videoUtils';
 
 interface Header3DProps {
   onOpenQuote?: () => void;
@@ -114,103 +115,143 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
     };
   }, []);
 
-  // Project data for each phone
-  const projectData = [
-    {
-      title: "Mandarin Oriental",
-      subtitle: "Istanbul",
-      description: "Boğaz'ın eşsiz manzarasında lüks ve konforun buluştuğu nokta. 5 yıldızlı otel deneyimini sinematik bir hikayeye dönüştürdük.",
-      tags: ["Luxury Hotel", "Bosphorus", "5 Stars"]
-    },
-    {
-      title: "Four Seasons",
-      subtitle: "Sultanahmet",
-      description: "Tarihi yarımadanın kalbinde, Osmanlı mimarisinin modern konforla harmanlandığı benzersiz bir deneyim.",
-      tags: ["Historic", "Ottoman Style", "Premium"]
-    },
-    {
-      title: "Soho House",
-      subtitle: "Istanbul",
-      description: "Yaratıcı ruhların buluşma noktası. Sanat, tasarım ve sosyal yaşamın kesiştiği modern bir üyelik kulübü.",
-      tags: ["Members Club", "Creative", "Social"]
-    },
-    {
-      title: "Raffles",
-      subtitle: "Zorlu Center",
-      description: "Şehrin yeni lüks ikonu. Modern mimarinin ve sofistike tasarımın mükemmel uyumu.",
-      tags: ["Modern", "Luxury", "City View"]
-    },
-    {
-      title: "Edition",
-      subtitle: "Bodrum",
-      description: "Ege'nin mavisiyle buluşan çağdaş tasarım. Plaj kulübünden gece hayatına uzanan dinamik bir yaşam.",
-      tags: ["Beach Club", "Aegean", "Lifestyle"]
-    },
-    {
-      title: "Park Hyatt",
-      subtitle: "Maçka",
-      description: "İş ve sosyal hayatın kesişim noktasında, şehrin nabzını tutan prestijli bir adres.",
-      tags: ["Business", "City Center", "Premium"]
-    },
-    {
-      title: "W Hotel",
-      subtitle: "Akaretler",
-      description: "Genç ve dinamik enerjinin modern lüksle buluştuğu, şehrin en cool adresi.",
-      tags: ["Trendy", "Nightlife", "Young"]
-    },
-    {
-      title: "St. Regis",
-      subtitle: "Nişantaşı",
-      description: "Zarafet ve protokolün adresi. Geleneksel butler servisi ile unutulmaz bir konaklama deneyimi.",
-      tags: ["Elegant", "Butler Service", "Classic"]
-    },
-    {
-      title: "Shangri-La",
-      subtitle: "Bosphorus",
-      description: "Asya'nın misafirperverliği Boğaz'ın büyüsüyle buluşuyor. Huzur ve lüksün mükemmel dengesi.",
-      tags: ["Asian Hospitality", "Spa", "Wellness"]
-    },
-    {
-      title: "Swissotel",
-      subtitle: "The Bosphorus",
-      description: "İsviçre hassasiyeti ve Türk misafirperverliğinin eşsiz birleşimi. Kongre ve etkinliklerin vazgeçilmez adresi.",
-      tags: ["Conference", "Swiss Quality", "Events"]
-    },
-    {
-      title: "Çırağan Palace",
-      subtitle: "Kempinski",
-      description: "Osmanlı sarayından otele dönüşen tarihi mekan. Sultanlara layık bir konaklama deneyimi.",
-      tags: ["Palace", "Historic", "Royal"]
-    },
-    {
-      title: "Maxx Royal",
-      subtitle: "Bodrum",
-      description: "Her şey dahil lüks konseptinin zirvesi. Ailelere özel tasarlanmış tatil cenneti.",
-      tags: ["All Inclusive", "Family", "Resort"]
-    }
-  ];
+  // Project data artık doğrudan video metadata'dan alınacak
 
   const { isMobile, isTablet } = useBreakpoint();
   
   const phoneConfigs = useMemo(() => {
-    // Use PHONE_IMAGES directly - category filtering can be added later if needed
-    const phoneImages = PHONE_IMAGES;
-    // Responsive grid: Mobile (3x3), Tablet (3x5), Desktop (3x7)
-    const rows = isMobile ? 3 : isTablet ? 5 : 7;
-    const totalPhones = rows * 3; // 3 columns per row
+    // Kategoriye göre videoları filtrele
+    let filteredVideos;
     
-    console.log(`[Header3D] Creating ${totalPhones} phones (${rows} rows x 3 cols)`);
+    if (selectedCategory === 'all') {
+      // Tüm kategorilerden karışık video seç
+      const allVideos = getVideosByCategory('all');
+      
+      // Her kategoriden en az bir video olacak şekilde karışık seç
+      const categories = ['Fashion', 'Commercial', 'Gastronomi', 'Interview'];
+      const selectedVideos = [];
+      
+      // Her kategoriden en az 2 video al
+      categories.forEach(cat => {
+        const catVideos = allVideos.filter(v => v.category === cat);
+        if (catVideos.length > 0) {
+          // Her kategoriden 2-3 rastgele video seç
+          const shuffled = [...catVideos].sort(() => Math.random() - 0.5);
+          selectedVideos.push(...shuffled.slice(0, Math.min(3, catVideos.length)));
+        }
+      });
+      
+      // Karıştır ve 10 video seç
+      const mixedVideos = [...selectedVideos].sort(() => Math.random() - 0.5).slice(0, 10);
+      
+      filteredVideos = mixedVideos.map(video => ({
+        id: video.id,
+        src: video.preview || video.fullVideo || '',
+        alt: video.alt || video.title || '',
+        title: video.title,
+        description: video.description,
+        category: video.category,
+        location: video.location
+      }));
+    } else if (selectedCategory === 'fashion') {
+      // Fashion kategorisi için özel sıralama
+      const categoryVideos = getVideosByCategory(selectedCategory);
+      
+      // Video 41'i bul
+      const video41Index = categoryVideos.findIndex(v => v.id === '41');
+      let reorderedVideos = [...categoryVideos];
+      
+      if (video41Index !== -1) {
+        // Video 41'i çıkar
+        const video41 = reorderedVideos.splice(video41Index, 1)[0];
+        
+        // Pozisyon 5'teki videoyu al (0-indexed, yani 6. telefon)
+        if (reorderedVideos.length > 5) {
+          const video6 = reorderedVideos[5];
+          // Video 41'i pozisyon 5'e koy
+          reorderedVideos.splice(5, 1, video41);
+          // Eski 6. videoyu pozisyon 9'a koy (10. telefon)
+          if (reorderedVideos.length > 9) {
+            reorderedVideos.splice(9, 1, video6);
+          } else {
+            reorderedVideos.push(video6);
+          }
+        } else {
+          // Eğer 6. pozisyon yoksa direkt ekle
+          reorderedVideos.splice(5, 0, video41);
+        }
+      }
+      
+      // MediaContent'ten preview URL'lerini çıkar ve VideoInfo formatına çevir
+      filteredVideos = reorderedVideos.map(video => ({
+        id: video.id,
+        src: video.preview || video.fullVideo || '',
+        alt: video.alt || video.title || '',
+        title: video.title,
+        description: video.description,
+        category: video.category,
+        location: video.location
+      }));
+    } else if (selectedCategory === 'commercial') {
+      // Commercial kategorisi için rastgele sıralama
+      const categoryVideos = getVideosByCategory(selectedCategory);
+      
+      // Videoları karıştır ve ilk 10'u al (12 video var)
+      const shuffledVideos = [...categoryVideos].sort(() => Math.random() - 0.5).slice(0, 10);
+      
+      // MediaContent'ten preview URL'lerini çıkar ve VideoInfo formatına çevir
+      filteredVideos = shuffledVideos.map(video => ({
+        id: video.id,
+        src: video.preview || video.fullVideo || '',
+        alt: video.alt || video.title || '',
+        title: video.title,
+        description: video.description,
+        category: video.category,
+        location: video.location
+      }));
+    } else {
+      // Diğer kategoriler için normal sıralama
+      const categoryVideos = getVideosByCategory(selectedCategory);
+      
+      // MediaContent'ten preview URL'lerini çıkar ve VideoInfo formatına çevir
+      filteredVideos = categoryVideos.map(video => ({
+        id: video.id,
+        src: video.preview || video.fullVideo || '',
+        alt: video.alt || video.title || '',
+        title: video.title,
+        description: video.description,
+        category: video.category,
+        location: video.location
+      }));
+    }
     
+    // Always show 10 phones on desktop
+    const totalPhones = isMobile ? 6 : isTablet ? 7 : 10;
+    
+    console.log(`[Header3D] Category: ${selectedCategory}, Videos: ${filteredVideos.length}, Phones: ${totalPhones}`);
+    
+    // Create phone configurations
     return Array.from({ length: totalPhones }).map((_, idx) => {
-      const imageIdx = idx % phoneImages.length;
-      const projectIdx = idx % projectData.length;
-      // Tüm telefonlar için AnimatedPhone kullan
-      return {
-        key: `phone-${idx}`,
-        videoSrc: phoneImages[imageIdx].src,
-        altText: phoneImages[imageIdx].alt,
-        project: projectData[projectIdx]
-      };
+      if (idx < filteredVideos.length) {
+        // Video varsa göster
+        const video = filteredVideos[idx];
+        return {
+          key: `phone-${idx}`,
+          videoSrc: video.src,
+          altText: video.alt,
+          videoData: video,
+          hasVideo: true
+        };
+      } else {
+        // Video yoksa boş telefon göster
+        return {
+          key: `phone-${idx}`,
+          videoSrc: '',
+          altText: 'Empty',
+          videoData: null,
+          hasVideo: false
+        };
+      }
     });
   }, [isMobile, isTablet, selectedCategory]);
 
@@ -355,8 +396,8 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
           <Canvas
             shadows
             camera={{
-              position: isMobile ? [10, -5, 15] : [16, -8, 20],   // Closer camera on mobile
-              fov: isMobile ? 12 : 8,  // Wider FOV on mobile
+              position: isMobile ? [12, -7, 15] : [20, -12, 24.5],   // Sağa ve aşağıya kaydırıldı
+              fov: isMobile ? 12 : 6.5,  // Wider FOV on mobile
               near: 0.1,
               far: 1000,
             }}
@@ -391,22 +432,51 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
               <Environment preset="studio" />
               <group rotation={[0, 0, 0]} scale={isMobile ? 1.5 : isTablet ? 1.3 : 1.1} position={[0, 0, 0]}>
                 {(() => {
-                  const rows = isMobile ? 3 : isTablet ? 5 : 7;
-                  const colsPerRow = Array(rows).fill(3);  // Dynamic rows, 3 sütun
-                  let idx = 0;
-                  return colsPerRow.map((numCols, row) => {
-                    const slice = phoneConfigs.slice(idx, idx + numCols);
-                    idx += numCols;
-                    return (
-                      <group key={`row-${row}`}>
-                        {slice.map((cfg, col) => {
+                  // Telefon sayısını azalt: Sütun bazlı düzenleme
+                  // Desktop: 3 sütun (4+3+3), Tablet: 3 sütun (3+2+2), Mobile: 2 sütun (3+3)
+                  const columns = isMobile ? 2 : 3;
+                  const phonesPerColumn = isMobile 
+                    ? [3, 3]  // Mobile: 2 sütun, her biri 3 telefon
+                    : isTablet 
+                      ? [3, 2, 2]  // Tablet: 3 sütun (3+2+2 = 7 telefon)
+                      : [4, 3, 3];  // Desktop: 3 sütun (4+3+3 = 10 telefon)
+                  
+                  let phoneIndex = 0;
+                  const allPhones = [];
+                  
+                  // Sütunları oluştur
+                  for (let col = 0; col < columns; col++) {
+                    const phoneCount = phonesPerColumn[col];
+                    for (let row = 0; row < phoneCount; row++) {
+                      if (phoneIndex < phoneConfigs.length) {
+                        allPhones.push({
+                          config: phoneConfigs[phoneIndex],
+                          col: col,
+                          row: row,
+                          totalInColumn: phoneCount
+                        });
+                        phoneIndex++;
+                      }
+                    }
+                  }
+                  
+                  return allPhones.map(({ config: cfg, col, row, totalInColumn }, index) => {
                           const movingDown = col % 2 !== 0;
-                          const spacingX = isMobile ? 1.3 : 1.1;  // Wider spacing on mobile
-                          const spacingY = isMobile ? 2.5 : 2.0;  // Taller spacing on mobile
-                          const x = (col - 1) * spacingX;  // Center 3 columns (0, 1, 2 -> -1, 0, 1)
-                          // Dynamic centering based on actual row count
-                          const centerOffset = Math.floor(rows / 2);
-                          const baseY = (row - centerOffset) * spacingY;  // Center rows dynamically
+                          const spacingX = isMobile ? 1.3 : 1.1;  // Sütunlar arası mesafe
+                          const spacingY = isMobile ? 2.2 : 2.0;  // Satırlar arası mesafe
+                          
+                          // X pozisyonu - sütun bazlı
+                          const x = (col - 1) * spacingX; // -1.1, 0, 1.1 for 3 columns
+                          
+                          // Y pozisyonu - her sütundaki telefon sayısına göre merkezle
+                          const centerOffsetForColumn = (totalInColumn - 1) / 2;
+                          let baseY = (row - centerOffsetForColumn) * spacingY;
+                          
+                          // 2. sütundaki telefonları bir telefon boyu yukarı taşı
+                          if (col === 1) {  // 2. sütun (0-indexed)
+                            baseY += spacingY;  // Bir telefon boyu yukarı
+                          }
+                          
                           const offsetMultiplier = 0.025; // Increased movement for more visible parallax
                           
                           // Simple parallax offset like in original
@@ -428,9 +498,10 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
                           }
                           
                           // Calculate entrance delay based on row and column for better stagger
-                          const entranceDelay = hasEntered ? 0 : (row * 20 + col * 10); // Smoother stagger for entrance
+                          const entranceDelay = hasEntered ? 0 : (col * 50 + row * 20); // Sütun bazlı gecikme
                           
                           // All phones use AnimatedPhone
+                          const phoneNumber = index + 1;
                           return (
                             <AnimatedPhone
                               key={cfg.key}
@@ -442,6 +513,8 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
                               fallDelay={fallDelay}
                               hasEntered={hasEntered}
                               entranceDelay={entranceDelay}
+                              showDebugNumber={selectedCategory === 'debug'}
+                              debugNumber={phoneNumber}
                               onClick={() => {
                                 if (isSelected) {
                                   setIsClosing(true);
@@ -458,9 +531,6 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
                               }}
                             />
                           );
-                        })}
-                      </group>
-                    );
                   });
                 })()}
               </group>
@@ -539,8 +609,11 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
               {(() => {
                 const phoneKey = isClosing ? lastSelectedPhone : selectedPhone;
                 const selectedConfig = phoneConfigs.find(cfg => cfg.key === phoneKey);
-                const project = selectedConfig?.project;
-                if (!project) return null;
+                const videoData = selectedConfig?.videoData;
+                if (!videoData) return null;
+                
+                // Tags'i string'den array'e çevir
+                const tags = videoData.tags ? videoData.tags.split(',').map(tag => tag.trim()).filter(tag => tag) : [];
                 
                 return (
                   <>
@@ -550,7 +623,7 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
                           transform: isClosing ? 'translateY(30px)' : (selectedPhone ? 'translateY(0)' : 'translateY(30px)'),
                           transitionDelay: isClosing ? '0ms' : '600ms'
                         }}>
-                      <span className="font-bold">{project.title}</span>
+                      <span className="font-bold">{videoData.title || 'Untitled'}</span>
                     </h2>
                     <h3 className="font-ramillas text-3xl mb-6 text-neutral-600 font-normal italic transition-all duration-700"
                         style={{
@@ -558,7 +631,7 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
                           transform: isClosing ? 'translateY(30px)' : (selectedPhone ? 'translateY(0)' : 'translateY(30px)'),
                           transitionDelay: isClosing ? '50ms' : '800ms'
                         }}>
-                      {project.subtitle}
+                      {videoData.location || 'Location'}
                     </h3>
                     <p className="font-grotesk text-xl text-neutral-700 mb-8 leading-relaxed transition-all duration-700"
                         style={{
@@ -566,7 +639,7 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
                           transform: isClosing ? 'translateY(30px)' : (selectedPhone ? 'translateY(0)' : 'translateY(30px)'),
                           transitionDelay: isClosing ? '100ms' : '1000ms'
                         }}>
-                      {project.description}
+                      {videoData.description || 'No description available'}
                     </p>
                     <div className="flex gap-3 flex-wrap transition-all duration-700"
                          style={{
@@ -574,11 +647,24 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
                            transform: isClosing ? 'translateY(30px)' : (selectedPhone ? 'translateY(0)' : 'translateY(30px)'),
                            transitionDelay: isClosing ? '150ms' : '1200ms'
                          }}>
-                      {project.tags.map((tag, i) => (
+                      {tags.length > 0 ? tags.slice(0, 4).map((tag, i) => (
                         <span key={i} className="font-grotesk px-4 py-2 bg-neutral-200 rounded-full text-sm">
                           {tag}
                         </span>
-                      ))}
+                      )) : (
+                        <>
+                          {videoData.category && (
+                            <span className="font-grotesk px-4 py-2 bg-neutral-200 rounded-full text-sm">
+                              {videoData.category}
+                            </span>
+                          )}
+                          {videoData.category2 && (
+                            <span className="font-grotesk px-4 py-2 bg-neutral-200 rounded-full text-sm">
+                              {videoData.category2}
+                            </span>
+                          )}
+                        </>
+                      )}
                     </div>
                   </>
                 );
@@ -656,19 +742,6 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
                 All Works
               </button>
               <button
-                onClick={() => handleCategoryChange('gastronomy')}
-                className={`px-4 py-2 font-grotesk font-bold rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 text-sm ${
-                  selectedCategory === 'gastronomy' 
-                    ? 'bg-neutral-900 text-white' 
-                    : 'text-neutral-900 hover:opacity-80'
-                }`}
-                style={{
-                  backgroundColor: selectedCategory === 'gastronomy' ? undefined : '#fffceb'
-                }}
-              >
-                Gastronomy
-              </button>
-              <button
                 onClick={() => handleCategoryChange('fashion')}
                 className={`px-4 py-2 font-grotesk font-bold rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 text-sm ${
                   selectedCategory === 'fashion' 
@@ -682,59 +755,33 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
                 Fashion
               </button>
               <button
-                onClick={() => handleCategoryChange('lifestyle')}
+                onClick={() => handleCategoryChange('commercial')}
                 className={`px-4 py-2 font-grotesk font-bold rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 text-sm ${
-                  selectedCategory === 'lifestyle' 
+                  selectedCategory === 'commercial' 
                     ? 'bg-neutral-900 text-white' 
                     : 'text-neutral-900 hover:opacity-80'
                 }`}
                 style={{
-                  backgroundColor: selectedCategory === 'lifestyle' ? undefined : '#fffceb'
+                  backgroundColor: selectedCategory === 'commercial' ? undefined : '#fffceb'
                 }}
               >
-                Lifestyle
+                Commercial
+              </button>
+              <button
+                onClick={() => handleCategoryChange('gastronomi')}
+                className={`px-4 py-2 font-grotesk font-bold rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 text-sm ${
+                  selectedCategory === 'gastronomi' 
+                    ? 'bg-neutral-900 text-white' 
+                    : 'text-neutral-900 hover:opacity-80'
+                }`}
+                style={{
+                  backgroundColor: selectedCategory === 'gastronomi' ? undefined : '#fffceb'
+                }}
+              >
+                Gastronomi
               </button>
             {/* Desktop only: line break for second row */}
             <div className="hidden md:block w-full h-0"></div>
-              <button
-                onClick={() => handleCategoryChange('corporate')}
-                className={`px-4 py-2 font-grotesk font-bold rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 text-sm ${
-                  selectedCategory === 'corporate' 
-                    ? 'bg-neutral-900 text-white' 
-                    : 'text-neutral-900 hover:opacity-80'
-                }`}
-                style={{
-                  backgroundColor: selectedCategory === 'corporate' ? undefined : '#fffceb'
-                }}
-              >
-                Corporate
-              </button>
-              <button
-                onClick={() => handleCategoryChange('events')}
-                className={`px-4 py-2 font-grotesk font-bold rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 text-sm ${
-                  selectedCategory === 'events' 
-                    ? 'bg-neutral-900 text-white' 
-                    : 'text-neutral-900 hover:opacity-80'
-                }`}
-                style={{
-                  backgroundColor: selectedCategory === 'events' ? undefined : '#fffceb'
-                }}
-              >
-                Events
-              </button>
-              <button
-                onClick={() => handleCategoryChange('hotels')}
-                className={`px-4 py-2 font-grotesk font-bold rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 text-sm ${
-                  selectedCategory === 'hotels' 
-                    ? 'bg-neutral-900 text-white' 
-                    : 'text-neutral-900 hover:opacity-80'
-                }`}
-                style={{
-                  backgroundColor: selectedCategory === 'hotels' ? undefined : '#fffceb'
-                }}
-              >
-                Hotels
-              </button>
               <button
                 onClick={() => handleCategoryChange('interview')}
                 className={`px-4 py-2 font-grotesk font-bold rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 text-sm ${
@@ -747,6 +794,19 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
                 }}
               >
                 Interview
+              </button>
+              <button
+                onClick={() => handleCategoryChange('debug')}
+                className={`px-4 py-2 font-grotesk font-bold rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 text-sm ${
+                  selectedCategory === 'debug' 
+                    ? 'bg-red-600 text-white' 
+                    : 'text-neutral-900 hover:opacity-80'
+                }`}
+                style={{
+                  backgroundColor: selectedCategory === 'debug' ? undefined : '#ffcccc'
+                }}
+              >
+                Debug (Show Numbers)
               </button>
             </div>
             

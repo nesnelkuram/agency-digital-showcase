@@ -1,5 +1,6 @@
 import React, { Suspense, useMemo, useState, useEffect } from 'react';
 import { animated, useSpring } from '@react-spring/three';
+import { Text } from '@react-three/drei';
 import IPhone3D from './IPhone3D';
 import { videoCache } from '../utils/videoCache';
 
@@ -13,6 +14,8 @@ interface AnimatedPhoneProps {
   fallDelay?: number;
   hasEntered?: boolean;
   entranceDelay?: number;
+  showDebugNumber?: boolean;
+  debugNumber?: number;
 }
 
 const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({ 
@@ -24,7 +27,9 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
   shouldFall = false,
   fallDelay = 0,
   hasEntered = false,
-  entranceDelay = 0
+  entranceDelay = 0,
+  showDebugNumber = false,
+  debugNumber = 0
 }) => {
   // Loading state for full video
   const [isLoadingFullVideo, setIsLoadingFullVideo] = useState(false);
@@ -83,9 +88,9 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
   
   // Kamera FOV'u 8 derece ve rotation'ı dikkate alarak telefonu viewport'ta tut
   const targetPosition = isSelected ? {
-    x: 4.4,       // Kamera rotation'ı nedeniyle sağa kaydır
-    y: -1,      // Kamera rotation'ı ve FOV için aşağıda tut
-    z: 6      // Kameraya yakın ama tamamı görünecek mesafede
+    x: 3.4,       // Kamera rotation'ı nedeniyle sağa kaydır
+    y: -2,      // Kamera rotation'ı ve FOV için aşağıda tut - biraz yukarı aldık
+    z: 5      // Kameraya yakın ama tamamı görünecek mesafede
   } : shouldFall ? {
     x: position[0],
     y: position[1],  // Keep same height
@@ -103,8 +108,8 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
   // X ekseni: Üstten öne doğru eğilme
   // Y ekseni: Soldan sağa dönüş
   const targetRotation = isSelected ? {
-    x: Math.PI / 4,      // 30 derece öne eğilme
-    y: Math.PI * 2.3,      // 360 derece Y ekseninde dönüş
+    x: Math.PI / 4.2,      // Eğim yok, düz duracak
+    y: Math.PI * 2.25,      // 360 derece Y ekseninde dönüş
     z: 0
   } : shouldFall ? {
     x: 0,                // No tilt
@@ -188,6 +193,21 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
       rotation-z={rotZ}
       scale={scale}
     >
+      {/* Debug number display */}
+      {showDebugNumber && (
+        <Text
+          position={[0, 1.2, 0]}  // Position above the phone
+          fontSize={0.5}
+          color="red"
+          anchorX="center"
+          anchorY="middle"
+          outlineWidth={0.02}
+          outlineColor="white"
+        >
+          {debugNumber}
+        </Text>
+      )}
+      
       {isInViewport ? (
         <Suspense fallback={
           <mesh>
@@ -195,16 +215,25 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
             <meshBasicMaterial color="#1a1a1a" />
           </mesh>
         }>
-          <IPhone3D
-            key={`${isSelected ? 'full' : 'preview'}-${videoSrc}`}  // Force re-render when video changes
-            videoSrc={isSelected ? (fullVideoSrc || videoSrc) : videoSrc}  // Use full video only when selected
-            rotation={[0, 0, 0]}
-            isLoading={isSelected && isLoadingFullVideo}
-            onClick={onClick}
-            isNearCamera={isNearCamera}
-            isSelected={isSelected}
-            enableSound={isSelected}  // Only enable sound when selected
-          />
+          {showDebugNumber ? (
+            // Debug mode: Show simple black phone without video
+            <mesh onClick={onClick}>
+              <boxGeometry args={[0.75, 1.6, 0.08]} />
+              <meshStandardMaterial color="#1a1a1a" />
+            </mesh>
+          ) : (
+            // Normal mode: Show phone with video
+            <IPhone3D
+              key={`${isSelected ? 'full' : 'preview'}-${videoSrc}`}  // Force re-render when video changes
+              videoSrc={isSelected ? (fullVideoSrc || videoSrc) : videoSrc}  // Use full video only when selected
+              rotation={[0, 0, 0]}
+              isLoading={isSelected && isLoadingFullVideo}
+              onClick={onClick}
+              isNearCamera={isNearCamera}
+              isSelected={isSelected}
+              enableSound={isSelected}  // Only enable sound when selected
+            />
+          )}
         </Suspense>
       ) : (
         // Basit placeholder viewport dışı için - transparent during entrance

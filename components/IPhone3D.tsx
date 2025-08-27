@@ -165,6 +165,12 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
       }
       
       
+      // If no video source, skip video setup for this phone
+      if (!videoSrc) {
+        console.log('[IPhone3D] Empty phone - no video to display');
+        return;
+      }
+      
       // Create video element and texture with performance optimizations
       const video = document.createElement('video');
       
@@ -234,8 +240,8 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
       }
       
       video.loop = true;
-      video.muted = !enableSound;  // Only mute if sound is not enabled
-      video.autoplay = canAutoplay && !isSelected;  // Autoplay preview videos on desktop
+      video.muted = true;  // Always mute for autoplay to work
+      video.autoplay = true;  // Always try to autoplay
       video.playsInline = true;
       video.setAttribute('playsinline', 'true');
       video.setAttribute('webkit-playsinline', 'true');
@@ -246,12 +252,16 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
       // Store video reference on mesh for later control
       (mesh as any).__video = video;
       
-      // Start playing if autoplay is enabled and video is ready
-      if (canAutoplay && !isSelected) {
-        video.play().catch(err => {
-          console.log('Autoplay prevented:', err.message);
-        });
-      }
+      // Always try to play the video
+      video.play().catch(err => {
+        console.log('Autoplay prevented, trying again:', err.message);
+        // Try playing again after a short delay
+        setTimeout(() => {
+          video.play().catch(e => {
+            console.log('Second play attempt failed:', e.message);
+          });
+        }, 100);
+      });
       
       const videoTexture = new THREE.VideoTexture(video);
       videoTexture.minFilter = THREE.LinearFilter;  // Better quality for visible videos

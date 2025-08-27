@@ -1,7 +1,14 @@
 export interface VideoInfo {
   id: string;
   src: string;
-  alt: string; 
+  alt: string;
+  title?: string;
+  description?: string;
+  category?: string;
+  location?: string;
+  tags?: string;
+  year?: number;
+  services?: string;
 }
 
 export interface MediaContent {
@@ -12,6 +19,14 @@ export interface MediaContent {
   alt: string;
   duration?: number;      // Video süresi (saniye)
   type: 'image' | 'video';
+  title?: string;
+  description?: string;
+  category?: string;
+  category2?: string;     // İkinci kategori
+  location?: string;
+  tags?: string;
+  year?: number;
+  services?: string;
 }
 
 export type PlayState = 'idle' | 'animating' | 'ready' | 'playing';

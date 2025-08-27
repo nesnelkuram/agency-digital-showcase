@@ -1,5 +1,6 @@
 import { VideoInfo, MediaContent } from './types';
 import allBlobUrls from './all-blob-urls.json';
+import { getVideoMetadata } from './videoMetadata';
 
 // Type for blob URLs
 interface BlobUrls {
@@ -16,10 +17,10 @@ export const getBlobUrl = (fileName: string, type: 'full' | 'preview' = 'full'):
   const videoNum = fileName.replace('.mp4', '').replace('.', '');
   const numericValue = parseInt(videoNum);
   
-  // Blob Storage uses different padding: 01-09 for 1-9, and 010-012 for 10-12
+  // Blob Storage uses different padding: 01-09 for 1-9, 010-035 for 10-35
   let blobFileName: string;
   if (numericValue >= 10) {
-    // 10-12 use 3-digit format: 010, 011, 012
+    // 10-35 use 3-digit format: 010, 011, 012, ..., 035
     blobFileName = `0${numericValue}.mp4`;
   } else {
     // 1-9 use 2-digit format: 01, 02, ..., 09
@@ -35,46 +36,31 @@ export const getBlobUrl = (fileName: string, type: 'full' | 'preview' = 'full'):
 };
 
 export const HEADER_VIDEOS: VideoInfo[] = [
-  // Blob Storage'dan videolar
-  { 
-    id: 'vid1', 
-    src: getBlobUrl('1.mp4', 'preview'),
-    alt: 'Video 1' 
-  },
-  { 
-    id: 'vid2', 
-    src: getBlobUrl('2.mp4', 'preview'),
-    alt: 'Video 2' 
-  },
-  { 
-    id: 'vid3', 
-    src: getBlobUrl('3.mp4', 'preview'),
-    alt: 'Video 3' 
-  },
-  { 
-    id: 'vid4', 
-    src: getBlobUrl('4.mp4', 'preview'),
-    alt: 'Video 4' 
-  },
-  { 
-    id: 'vid5', 
-    src: getBlobUrl('5.mp4', 'preview'),
-    alt: 'Video 5' 
-  },
-  { 
-    id: 'vid6', 
-    src: getBlobUrl('6.mp4', 'preview'),
-    alt: 'Video 6' 
-  },
+  // Blob Storage'dan videolar - İlk 6 video
+  ...[1, 2, 3, 4, 5, 6].map(num => {
+    const metadata = getVideoMetadata(num);
+    return {
+      id: `vid${num}`,
+      src: getBlobUrl(`${num}.mp4`, 'preview'),
+      alt: metadata?.title || `Video ${num}`,
+      title: metadata?.title,
+      description: metadata?.description,
+      category: metadata?.category,
+      location: metadata?.location,
+      tags: metadata?.tags,
+      year: metadata?.year,
+      services: metadata?.services
+    };
+  })
 ];
 
-// MP4 formatı - Her satırda farklı videolar, sütunlar arası tekrar yok
+// MP4 formatı - İlk yüklemede sadece ilk 12 video gösteriliyor (performans için)
 // 48 telefon için video dağılımı (12 satır x 4 sütun)
 export const PHONE_IMAGES = Array.from({ length: 48 }, (_, idx) => {
   const col = idx % 4;  // 0, 1, 2, 3
   const row = Math.floor(idx / 4);  // 0-11
   
-  // Her satır için farklı video setleri (1-12 arası videolar)
+  // İlk yüklemede sadece 1-12 arası videolar (performans optimizasyonu)
   const videoSets = [
     [8, 1, 3, 5],      // Satır 0
     [12, 11, 6, 2],    // Satır 1
@@ -91,37 +77,89 @@ export const PHONE_IMAGES = Array.from({ length: 48 }, (_, idx) => {
   ];
   
   const videoNum = videoSets[row][col];
+  const metadata = getVideoMetadata(videoNum);
   
   return {
     id: `img${idx + 1}`,
     src: getBlobUrl(`${videoNum}.mp4`, 'preview'),  // Use Blob URLs for preview
-    alt: `Mobile video ${idx + 1}`
+    alt: metadata?.title || `Mobile video ${idx + 1}`,
+    title: metadata?.title,
+    description: metadata?.description,
+    category: metadata?.category,
+    location: metadata?.location
   };
 });
 
-// Tüm telefonlar için video içeriği - İlk 3 satırdan alınıyor
-// İlk 12 telefon için (3 satır x 4 sütun)
-export const PHONE_MEDIA_CONTENT: MediaContent[] = Array.from({ length: 12 }, (_, idx) => {
-  const col = idx % 4;  // 0, 1, 2, 3
-  const row = Math.floor(idx / 4);  // 0-2
+// İlk yüklemede gösterilecek videolar (performans için sadece ilk 12)
+export const INITIAL_PHONE_MEDIA_CONTENT: MediaContent[] = Array.from({ length: 12 }, (_, idx) => {
+  const videoNum = idx + 1;  // 1-12
+  const metadata = getVideoMetadata(videoNum);
   
-  // İlk 3 satır için video setleri
-  const videoSets = [
-    [8, 1, 3, 5],      // Satır 0
-    [12, 11, 6, 2],    // Satır 1
-    [4, 7, 9, 10]      // Satır 2
-  ];
-  
-  const videoNum = videoSets[row][col];
+  // Duration'ı string'den saniyeye çevir
+  const durationInSeconds = metadata?.duration ? 
+    parseInt(metadata.duration.replace('s', '')) : 30;
   
   return {
-    id: `media${idx + 1}`,
+    id: `media${videoNum}`,
     thumbnail: '/images/photo1.jpg',
     preview: getBlobUrl(`${videoNum}.mp4`, 'preview'),  // Blob URL for preview
     fullVideo: getBlobUrl(`${videoNum}.mp4`, 'full'),  // Blob URL for full video
-    alt: `Video showcase ${idx + 1}`,
-    duration: 10,
-    type: 'video' as const
+    alt: metadata?.title || `Video showcase ${videoNum}`,
+    duration: durationInSeconds,
+    type: 'video' as const,
+    title: metadata?.title,
+    description: metadata?.description,
+    category: metadata?.category,
+    location: metadata?.location,
+    tags: metadata?.tags,
+    year: metadata?.year,
+    services: metadata?.services
   };
 });
+
+// Tüm videolar için lazy loading - kategori seçiminde kullanılacak
+// CSV'deki tüm videoları dahil et
+export const ALL_MEDIA_CONTENT: MediaContent[] = (() => {
+  const allVideos: MediaContent[] = [];
+  
+  // CSV'deki video ID'lerini kullan (1-40 arası, bazıları eksik olabilir)
+  const videoIds = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 
+                    21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 39, 40];
+  
+  videoIds.forEach(videoNum => {
+    const metadata = getVideoMetadata(videoNum);
+    
+    // Eğer metadata yoksa veya title boşsa, bu videoyu atla
+    if (!metadata || !metadata.title) {
+      return;
+    }
+    
+    // Duration'ı string'den saniyeye çevir
+    const durationInSeconds = metadata.duration ? 
+      parseInt(metadata.duration.replace('s', '')) : 30;
+    
+    allVideos.push({
+      id: `media${videoNum}`,
+      thumbnail: '/images/photo1.jpg',
+      preview: getBlobUrl(`${videoNum}.mp4`, 'preview'),  // Blob URL for preview
+      fullVideo: getBlobUrl(`${videoNum}.mp4`, 'full'),  // Blob URL for full video
+      alt: metadata.title || `Video showcase ${videoNum}`,
+      duration: durationInSeconds,
+      type: 'video' as const,
+      title: metadata.title,
+      description: metadata.description,
+      category: metadata.category,
+      category2: metadata.category2,
+      location: metadata.location,
+      tags: metadata.tags,
+      year: metadata.year,
+      services: metadata.services
+    });
+  });
+  
+  return allVideos;
+})();
+
+// Eski isimle uyumluluk için
+export const PHONE_MEDIA_CONTENT = INITIAL_PHONE_MEDIA_CONTENT;
 

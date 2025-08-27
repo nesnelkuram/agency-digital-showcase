@@ -61,6 +61,18 @@ interface ServicesProps {
   onOpenQuote?: () => void;
 }
 
+const serviceIcons = {
+  'Production': '🎬',
+  'Social Media Management': '📱',
+  'Brand Strategy': '🎯',
+  'Branding': '🎨',
+  'Digital Marketing': '💻',
+  'Content Creation': '📹',
+  'Photography': '📸',
+  'Web Design': '🌐',
+  'App Building': '📱'
+};
+
 const Services: React.FC<ServicesProps> = ({ onOpenQuote }) => {
   const serviceNames = [
     'Production', 'Social Media Management', 'Brand Strategy',
@@ -80,12 +92,13 @@ const Services: React.FC<ServicesProps> = ({ onOpenQuote }) => {
           {serviceNames.map((service, index) => (
             <span
               key={index}
-              className="px-4 py-2 rounded-full font-grotesk font-medium text-sm transition-all duration-300 hover:scale-105 cursor-pointer"
+              className="px-4 py-2 rounded-full font-grotesk font-medium text-sm transition-all duration-300 hover:scale-105 cursor-pointer flex items-center gap-2"
               style={{ 
                 backgroundColor: '#fffceb',
                 color: '#262626'
               }}
             >
+              <span className="text-base">{serviceIcons[service as keyof typeof serviceIcons]}</span>
               {service}
             </span>
           ))}

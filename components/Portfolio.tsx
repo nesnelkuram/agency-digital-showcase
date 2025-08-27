@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import VideoGallery from './VideoGallery';
 
 const projects = [
   {
@@ -59,44 +60,83 @@ const projects = [
 
 const categories = [
   { id: 'all', name: 'All Projects' },
-  { id: 'web', name: 'Web Development' },
-  { id: 'mobile', name: 'Mobile Apps' },
-  { id: 'design', name: 'UI/UX Design' }
+  { id: 'fashion', name: 'Fashion' },
+  { id: 'commercial', name: 'Commercial' },
+  { id: 'gastronomi', name: 'Gastronomi' },
+  { id: 'interview', name: 'Interview' }
 ];
 
 const Portfolio: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [hoveredProject, setHoveredProject] = useState<number | null>(null);
+  const [showVideos, setShowVideos] = useState(true);
 
   const filteredProjects = selectedCategory === 'all' 
     ? projects 
     : projects.filter(project => project.category === selectedCategory);
 
   return (
-    <section id="portfolio" className="py-20 bg-white">
+    <section id="portfolio" className="py-20" style={{ backgroundColor: '#ebeef8' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-base text-purple-600 font-semibold tracking-wide uppercase">Our Work</h2>
-          <p className="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
-            Featured Projects
-          </p>
-          <p className="mt-4 max-w-2xl text-xl text-gray-500 lg:mx-auto">
-            Explore our latest work and see how we've helped businesses transform their digital presence.
+          <h2 className="font-ramillas text-4xl sm:text-5xl font-bold text-neutral-900 mb-4 leading-tight">
+            Our Work
+          </h2>
+          <p className="font-grotesk text-lg text-neutral-700 max-w-2xl lg:mx-auto">
+            Explore our video productions and creative projects that showcase our expertise across various industries.
           </p>
         </div>
 
+        {/* Toggle between Videos and Projects */}
+        <div className="flex justify-center mb-12">
+          <div className="inline-flex rounded-full p-1 bg-white shadow-sm">
+            <button
+              onClick={() => setShowVideos(true)}
+              className={`px-6 py-2 rounded-full text-sm font-grotesk font-medium transition-all duration-300 ${
+                showVideos
+                  ? 'bg-neutral-900 text-white'
+                  : 'text-neutral-600 hover:text-neutral-900'
+              }`}
+            >
+              Video Productions
+            </button>
+            <button
+              onClick={() => setShowVideos(false)}
+              className={`px-6 py-2 rounded-full text-sm font-grotesk font-medium transition-all duration-300 ${
+                !showVideos
+                  ? 'bg-neutral-900 text-white'
+                  : 'text-neutral-600 hover:text-neutral-900'
+              }`}
+            >
+              Digital Projects
+            </button>
+          </div>
+        </div>
+
+        {/* Video Gallery or Projects Grid */}
+        {showVideos ? (
+          <VideoGallery 
+            showFilters={true}
+            columns={4}
+            autoLoad={false}
+          />
+        ) : (
+          <>
         {/* Category Filter */}
         <div className="flex justify-center mb-12">
-          <div className="inline-flex rounded-lg bg-gray-100 p-1">
+          <div className="inline-flex rounded-full p-1" style={{ backgroundColor: '#fffceb' }}>
             {categories.map((category) => (
               <button
                 key={category.id}
                 onClick={() => setSelectedCategory(category.id)}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-300 ${
+                className={`px-4 py-2 rounded-full text-sm font-grotesk font-medium transition-all duration-300 ${
                   selectedCategory === category.id
-                    ? 'bg-white text-purple-600 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'text-neutral-900 shadow-sm'
+                    : 'text-neutral-600 hover:text-neutral-900'
                 }`}
+                style={{ 
+                  backgroundColor: selectedCategory === category.id ? '#ebeef8' : 'transparent'
+                }}
               >
                 {category.name}
               </button>
@@ -133,7 +173,8 @@ const Portfolio: React.FC = () => {
                   {project.technologies.map((tech, idx) => (
                     <span
                       key={idx}
-                      className="px-3 py-1 bg-purple-600/20 text-purple-200 text-xs rounded-full"
+                      className="px-3 py-1 text-neutral-800 text-xs rounded-full font-grotesk"
+                      style={{ backgroundColor: '#fffceb' }}
                     >
                       {tech}
                     </span>
@@ -141,7 +182,7 @@ const Portfolio: React.FC = () => {
                 </div>
                 <a
                   href={project.link}
-                  className="inline-flex items-center text-white hover:text-purple-300 transition-colors"
+                  className="inline-flex items-center text-white hover:opacity-80 transition-opacity font-grotesk"
                 >
                   View Project
                   <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -152,6 +193,8 @@ const Portfolio: React.FC = () => {
             </div>
           ))}
         </div>
+        </>
+        )}
       </div>
     </section>
   );

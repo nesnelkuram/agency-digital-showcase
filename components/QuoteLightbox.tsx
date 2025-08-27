@@ -12,6 +12,18 @@ const ALL_SERVICES = [
   "App Building",
 ];
 
+const SERVICE_ICONS = {
+  "Film Production": "🎬",
+  "Photography": "📸",
+  "Videography": "📹",
+  "Social Media Management": "📱",
+  "Digital Marketing": "💻",
+  "Brand Strategy": "🎯",
+  "Branding": "🎨",
+  "Web Design": "🌐",
+  "App Building": "📱"
+};
+
 const STEP_IMAGES = {
   0: "https://images.unsplash.com/photo-1557804506-669a67965ba0?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2274&q=80", // Dark office workspace
   1: "https://images.unsplash.com/photo-1485846234645-a62644f84728?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2059&q=80", // Services/film production
@@ -112,6 +124,17 @@ const LOCATIONS = [
   "Other",
 ];
 
+const LOCATION_ICONS = {
+  "Bodrum": "🏖️",
+  "Istanbul": "🌉",
+  "Ankara": "🏛️",
+  "London": "🇬🇧",
+  "Dubai": "🏙️",
+  "New York": "🗽",
+  "Paris": "🗼",
+  "Other": "📍"
+};
+
 const GOALS = [
   "Brand Awareness",
   "Lead Generation",
@@ -123,6 +146,53 @@ const GOALS = [
 ];
 
 const PLATFORMS = ["Instagram", "TikTok", "YouTube", "LinkedIn", "Facebook", "X/Twitter", "Pinterest"];
+
+const PLATFORM_ICONS = {
+  "Instagram": (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" fill="url(#instagram-gradient-2)"/>
+      <defs>
+        <linearGradient id="instagram-gradient-2" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#405DE6"/>
+          <stop offset="25%" stopColor="#5851DB"/>
+          <stop offset="50%" stopColor="#833AB4"/>
+          <stop offset="75%" stopColor="#C13584"/>
+          <stop offset="100%" stopColor="#E1306C"/>
+        </linearGradient>
+      </defs>
+    </svg>
+  ),
+  "TikTok": (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <path d="M12.53.02C13.84 0 15.14.01 16.44 0c.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z" fill="#000"/>
+    </svg>
+  ),
+  "YouTube": (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" fill="#FF0000"/>
+    </svg>
+  ),
+  "LinkedIn": (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" fill="#0077B5"/>
+    </svg>
+  ),
+  "Facebook": (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" fill="#1877F2"/>
+    </svg>
+  ),
+  "X/Twitter": (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" fill="#000"/>
+    </svg>
+  ),
+  "Pinterest": (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.174-.105-.949-.199-2.403.041-3.439.219-.937 1.219-5.108 1.219-5.108s-.312-.623-.312-1.543c0-1.444.83-2.522 1.864-2.522.878 0 1.303.658 1.303 1.448 0 .882-.562 2.197-.849 3.417-.242 1.019.511 1.848 1.516 1.848 1.82 0 3.221-1.92 3.221-4.693 0-2.455-1.762-4.169-4.281-4.169-2.917 0-4.63 2.187-4.63 4.448 0 .881.336 1.825.756 2.338.083.099.095.188.071.291-.074.312-.24.971-.272 1.108-.041.181-.134.22-.309.133-1.22-.568-1.983-2.353-1.983-3.785 0-3.233 2.349-6.2 6.767-6.2 3.554 0 6.318 2.533 6.318 5.923 0 3.533-2.229 6.374-5.32 6.374-1.039 0-2.016-.547-2.349-1.198 0 0-.514 1.959-.639 2.437-.231.889-.855 2.004-1.274 2.686.961.297 1.98.456 3.039.456 6.624 0 11.99-5.367 11.99-11.987C24.007 5.367 18.641.001 12.017.001z" fill="#E60023"/>
+    </svg>
+  )
+};
 const VIDEO_TYPES = [
   "Brand Film",
   "Product Video",
@@ -160,6 +230,16 @@ const BUSINESS_GOALS = [
   "Other (Please specify)"
 ];
 
+const BUSINESS_GOAL_ICONS = {
+  "Increase brand awareness": "📢",
+  "Generate new leads": "🎯",
+  "Increase direct sales and revenue": "💰",
+  "Increase website traffic": "📈",
+  "Strengthen online reputation and credibility": "⭐",
+  "Launch a new product/service to market": "🚀",
+  "Other (Please specify)": "💭"
+};
+
 const CURRENT_ASSETS = [
   "Existing website",
   "Social media accounts",
@@ -190,6 +270,17 @@ const PROJECT_PRIORITIES = [
   "Other priority"
 ];
 
+const PROJECT_PRIORITY_ICONS = {
+  "Immediate revenue generation": "💰",
+  "Long-term brand building": "🏗️",
+  "Market expansion": "🌍",
+  "Customer retention": "🤝",
+  "Competitive advantage": "⚔️",
+  "Crisis management/reputation": "🚨",
+  "Product/service launch": "🚀",
+  "Other priority": "📋"
+};
+
 const BRAND_STAGES = [
   "Startup (Just getting started)",
   "Growth (Scaling rapidly)",
@@ -197,6 +288,14 @@ const BRAND_STAGES = [
   "Rebranding (Major changes needed)",
   "Mature (Market leader)"
 ];
+
+const BRAND_STAGE_ICONS = {
+  "Startup (Just getting started)": "🌱",
+  "Growth (Scaling rapidly)": "📈",
+  "Established (Stable market position)": "🏢",
+  "Rebranding (Major changes needed)": "🔄",
+  "Mature (Market leader)": "👑"
+};
 
 const DECISION_FACTORS = [
   "Quality of work portfolio",
@@ -208,6 +307,17 @@ const DECISION_FACTORS = [
   "Proven results and case studies",
   "Cultural fit with our company"
 ];
+
+const DECISION_FACTOR_ICONS = {
+  "Quality of work portfolio": "🎨",
+  "Pricing and budget fit": "💰",
+  "Team expertise and experience": "👥",
+  "Communication style": "💬",
+  "Timeline and availability": "⏰",
+  "Local presence/understanding": "📍",
+  "Proven results and case studies": "📊",
+  "Cultural fit with our company": "🤝"
+};
 
 const PREVIOUS_EXPERIENCES = [
   "Very positive - exceeded expectations",
@@ -229,6 +339,17 @@ const MAIN_CONCERNS = [
   "Internal team coordination"
 ];
 
+const MAIN_CONCERN_ICONS = {
+  "Budget constraints": "💰",
+  "Timeline pressure": "⏰",
+  "Quality standards": "⭐",
+  "Communication issues": "💬",
+  "Scope creep": "📈",
+  "Lack of clear strategy": "🧭",
+  "Poor ROI from previous efforts": "📉",
+  "Internal team coordination": "👥"
+};
+
 const DIRECT_GOALS = [
   "Brand Awareness",
   "Lead Generation", 
@@ -238,6 +359,16 @@ const DIRECT_GOALS = [
   "Website Traffic",
   "Event Promotion"
 ];
+
+const DIRECT_GOAL_ICONS = {
+  "Brand Awareness": "📢",
+  "Lead Generation": "🎯",
+  "Sales / Bookings": "💰",
+  "Social Growth": "📱",
+  "App Downloads": "📲",
+  "Website Traffic": "🌐",
+  "Event Promotion": "🎉"
+};
 
 const DIRECT_PLATFORMS = [
   "Instagram", 
@@ -249,6 +380,46 @@ const DIRECT_PLATFORMS = [
   "Print Media",
   "Other"
 ];
+
+const DIRECT_PLATFORM_ICONS = {
+  "Instagram": (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" fill="url(#instagram-gradient)"/>
+      <defs>
+        <linearGradient id="instagram-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#405DE6"/>
+          <stop offset="25%" stopColor="#5851DB"/>
+          <stop offset="50%" stopColor="#833AB4"/>
+          <stop offset="75%" stopColor="#C13584"/>
+          <stop offset="100%" stopColor="#E1306C"/>
+        </linearGradient>
+      </defs>
+    </svg>
+  ),
+  "TikTok": (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <path d="M12.53.02C13.84 0 15.14.01 16.44 0c.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z" fill="#000"/>
+    </svg>
+  ),
+  "YouTube": (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" fill="#FF0000"/>
+    </svg>
+  ),
+  "LinkedIn": (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" fill="#0077B5"/>
+    </svg>
+  ),
+  "Facebook": (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" fill="#1877F2"/>
+    </svg>
+  ),
+  "Website": "🌐",
+  "Print Media": "📄",
+  "Other": "📱"
+};
 
 const DIRECT_TIMELINES = [
   "ASAP (Rush)",
@@ -471,17 +642,20 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
   );
 }
 
-function ColorfulServiceChip({ active, onClick, children, compact = false }: { 
+function ColorfulServiceChip({ active, onClick, children, compact = false, iconMapping }: { 
   active: boolean; 
   onClick: () => void; 
   children: React.ReactNode;
   compact?: boolean;
+  iconMapping?: Record<string, string | React.ReactNode>;
 }) {
+  const icon = typeof children === 'string' && iconMapping && iconMapping[children];
+  
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`font-grotesk font-bold rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 ${
+      className={`font-grotesk font-bold rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 flex items-center gap-2 ${
         compact ? 'px-3 py-1.5 text-xs' : 'px-4 py-2 text-sm'
       } ${
         active 
@@ -492,6 +666,11 @@ function ColorfulServiceChip({ active, onClick, children, compact = false }: {
         backgroundColor: active ? undefined : '#fffceb'
       }}
     >
+      {icon && (
+        <span className="text-base flex items-center justify-center">
+          {typeof icon === 'string' ? icon : icon}
+        </span>
+      )}
       {children}
     </button>
   );
@@ -502,11 +681,13 @@ function ColorfulLocationChip({ active, onClick, children }: {
   onClick: () => void; 
   children: React.ReactNode;
 }) {
+  const locationIcon = typeof children === 'string' && LOCATION_ICONS[children as keyof typeof LOCATION_ICONS];
+  
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`px-4 py-2 font-grotesk font-bold rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 text-sm ${
+      className={`px-4 py-2 font-grotesk font-bold rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 text-sm flex items-center gap-2 ${
         active 
           ? 'bg-neutral-900 text-white' 
           : 'text-neutral-900 hover:opacity-80'
@@ -515,6 +696,7 @@ function ColorfulLocationChip({ active, onClick, children }: {
         backgroundColor: active ? undefined : '#fffceb'
       }}
     >
+      {locationIcon && <span className="text-base">{locationIcon}</span>}
       {children}
     </button>
   );
@@ -530,13 +712,13 @@ function Checkbox({ label, checked, onChange }: { label: string; checked: boolea
           checked={checked} 
           onChange={(e) => onChange(e.target.checked)} 
         />
-        <div className={`w-5 h-5 rounded border-2 transition-all duration-200 ${
+        <div className={`w-6 h-6 rounded border-2 transition-all duration-200 flex items-center justify-center ${
           checked 
-            ? "bg-neutral-900 border-neutral-900" 
+            ? "bg-white border-neutral-900" 
             : "bg-white border-neutral-300 group-hover:border-neutral-400"
         }`}>
           {checked && (
-            <svg className="w-3 h-3 text-white absolute top-0.5 left-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="w-5 h-5 text-black" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
             </svg>
           )}
@@ -794,7 +976,7 @@ export default function QuoteLightbox({ isOpen, onClose }: QuoteLightboxProps) {
       />
       
       {/* Modal */}
-      <div className="relative w-full max-w-4xl h-[60vh] rounded-2xl shadow-2xl mx-4 overflow-hidden">
+      <div className="relative w-full max-w-4xl rounded-2xl shadow-2xl mx-4 overflow-hidden" style={{ aspectRatio: '1.65 / 1' }}>
         {/* Full background image */}
         <img 
           src={STEP_IMAGES[step as keyof typeof STEP_IMAGES]}
@@ -814,6 +996,11 @@ export default function QuoteLightbox({ isOpen, onClose }: QuoteLightboxProps) {
 
         {/* Content overlay */}
         <div className="absolute inset-0 flex h-full">
+          {/* Two dots symbol at top */}
+          <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-10">
+            <div className="text-white text-4xl font-black">:</div>
+          </div>
+          
           <div className="w-2/5 p-8 flex flex-col justify-center">
             {step === 1 && selectedService && (
               <div className="text-white">
@@ -835,16 +1022,16 @@ export default function QuoteLightbox({ isOpen, onClose }: QuoteLightboxProps) {
               backgroundColor: '#ebeef8'
             }}
           >
-            <div className="flex-1 p-8 pb-24 flex flex-col justify-center overflow-y-auto">
+            <div className="flex-1 px-8 py-12 pb-24 flex flex-col justify-center overflow-y-auto">
             {step === 0 && (
               <>
-                <div className="mb-8 mt-16 text-center">
-                  <p className="font-ramillas text-base italic text-neutral-700 mb-4 leading-relaxed">
+                <div className="mb-8 text-center">
+                  <p className="font-ramillas text-lg italic text-neutral-700 mb-6 leading-relaxed">
                     Before we begin, Let's make sure we're<br/>
                     the right fit for your project.
                   </p>
                   <h2 className="font-grotesk text-xl font-bold text-neutral-900 leading-tight tracking-tight">
-                    Do you have a clear idea of what you
+                    Do you have a clear idea of what you<br/>
                     need, or would you like us to guide you?
                   </h2>
                 </div>
@@ -915,6 +1102,7 @@ export default function QuoteLightbox({ isOpen, onClose }: QuoteLightboxProps) {
                         setData({ ...data, services: toggleArray(data.services, service) });
                         setSelectedService(service);
                       }}
+                      iconMapping={SERVICE_ICONS}
                     >
                       {service}
                     </ColorfulServiceChip>
@@ -932,6 +1120,7 @@ export default function QuoteLightbox({ isOpen, onClose }: QuoteLightboxProps) {
                       active={data.businessGoals.includes(goal)}
                       onClick={() => setData({ ...data, businessGoals: toggleArray(data.businessGoals, goal) })}
                       compact={true}
+                      iconMapping={BUSINESS_GOAL_ICONS}
                     >
                       {goal}
                     </ColorfulServiceChip>
@@ -1008,6 +1197,7 @@ export default function QuoteLightbox({ isOpen, onClose }: QuoteLightboxProps) {
                       active={data.projectPriorities.includes(priority)}
                       onClick={() => setData({ ...data, projectPriorities: toggleArray(data.projectPriorities, priority) })}
                       compact={true}
+                      iconMapping={PROJECT_PRIORITY_ICONS}
                     >
                       {priority}
                     </ColorfulServiceChip>
@@ -1089,6 +1279,7 @@ export default function QuoteLightbox({ isOpen, onClose }: QuoteLightboxProps) {
                       key={stage}
                       active={data.brandStageLevel === stage}
                       onClick={() => setData({ ...data, brandStageLevel: stage })}
+                      iconMapping={BRAND_STAGE_ICONS}
                     >
                       {stage}
                     </ColorfulServiceChip>
@@ -1106,6 +1297,7 @@ export default function QuoteLightbox({ isOpen, onClose }: QuoteLightboxProps) {
                       active={data.decisionFactors.includes(factor)}
                       onClick={() => setData({ ...data, decisionFactors: toggleArray(data.decisionFactors, factor) })}
                       compact={true}
+                      iconMapping={DECISION_FACTOR_ICONS}
                     >
                       {factor}
                     </ColorfulServiceChip>
@@ -1140,6 +1332,7 @@ export default function QuoteLightbox({ isOpen, onClose }: QuoteLightboxProps) {
                       active={data.mainConcerns.includes(concern)}
                       onClick={() => setData({ ...data, mainConcerns: toggleArray(data.mainConcerns, concern) })}
                       compact={true}
+                      iconMapping={MAIN_CONCERN_ICONS}
                     >
                       {concern}
                     </ColorfulServiceChip>
@@ -1311,6 +1504,7 @@ export default function QuoteLightbox({ isOpen, onClose }: QuoteLightboxProps) {
                         setData({ ...data, services: toggleArray(data.services, service) });
                         setSelectedService(service);
                       }}
+                      iconMapping={SERVICE_ICONS}
                     >
                       {service}
                     </ColorfulServiceChip>
@@ -1327,6 +1521,7 @@ export default function QuoteLightbox({ isOpen, onClose }: QuoteLightboxProps) {
                       key={goal}
                       active={data.directGoals.includes(goal)}
                       onClick={() => setData({ ...data, directGoals: toggleArray(data.directGoals, goal) })}
+                      iconMapping={DIRECT_GOAL_ICONS}
                     >
                       {goal}
                     </ColorfulServiceChip>
@@ -1343,6 +1538,7 @@ export default function QuoteLightbox({ isOpen, onClose }: QuoteLightboxProps) {
                       key={platform}
                       active={data.directPlatforms.includes(platform)}
                       onClick={() => setData({ ...data, directPlatforms: toggleArray(data.directPlatforms, platform) })}
+                      iconMapping={DIRECT_PLATFORM_ICONS}
                     >
                       {platform}
                     </ColorfulServiceChip>
