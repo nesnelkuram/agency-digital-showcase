@@ -41,8 +41,7 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
     const size = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
     
-    console.log('Original model size:', size);
-    console.log('Original model center:', center);
+    // Model size and center calculated
     
     // Center the model
     cloned.position.sub(center);
@@ -71,16 +70,14 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
   // Find and update materials
   useEffect(() => {
     // First, let's analyze the model structure
-    console.log('=== ANALYZING iPHONE MODEL ===');
+    // Analyze model structure
     let meshCount = 0;
     let texturedMeshes: any[] = [];
     
     clonedScene.traverse((child: any) => {
       if (child.isMesh) {
         meshCount++;
-        console.log(`[${meshCount}] Mesh: ${child.name}`);
-        console.log(`  - Material: ${child.material?.name || 'unnamed'}`);
-        console.log(`  - Position:`, child.position);
+        // Track mesh info
         
         // Check all texture types
         if (child.material) {
@@ -92,7 +89,7 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
           if (child.material.metalnessMap) textures.push('metalnessMap');
           
           if (textures.length > 0) {
-            console.log(`  - Textures: ${textures.join(', ')}`);
+            // Track textures
             texturedMeshes.push({
               mesh: child,
               name: child.name,
@@ -104,8 +101,7 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
       }
     });
     
-    console.log(`\nTotal meshes: ${meshCount}`);
-    console.log(`Textured meshes: ${texturedMeshes.length}`);
+    // Mesh count tracked
     
     // Now find the screen mesh - usually it's the one with emissiveMap or specific name
     let screenMesh = null;
@@ -126,7 +122,7 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
     
     // Apply image texture to the found screen mesh
     if (screenMesh) {
-      console.log(`\n✓ FOUND SCREEN: ${screenMesh.name}`);
+      // Screen mesh found
       const mesh = screenMesh.mesh;
       
       // Remap UV coordinates to be uniform (0-1 range)
@@ -145,7 +141,7 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
           maxV = Math.max(maxV, uvArray[i + 1]);
         }
         
-        console.log('Original UV bounds:', { minU, maxU, minV, maxV });
+        // UV bounds calculated
         
         // Normalize UVs to 0-1 range
         const rangeU = maxU - minU || 1;
@@ -161,13 +157,13 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
         mesh.geometry.attributes.uv.needsUpdate = true;
         mesh.geometry.uvsNeedUpdate = true;
         
-        console.log('✓ Remapped UV coordinates to uniform 0-1 range');
+        // UV coordinates remapped
       }
       
       
       // If no video source, skip video setup for this phone
       if (!videoSrc) {
-        console.log('[IPhone3D] Empty phone - no video to display');
+        // Empty phone - no video
         return;
       }
       
@@ -179,7 +175,7 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
       
       if (isFullVideo) {
         // For full videos, use direct URL for streaming
-        console.log(`[IPhone3D] Streaming full video: ${videoSrc.substring(videoSrc.lastIndexOf('/') + 1)}`);
+        // Streaming full video
         video.src = videoSrc;
         video.crossOrigin = 'anonymous';
         
@@ -189,15 +185,15 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
         
         // Add event listeners for loading state
         video.addEventListener('loadstart', () => {
-          console.log(`[IPhone3D] Full video loading started: ${videoSrc.substring(videoSrc.lastIndexOf('/') + 1)}`);
+          // Full video loading started
         });
         
         video.addEventListener('loadedmetadata', () => {
-          console.log(`[IPhone3D] Full video metadata loaded, can start playing`);
+          // Video metadata loaded
         });
         
         video.addEventListener('canplay', () => {
-          console.log(`[IPhone3D] Full video can play through`);
+          // Video ready to play
           // Video can start playing without interruption
           if (mesh && mesh.material) {
             // Remove loading indicator if it exists
@@ -214,7 +210,7 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
             const duration = video.duration;
             if (duration > 0) {
               const bufferedPercent = (bufferedEnd / duration) * 100;
-              console.log(`[IPhone3D] Buffered: ${bufferedPercent.toFixed(1)}%`);
+              // Buffering progress
             }
           }
         });
@@ -222,11 +218,11 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
         // For preview videos, use cache if available
         const cachedBlobUrl = videoCache.getBlobUrl(videoSrc);
         if (cachedBlobUrl) {
-          console.log(`[IPhone3D] Using cached preview: ${videoSrc.substring(videoSrc.lastIndexOf('/') + 1)}`);
+          // Using cached preview
           video.src = cachedBlobUrl;
           video.preload = 'auto'; // Auto-load cached videos
         } else {
-          console.log(`[IPhone3D] Loading preview: ${videoSrc.substring(videoSrc.lastIndexOf('/') + 1)}`);
+          // Loading preview
           video.src = videoSrc;
           video.preload = 'metadata'; // Only metadata for uncached
           // Cache preview videos in background
@@ -254,11 +250,11 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
       
       // Always try to play the video
       video.play().catch(err => {
-        console.log('Autoplay prevented, trying again:', err.message);
+        // Autoplay prevented
         // Try playing again after a short delay
         setTimeout(() => {
           video.play().catch(e => {
-            console.log('Second play attempt failed:', e.message);
+            // Second play attempt failed
           });
         }, 100);
       });
@@ -389,9 +385,9 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
         });
       }
       
-      console.log('✓ Applied video texture to screen');
+      // Video texture applied
     } else {
-      console.log('\n❌ Could not find screen mesh!');
+      // Screen mesh not found
     }
         
     // Also style the frame
@@ -516,7 +512,7 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
     const targetSize = 1.8;
     const scaleValue = targetSize / maxDim;
     
-    console.log('Calculated scale for iPhone:', scaleValue);
+    // Scale calculated
     return scaleValue * scale;
   }, [clonedScene, scale]);
 

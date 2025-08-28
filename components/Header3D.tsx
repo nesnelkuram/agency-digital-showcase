@@ -65,8 +65,18 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
 
   useEffect(() => {
     let ticking = false;
+    let lastScrollY = 0;
     
     const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      // Skip if scroll change is too small
+      if (Math.abs(currentScrollY - lastScrollY) < 2) {
+        return;
+      }
+      
+      lastScrollY = currentScrollY;
+      
       if (!ticking) {
         ticking = true;
         animationFrameRef.current = requestAnimationFrame(() => {
@@ -75,11 +85,10 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
             return;
           }
 
-          const scrollY = window.scrollY;
           const { offsetTop: headerTopOffset, offsetHeight: headerClientHeight } = headerRef.current;
           const viewportHeight = window.innerHeight;
 
-          const scrollRelativeToStickyActive = Math.max(0, scrollY - headerTopOffset);
+          const scrollRelativeToStickyActive = Math.max(0, currentScrollY - headerTopOffset);
           const parallaxActiveScrollRange = headerClientHeight - viewportHeight;
 
           if (parallaxActiveScrollRange <= 0) {
@@ -89,7 +98,7 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
           }
           
           let effectiveParallaxScroll = Math.max(0, Math.min(scrollRelativeToStickyActive, parallaxActiveScrollRange));
-          if (scrollY < headerTopOffset) {
+          if (currentScrollY < headerTopOffset) {
             effectiveParallaxScroll = 0;
           }
 
@@ -97,7 +106,13 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
           const MAX_OFFSET_PERCENT = 120; // Original value from working version
           const newParallaxOffset = scrollProgress * MAX_OFFSET_PERCENT;
           
-          setParallaxOffset(newParallaxOffset);
+          // Only update if change is significant
+          setParallaxOffset(prev => {
+            if (Math.abs(prev - newParallaxOffset) > 0.5) {
+              return newParallaxOffset;
+            }
+            return prev;
+          });
           
           ticking = false;
         });
