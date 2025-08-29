@@ -7,44 +7,6 @@ const stats = [
   { value: '50+', label: 'Team Members' }
 ];
 
-const team = [
-  {
-    name: 'Sarah Johnson',
-    role: 'CEO & Founder',
-    image: 'https://picsum.photos/300/300?random=10',
-    social: {
-      linkedin: '#',
-      twitter: '#'
-    }
-  },
-  {
-    name: 'Michael Chen',
-    role: 'CTO',
-    image: 'https://picsum.photos/300/300?random=11',
-    social: {
-      linkedin: '#',
-      twitter: '#'
-    }
-  },
-  {
-    name: 'Emily Rodriguez',
-    role: 'Creative Director',
-    image: 'https://picsum.photos/300/300?random=12',
-    social: {
-      linkedin: '#',
-      twitter: '#'
-    }
-  },
-  {
-    name: 'David Kim',
-    role: 'Lead Developer',
-    image: 'https://picsum.photos/300/300?random=13',
-    social: {
-      linkedin: '#',
-      twitter: '#'
-    }
-  }
-];
 
 const About: React.FC = () => {
   return (
@@ -76,14 +38,6 @@ const About: React.FC = () => {
               we offer comprehensive solutions tailored to each client's unique needs.
             </p>
           </div>
-          <div className="relative">
-            <img
-              src="https://picsum.photos/600/400?random=20"
-              alt="Our office"
-              className="rounded-lg shadow-xl"
-            />
-            <div className="absolute -bottom-6 -right-6 w-72 h-72 rounded-lg -z-10 opacity-20" style={{ backgroundColor: '#ebeef8' }} />
-          </div>
         </div>
 
         {/* Stats */}
@@ -96,47 +50,6 @@ const About: React.FC = () => {
           ))}
         </div>
 
-        {/* Team */}
-        <div className="mb-16">
-          <h3 className="font-ramillas text-3xl font-bold text-center text-neutral-900 mb-12">Meet Our Team</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {team.map((member, index) => (
-              <div key={index} className="text-center group">
-                <div className="relative mb-4 overflow-hidden rounded-lg">
-                  <img
-                    src={member.image}
-                    alt={member.name}
-                    className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-110"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-4">
-                    <div className="flex space-x-4">
-                      <a
-                        href={member.social.linkedin}
-                        className="w-10 h-10 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-colors"
-                        style={{ backgroundColor: 'rgba(255, 252, 235, 0.2)' }}
-                      >
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
-                        </svg>
-                      </a>
-                      <a
-                        href={member.social.twitter}
-                        className="w-10 h-10 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-colors"
-                        style={{ backgroundColor: 'rgba(255, 252, 235, 0.2)' }}
-                      >
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z"/>
-                        </svg>
-                      </a>
-                    </div>
-                  </div>
-                </div>
-                <h4 className="font-grotesk text-lg font-semibold text-neutral-900">{member.name}</h4>
-                <p className="font-grotesk text-neutral-700">{member.role}</p>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
     </section>
   );
