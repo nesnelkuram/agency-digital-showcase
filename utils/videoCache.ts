@@ -28,28 +28,75 @@ class VideoCache {
     return this.cache.get(url)!;
   }
   
-  // Detect connection speed and adjust batch size
+  // Detect connection speed and device type to adjust batch size
   private async detectConnectionSpeed(): Promise<void> {
+    // Check if mobile or tablet
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const isTablet = /iPad|Android.*Tablet/i.test(navigator.userAgent);
+    
     if ('connection' in navigator && (navigator as any).connection) {
       const connection = (navigator as any).connection;
       const effectiveType = connection.effectiveType;
       
-      // Adjust batch size based on connection
-      switch(effectiveType) {
-        case 'slow-2g':
-        case '2g':
-          this.batchSize = 1;
-          break;
-        case '3g':
-          this.batchSize = 2;
-          break;
-        case '4g':
-        default:
-          this.batchSize = 4;
-          break;
+      // Adjust batch size based on connection and device
+      if (isMobile && !isTablet) {
+        // Mobile devices: more conservative
+        switch(effectiveType) {
+          case 'slow-2g':
+          case '2g':
+            this.batchSize = 1;
+            break;
+          case '3g':
+            this.batchSize = 1;
+            break;
+          case '4g':
+          default:
+            this.batchSize = 2;
+            break;
+        }
+      } else if (isTablet) {
+        // Tablets: moderate
+        switch(effectiveType) {
+          case 'slow-2g':
+          case '2g':
+            this.batchSize = 1;
+            break;
+          case '3g':
+            this.batchSize = 2;
+            break;
+          case '4g':
+          default:
+            this.batchSize = 3;
+            break;
+        }
+      } else {
+        // Desktop: can handle more
+        switch(effectiveType) {
+          case 'slow-2g':
+          case '2g':
+            this.batchSize = 1;
+            break;
+          case '3g':
+            this.batchSize = 2;
+            break;
+          case '4g':
+          default:
+            this.batchSize = 3; // Reduced from 4 for better performance
+            break;
+        }
       }
       
-      console.log(`[VideoCache] Connection: ${effectiveType}, batch size: ${this.batchSize}`);
+      console.log(`[VideoCache] Device: ${isMobile ? 'Mobile' : isTablet ? 'Tablet' : 'Desktop'}, Connection: ${effectiveType}, batch size: ${this.batchSize}`);
+    } else {
+      // Fallback based on device only
+      if (isMobile && !isTablet) {
+        this.batchSize = 2;
+      } else if (isTablet) {
+        this.batchSize = 3;
+      } else {
+        this.batchSize = 3;
+      }
+      console.log(`[VideoCache] Device: ${isMobile ? 'Mobile' : isTablet ? 'Tablet' : 'Desktop'}, batch size: ${this.batchSize} (no connection API)`);
     }
   }
 

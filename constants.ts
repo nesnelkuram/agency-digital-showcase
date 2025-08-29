@@ -101,7 +101,6 @@ export const INITIAL_PHONE_MEDIA_CONTENT: MediaContent[] = Array.from({ length: 
   
   return {
     id: `media${videoNum}`,
-    thumbnail: '/images/photo1.jpg',
     preview: getBlobUrl(`${videoNum}.mp4`, 'preview'),  // Blob URL for preview
     fullVideo: getBlobUrl(`${videoNum}.mp4`, 'full'),  // Blob URL for full video
     alt: metadata?.title || `Video showcase ${videoNum}`,
@@ -140,7 +139,6 @@ export const ALL_MEDIA_CONTENT: MediaContent[] = (() => {
     
     allVideos.push({
       id: `media${videoNum}`,
-      thumbnail: '/images/photo1.jpg',
       preview: getBlobUrl(`${videoNum}.mp4`, 'preview'),  // Blob URL for preview
       fullVideo: getBlobUrl(`${videoNum}.mp4`, 'full'),  // Blob URL for full video
       alt: metadata.title || `Video showcase ${videoNum}`,

@@ -26,39 +26,35 @@ const App: React.FC = () => {
       '/images/cursor.svg'
     ];
     
-    // Match Header3D's phone count logic exactly
-    const totalPhones = isMobile ? 6 : isTablet ? 7 : 10;
-    const visiblePhones = isMobile ? 3 : isTablet ? 4 : 6; // Only initially visible phones
+    // Optimize preload: Only load initially visible phones
+    const visiblePhones = isMobile ? 3 : isTablet ? 4 : 5; // Reduced from 6 to 5 for desktop
     
     // Get videos from 'all' category (matching Header3D initial state)
     const allVideos = getVideosByCategory('all');
     
-    // Get unique preview URLs for the required number of phones
-    // Some phones might share videos, so we get unique ones
+    // Get unique preview URLs for only visible phones
     const uniqueVideoUrls = new Set<string>();
     
-    // Get first N videos that will be shown
-    allVideos.slice(0, totalPhones).forEach(video => {
+    // Only preload videos for initially visible phones
+    allVideos.slice(0, visiblePhones).forEach(video => {
       if (video.preview) {
         uniqueVideoUrls.add(video.preview);
       }
     });
     
-    // Also preload some Fashion, Commercial, Gastronomy videos for quick category switching
-    const categories = ['fashion', 'commercial', 'gastronomy', 'interview'];
+    // Reduce category preloading to just 1 video per category (was 3)
+    const categories = ['fashion', 'commercial'];
     categories.forEach(category => {
       const categoryVideos = getVideosByCategory(category);
-      // Preload first 3 videos from each category
-      categoryVideos.slice(0, 3).forEach(video => {
-        if (video.preview) {
-          uniqueVideoUrls.add(video.preview);
-        }
-      });
+      // Preload only first video from each category
+      if (categoryVideos.length > 0 && categoryVideos[0].preview) {
+        uniqueVideoUrls.add(categoryVideos[0].preview);
+      }
     });
     
     const requiredVideos = Array.from(uniqueVideoUrls);
     
-    console.log(`[App] Preloading ${totalPhones} phones = ${requiredVideos.length} unique videos`);
+    console.log(`[App] Preloading ${visiblePhones} visible phones = ${requiredVideos.length} unique videos`);
     
     let loadedImages = 0;
     let lastVideoProgress = 0;
@@ -109,8 +105,8 @@ const App: React.FC = () => {
     
     // Load ALL initial videos before showing site
     const allUniqueVideos = Array.from(uniqueVideoUrls);
-    const initialVideos = allUniqueVideos.slice(0, totalPhones); // ALL initial phones
-    const categoryVideos = allUniqueVideos.slice(totalPhones);
+    const initialVideos = allUniqueVideos.slice(0, visiblePhones); // Only visible phones
+    const categoryVideos = allUniqueVideos.slice(visiblePhones);
     
     console.log(`[App] Loading ${initialVideos.length} initial videos before showing site`);
     
