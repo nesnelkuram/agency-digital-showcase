@@ -164,24 +164,26 @@ const App: React.FC = () => {
   }
   
   return (
-    <div className="min-h-screen">
+    <>
       <Suspense fallback={<div className="h-screen bg-[#ebeef8]" />}>
         <Header3D onOpenQuote={() => setIsQuoteLightboxOpen(true)} />
       </Suspense>
       
-      <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
-        <Services onOpenQuote={() => setIsQuoteLightboxOpen(true)} />
-        <Portfolio />
-        <About />
-        <Contact />
-        <Footer />
-      </Suspense>
+      <main className="min-h-screen">
+        <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
+          <Services onOpenQuote={() => setIsQuoteLightboxOpen(true)} />
+          <Portfolio />
+          <About />
+          <Contact />
+          <Footer />
+        </Suspense>
+      </main>
 
       <QuoteLightbox 
         isOpen={isQuoteLightboxOpen} 
         onClose={() => setIsQuoteLightboxOpen(false)} 
       />
-    </div>
+    </>
   );
 };
 

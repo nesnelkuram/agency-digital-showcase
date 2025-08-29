@@ -284,7 +284,7 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
         <div className="absolute top-12 z-50" style={{ left: '5.5%' }}>
           <img 
             src="/images/intibalogo.svg" 
-            alt="intiba" 
+            alt="Intiba Production - Bodrum Video Prodüksiyon Ajansı Logo" 
             style={{ 
               height: '25px',
               width: 'auto'
@@ -366,7 +366,7 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
             >
               <img 
                 src="/images/cursor.svg" 
-                alt="Click cursor" 
+                alt="Telefona tıklayın - İnteraktif video galerisi" 
                 style={{ 
                   width: '100%', 
                   height: '100%',
