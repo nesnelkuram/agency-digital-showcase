@@ -1,7 +1,9 @@
 import React, { useMemo, useState, useEffect, useRef, Suspense } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { Environment } from '@react-three/drei';
+import * as THREE from 'three';
 import AnimatedPhone from './AnimatedPhone';
+import PerformanceMonitor from './PerformanceMonitor';
 import { PHONE_IMAGES, ALL_MEDIA_CONTENT } from '../constants';
 import { useBreakpoint } from '../hooks/useMediaQuery';
 import { getVideosByCategory } from '../videoUtils';
@@ -143,7 +145,7 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
       const allVideos = getVideosByCategory('all');
       
       // Her kategoriden en az bir video olacak şekilde karışık seç
-      const categories = ['Fashion', 'Commercial', 'Gastronomi', 'Interview'];
+      const categories = ['Fashion', 'Commercial', 'Gastronomy', 'Interview'];
       const selectedVideos = [];
       
       // Her kategoriden en az 2 video al
@@ -409,23 +411,24 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
           }}
         >
           <Canvas
-            shadows
+            shadows={false}  // Disable shadows for better performance
+            frameloop="always"  // Always render for animations
             camera={{
               position: isMobile ? [12, -7, 15] : [20, -12, 24.5],   // Sağa ve aşağıya kaydırıldı
               fov: isMobile ? 12 : 6.5,  // Wider FOV on mobile
               near: 0.1,
-              far: 1000,
+              far: 100,  // Reduced far plane
             }}
             gl={{
-              antialias: false,  // Disable antialiasing for better performance
+              antialias: true,  // Enable antialiasing for better quality
               alpha: true,
               powerPreference: 'high-performance',
               stencil: false,
               depth: true,
               preserveDrawingBuffer: false,  // Better performance
-              failIfMajorPerformanceCaveat: false,
+              failIfMajorPerformanceCaveat: false
             }}
-            dpr={[1, Math.min(window.devicePixelRatio, 2)]}  // Limit DPR to 2 max
+            dpr={[1, 2]}  // Allow up to 2x for retina displays
             style={{ 
               width: '100%', 
               height: '100%',
@@ -439,12 +442,19 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
               lookAt={[0, 0, 0]}
               rotation={[0.5, 0.7, 0.4]}
             />
-            <ambientLight intensity={0.7} />
-            <directionalLight position={[10, 40, 5]} intensity={1.2} castShadow />
-            <pointLight position={[-10, -10, -5]} intensity={0.5} />
+            <ambientLight intensity={0.6} />
+            <directionalLight position={[10, 40, 5]} intensity={1.2} />
+            <pointLight position={[-10, -10, -5]} intensity={0.4} />
 
             <Suspense fallback={null}>
-              <Environment preset="studio" />
+              <Environment preset="city" />
+              <PerformanceMonitor 
+                showStats={false}
+                onQualityChange={(quality) => {
+                  // Adjust render quality based on performance
+                  console.log('Quality changed to:', quality);
+                }}
+              />
               <group rotation={[0, 0, 0]} scale={isMobile ? 1.5 : isTablet ? 1.3 : 1.1} position={[0, 0, 0]}>
                 {(() => {
                   // Telefon sayısını azalt: Sütun bazlı düzenleme
@@ -741,11 +751,11 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
               zIndex: 100
             }}
           >
-            {/* Mobile: horizontal scroll, Desktop: 2 rows */}
-            <div className="flex md:flex-wrap gap-3 md:mb-3 min-w-max md:min-w-0">
+            {/* All buttons in a single row */}
+            <div className="flex gap-3 py-2">
               <button
                 onClick={() => handleCategoryChange('all')}
-                className={`px-4 py-2 font-grotesk font-bold rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 text-sm ${
+                className={`px-4 py-2 font-grotesk font-bold rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 text-sm whitespace-nowrap ${
                   selectedCategory === 'all' 
                     ? 'bg-neutral-900 text-white' 
                     : 'text-neutral-900 hover:opacity-80'
@@ -758,7 +768,7 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
               </button>
               <button
                 onClick={() => handleCategoryChange('fashion')}
-                className={`px-4 py-2 font-grotesk font-bold rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 text-sm ${
+                className={`px-4 py-2 font-grotesk font-bold rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 text-sm whitespace-nowrap ${
                   selectedCategory === 'fashion' 
                     ? 'bg-neutral-900 text-white' 
                     : 'text-neutral-900 hover:opacity-80'
@@ -771,7 +781,7 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
               </button>
               <button
                 onClick={() => handleCategoryChange('commercial')}
-                className={`px-4 py-2 font-grotesk font-bold rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 text-sm ${
+                className={`px-4 py-2 font-grotesk font-bold rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 text-sm whitespace-nowrap ${
                   selectedCategory === 'commercial' 
                     ? 'bg-neutral-900 text-white' 
                     : 'text-neutral-900 hover:opacity-80'
@@ -783,23 +793,21 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
                 Commercial
               </button>
               <button
-                onClick={() => handleCategoryChange('gastronomi')}
-                className={`px-4 py-2 font-grotesk font-bold rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 text-sm ${
-                  selectedCategory === 'gastronomi' 
+                onClick={() => handleCategoryChange('gastronomy')}
+                className={`px-4 py-2 font-grotesk font-bold rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 text-sm whitespace-nowrap ${
+                  selectedCategory === 'gastronomy' 
                     ? 'bg-neutral-900 text-white' 
                     : 'text-neutral-900 hover:opacity-80'
                 }`}
                 style={{
-                  backgroundColor: selectedCategory === 'gastronomi' ? undefined : '#fffceb'
+                  backgroundColor: selectedCategory === 'gastronomy' ? undefined : '#fffceb'
                 }}
               >
-                Gastronomi
+                Gastronomy
               </button>
-            {/* Desktop only: line break for second row */}
-            <div className="hidden md:block w-full h-0"></div>
               <button
                 onClick={() => handleCategoryChange('interview')}
-                className={`px-4 py-2 font-grotesk font-bold rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 text-sm ${
+                className={`px-4 py-2 font-grotesk font-bold rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 text-sm whitespace-nowrap ${
                   selectedCategory === 'interview' 
                     ? 'bg-neutral-900 text-white' 
                     : 'text-neutral-900 hover:opacity-80'
@@ -809,19 +817,6 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
                 }}
               >
                 Interview
-              </button>
-              <button
-                onClick={() => handleCategoryChange('debug')}
-                className={`px-4 py-2 font-grotesk font-bold rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 text-sm ${
-                  selectedCategory === 'debug' 
-                    ? 'bg-red-600 text-white' 
-                    : 'text-neutral-900 hover:opacity-80'
-                }`}
-                style={{
-                  backgroundColor: selectedCategory === 'debug' ? undefined : '#ffcccc'
-                }}
-              >
-                Debug (Show Numbers)
               </button>
             </div>
             

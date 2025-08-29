@@ -25,3 +25,6 @@ dist-ssr
 
 # Full video files (too large for git)
 public/videos/full/
+
+# PDF files
+*.pdf

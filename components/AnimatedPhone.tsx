@@ -2,7 +2,7 @@ import React, { Suspense, useMemo, useState, useEffect } from 'react';
 import { animated, useSpring } from '@react-spring/three';
 import { Text } from '@react-three/drei';
 import IPhone3D from './IPhone3D';
-import { videoCache } from '../utils/videoCache';
+import { smartVideoManager } from '../utils/smartVideoManager';
 
 interface AnimatedPhoneProps {
   videoSrc: string;
@@ -173,15 +173,21 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
   // Videos only play when near camera, not during initial load
   const isNearCamera = Math.abs(position[1]) < 6 && !shouldFall;   // Stop playing when falling
   
-  // Preload video when phone is near viewport
+  // Handle video with smart manager
   useEffect(() => {
-    if (isNearCamera && videoSrc && !videoCache.isReady(videoSrc)) {
-      const timer = setTimeout(() => {
-        videoCache.preloadVideo(videoSrc);
-      }, 100);
-      return () => clearTimeout(timer);
+    if (isSelected && videoSrc) {
+      smartVideoManager.playSelected(videoSrc);
+    } else if (isNearCamera && videoSrc) {
+      // Just prepare thumbnail, don't play
+      smartVideoManager.getThumbnail(videoSrc);
     }
-  }, [isNearCamera, videoSrc]);
+    
+    return () => {
+      if (videoSrc) {
+        smartVideoManager.stopSelected(videoSrc);
+      }
+    };
+  }, [isSelected, isNearCamera, videoSrc]);
 
   return (
     <animated.group 
@@ -222,7 +228,7 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
               <meshStandardMaterial color="#1a1a1a" />
             </mesh>
           ) : (
-            // Normal mode: Show phone with video
+            // Normal mode: Show IPhone3D
             <IPhone3D
               key={`${isSelected ? 'full' : 'preview'}-${videoSrc}`}  // Force re-render when video changes
               videoSrc={isSelected ? (fullVideoSrc || videoSrc) : videoSrc}  // Use full video only when selected

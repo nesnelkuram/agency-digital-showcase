@@ -49,9 +49,10 @@ const VideoGallery: React.FC<VideoGalleryProps> = ({
     if (selectedCategory !== 'All' || selectedLocation !== 'All' || autoLoad) {
       filterVideos();
     } else {
-      setVideos(defaultInitialVideos);
+      const allVideos = getAllVideos();
+      setVideos(initialVideos || allVideos);
     }
-  }, [selectedCategory, selectedLocation, autoLoad, defaultInitialVideos]);
+  }, [selectedCategory, selectedLocation, autoLoad, initialVideos]);
 
   const handleCategoryChange = useCallback((category: string) => {
     setSelectedCategory(category);

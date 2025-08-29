@@ -9,11 +9,11 @@ const SimpleLoadingScreen: React.FC<SimpleLoadingScreenProps> = ({ onLoadComplet
   const [fadeOut, setFadeOut] = useState(false);
   const [minimumTimePassed, setMinimumTimePassed] = useState(false);
   
-  // Ensure minimum display time of 1 second
+  // Ensure minimum display time of 2.5 seconds for videos to load
   useEffect(() => {
     const timer = setTimeout(() => {
       setMinimumTimePassed(true);
-    }, 1000);
+    }, 2500);
     return () => clearTimeout(timer);
   }, []);
   
@@ -51,9 +51,9 @@ const SimpleLoadingScreen: React.FC<SimpleLoadingScreenProps> = ({ onLoadComplet
         />
       </div>
       
-      {/* Progress percentage for debugging */}
-      <p className="mt-2 text-xs text-gray-500">
-        {Math.round(progress)}%
+      {/* Loading text instead of percentage */}
+      <p className="mt-4 text-sm text-gray-700 font-medium">
+        Loading videos...
       </p>
     </div>
   );

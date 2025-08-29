@@ -1,9 +1,9 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import SimpleLoadingScreen from './components/SimpleLoadingScreen';
 import QuoteLightbox from './components/QuoteLightbox';
-import { PHONE_IMAGES } from './constants';
 import { videoCache } from './utils/videoCache';
 import { useBreakpoint } from './hooks/useMediaQuery';
+import { getVideosByCategory } from './videoUtils';
 
 // Lazy load heavy components
 const Header3D = lazy(() => import('./components/Header3D'));
@@ -26,39 +26,73 @@ const App: React.FC = () => {
       '/images/cursor.svg'
     ];
     
-    // Calculate required phone count based on screen size (same logic as Header3D)
-    const rows = isMobile ? 3 : isTablet ? 5 : 7;
-    const totalPhones = rows * 3; // 3 columns per row
+    // Match Header3D's phone count logic exactly
+    const totalPhones = isMobile ? 6 : isTablet ? 7 : 10;
+    const visiblePhones = isMobile ? 3 : isTablet ? 4 : 6; // Only initially visible phones
     
-    // Get all unique videos for required phone count
-    const requiredVideos = Array.from(new Set(
-      PHONE_IMAGES.slice(0, totalPhones).map(phone => phone.src)
-    ));
+    // Get videos from 'all' category (matching Header3D initial state)
+    const allVideos = getVideosByCategory('all');
     
-    console.log(`[App] Loading ${totalPhones} phones (${rows} rows) = ${requiredVideos.length} unique videos`);
+    // Get unique preview URLs for the required number of phones
+    // Some phones might share videos, so we get unique ones
+    const uniqueVideoUrls = new Set<string>();
+    
+    // Get first N videos that will be shown
+    allVideos.slice(0, totalPhones).forEach(video => {
+      if (video.preview) {
+        uniqueVideoUrls.add(video.preview);
+      }
+    });
+    
+    // Also preload some Fashion, Commercial, Gastronomy videos for quick category switching
+    const categories = ['fashion', 'commercial', 'gastronomy', 'interview'];
+    categories.forEach(category => {
+      const categoryVideos = getVideosByCategory(category);
+      // Preload first 3 videos from each category
+      categoryVideos.slice(0, 3).forEach(video => {
+        if (video.preview) {
+          uniqueVideoUrls.add(video.preview);
+        }
+      });
+    });
+    
+    const requiredVideos = Array.from(uniqueVideoUrls);
+    
+    console.log(`[App] Preloading ${totalPhones} phones = ${requiredVideos.length} unique videos`);
     
     let loadedImages = 0;
     let lastVideoProgress = 0;
+    let minimumTimeElapsed = false;
+    
+    // Set minimum loading time (2.5 seconds to ensure videos are ready)
+    setTimeout(() => {
+      minimumTimeElapsed = true;
+    }, 2500);
     
     const updateProgress = () => {
       // Get current video cache progress
       const videoProgress = videoCache.getProgress(requiredVideos);
       
-      // Calculate total progress: 20% images + 80% videos
-      const imageProgress = (loadedImages / criticalAssets.length) * 20;
-      const videoProgressPercent = (videoProgress.loaded / videoProgress.total) * 80;
-      const totalProgress = Math.min(100, imageProgress + videoProgressPercent);
+      // Calculate total progress: 10% images + 90% videos
+      const imageProgress = (loadedImages / criticalAssets.length) * 10;
+      const videoProgressPercent = (videoProgress.loaded / videoProgress.total) * 90;
+      let totalProgress = Math.round(imageProgress + videoProgressPercent);
+      
+      // Don't jump to 100% unless minimum time has elapsed
+      if (!minimumTimeElapsed && totalProgress >= 100) {
+        totalProgress = 99;
+      }
       
       setLoadingProgress(totalProgress);
       
       // Log only when video progress changes significantly
-      if (Math.abs(videoProgress.percentage - lastVideoProgress) >= 5) {
-        console.log(`[App] Video progress: ${videoProgress.loaded}/${videoProgress.total} (${videoProgress.percentage}%)`);
+      if (Math.abs(videoProgress.percentage - lastVideoProgress) >= 10) {
+        console.log(`[App] Video progress: ${videoProgress.loaded}/${videoProgress.total} (${videoProgress.percentage}%)`)
         lastVideoProgress = videoProgress.percentage;
       }
     };
     
-    // Preload critical images
+    // Preload critical images first
     criticalAssets.forEach(src => {
       const img = new Image();
       img.onload = () => {
@@ -66,26 +100,58 @@ const App: React.FC = () => {
         updateProgress();
       };
       img.onerror = () => {
+        console.error(`[App] Failed to load image: ${src}`);
         loadedImages++;
         updateProgress();
       };
       img.src = src;
     });
     
-    // Preload all required videos in batches
-    videoCache.preloadBatch(requiredVideos, 4).then(() => {
-      console.log('[App] All videos preloaded');
+    // Load ALL initial videos before showing site
+    const allUniqueVideos = Array.from(uniqueVideoUrls);
+    const initialVideos = allUniqueVideos.slice(0, totalPhones); // ALL initial phones
+    const categoryVideos = allUniqueVideos.slice(totalPhones);
+    
+    console.log(`[App] Loading ${initialVideos.length} initial videos before showing site`);
+    
+    // Load ALL initial videos - site won't show until these are ready
+    videoCache.preloadBatch(initialVideos).then(() => {
+      console.log('[App] All initial videos preloaded and ready!');
       updateProgress();
+      
+      // Only show site when ALL initial videos are ready
+      setTimeout(() => {
+        setLoadingProgress(100);
+      }, 200); // Small delay to ensure smooth transition
+      
+      // Load category videos in background AFTER site is shown
+      if (categoryVideos.length > 0) {
+        setTimeout(() => {
+          videoCache.preloadBatch(categoryVideos).then(() => {
+            console.log('[App] Category preview videos preloaded');
+          });
+        }, 3000); // Load after user starts interacting
+      }
     });
     
-    // Progress polling for real-time updates
-    const progressInterval = setInterval(updateProgress, 100);
+    // Progress polling for smooth updates
+    const progressInterval = setInterval(updateProgress, 50);
     
-    // Extended timeout for all videos to load
+    // Maximum loading time (12 seconds - give videos time to load)
     const timeout = setTimeout(() => {
-      console.log('[App] Loading timeout reached, proceeding...');
-      setLoadingProgress(100);
-    }, 10000); // 10 seconds timeout
+      console.log('[App] Maximum loading time reached, checking video status...');
+      const ready = videoCache.getProgress(initialVideos);
+      console.log(`[App] Videos ready: ${ready.loaded}/${ready.total} (${ready.percentage}%)`);
+      if (ready.percentage >= 80) {
+        // If most videos are ready, proceed
+        setLoadingProgress(100);
+      } else {
+        // Give a bit more time
+        setTimeout(() => {
+          setLoadingProgress(100);
+        }, 3000);
+      }
+    }, 12000);
     
     return () => {
       clearInterval(progressInterval);
