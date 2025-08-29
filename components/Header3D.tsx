@@ -24,6 +24,20 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
   const [phonesShouldFall, setPhonesShouldFall] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
   const animationFrameRef = useRef<number | undefined>();
+  
+  // Animated locations with icons
+  const locations = [
+    { name: 'Bodrum', icon: '🌊' },      // Sea/Waves (Bodrum's beaches)
+    { name: 'Istanbul', icon: '🕌' },    // Mosque
+    { name: 'London', icon: '🎡' },      // London Eye
+    { name: 'Dubai', icon: '🏙️' },      // Skyscrapers
+    { name: 'New York', icon: '🗽' },   // Statue of Liberty
+    { name: 'Paris', icon: '🗼' },       // Eiffel Tower
+    { name: 'Milan', icon: '👗' },       // Fashion
+    { name: 'Tokyo', icon: '🗾' }        // Japan/Mt. Fuji
+  ];
+  const [currentLocationIndex, setCurrentLocationIndex] = useState(0);
+  const [isLocationChanging, setIsLocationChanging] = useState(false);
 
   // Handle category change
   const handleCategoryChange = (category: string) => {
@@ -64,6 +78,19 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
   
   // Don't trigger entrance animation until videos are loaded
   // (This is now handled in the preload effect above)
+  
+  // Animate location text
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIsLocationChanging(true);
+      setTimeout(() => {
+        setCurrentLocationIndex((prev) => (prev + 1) % locations.length);
+        setIsLocationChanging(false);
+      }, 300);
+    }, 2500);
+    
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     let ticking = false;
@@ -713,7 +740,7 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
             <h1
               className="font-ramillas text-neutral-900 mb-4 md:mb-6"
               style={{ 
-                fontSize: 'clamp(32px, 5vw, 65px)',
+                fontSize: 'clamp(32px, 4.5vw, 58px)',
                 lineHeight: '1.15',
                 letterSpacing: '-0.02em',
                 opacity: 0, 
@@ -721,24 +748,44 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
               }}
             >
               <div>
-                <span className="font-normal">Cinematic </span>
-                <span className="font-bold">Excellence </span>
-                <span className="font-normal">in</span>
+                <span className="font-normal">We </span>
+                <span className="font-bold">Define Brands</span>
               </div>
-              <div className="font-normal italic">
-                Hospitality & Lifestyle
+              <div>
+                <span className="font-normal">Through </span>
+                <span className="font-normal italic">Visual Storytelling</span>
               </div>
             </h1>
             <p
-              className="text-neutral-700 mb-6 sm:mb-8 md:mb-10"
+              className="font-grotesk text-neutral-600 mb-6 sm:mb-8 md:mb-10"
               style={{ 
-                fontSize: 'clamp(16px, 2.5vw, 22px)',
+                fontSize: 'clamp(17px, 2vw, 22px)',
                 letterSpacing: '-0.01em',
+                fontWeight: '400',
                 opacity: 0, 
-                animation: showContent ? 'fade-in-left 0.8s ease-out 0.4s forwards' : 'none' 
+                animation: showContent ? 'fade-in-left 0.8s ease-out 0.4s forwards' : 'none',
+                position: 'relative',
+                height: '1.5em'
               }}
             >
-              <span className="mr-1">—</span>From <span className="font-semibold">Bodrum</span>, with Precision
+              <span className="mr-1" style={{ opacity: 0.7 }}>—</span>
+              Premium Video Production in{' '}
+              <span 
+                className="inline-flex items-center gap-1"
+                style={{
+                  opacity: isLocationChanging ? 0 : 1,
+                  transform: isLocationChanging ? 'translateY(-10px)' : 'translateY(0)',
+                  transition: 'all 0.3s ease-in-out',
+                  minWidth: '150px'
+                }}
+              >
+                <span style={{ fontSize: '1.1em', verticalAlign: 'middle' }}>
+                  {locations[currentLocationIndex].icon}
+                </span>
+                <span className="font-semibold" style={{ color: '#111' }}>
+                  {locations[currentLocationIndex].name}
+                </span>
+              </span>
             </p>
           </div>
           <div
