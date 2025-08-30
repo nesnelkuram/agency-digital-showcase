@@ -743,8 +743,8 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
                 fontSize: 'clamp(32px, 4.5vw, 58px)',
                 lineHeight: '1.15',
                 letterSpacing: '-0.02em',
-                opacity: 0, 
-                animation: showContent ? 'fade-in-left 0.4s ease-out 0.1s forwards' : 'none' 
+                opacity: 1, 
+                animation: showContent ? 'slide-in-left 0.4s ease-out' : 'none' 
               }}
             >
               <div>
@@ -762,8 +762,8 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
                 fontSize: 'clamp(17px, 2vw, 22px)',
                 letterSpacing: '-0.01em',
                 fontWeight: '400',
-                opacity: 0, 
-                animation: showContent ? 'fade-in-left 0.4s ease-out 0.2s forwards' : 'none',
+                opacity: 1, 
+                animation: showContent ? 'slide-in-left 0.4s ease-out 0.1s' : 'none',
                 position: 'relative',
                 height: '1.5em'
               }}
@@ -791,8 +791,8 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
           <div
             className="w-full overflow-x-auto md:overflow-visible"
             style={{ 
-              opacity: 0, 
-              animation: showContent ? 'fade-in-left 0.4s ease-out 0.3s forwards' : 'none',
+              opacity: 1, 
+              animation: showContent ? 'slide-in-left 0.4s ease-out 0.2s' : 'none',
               pointerEvents: 'auto',
               position: 'relative',
               zIndex: 100

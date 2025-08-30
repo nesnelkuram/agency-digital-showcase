@@ -157,6 +157,15 @@ body {
   }
 }
 
+@keyframes slide-in-left {
+  from {
+    transform: translateX(-20px);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
 /* Iridescent gradient animations */
 @keyframes iridescent {
   0% {
