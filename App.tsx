@@ -26,8 +26,8 @@ const App: React.FC = () => {
       '/images/cursor.svg'
     ];
     
-    // Optimize preload: Only load initially visible phones
-    const visiblePhones = isMobile ? 2 : isTablet ? 3 : 4; // Further reduced for faster initial load
+    // Optimize preload: Only load critical initial phones
+    const visiblePhones = isMobile ? 1 : isTablet ? 2 : 3; // Minimal initial load for fastest FCP
     
     // Get videos from 'all' category (matching Header3D initial state)
     const allVideos = getVideosByCategory('all');
@@ -60,10 +60,10 @@ const App: React.FC = () => {
     let lastVideoProgress = 0;
     let minimumTimeElapsed = false;
     
-    // Set minimum loading time (500ms for smoother transition)
+    // Set minimum loading time (300ms for faster paint)
     setTimeout(() => {
       minimumTimeElapsed = true;
-    }, 500);
+    }, 300);
     
     const updateProgress = () => {
       // Get current video cache progress
@@ -133,21 +133,14 @@ const App: React.FC = () => {
     // Progress polling for smooth updates
     const progressInterval = setInterval(updateProgress, 50);
     
-    // Maximum loading time (3 seconds for faster initial paint)
+    // Maximum loading time (2 seconds for fastest paint)
     const timeout = setTimeout(() => {
       console.log('[App] Maximum loading time reached, checking video status...');
       const ready = videoCache.getProgress(initialVideos);
       console.log(`[App] Videos ready: ${ready.loaded}/${ready.total} (${ready.percentage}%)`);
-      if (ready.percentage >= 50) {
-        // If half videos are ready, proceed
-        setLoadingProgress(100);
-      } else {
-        // Give a bit more time
-        setTimeout(() => {
-          setLoadingProgress(100);
-        }, 1000);
-      }
-    }, 3000);
+      // Always proceed after 2s for better UX
+      setLoadingProgress(100);
+    }, 2000);
     
     return () => {
       clearInterval(progressInterval);
