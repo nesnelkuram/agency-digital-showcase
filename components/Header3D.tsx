@@ -1,10 +1,8 @@
 import React, { useMemo, useState, useEffect, useRef, Suspense } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { Environment } from '@react-three/drei';
-import * as THREE from 'three';
 import AnimatedPhone from './AnimatedPhone';
-import PerformanceMonitor from './PerformanceMonitor';
-import { PHONE_IMAGES, ALL_MEDIA_CONTENT } from '../constants';
+import { ALL_MEDIA_CONTENT } from '../constants';
 import { useBreakpoint } from '../hooks/useMediaQuery';
 import { getVideosByCategory } from '../videoUtils';
 
@@ -22,7 +20,7 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isCategoryChanging, setIsCategoryChanging] = useState(false);
   const [phonesShouldFall, setPhonesShouldFall] = useState(false);
-  const headerRef = useRef<HTMLElement>(null);
+  const headerRef = useRef<HTMLElement | null>(null);
   const animationFrameRef = useRef<number | undefined>();
   
   // Animated locations with icons
@@ -173,7 +171,7 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
       
       // Her kategoriden en az bir video olacak şekilde karışık seç
       const categories = ['Fashion', 'Commercial', 'Gastronomy', 'Interview'];
-      const selectedVideos = [];
+      const selectedVideos: any[] = [];
       
       // Her kategoriden en az 2 video al
       categories.forEach(cat => {
@@ -475,13 +473,6 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
 
             <Suspense fallback={null}>
               <Environment preset="city" />
-              <PerformanceMonitor 
-                showStats={false}
-                onQualityChange={(quality) => {
-                  // Adjust render quality based on performance
-                  console.log('Quality changed to:', quality);
-                }}
-              />
               <group rotation={[0, 0, 0]} scale={isMobile ? 1.5 : isTablet ? 1.3 : 1.1} position={[0, 0, 0]}>
                 {(() => {
                   // Telefon sayısını azalt: Sütun bazlı düzenleme
@@ -665,7 +656,7 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
                 if (!videoData) return null;
                 
                 // Tags'i string'den array'e çevir
-                const tags = videoData.tags ? videoData.tags.split(',').map(tag => tag.trim()).filter(tag => tag) : [];
+                const tags = (videoData as any).tags ? (videoData as any).tags.split(',').map((tag: string) => tag.trim()).filter((tag: string) => tag) : [];
                 
                 return (
                   <>
@@ -699,7 +690,7 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
                            transform: isClosing ? 'translateY(30px)' : (selectedPhone ? 'translateY(0)' : 'translateY(30px)'),
                            transitionDelay: isClosing ? '150ms' : '1200ms'
                          }}>
-                      {tags.length > 0 ? tags.slice(0, 4).map((tag, i) => (
+                      {tags.length > 0 ? tags.slice(0, 4).map((tag: string, i: number) => (
                         <span key={i} className="font-grotesk px-4 py-2 bg-neutral-200 rounded-full text-sm">
                           {tag}
                         </span>
@@ -710,9 +701,9 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
                               {videoData.category}
                             </span>
                           )}
-                          {videoData.category2 && (
+                          {(videoData as any).category2 && (
                             <span className="font-grotesk px-4 py-2 bg-neutral-200 rounded-full text-sm">
-                              {videoData.category2}
+                              {(videoData as any).category2}
                             </span>
                           )}
                         </>
@@ -748,12 +739,12 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
               }}
             >
               <div>
-                <span className="font-normal">We </span>
-                <span className="font-bold">Define Brands</span>
+                <span className="font-normal">Transform Your Brand With </span>
+                <span className="font-bold">Premium Video Content</span>
               </div>
               <div>
-                <span className="font-normal">Through </span>
-                <span className="font-normal italic">Visual Storytelling</span>
+                <span className="font-normal">That </span>
+                <span className="font-normal italic">Drives Real Results</span>
               </div>
             </h1>
             <p
@@ -769,7 +760,7 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
               }}
             >
               <span className="mr-1" style={{ opacity: 0.7 }}>—</span>
-              Premium Video Production in{' '}
+              Award-winning video production that increases brand awareness by 300%+ in{' '}
               <span 
                 className="inline-flex items-center gap-1"
                 style={{
@@ -919,7 +910,7 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
                     clipRule="evenodd" 
                   />
                 </svg>
-                <span className="relative z-10">Get a Quote Now</span>
+                <span className="relative z-10">Get Free Strategy Session</span>
                 <div 
                   className="absolute inset-0 rounded-lg transition-all duration-300 ease-in-out"
                   style={{

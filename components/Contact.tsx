@@ -33,21 +33,36 @@ const Contact: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="font-ramillas text-4xl sm:text-5xl font-bold text-neutral-900 mb-4 leading-tight">
-            Contact Us
+            Ready to 3x Your Brand Visibility?
           </h2>
-          <p className="font-grotesk text-lg text-neutral-700 max-w-2xl lg:mx-auto">
-            Ready to start your next project? We'd love to hear from you.
+          <p className="font-grotesk text-lg text-neutral-700 max-w-3xl mx-auto mb-6">
+            Join 500+ brands who've increased their visibility and sales with our proven video marketing strategies.
           </p>
+          <div className="bg-green-100 inline-block px-6 py-3 rounded-lg">
+            <p className="font-grotesk text-green-800 font-semibold">
+              ⚡ Free strategy session • 24-hour response guarantee • No obligation
+            </p>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
           {/* Contact Information */}
           <div className="lg:col-span-1">
             <div className="rounded-lg p-8 text-white" style={{ backgroundColor: '#1f1f1f' }}>
-              <h3 className="font-ramillas text-2xl font-semibold mb-6">Let's work together</h3>
+              <h3 className="font-ramillas text-2xl font-semibold mb-6">Get Your Free Strategy Session</h3>
               <p className="font-grotesk mb-8 opacity-90">
-                We're here to help you transform your ideas into reality. Get in touch with our team today.
+                Discover how we can increase your brand awareness by 300%+ with strategic video content that converts.
               </p>
+              
+              <div className="bg-white/10 rounded-lg p-4 mb-8">
+                <h4 className="font-grotesk font-semibold mb-3">What You'll Get:</h4>
+                <ul className="font-grotesk text-sm space-y-2 opacity-90">
+                  <li>✓ Custom video marketing strategy</li>
+                  <li>✓ ROI projections & timeline</li>
+                  <li>✓ Competitive analysis</li>
+                  <li>✓ No-obligation proposal</li>
+                </ul>
+              </div>
               
               <div className="space-y-6">
                 <div className="flex items-start">
@@ -196,10 +211,13 @@ const Contact: React.FC = () => {
 
               <button
                 type="submit"
-                className="w-full text-white font-grotesk font-semibold py-3 px-6 rounded-lg hover:shadow-lg transform hover:scale-[1.02] transition-all duration-300"
+                className="w-full text-white font-grotesk font-semibold py-4 px-6 rounded-lg hover:shadow-lg transform hover:scale-[1.02] transition-all duration-300 flex items-center justify-center gap-2"
                 style={{ backgroundColor: '#1f1f1f' }}
               >
-                Send Message
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+                Get My Free Strategy Session
               </button>
             </form>
           </div>

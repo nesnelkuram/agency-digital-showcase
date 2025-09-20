@@ -1,6 +1,7 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import SimpleLoadingScreen from './components/SimpleLoadingScreen';
-import QuoteLightbox from './components/QuoteLightbox';
+import SimpleQuoteLightbox from './components/SimpleQuoteLightbox';
+import UrgencyBar from './components/UrgencyBar';
 import { videoCache } from './utils/videoCache';
 import { useBreakpoint } from './hooks/useMediaQuery';
 import { getVideosByCategory } from './videoUtils';
@@ -172,10 +173,12 @@ const App: React.FC = () => {
         </Suspense>
       </main>
 
-      <QuoteLightbox 
+      <SimpleQuoteLightbox 
         isOpen={isQuoteLightboxOpen} 
         onClose={() => setIsQuoteLightboxOpen(false)} 
       />
+      
+      <UrgencyBar onOpenQuote={() => setIsQuoteLightboxOpen(true)} />
     </>
   );
 };

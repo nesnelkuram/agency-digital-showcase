@@ -3,57 +3,45 @@ import React from 'react';
 const services = [
   {
     image: 'https://images.unsplash.com/photo-1485846234645-a62644f84728?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-    title: 'Film Production',
-    description: 'Professional cinematic storytelling for brands and businesses. High-end commercial films and corporate videos.',
-    features: ['Brand Films', 'Commercial Videos', 'Corporate Documentaries', 'Product Launch Films']
+    title: 'Brand Story Videos',
+    description: 'Increase brand trust and emotional connection with authentic documentary-style brand stories that convert viewers into customers.',
+    features: ['300% higher engagement rates', 'Builds brand credibility', 'Drives purchase decisions', 'Boosts social media reach'],
+    pricing: 'Starting at $15K'
   },
   {
     image: 'https://images.unsplash.com/photo-1606983340126-99ab4feaa64a?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-    title: 'Photography',
-    description: 'Professional photography services that capture stunning visuals and tell your brand story effectively.',
-    features: ['Product Photography', 'Architectural Shoots', 'Corporate Portraits', 'Event Photography']
+    title: 'Executive Thought Leadership',
+    description: 'Position your leadership as industry experts with professional video content that builds authority and drives business opportunities.',
+    features: ['Establishes thought leadership', 'Generates qualified leads', 'Increases speaking opportunities', 'Builds personal brand value'],
+    pricing: 'Starting at $8K'
   },
   {
     image: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-    title: 'Videography',
-    description: 'Dynamic video content creation for digital platforms and social media that drives engagement.',
-    features: ['Social Media Reels', 'Behind-the-Scenes', 'Event Coverage', 'Product Demos']
+    title: 'Product Launch Campaigns',
+    description: 'Drive 500%+ more pre-orders and launch buzz with cinematic product videos that showcase value and create demand.',
+    features: ['500% higher conversion rates', 'Viral potential content', 'Multi-platform optimization', 'Launch day amplification'],
+    pricing: 'Starting at $25K'
   },
   {
     image: 'https://images.unsplash.com/photo-1611224923853-80b023f02d71?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-    title: 'Social Media Management',
-    description: 'Complete social media strategy across all platforms with content creation and analytics.',
-    features: ['Content Strategy', 'Platform Management', 'Community Engagement', 'Performance Analytics']
+    title: 'Customer Success Stories',
+    description: 'Turn satisfied customers into your best salespeople with compelling video testimonials that drive new business.',
+    features: ['92% trust video testimonials', 'Shortens sales cycles', 'Increases close rates', 'Builds social proof'],
+    pricing: 'Starting at $5K'
   },
   {
     image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-    title: 'Digital Marketing',
-    description: 'Data-driven marketing strategies that drive growth and ROI across multiple digital channels.',
-    features: ['Google Ads & PPC', 'SEO Optimization', 'Email Marketing', 'Conversion Optimization']
+    title: 'Event Marketing Videos',
+    description: 'Maximize event ROI with professional documentation that extends your reach and generates leads year-round.',
+    features: ['Extends event lifespan', 'Generates ongoing leads', 'Builds FOMO for next event', 'Content for entire year'],
+    pricing: 'Starting at $12K'
   },
   {
     image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-    title: 'Brand Strategy',
-    description: 'Strategic brand development and positioning that sets you apart from your competitors.',
-    features: ['Brand Positioning', 'Competitive Analysis', 'Target Research', 'Go-to-Market Strategy']
-  },
-  {
-    image: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-    title: 'Branding',
-    description: 'Visual identity design that brings your brand strategy to life through compelling design systems.',
-    features: ['Logo & Brand Design', 'Visual Identity', 'Brand Guidelines', 'Packaging Design']
-  },
-  {
-    image: 'https://images.unsplash.com/photo-1467232004584-a241de8bcf5d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-    title: 'Web Design',
-    description: 'Modern, responsive websites that convert visitors into customers with optimized user experience.',
-    features: ['Responsive Design', 'E-commerce Websites', 'Landing Pages', 'CMS Integration']
-  },
-  {
-    image: 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-    title: 'App Building',
-    description: 'Custom mobile and web applications that solve business problems and enhance customer experience.',
-    features: ['iOS & Android Apps', 'Web Applications', 'E-commerce Platforms', 'API Integration']
+    title: 'Social Media Content',
+    description: 'Dominate social media with scroll-stopping video content designed to increase followers, engagement, and sales.',
+    features: ['10x higher engagement', 'Increases follower growth', 'Drives website traffic', 'Generates direct sales'],
+    pricing: 'Starting at $3K/month'
   }
 ];
 
@@ -62,29 +50,25 @@ interface ServicesProps {
 }
 
 const serviceIcons = {
-  'Production': '🎬',
-  'Social Media Management': '📱',
-  'Brand Strategy': '🎯',
-  'Branding': '🎨',
-  'Digital Marketing': '💻',
-  'Content Creation': '📹',
-  'Photography': '📸',
-  'Web Design': '🌐',
-  'App Building': '📱'
+  'Brand Story Videos': '🎬',
+  'Executive Thought Leadership': '🎯',
+  'Product Launch Campaigns': '🚀',
+  'Customer Success Stories': '⭐',
+  'Event Marketing Videos': '🎪',
+  'Social Media Content': '📱'
 };
 
 const Services: React.FC<ServicesProps> = ({ onOpenQuote }) => {
   const serviceNames = [
-    'Production', 'Social Media Management', 'Brand Strategy',
-    'Branding', 'Digital Marketing', 'Content Creation', 'Photography',
-    'Web Design', 'App Building'
+    'Brand Story Videos', 'Executive Thought Leadership', 'Product Launch Campaigns',
+    'Customer Success Stories', 'Event Marketing Videos', 'Social Media Content'
   ];
 
   return (
     <section id="services" className="py-24" style={{ backgroundColor: '#ebeef8' }}>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <h2 className="font-ramillas text-4xl sm:text-5xl font-bold text-neutral-900 mb-12 leading-tight">
-          We know what we do best.
+          Video Marketing That Delivers ROI
         </h2>
         
         {/* Service Tags */}
@@ -107,17 +91,20 @@ const Services: React.FC<ServicesProps> = ({ onOpenQuote }) => {
         {/* Call to Action */}
         <div className="space-y-6">
           <h3 className="font-ramillas text-3xl sm:text-4xl font-bold text-neutral-900 leading-tight">
-            Do you really know<br />what you need?
+            Ready to increase your<br />brand visibility by 300%?
           </h3>
+          <p className="font-grotesk text-lg text-neutral-600 mb-6">
+            Get a free video marketing strategy session with our team
+          </p>
           
           <button
             onClick={onOpenQuote}
-            className="px-8 py-3 rounded-full font-grotesk font-bold text-neutral-800 transition-all duration-300 hover:scale-105 hover:shadow-lg"
+            className="px-8 py-3 rounded-full font-grotesk font-bold text-white transition-all duration-300 hover:scale-105 hover:shadow-lg"
             style={{ 
-              backgroundColor: '#fffceb'
+              backgroundColor: '#333333'
             }}
           >
-            Take a Quiz
+            Book Free Strategy Call
           </button>
         </div>
       </div>
