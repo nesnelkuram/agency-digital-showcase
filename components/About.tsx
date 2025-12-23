@@ -74,23 +74,23 @@ const About: React.FC = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-20">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 mb-12 md:mb-20">
           {stats.map((stat, index) => (
             <div key={index} className="text-center">
-              <div className="font-ramillas text-4xl font-bold text-blue-600 mb-2">{stat.value}</div>
-              <div className="font-grotesk text-neutral-700">{stat.label}</div>
+              <div className="font-ramillas text-2xl sm:text-3xl md:text-4xl font-bold text-blue-600 mb-1 sm:mb-2">{stat.value}</div>
+              <div className="font-grotesk text-xs sm:text-sm md:text-base text-neutral-700">{stat.label}</div>
             </div>
           ))}
         </div>
 
         {/* Testimonials */}
-        <div className="mb-20">
-          <h3 className="font-ramillas text-3xl font-bold text-neutral-900 text-center mb-12">
+        <div className="mb-12 md:mb-20">
+          <h3 className="font-ramillas text-2xl md:text-3xl font-bold text-neutral-900 text-center mb-8 md:mb-12">
             What Our Clients Say
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
             {testimonials.map((testimonial, index) => (
-              <div key={index} className="bg-white p-6 rounded-lg shadow-lg">
+              <div key={index} className="bg-white p-4 sm:p-6 rounded-lg shadow-lg">
                 <div className="mb-4">
                   {[...Array(5)].map((_, i) => (
                     <span key={i} className="text-yellow-400 text-lg">★</span>
@@ -120,26 +120,26 @@ const About: React.FC = () => {
         </div>
 
         {/* Awards & Recognition */}
-        <div className="text-center bg-white rounded-lg p-8">
-          <h3 className="font-ramillas text-2xl font-bold text-neutral-900 mb-6">
+        <div className="text-center bg-white rounded-lg p-4 sm:p-6 md:p-8">
+          <h3 className="font-ramillas text-xl sm:text-2xl font-bold text-neutral-900 mb-4 sm:mb-6">
             Awards & Recognition
           </h3>
-          <div className="flex flex-wrap justify-center items-center gap-8">
+          <div className="flex flex-wrap justify-center items-center gap-4 md:gap-8 px-2 md:px-0">
             <div className="text-center">
-              <div className="font-grotesk text-lg font-semibold text-neutral-900">🏆 Cannes Lions</div>
-              <div className="font-grotesk text-sm text-neutral-600">Bronze Winner 2023</div>
+              <div className="font-grotesk text-sm sm:text-base md:text-lg font-semibold text-neutral-900">🏆 Cannes Lions</div>
+              <div className="font-grotesk text-xs sm:text-sm text-neutral-600">Bronze Winner 2023</div>
             </div>
             <div className="text-center">
-              <div className="font-grotesk text-lg font-semibold text-neutral-900">🎬 Webby Awards</div>
-              <div className="font-grotesk text-sm text-neutral-600">Best Brand Film 2023</div>
+              <div className="font-grotesk text-sm sm:text-base md:text-lg font-semibold text-neutral-900">🎬 Webby Awards</div>
+              <div className="font-grotesk text-xs sm:text-sm text-neutral-600">Best Brand Film 2023</div>
             </div>
             <div className="text-center">
-              <div className="font-grotesk text-lg font-semibold text-neutral-900">⭐ Clutch.co</div>
-              <div className="font-grotesk text-sm text-neutral-600">Top 1% Agency 2024</div>
+              <div className="font-grotesk text-sm sm:text-base md:text-lg font-semibold text-neutral-900">⭐ Clutch.co</div>
+              <div className="font-grotesk text-xs sm:text-sm text-neutral-600">Top 1% Agency 2024</div>
             </div>
             <div className="text-center">
-              <div className="font-grotesk text-lg font-semibold text-neutral-900">📈 Google Premier</div>
-              <div className="font-grotesk text-sm text-neutral-600">Partner Since 2020</div>
+              <div className="font-grotesk text-sm sm:text-base md:text-lg font-semibold text-neutral-900">📈 Google Premier</div>
+              <div className="font-grotesk text-xs sm:text-sm text-neutral-600">Partner Since 2020</div>
             </div>
           </div>
         </div>

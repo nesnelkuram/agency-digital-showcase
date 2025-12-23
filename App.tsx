@@ -27,8 +27,8 @@ const App: React.FC = () => {
       '/images/cursor.svg'
     ];
     
-    // Optimize preload: Only load critical initial phones
-    const visiblePhones = isMobile ? 1 : isTablet ? 2 : 3; // Minimal initial load for fastest FCP
+    // VERY CONSERVATIVE: Only load absolutely necessary videos
+    const visiblePhones = isMobile ? 1 : isTablet ? 2 : 3; // Even more conservative for smooth loading
     
     // Get videos from 'all' category (matching Header3D initial state)
     const allVideos = getVideosByCategory('all');
@@ -61,30 +61,33 @@ const App: React.FC = () => {
     let lastVideoProgress = 0;
     let minimumTimeElapsed = false;
     
-    // Set minimum loading time (300ms for faster paint)
+    // Set minimum loading time to ensure videos are truly ready
     setTimeout(() => {
       minimumTimeElapsed = true;
-    }, 300);
+    }, 800); // Increased to give videos more time
     
     const updateProgress = () => {
-      // Get current video cache progress
-      const videoProgress = videoCache.getProgress(requiredVideos);
+      // Use STRICT mode to ensure videos are really ready
+      const videoProgress = videoCache.getProgress(requiredVideos, true); // strict = true
       
       // Calculate total progress: 10% images + 90% videos
       const imageProgress = (loadedImages / criticalAssets.length) * 10;
       const videoProgressPercent = (videoProgress.loaded / videoProgress.total) * 90;
       let totalProgress = Math.round(imageProgress + videoProgressPercent);
       
-      // Don't jump to 100% unless minimum time has elapsed
-      if (!minimumTimeElapsed && totalProgress >= 100) {
-        totalProgress = 99;
+      // Don't jump to 100% unless minimum time has elapsed AND videos are ready
+      if ((!minimumTimeElapsed || videoProgress.loaded < videoProgress.total) && totalProgress >= 100) {
+        totalProgress = 95; // Stay at 95% until really ready
       }
       
       setLoadingProgress(totalProgress);
       
-      // Log only when video progress changes significantly
-      if (Math.abs(videoProgress.percentage - lastVideoProgress) >= 10) {
+      // More detailed logging
+      if (Math.abs(videoProgress.percentage - lastVideoProgress) >= 5) {
         console.log(`[App] Video progress: ${videoProgress.loaded}/${videoProgress.total} (${videoProgress.percentage}%)`)
+        if (videoProgress.details) {
+          console.log('[App] Video details:', videoProgress.details);
+        }
         lastVideoProgress = videoProgress.percentage;
       }
     };
@@ -113,13 +116,29 @@ const App: React.FC = () => {
     
     // Load ALL initial videos - site won't show until these are ready
     videoCache.preloadBatch(initialVideos).then(() => {
-      console.log('[App] All initial videos preloaded and ready!');
-      updateProgress();
+      console.log('[App] Initial videos loaded, checking readiness...');
       
-      // Only show site when ALL initial videos are ready
+      // Double-check videos are REALLY ready with strict mode
+      const checkReadiness = setInterval(() => {
+        const strictProgress = videoCache.getProgress(initialVideos, true);
+        console.log(`[App] Strict readiness check: ${strictProgress.loaded}/${strictProgress.total}`);
+        
+        if (strictProgress.loaded === strictProgress.total && minimumTimeElapsed) {
+          clearInterval(checkReadiness);
+          console.log('[App] ✅ All videos FULLY ready!');
+          updateProgress();
+          
+          // Now we're truly ready
+          setTimeout(() => {
+            setLoadingProgress(100);
+          }, 300); // Small transition delay
+        }
+      }, 200); // Check every 200ms
+      
+      // Safety timeout
       setTimeout(() => {
-        setLoadingProgress(100);
-      }, 200); // Small delay to ensure smooth transition
+        clearInterval(checkReadiness);
+      }, 5000);
       
       // Load category videos in background AFTER site is shown
       if (categoryVideos.length > 0) {
@@ -134,14 +153,26 @@ const App: React.FC = () => {
     // Progress polling for smooth updates
     const progressInterval = setInterval(updateProgress, 50);
     
-    // Maximum loading time (2 seconds for fastest paint)
+    // Maximum loading time - increased for better video loading
     const timeout = setTimeout(() => {
-      console.log('[App] Maximum loading time reached, checking video status...');
-      const ready = videoCache.getProgress(initialVideos);
-      console.log(`[App] Videos ready: ${ready.loaded}/${ready.total} (${ready.percentage}%)`);
-      // Always proceed after 2s for better UX
-      setLoadingProgress(100);
-    }, 2000);
+      console.log('[App] Maximum loading time reached, checking strict video status...');
+      const strictReady = videoCache.getProgress(initialVideos, true);
+      const basicReady = videoCache.getProgress(initialVideos, false);
+      console.log(`[App] Videos ready (strict): ${strictReady.loaded}/${strictReady.total} (${strictReady.percentage}%)`);
+      console.log(`[App] Videos ready (basic): ${basicReady.loaded}/${basicReady.total} (${basicReady.percentage}%)`);
+      
+      // Only proceed if at least basic loading is complete
+      if (basicReady.percentage >= 100) {
+        console.log('[App] ⚠️ Proceeding with basic readiness');
+        setLoadingProgress(100);
+      } else {
+        // Give it more time if not even basically ready
+        console.log('[App] ⏳ Extending loading time...');
+        setTimeout(() => {
+          setLoadingProgress(100);
+        }, 2000);
+      }
+    }, 4000); // Increased to 4 seconds for better guarantee
     
     return () => {
       clearInterval(progressInterval);

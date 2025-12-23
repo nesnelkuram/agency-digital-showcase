@@ -103,24 +103,24 @@ const VideoModal: React.FC<VideoModalProps> = ({ videoUrl, isOpen, onClose, titl
     >
       {/* Modal Container */}
       <div 
-        className="relative w-full max-w-6xl mx-4"
+        className="relative w-full max-w-[95vw] sm:max-w-2xl md:max-w-4xl lg:max-w-6xl mx-2 sm:mx-4"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute -top-12 right-0 text-white hover:text-gray-300 transition-colors"
+          className="absolute top-2 right-2 sm:-top-12 sm:right-0 z-10 text-white hover:text-gray-300 transition-colors bg-black/50 sm:bg-transparent rounded-full p-1 sm:p-0"
         >
-          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-6 h-6 sm:w-8 sm:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
 
         {/* Title */}
         {(title || subtitle) && (
-          <div className="mb-4 text-white">
-            {title && <h2 className="font-ramillas text-3xl font-bold">{title}</h2>}
-            {subtitle && <p className="font-ramillas text-xl italic text-gray-300">{subtitle}</p>}
+          <div className="mb-2 sm:mb-4 text-white">
+            {title && <h2 className="font-ramillas text-xl sm:text-2xl md:text-3xl font-bold">{title}</h2>}
+            {subtitle && <p className="font-ramillas text-sm sm:text-lg md:text-xl italic text-gray-300">{subtitle}</p>}
           </div>
         )}
 
@@ -129,7 +129,7 @@ const VideoModal: React.FC<VideoModalProps> = ({ videoUrl, isOpen, onClose, titl
           <video
             ref={videoRef}
             src={videoUrl}
-            className="w-full h-auto max-h-[70vh] object-contain"
+            className="w-full h-auto max-h-[50vh] sm:max-h-[60vh] md:max-h-[70vh] object-contain"
             onTimeUpdate={handleTimeUpdate}
             onLoadedMetadata={handleLoadedMetadata}
             onClick={togglePlayPause}

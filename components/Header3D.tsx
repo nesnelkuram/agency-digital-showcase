@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useRef, Suspense } from 'react';
+import React, { useMemo, useState, useEffect, useRef, Suspense, useCallback } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { Environment } from '@react-three/drei';
 import AnimatedPhone from './AnimatedPhone';
@@ -20,6 +20,8 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isCategoryChanging, setIsCategoryChanging] = useState(false);
   const [phonesShouldFall, setPhonesShouldFall] = useState(false);
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  const [touchStartX, setTouchStartX] = useState(0);
   const headerRef = useRef<HTMLElement | null>(null);
   const animationFrameRef = useRef<number | undefined>();
   
@@ -38,12 +40,12 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
   const [isLocationChanging, setIsLocationChanging] = useState(false);
 
   // Handle category change
-  const handleCategoryChange = (category: string) => {
+  const handleCategoryChange = useCallback((category: string) => {
     if (category === selectedCategory || isCategoryChanging) return;
-    
+
     // Immediate visual feedback - change category right away
     setSelectedCategory(category);
-    
+
     // Close any open phone first
     if (selectedPhone) {
       setSelectedPhone(null);
@@ -53,24 +55,40 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
         setLastSelectedPhone(null);
       }, 800);
     }
-    
+
     // Start animation
     setIsCategoryChanging(true);
     setPhonesShouldFall(true);  // Make all phones fall
-    
+
     // After phones have fallen, reset and bring them back
     setTimeout(() => {
       setHasEntered(false);
       setPhonesShouldFall(false);  // Stop falling
-      
+
       // Re-trigger entrance animation with new videos
       setTimeout(() => {
         setHasEntered(true);
         setIsCategoryChanging(false);
       }, 50);
     }, 1000);  // Longer wait for fall animation to complete
-  };
-  
+  }, [selectedCategory, isCategoryChanging, selectedPhone]);
+
+  // Handle phone click - memoized for performance
+  const handlePhoneClick = useCallback((phoneKey: string, isCurrentlySelected: boolean) => {
+    if (isCurrentlySelected) {
+      setIsClosing(true);
+      setLastSelectedPhone(selectedPhone);
+      setSelectedPhone(null);
+      setTimeout(() => {
+        setIsClosing(false);
+        setLastSelectedPhone(null);
+      }, 800);
+    } else {
+      setSelectedPhone(phoneKey);
+      setLastSelectedPhone(phoneKey);
+    }
+  }, [selectedPhone]);
+
   // How many viewport-heights to scroll before parallax ends
   const PARALLAX_DURATION_VIEWPORTS = 5; // Original value for extended parallax viewing
   
@@ -297,6 +315,24 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
     });
   }, [isMobile, isTablet, selectedCategory]);
 
+  // Touch handlers for mobile carousel
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (!isMobile || selectedPhone) return;
+    setTouchStartX(e.touches[0].clientX);
+  }, [isMobile, selectedPhone]);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!isMobile || selectedPhone) return;
+    const diff = touchStartX - e.changedTouches[0].clientX;
+    const threshold = 50;
+
+    if (diff > threshold && carouselIndex < phoneConfigs.length - 1) {
+      setCarouselIndex(prev => prev + 1);
+    } else if (diff < -threshold && carouselIndex > 0) {
+      setCarouselIndex(prev => prev - 1);
+    }
+  }, [isMobile, selectedPhone, touchStartX, carouselIndex, phoneConfigs.length]);
+
   return (
     <header 
       ref={headerRef} 
@@ -428,12 +464,14 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
         </div>
 
         {/* 3D Phone Grid Layer */}
-        <div 
+        <div
           className="absolute inset-0 z-40 flex justify-center items-center pointer-events-none"
-          style={{ 
-            perspective: '1000px', 
+          style={{
+            perspective: '1000px',
             perspectiveOrigin: '60% 40%'  // adjusted vanishing point
           }}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
         >
           <Canvas
             shadows={false}  // Disable shadows for better performance
@@ -504,30 +542,51 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
                   }
                   
                   return allPhones.map(({ config: cfg, col, row, totalInColumn }, index) => {
-                          const movingDown = col % 2 !== 0;
-                          const spacingX = isMobile ? 1.3 : 1.1;  // Sütunlar arası mesafe
-                          const spacingY = isMobile ? 2.2 : 2.0;  // Satırlar arası mesafe
-                          
-                          // X pozisyonu - sütun bazlı
-                          const x = (col - 1) * spacingX; // -1.1, 0, 1.1 for 3 columns
-                          
-                          // Y pozisyonu - her sütundaki telefon sayısına göre merkezle
-                          const centerOffsetForColumn = (totalInColumn - 1) / 2;
-                          let baseY = (row - centerOffsetForColumn) * spacingY;
-                          
-                          // 2. sütundaki telefonları bir telefon boyu yukarı taşı
-                          if (col === 1) {  // 2. sütun (0-indexed)
-                            baseY += spacingY;  // Bir telefon boyu yukarı
+                          let x: number, y: number, z: number;
+
+                          if (isMobile) {
+                            // ===== MOBİL CAROUSEL =====
+                            const offsetFromCenter = index - carouselIndex;
+
+                            // Görünmeyenleri render etme (performans)
+                            if (Math.abs(offsetFromCenter) > 2) return null;
+
+                            // X: Carousel pozisyonu (ortadan uzaklığa göre)
+                            x = offsetFromCenter * 2.0;
+
+                            // Y: Sabit
+                            y = 0;
+
+                            // Z: Ortadaki yakın, yanlardakiler uzak (perspektif efekti)
+                            z = offsetFromCenter === 0 ? 0 : -2 - Math.abs(offsetFromCenter) * 0.5;
+
+                          } else {
+                            // ===== DESKTOP GRİD (DEĞİŞMEZ) =====
+                            const movingDown = col % 2 !== 0;
+                            const spacingX = 1.1;  // Sütunlar arası mesafe
+                            const spacingY = 2.0;  // Satırlar arası mesafe
+
+                            // X pozisyonu - sütun bazlı
+                            x = (col - 1) * spacingX; // -1.1, 0, 1.1 for 3 columns
+
+                            // Y pozisyonu - her sütundaki telefon sayısına göre merkezle
+                            const centerOffsetForColumn = (totalInColumn - 1) / 2;
+                            let baseY = (row - centerOffsetForColumn) * spacingY;
+
+                            // 2. sütundaki telefonları bir telefon boyu yukarı taşı
+                            if (col === 1) {  // 2. sütun (0-indexed)
+                              baseY += spacingY;  // Bir telefon boyu yukarı
+                            }
+
+                            const offsetMultiplier = 0.025; // Increased movement for more visible parallax
+
+                            // Simple parallax offset like in original
+                            const yOffset = movingDown ? -parallaxOffset * offsetMultiplier : parallaxOffset * offsetMultiplier;
+                            y = baseY + yOffset;
+
+                            z = 0;  // Z pozisyonu sabit, animasyon component içinde
                           }
-                          
-                          const offsetMultiplier = 0.025; // Increased movement for more visible parallax
-                          
-                          // Simple parallax offset like in original
-                          const yOffset = movingDown ? -parallaxOffset * offsetMultiplier : parallaxOffset * offsetMultiplier;
-                          const y = baseY + yOffset;
-                          
-                          
-                          const z = 0;  // Z pozisyonu sabit, animasyon component içinde
+
                           const isSelected = selectedPhone === cfg.key;
                           const shouldFall = phonesShouldFall || !!(selectedPhone && !isSelected);
                           
@@ -558,20 +617,7 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
                               entranceDelay={entranceDelay}
                               showDebugNumber={selectedCategory === 'debug'}
                               debugNumber={phoneNumber}
-                              onClick={() => {
-                                if (isSelected) {
-                                  setIsClosing(true);
-                                  setLastSelectedPhone(selectedPhone);
-                                  setSelectedPhone(null);  // Phone moves immediately
-                                  setTimeout(() => {
-                                    setIsClosing(false);
-                                    setLastSelectedPhone(null);
-                                  }, 800);
-                                } else {
-                                  setSelectedPhone(cfg.key);
-                                  setLastSelectedPhone(cfg.key);
-                                }
-                              }}
+                              onClick={() => handlePhoneClick(cfg.key, isSelected)}
                             />
                           );
                   });
@@ -580,6 +626,21 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
             </Suspense>
           </Canvas>
         </div>
+
+        {/* Carousel dots - sadece mobilde ve telefon seçili değilken */}
+        {isMobile && !selectedPhone && (
+          <div className="absolute bottom-8 left-0 right-0 z-50 flex justify-center gap-2 pointer-events-auto">
+            {phoneConfigs.map((_, i) => (
+              <button
+                key={i}
+                className={`h-2 rounded-full transition-all duration-300 ${
+                  i === carouselIndex ? 'bg-neutral-900 w-4' : 'bg-neutral-400 w-2'
+                }`}
+                onClick={() => setCarouselIndex(i)}
+              />
+            ))}
+          </div>
+        )}
 
         {/* Expanding circle background - only in header section */}
         <div 
@@ -648,7 +709,7 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
         {(selectedPhone || isClosing) && (
           <div className="absolute inset-0 z-40 pointer-events-none flex h-full">
             {/* Left side - Project details */}
-            <div className={`w-1/2 p-16 flex flex-col justify-center pointer-events-auto`}>
+            <div className={`w-full md:w-1/2 p-4 sm:p-8 md:p-12 lg:p-16 flex flex-col justify-center pointer-events-auto`}>
               {(() => {
                 const phoneKey = isClosing ? lastSelectedPhone : selectedPhone;
                 const selectedConfig = phoneConfigs.find(cfg => cfg.key === phoneKey);
@@ -660,7 +721,7 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
                 
                 return (
                   <>
-                    <h2 className="font-ramillas text-5xl mb-2 text-neutral-900 transition-all duration-700"
+                    <h2 className="font-ramillas text-2xl sm:text-3xl md:text-4xl lg:text-5xl mb-2 text-neutral-900 transition-all duration-700"
                         style={{
                           opacity: isClosing ? 0 : (selectedPhone ? 1 : 0),
                           transform: isClosing ? 'translateY(30px)' : (selectedPhone ? 'translateY(0)' : 'translateY(30px)'),
@@ -668,7 +729,7 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
                         }}>
                       <span className="font-bold">{videoData.title || 'Untitled'}</span>
                     </h2>
-                    <h3 className="font-ramillas text-3xl mb-6 text-neutral-600 font-normal italic transition-all duration-700"
+                    <h3 className="font-ramillas text-lg sm:text-xl md:text-2xl lg:text-3xl mb-4 md:mb-6 text-neutral-600 font-normal italic transition-all duration-700"
                         style={{
                           opacity: isClosing ? 0 : (selectedPhone ? 1 : 0),
                           transform: isClosing ? 'translateY(30px)' : (selectedPhone ? 'translateY(0)' : 'translateY(30px)'),
@@ -676,7 +737,7 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
                         }}>
                       {videoData.location || 'Location'}
                     </h3>
-                    <p className="font-grotesk text-xl text-neutral-700 mb-8 leading-relaxed transition-all duration-700"
+                    <p className="font-grotesk text-sm sm:text-base md:text-lg lg:text-xl text-neutral-700 mb-4 md:mb-8 leading-relaxed transition-all duration-700"
                         style={{
                           opacity: isClosing ? 0 : (selectedPhone ? 1 : 0),
                           transform: isClosing ? 'translateY(30px)' : (selectedPhone ? 'translateY(0)' : 'translateY(30px)'),
@@ -684,25 +745,25 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
                         }}>
                       {videoData.description || 'No description available'}
                     </p>
-                    <div className="flex gap-3 flex-wrap transition-all duration-700"
+                    <div className="flex gap-2 md:gap-3 flex-wrap transition-all duration-700"
                          style={{
                            opacity: isClosing ? 0 : (selectedPhone ? 1 : 0),
                            transform: isClosing ? 'translateY(30px)' : (selectedPhone ? 'translateY(0)' : 'translateY(30px)'),
                            transitionDelay: isClosing ? '150ms' : '1200ms'
                          }}>
                       {tags.length > 0 ? tags.slice(0, 4).map((tag: string, i: number) => (
-                        <span key={i} className="font-grotesk px-4 py-2 bg-neutral-200 rounded-full text-sm">
+                        <span key={i} className="font-grotesk px-2 sm:px-3 md:px-4 py-1 md:py-2 bg-neutral-200 rounded-full text-xs sm:text-sm">
                           {tag}
                         </span>
                       )) : (
                         <>
                           {videoData.category && (
-                            <span className="font-grotesk px-4 py-2 bg-neutral-200 rounded-full text-sm">
+                            <span className="font-grotesk px-2 sm:px-3 md:px-4 py-1 md:py-2 bg-neutral-200 rounded-full text-xs sm:text-sm">
                               {videoData.category}
                             </span>
                           )}
                           {(videoData as any).category2 && (
-                            <span className="font-grotesk px-4 py-2 bg-neutral-200 rounded-full text-sm">
+                            <span className="font-grotesk px-2 sm:px-3 md:px-4 py-1 md:py-2 bg-neutral-200 rounded-full text-xs sm:text-sm">
                               {(videoData as any).category2}
                             </span>
                           )}
@@ -715,7 +776,7 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
             </div>
             
             {/* Right side - Empty for phone */}
-            <div className="w-1/2" />
+            <div className="hidden md:block md:w-1/2" />
           </div>
         )}
 

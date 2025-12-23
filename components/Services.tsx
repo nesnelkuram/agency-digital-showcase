@@ -72,11 +72,11 @@ const Services: React.FC<ServicesProps> = ({ onOpenQuote }) => {
         </h2>
         
         {/* Service Tags */}
-        <div className="flex flex-wrap justify-center gap-3 mb-16">
+        <div className="flex flex-wrap justify-center gap-2 md:gap-3 mb-8 md:mb-16 px-2 md:px-0">
           {serviceNames.map((service, index) => (
             <span
               key={index}
-              className="px-4 py-2 rounded-full font-grotesk font-medium text-sm transition-all duration-300 hover:scale-105 cursor-pointer flex items-center gap-2"
+              className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-grotesk font-medium text-xs sm:text-sm transition-all duration-300 hover:scale-105 cursor-pointer flex items-center gap-1.5 sm:gap-2"
               style={{ 
                 backgroundColor: '#fffceb',
                 color: '#262626'
@@ -90,17 +90,17 @@ const Services: React.FC<ServicesProps> = ({ onOpenQuote }) => {
 
         {/* Call to Action */}
         <div className="space-y-6">
-          <h3 className="font-ramillas text-3xl sm:text-4xl font-bold text-neutral-900 leading-tight">
-            Ready to increase your<br />brand visibility by 300%?
+          <h3 className="font-ramillas text-2xl sm:text-3xl md:text-4xl font-bold text-neutral-900 leading-tight">
+            Ready to increase your<br className="hidden sm:block" />brand visibility by 300%?
           </h3>
-          <p className="font-grotesk text-lg text-neutral-600 mb-6">
+          <p className="font-grotesk text-base sm:text-lg text-neutral-600 mb-4 sm:mb-6">
             Get a free video marketing strategy session with our team
           </p>
           
           <button
             onClick={onOpenQuote}
-            className="px-8 py-3 rounded-full font-grotesk font-bold text-white transition-all duration-300 hover:scale-105 hover:shadow-lg"
-            style={{ 
+            className="px-4 sm:px-6 md:px-8 py-2 sm:py-3 rounded-full font-grotesk font-bold text-white transition-all duration-300 hover:scale-105 hover:shadow-lg text-sm sm:text-base"
+            style={{
               backgroundColor: '#333333'
             }}
           >

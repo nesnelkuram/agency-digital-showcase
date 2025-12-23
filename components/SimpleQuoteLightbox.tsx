@@ -105,15 +105,15 @@ const SimpleQuoteLightbox: React.FC<SimpleQuoteLightboxProps> = ({ isOpen, onClo
       />
       
       {/* Modal */}
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-2 sm:mx-4 max-h-[85vh] sm:max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-8 py-6 rounded-t-2xl">
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-4 sm:px-6 md:px-8 py-4 sm:py-6 rounded-t-2xl z-10">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="font-ramillas text-2xl font-bold text-gray-900">
+              <h2 className="font-ramillas text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
                 Get Your Free Strategy Session
               </h2>
-              <p className="font-grotesk text-gray-600 mt-1">
+              <p className="font-grotesk text-sm sm:text-base text-gray-600 mt-1">
                 Step {step} of 3 - Takes less than 2 minutes
               </p>
             </div>
@@ -137,25 +137,25 @@ const SimpleQuoteLightbox: React.FC<SimpleQuoteLightboxProps> = ({ isOpen, onClo
         </div>
 
         {/* Content */}
-        <div className="px-8 py-6">
+        <div className="px-4 sm:px-6 md:px-8 py-4 sm:py-6">
           {/* Step 1: Service Selection */}
           {step === 1 && (
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               <div>
-                <h3 className="font-ramillas text-xl font-bold text-gray-900 mb-2">
+                <h3 className="font-ramillas text-lg sm:text-xl font-bold text-gray-900 mb-2">
                   What type of video content do you need?
                 </h3>
-                <p className="font-grotesk text-gray-600">
+                <p className="font-grotesk text-sm sm:text-base text-gray-600">
                   Select all that apply. We'll create a custom proposal for your needs.
                 </p>
               </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                 {SERVICES.map((service) => (
                   <button
                     key={service.name}
                     onClick={() => handleServiceToggle(service.name)}
-                    className={`p-4 rounded-lg border-2 text-left transition-all duration-200 hover:scale-105 ${
+                    className={`p-3 sm:p-4 rounded-lg border-2 text-left transition-all duration-200 hover:scale-105 ${
                       formData.services.includes(service.name)
                         ? 'border-blue-600 bg-blue-50'
                         : 'border-gray-200 bg-white hover:border-gray-300'

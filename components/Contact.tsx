@@ -45,16 +45,16 @@ const Contact: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-12">
           {/* Contact Information */}
           <div className="lg:col-span-1">
-            <div className="rounded-lg p-8 text-white" style={{ backgroundColor: '#1f1f1f' }}>
-              <h3 className="font-ramillas text-2xl font-semibold mb-6">Get Your Free Strategy Session</h3>
-              <p className="font-grotesk mb-8 opacity-90">
+            <div className="rounded-lg p-4 sm:p-6 md:p-8 text-white" style={{ backgroundColor: '#1f1f1f' }}>
+              <h3 className="font-ramillas text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">Get Your Free Strategy Session</h3>
+              <p className="font-grotesk text-sm sm:text-base mb-6 sm:mb-8 opacity-90">
                 Discover how we can increase your brand awareness by 300%+ with strategic video content that converts.
               </p>
               
-              <div className="bg-white/10 rounded-lg p-4 mb-8">
+              <div className="bg-white/10 rounded-lg p-3 sm:p-4 mb-6 sm:mb-8">
                 <h4 className="font-grotesk font-semibold mb-3">What You'll Get:</h4>
                 <ul className="font-grotesk text-sm space-y-2 opacity-90">
                   <li>✓ Custom video marketing strategy</li>
@@ -127,8 +127,8 @@ const Contact: React.FC = () => {
 
           {/* Contact Form */}
           <div className="lg:col-span-2">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 <div>
                   <label htmlFor="name" className="block text-sm font-grotesk font-medium text-neutral-700 mb-2">
                     Your Name

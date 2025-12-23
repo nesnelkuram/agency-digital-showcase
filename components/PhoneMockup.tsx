@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback, memo } from 'react';
 import { videoCache } from '../utils/videoCache';
 
 interface PhoneMockupProps {
@@ -15,7 +15,7 @@ const PhoneMockup: React.FC<PhoneMockupProps> = ({ videoSrc, className, altText 
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const handlePlayPause = () => {
+  const handlePlayPause = useCallback(() => {
     if (videoRef.current) {
       if (isPlaying) {
         videoRef.current.pause();
@@ -24,7 +24,7 @@ const PhoneMockup: React.FC<PhoneMockupProps> = ({ videoSrc, className, altText 
       }
       setIsPlaying(!isPlaying);
     }
-  };
+  }, [isPlaying]);
 
   // Subscribe to video cache status
   useEffect(() => {
@@ -218,4 +218,4 @@ const PhoneMockup: React.FC<PhoneMockupProps> = ({ videoSrc, className, altText 
   );
 };
 
-export default PhoneMockup;
+export default memo(PhoneMockup);

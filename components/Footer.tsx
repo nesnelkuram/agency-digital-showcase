@@ -27,7 +27,7 @@ const Footer: React.FC = () => {
   return (
     <footer className="text-white" style={{ backgroundColor: '#1f1f1f' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 md:gap-8">
           {/* Company Info */}
           <div className="lg:col-span-2">
             <h3 className="font-ramillas text-2xl font-bold mb-4 text-white">
@@ -135,7 +135,7 @@ const Footer: React.FC = () => {
               <h4 className="font-grotesk text-lg font-semibold mb-2">Subscribe to our newsletter</h4>
               <p className="font-grotesk text-neutral-300">Get the latest updates and news right in your inbox.</p>
             </div>
-            <form className="flex gap-2">
+            <form className="flex flex-col sm:flex-row gap-2">
               <input
                 type="email"
                 placeholder="Enter your email"
@@ -144,7 +144,7 @@ const Footer: React.FC = () => {
               />
               <button
                 type="submit"
-                className="px-6 py-2 text-white font-grotesk font-semibold rounded-lg hover:shadow-lg transform hover:scale-105 transition-all duration-300"
+                className="px-4 sm:px-6 py-2 text-white font-grotesk font-semibold rounded-lg hover:shadow-lg transform hover:scale-105 transition-all duration-300 whitespace-nowrap"
                 style={{ backgroundColor: '#fffceb', color: '#1f1f1f' }}
               >
                 Subscribe
@@ -158,7 +158,7 @@ const Footer: React.FC = () => {
           <p className="font-grotesk text-neutral-300 text-sm">
             © {currentYear} Digital Agency. All rights reserved.
           </p>
-          <div className="mt-4 md:mt-0 flex justify-center space-x-6 text-sm">
+          <div className="mt-4 md:mt-0 flex flex-wrap justify-center gap-4 sm:gap-6 text-xs sm:text-sm">
             <a href="#" className="font-grotesk text-neutral-300 hover:text-white transition-colors">
               Privacy Policy
             </a>

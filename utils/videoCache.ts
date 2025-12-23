@@ -38,39 +38,37 @@ class VideoCache {
       const connection = (navigator as any).connection;
       const effectiveType = connection.effectiveType;
       
-      // Adjust batch size based on connection and device
+      // MORE CONSERVATIVE batch sizes to ensure videos fully load
       if (isMobile && !isTablet) {
-        // Mobile devices: more conservative
+        // Mobile devices: very conservative for smooth loading
         switch(effectiveType) {
           case 'slow-2g':
           case '2g':
-            this.batchSize = 1;
-            break;
           case '3g':
-            this.batchSize = 1;
+            this.batchSize = 1; // Always 1 for mobile on slower connections
             break;
           case '4g':
           default:
-            this.batchSize = 2;
+            this.batchSize = 1; // Reduced to 1 for guaranteed smooth loading
             break;
         }
       } else if (isTablet) {
-        // Tablets: moderate
+        // Tablets: still conservative
         switch(effectiveType) {
           case 'slow-2g':
           case '2g':
             this.batchSize = 1;
             break;
           case '3g':
-            this.batchSize = 2;
+            this.batchSize = 1; // Reduced from 2
             break;
           case '4g':
           default:
-            this.batchSize = 3;
+            this.batchSize = 2; // Reduced from 3
             break;
         }
       } else {
-        // Desktop: can handle more
+        // Desktop: moderate loading
         switch(effectiveType) {
           case 'slow-2g':
           case '2g':
@@ -81,20 +79,20 @@ class VideoCache {
             break;
           case '4g':
           default:
-            this.batchSize = 3; // Reduced from 4 for better performance
+            this.batchSize = 2; // Reduced from 3 for better guarantee
             break;
         }
       }
       
       console.log(`[VideoCache] Device: ${isMobile ? 'Mobile' : isTablet ? 'Tablet' : 'Desktop'}, Connection: ${effectiveType}, batch size: ${this.batchSize}`);
     } else {
-      // Fallback based on device only
+      // Fallback based on device only - MORE CONSERVATIVE
       if (isMobile && !isTablet) {
-        this.batchSize = 2;
+        this.batchSize = 1; // Reduced from 2
       } else if (isTablet) {
-        this.batchSize = 3;
+        this.batchSize = 2; // Reduced from 3
       } else {
-        this.batchSize = 3;
+        this.batchSize = 2; // Reduced from 3
       }
       console.log(`[VideoCache] Device: ${isMobile ? 'Mobile' : isTablet ? 'Tablet' : 'Desktop'}, batch size: ${this.batchSize} (no connection API)`);
     }
@@ -256,8 +254,36 @@ class VideoCache {
           }
         };
         
-        // Use canplaythrough for better guarantee
-        video.addEventListener('canplaythrough', handleCanPlay, { once: true });
+        // Use canplaythrough for better guarantee AND check buffer
+        const checkVideoReady = () => {
+          // Check if we have enough buffer (at least 30% of video)
+          if (video.buffered.length > 0 && video.duration > 0) {
+            const bufferedEnd = video.buffered.end(video.buffered.length - 1);
+            const bufferPercent = bufferedEnd / video.duration;
+            
+            // Require readyState 4 AND sufficient buffer
+            if (video.readyState === 4 && bufferPercent >= 0.3) {
+              console.log(`✅ Video ready: ${url.substring(url.lastIndexOf('/') + 1)} - Buffer: ${Math.round(bufferPercent * 100)}%, ReadyState: ${video.readyState}`);
+              handleCanPlay();
+              return true;
+            }
+          }
+          return false;
+        };
+        
+        // Check multiple events for better reliability
+        video.addEventListener('canplaythrough', () => {
+          if (!resolved && checkVideoReady()) {
+            // Already handled in checkVideoReady
+          }
+        }, { once: true });
+        
+        video.addEventListener('progress', () => {
+          if (!resolved && checkVideoReady()) {
+            // Already handled in checkVideoReady  
+          }
+        });
+        
         video.addEventListener('error', handleError, { once: true });
         
         // Start loading
@@ -330,8 +356,29 @@ class VideoCache {
           }
         };
         
-        // Use canplay for full videos (less strict than canplaythrough)
-        video.addEventListener('canplay', handleCanPlay, { once: true });
+        // Use canplaythrough for full videos too for consistency
+        const checkVideoReady = () => {
+          // For full videos, check readyState 3 or 4 (can play)
+          if (video.readyState >= 3) {
+            console.log(`✅ Full video ready: ${url.substring(url.lastIndexOf('/') + 1)} - ReadyState: ${video.readyState}`);
+            handleCanPlay();
+            return true;
+          }
+          return false;
+        };
+        
+        video.addEventListener('canplaythrough', () => {
+          if (!resolved && checkVideoReady()) {
+            // Already handled
+          }
+        }, { once: true });
+        
+        video.addEventListener('canplay', () => {
+          if (!resolved && checkVideoReady()) {
+            // Already handled
+          }
+        }, { once: true });
+        
         video.addEventListener('error', handleError, { once: true });
         
         // Start loading
@@ -420,11 +467,27 @@ class VideoCache {
     return null;
   }
 
-  // Check if video is ready
-  isReady(url: string): boolean {
-    const status = this.getEntry(url).status;
-    return status === 'loaded' || status === 'streaming' || 
-           status === 'hybrid-streaming' || status === 'hybrid-cached';
+  // Check if video is ready with optional strict mode
+  isReady(url: string, strict: boolean = false): boolean {
+    const entry = this.getEntry(url);
+    const status = entry.status;
+    
+    // Basic ready check
+    const basicReady = status === 'loaded' || status === 'streaming' || 
+                       status === 'hybrid-streaming' || status === 'hybrid-cached';
+    
+    if (!strict) return basicReady;
+    
+    // Strict mode: also check video element readiness
+    if (basicReady && entry.videoElement) {
+      const video = entry.videoElement;
+      // For preview videos, require readyState 4 (can play through)
+      // For full videos, readyState 3 is acceptable (can play)
+      const requiredState = entry.isFullVideo ? 3 : 4;
+      return video.readyState >= requiredState;
+    }
+    
+    return basicReady;
   }
   
   // Get hybrid mode status
@@ -435,13 +498,20 @@ class VideoCache {
     return 'none';
   }
 
-  // Get loading progress
-  getProgress(urls: string[]): { loaded: number; total: number; percentage: number } {
-    const loaded = urls.filter(url => this.isReady(url)).length;
+  // Get loading progress with optional strict mode
+  getProgress(urls: string[], strict: boolean = false): { loaded: number; total: number; percentage: number; details?: string[] } {
+    const loaded = urls.filter(url => this.isReady(url, strict)).length;
     const total = urls.length;
     const percentage = total > 0 ? Math.round((loaded / total) * 100) : 0;
     
-    return { loaded, total, percentage };
+    // Add detailed status for debugging
+    const details = urls.map(url => {
+      const entry = this.getEntry(url);
+      const ready = this.isReady(url, strict);
+      return `${url.substring(url.lastIndexOf('/') + 1)}: ${entry.status} (ready: ${ready})`;
+    });
+    
+    return { loaded, total, percentage, details };
   }
 
   // Clear cache
@@ -464,9 +534,18 @@ class VideoCache {
       URL.revokeObjectURL(blobUrl);
       this.blobUrls.delete(url);
     }
-    
+
     this.cache.delete(url);
     this.listeners.delete(url);
+  }
+
+  // Revoke blob URL without removing from cache (for memory optimization)
+  revokeBlobUrl(url: string) {
+    const blobUrl = this.blobUrls.get(url);
+    if (blobUrl) {
+      URL.revokeObjectURL(blobUrl);
+      this.blobUrls.delete(url);
+    }
   }
 }
 

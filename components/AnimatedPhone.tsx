@@ -1,4 +1,4 @@
-import React, { Suspense, useMemo, useState, useEffect } from 'react';
+import React, { Suspense, useMemo, useState, useEffect, memo } from 'react';
 import { animated, useSpring } from '@react-spring/three';
 import { Text } from '@react-three/drei';
 import IPhone3D from './IPhone3D';
@@ -39,39 +39,45 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
     if (isSelected && fullVideoSrc) {
       // Show loading while video starts streaming
       setIsLoadingFullVideo(true);
-      
+
       // Create a video element to check loading state
       const testVideo = document.createElement('video');
       testVideo.src = fullVideoSrc;
       testVideo.preload = 'metadata';
-      
+
+      // Cleanup function to release video memory
+      const cleanup = () => {
+        testVideo.src = '';
+        testVideo.load();
+      };
+
       // Hide loading when video can start playing
       const handleCanPlay = () => {
         setIsLoadingFullVideo(false);
-        testVideo.remove();
+        cleanup();
       };
-      
+
       // Also handle errors
       const handleError = () => {
         console.error('Failed to load full video:', fullVideoSrc);
         setIsLoadingFullVideo(false);
-        testVideo.remove();
+        cleanup();
       };
-      
+
       testVideo.addEventListener('canplay', handleCanPlay);
       testVideo.addEventListener('error', handleError);
-      
+
       // Fallback timer in case events don't fire
       const fallbackTimer = setTimeout(() => {
         setIsLoadingFullVideo(false);
-        testVideo.remove();
+        cleanup();
       }, 3000); // 3 second fallback
-      
+
       return () => {
         clearTimeout(fallbackTimer);
         testVideo.removeEventListener('canplay', handleCanPlay);
         testVideo.removeEventListener('error', handleError);
-        testVideo.remove();
+        cleanup();
         setIsLoadingFullVideo(false);
       };
     } else {
@@ -252,4 +258,4 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
   );
 };
 
-export default AnimatedPhone;
+export default memo(AnimatedPhone);

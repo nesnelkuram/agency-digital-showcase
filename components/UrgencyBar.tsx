@@ -43,15 +43,15 @@ const UrgencyBar: React.FC<UrgencyBarProps> = ({ onOpenQuote }) => {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-red-600 text-white shadow-lg">
-      <div className="max-w-7xl mx-auto px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <svg className="w-5 h-5 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-red-600 text-white shadow-lg" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 py-2 sm:py-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
+            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
               </svg>
-              <span className="font-grotesk font-bold text-sm">
+              <span className="font-grotesk font-bold text-xs sm:text-sm">
                 LIMITED TIME:
               </span>
             </div>
@@ -63,17 +63,17 @@ const UrgencyBar: React.FC<UrgencyBarProps> = ({ onOpenQuote }) => {
               </span>
             </div>
             
-            <div className="sm:hidden">
-              <span className="font-grotesk text-sm">
-                <span className="font-bold">3 spots left</span> - Free sessions ending {timeLeft}
+            <div className="sm:hidden truncate">
+              <span className="font-grotesk text-xs">
+                <span className="font-bold">3 spots</span> - {timeLeft}
               </span>
             </div>
           </div>
-          
-          <div className="flex items-center gap-3">
+
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <button
               onClick={onOpenQuote}
-              className="bg-white text-red-600 px-4 py-1.5 rounded font-grotesk font-bold text-sm hover:bg-gray-100 transition-colors"
+              className="bg-white text-red-600 px-2 sm:px-4 py-1 sm:py-1.5 rounded font-grotesk font-bold text-xs sm:text-sm hover:bg-gray-100 transition-colors whitespace-nowrap"
             >
               Claim Yours
             </button>
