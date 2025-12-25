@@ -22,6 +22,7 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
   const [phonesShouldFall, setPhonesShouldFall] = useState(false);
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [touchStartX, setTouchStartX] = useState(0);
+  const [mobileScrollProgress, setMobileScrollProgress] = useState(0);
   const headerRef = useRef<HTMLElement | null>(null);
   const animationFrameRef = useRef<number | undefined>();
   
@@ -175,10 +176,13 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
     };
   }, []);
 
-  // Project data artık doğrudan video metadata'dan alınacak
-
   const { isMobile, isTablet } = useBreakpoint();
-  
+
+  // Mobile: No scroll animation, phones visible immediately
+  useEffect(() => {
+    setMobileScrollProgress(1); // Always complete - no scroll animation
+  }, []);
+
   const phoneConfigs = useMemo(() => {
     // Kategoriye göre videoları filtrele
     let filteredVideos;
@@ -285,8 +289,8 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
       }));
     }
     
-    // Always show 10 phones on desktop
-    const totalPhones = isMobile ? 6 : isTablet ? 7 : 10;
+    // Always show 10 phones on desktop, 9 on mobile
+    const totalPhones = isMobile ? 9 : isTablet ? 7 : 10;
     
     console.log(`[Header3D] Category: ${selectedCategory}, Videos: ${filteredVideos.length}, Phones: ${totalPhones}`);
     
@@ -339,7 +343,7 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
       className="relative w-full block" 
       style={{ height: `${PARALLAX_DURATION_VIEWPORTS * 100}vh` }}
     >
-      <div className="sticky top-0 h-screen w-full overflow-hidden flex items-center bg-[#ebeef8] z-10">
+      <div className={`sticky top-0 h-screen w-full overflow-hidden bg-[#ebeef8] z-10 ${isMobile ? 'flex flex-col' : 'flex items-center'}`}>
         
         {/* Logo */}
         <div className="absolute top-12 z-50" style={{ left: '5.5%' }}>
@@ -465,10 +469,11 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
 
         {/* 3D Phone Grid Layer */}
         <div
-          className="absolute inset-0 z-40 flex justify-center items-center pointer-events-none"
+          className={`z-40 flex justify-center items-center pointer-events-none ${isMobile ? 'relative' : 'absolute inset-0'}`}
           style={{
             perspective: '1000px',
-            perspectiveOrigin: '60% 40%'  // adjusted vanishing point
+            perspectiveOrigin: '60% 40%',
+            ...(isMobile ? { height: '75vh', width: '100%' } : {})
           }}
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
@@ -477,10 +482,11 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
             shadows={false}  // Disable shadows for better performance
             frameloop="always"  // Always render for animations
             camera={{
-              position: isMobile ? [12, -7, 15] : [20, -12, 24.5],   // Sağa ve aşağıya kaydırıldı
-              fov: isMobile ? 12 : 6.5,  // Wider FOV on mobile
+              // Mobil: Desktop gibi yan açıdan bakış (FOV artırıldı tüm telefonlar görünsün)
+              position: isMobile ? [12, -6, 18] : [20, -12, 24.5],
+              fov: isMobile ? 25 : 6.5,
               near: 0.1,
-              far: 100,  // Reduced far plane
+              far: 100,
             }}
             gl={{
               antialias: true,  // Enable antialiasing for better quality
@@ -501,9 +507,9 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
               pointerEvents: 'auto'
             }}
           >
-            <CameraController 
+            <CameraController
               lookAt={[0, 0, 0]}
-              rotation={[0.5, 0.7, 0.4]}
+              rotation={isMobile ? [0.5, 0.7, 0.4] : [0.5, 0.7, 0.4]}  // Desktop ile aynı açı
             />
             <ambientLight intensity={0.6} />
             <directionalLight position={[10, 40, 5]} intensity={1.2} />
@@ -511,14 +517,14 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
 
             <Suspense fallback={null}>
               <Environment preset="city" />
-              <group rotation={[0, 0, 0]} scale={isMobile ? 1.5 : isTablet ? 1.3 : 1.1} position={[0, 0, 0]}>
+              <group rotation={[0, 0, 0]} scale={isMobile ? 1.0 : isTablet ? 1.3 : 1.1} position={isMobile ? [0, 0, 0] : [0, 0, 0]}>
                 {(() => {
-                  // Telefon sayısını azalt: Sütun bazlı düzenleme
-                  // Desktop: 3 sütun (4+3+3), Tablet: 3 sütun (3+2+2), Mobile: 2 sütun (3+3)
-                  const columns = isMobile ? 2 : 3;
-                  const phonesPerColumn = isMobile 
-                    ? [3, 3]  // Mobile: 2 sütun, her biri 3 telefon
-                    : isTablet 
+                  // Telefon sayısını ayarla: Sütun bazlı düzenleme
+                  // Desktop: 3 sütun (4+3+3), Mobile: 3x3 diyagonal
+                  const columns = 3;  // Hepsi 3 sütun
+                  const phonesPerColumn = isMobile
+                    ? [3, 3, 3]  // Mobile: 3x3 = 9 telefon diyagonal düzen
+                    : isTablet
                       ? [3, 2, 2]  // Tablet: 3 sütun (3+2+2 = 7 telefon)
                       : [4, 3, 3];  // Desktop: 3 sütun (4+3+3 = 10 telefon)
                   
@@ -545,20 +551,29 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
                           let x: number, y: number, z: number;
 
                           if (isMobile) {
-                            // ===== MOBİL CAROUSEL =====
-                            const offsetFromCenter = index - carouselIndex;
+                            // ===== MOBİL: DESKTOP İLE AYNI GRİD DÜZEN =====
+                            const movingDown = col % 2 !== 0;
+                            const spacingX = 1.1;  // Desktop ile aynı
+                            const spacingY = 2.0;  // Desktop ile aynı
 
-                            // Görünmeyenleri render etme (performans)
-                            if (Math.abs(offsetFromCenter) > 2) return null;
+                            // X pozisyonu - sütun bazlı (desktop ile aynı)
+                            x = (col - 1) * spacingX; // -1.1, 0, 1.1
 
-                            // X: Carousel pozisyonu (ortadan uzaklığa göre)
-                            x = offsetFromCenter * 2.0;
+                            // Y pozisyonu - her sütundaki telefon sayısına göre merkezle
+                            const centerOffsetForColumn = (totalInColumn - 1) / 2;
+                            let baseY = (row - centerOffsetForColumn) * spacingY;
 
-                            // Y: Sabit
-                            y = 0;
+                            // 2. sütundaki telefonları bir telefon boyu yukarı taşı (desktop ile aynı)
+                            if (col === 1) {
+                              baseY += spacingY;
+                            }
 
-                            // Z: Ortadaki yakın, yanlardakiler uzak (perspektif efekti)
-                            z = offsetFromCenter === 0 ? 0 : -2 - Math.abs(offsetFromCenter) * 0.5;
+                            // Parallax efekti
+                            const offsetMultiplier = 0.02;
+                            const yOffset = movingDown ? -parallaxOffset * offsetMultiplier : parallaxOffset * offsetMultiplier;
+                            y = baseY + yOffset;
+
+                            z = 0;
 
                           } else {
                             // ===== DESKTOP GRİD (DEĞİŞMEZ) =====
@@ -601,9 +616,15 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
                           
                           // Calculate entrance delay based on row and column for better stagger
                           const entranceDelay = hasEntered ? 0 : (col * 50 + row * 20); // Sütun bazlı gecikme
-                          
+
+                          // Mobile: hasEntered depends on scroll progress with stagger
+                          const mobileHasEntered = isMobile
+                            ? mobileScrollProgress >= (index * 0.15)
+                            : hasEntered;
+
                           // All phones use AnimatedPhone
                           const phoneNumber = index + 1;
+
                           return (
                             <AnimatedPhone
                               key={cfg.key}
@@ -613,8 +634,8 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
                               isSelected={isSelected}
                               shouldFall={shouldFall}
                               fallDelay={fallDelay}
-                              hasEntered={hasEntered}
-                              entranceDelay={entranceDelay}
+                              hasEntered={mobileHasEntered}
+                              entranceDelay={isMobile ? 0 : entranceDelay}
                               showDebugNumber={selectedCategory === 'debug'}
                               debugNumber={phoneNumber}
                               onClick={() => handlePhoneClick(cfg.key, isSelected)}
@@ -781,12 +802,13 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
         )}
 
         {/* Content Layer */}
-        <div className={`relative z-50 text-left max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-4xl p-6 sm:p-8 md:p-12 lg:p-16 xl:p-20 transition-opacity ${selectedPhone ? 'opacity-0' : 'opacity-100'}`}
+        <div className={`z-50 text-left transition-opacity ${selectedPhone ? 'opacity-0' : 'opacity-100'} ${isMobile ? 'relative w-full px-4 pb-4' : 'relative max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-4xl p-6 sm:p-8 md:p-12 lg:p-16 xl:p-20'}`}
              style={{
                transform: selectedPhone ? 'translateY(12px)' : 'translateY(0)',
                transitionDuration: selectedPhone ? '800ms' : '1000ms',
                transitionDelay: selectedPhone ? '0ms' : '200ms',
-               transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)'
+               transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)',
+               ...(isMobile ? { height: '25vh', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' } : {})
              }}>
           <div >
             <h1

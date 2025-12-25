@@ -16,20 +16,24 @@ interface AnimatedPhoneProps {
   entranceDelay?: number;
   showDebugNumber?: boolean;
   debugNumber?: number;
+  mobileRotation?: [number, number, number];  // Mobil için özel rotasyon
+  mobileScale?: number;  // Mobil için özel scale
 }
 
-const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({ 
+const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
   videoSrc,
   fullVideoSrc,
-  position, 
-  isSelected, 
+  position,
+  isSelected,
   onClick,
   shouldFall = false,
   fallDelay = 0,
   hasEntered = false,
   entranceDelay = 0,
   showDebugNumber = false,
-  debugNumber = 0
+  debugNumber = 0,
+  mobileRotation,
+  mobileScale = 1
 }) => {
   // Loading state for full video
   const [isLoadingFullVideo, setIsLoadingFullVideo] = useState(false);
@@ -122,9 +126,10 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
     y: Math.PI * 2 * rotationDirection,      // 360 degrees - one full rotation (random direction)
     z: 0                 // No side rotation
   } : hasEntered ? {
-    x: 0,
-    y: 0,
-    z: 0
+    // Mobil rotasyon varsa kullan, yoksa varsayılan
+    x: mobileRotation ? mobileRotation[0] : 0,
+    y: mobileRotation ? mobileRotation[1] : 0,
+    z: mobileRotation ? mobileRotation[2] : 0
   } : {
     x: -Math.PI / 6,     // Start tilted back
     y: Math.PI * rotationDirection,  // Random initial rotation
@@ -143,7 +148,7 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
     posX: targetPosition.x,
     posY: targetPosition.y,
     posZ: targetPosition.z,
-    scale: shouldFall ? 0.8 : (hasEntered ? 1 : 0.5),  // Start small, grow to normal
+    scale: shouldFall ? 0.8 : (hasEntered ? mobileScale : 0.5),  // Mobil scale kullan
     opacity: shouldFall ? 0 : (hasEntered ? 1 : 0),  // Start invisible then fade in
     config: { 
       mass: shouldFall ? 8 : (isSelected ? 1.5 : (hasEntered ? 1.2 : 1)),      // Heavier for smoother animations
