@@ -125,7 +125,7 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
   // Y ekseni: Soldan sağa dönüş
   const targetRotation = isSelected ? {
     x: Math.PI / 4.2,      // Eğim yok, düz duracak
-    y: Math.PI * 2.25,      // 360 derece Y ekseninde dönüş
+    y: Math.PI * 2.12,      // 360 derece Y ekseninde dönüş
     z: 0
   } : shouldFall ? {
     x: 0,                // No tilt
