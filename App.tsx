@@ -18,6 +18,8 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [isQuoteLightboxOpen, setIsQuoteLightboxOpen] = useState(false);
+  const [is3DReady, setIs3DReady] = useState(false);
+  const [videosReady, setVideosReady] = useState(false);
   const { isMobile, isTablet } = useBreakpoint();
   
   useEffect(() => {
@@ -64,7 +66,7 @@ const App: React.FC = () => {
     // Set minimum loading time to ensure videos are truly ready
     setTimeout(() => {
       minimumTimeElapsed = true;
-    }, 800); // Increased to give videos more time
+    }, 300); // Quick minimum time
     
     const updateProgress = () => {
       // Use STRICT mode to ensure videos are really ready
@@ -127,11 +129,10 @@ const App: React.FC = () => {
           clearInterval(checkReadiness);
           console.log('[App] ✅ All videos FULLY ready!');
           updateProgress();
-          
-          // Now we're truly ready
-          setTimeout(() => {
-            setLoadingProgress(100);
-          }, 300); // Small transition delay
+
+          // Videos are ready - no delay
+          setLoadingProgress(100);
+          setVideosReady(true);
         }
       }, 200); // Check every 200ms
       
@@ -165,11 +166,13 @@ const App: React.FC = () => {
       if (basicReady.percentage >= 100) {
         console.log('[App] ⚠️ Proceeding with basic readiness');
         setLoadingProgress(100);
+        setVideosReady(true);
       } else {
         // Give it more time if not even basically ready
         console.log('[App] ⏳ Extending loading time...');
         setTimeout(() => {
           setLoadingProgress(100);
+          setVideosReady(true);
         }, 2000);
       }
     }, 4000); // Increased to 4 seconds for better guarantee
@@ -180,20 +183,49 @@ const App: React.FC = () => {
     };
   }, [isMobile, isTablet]);
   
+  // When videos are ready, allow loading to complete
+  useEffect(() => {
+    if (videosReady) {
+      console.log('[App] ✅ Videos ready - loading can complete');
+    }
+  }, [videosReady]);
+
   const handleLoadComplete = () => {
+    // Loading animation finished
+    console.log('[App] Loading animation complete');
     setIsLoading(false);
   };
-  
-  if (isLoading) {
-    return <SimpleLoadingScreen onLoadComplete={handleLoadComplete} progress={loadingProgress} />;
-  }
-  
+
+  // Handle 3D ready callback
+  const handle3DReady = () => {
+    console.log('[App] 🎮 3D content ready');
+    setIs3DReady(true);
+  };
+
+  // Revealed state - triggers content animations after loading
+  const [isRevealed, setIsRevealed] = useState(false);
+
+  // When loading finishes, trigger reveal after shrink animation completes
+  useEffect(() => {
+    if (!isLoading) {
+      const timer = setTimeout(() => {
+        setIsRevealed(true);
+      }, 300); // Wait for loading screen to finish shrinking
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading]);
+
   return (
     <>
+      {/* Main page always renders - loading screen is on top */}
       <Suspense fallback={<div className="h-screen bg-[#ebeef8]" />}>
-        <Header3D onOpenQuote={() => setIsQuoteLightboxOpen(true)} />
+        <Header3D
+          onOpenQuote={() => setIsQuoteLightboxOpen(true)}
+          onReady={handle3DReady}
+          revealed={isRevealed}
+        />
       </Suspense>
-      
+
       <main className="min-h-screen">
         <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
           <Services onOpenQuote={() => setIsQuoteLightboxOpen(true)} />
@@ -204,12 +236,19 @@ const App: React.FC = () => {
         </Suspense>
       </main>
 
-      <SimpleQuoteLightbox 
-        isOpen={isQuoteLightboxOpen} 
-        onClose={() => setIsQuoteLightboxOpen(false)} 
+      <SimpleQuoteLightbox
+        isOpen={isQuoteLightboxOpen}
+        onClose={() => setIsQuoteLightboxOpen(false)}
       />
-      
+
       <UrgencyBar onOpenQuote={() => setIsQuoteLightboxOpen(true)} />
+
+      {/* Loading screen overlays the page and shrinks into yellow circle */}
+      <SimpleLoadingScreen
+        onLoadComplete={handleLoadComplete}
+        progress={loadingProgress}
+        isActive={isLoading}
+      />
     </>
   );
 };

@@ -8,15 +8,28 @@ import { getVideosByCategory } from '../videoUtils';
 
 interface Header3DProps {
   onOpenQuote?: () => void;
+  onReady?: () => void;  // Called when 3D content is fully rendered
+  revealed?: boolean;    // True when loading screen has finished transitioning
 }
 
-const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
+const Header3D: React.FC<Header3DProps> = ({ onOpenQuote, onReady, revealed = false }) => {
   const [parallaxOffset, setParallaxOffset] = useState(0);
   const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
   const [isClosing, setIsClosing] = useState(false);
   const [lastSelectedPhone, setLastSelectedPhone] = useState<string | null>(null);
   const [hasEntered, setHasEntered] = useState(true); // Start as true for immediate display
-  const [showContent] = useState(true); // Always show content since App.tsx handles loading
+  const [showContent, setShowContent] = useState(false); // Content animations wait for reveal
+
+  // Start content animations after reveal
+  useEffect(() => {
+    if (revealed) {
+      // Small delay after loading screen shrinks
+      const timer = setTimeout(() => {
+        setShowContent(true);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [revealed]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isCategoryChanging, setIsCategoryChanging] = useState(false);
   const [phonesShouldFall, setPhonesShouldFall] = useState(false);
@@ -24,7 +37,7 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
   const [touchStartX, setTouchStartX] = useState(0);
   const [mobileScrollProgress, setMobileScrollProgress] = useState(0);
   const headerRef = useRef<HTMLElement | null>(null);
-  const animationFrameRef = useRef<number | undefined>();
+  const animationFrameRef = useRef<number | undefined>(undefined);
   
   // Animated locations with icons
   const locations = [
@@ -112,54 +125,66 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
   useEffect(() => {
     let ticking = false;
     let lastScrollY = 0;
-    
+    let lastUpdateTime = 0;
+    const THROTTLE_MS = 32; // ~30fps max update rate
+
+    // Cache DOM values - only read once per resize
+    let cachedHeaderTop = 0;
+    let cachedHeaderHeight = 0;
+    let cachedViewportHeight = window.innerHeight;
+
+    const updateCachedValues = () => {
+      if (headerRef.current) {
+        cachedHeaderTop = headerRef.current.offsetTop;
+        cachedHeaderHeight = headerRef.current.offsetHeight;
+      }
+      cachedViewportHeight = window.innerHeight;
+    };
+
+    updateCachedValues();
+    window.addEventListener('resize', updateCachedValues, { passive: true });
+
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-      
-      // Skip if scroll change is too small
-      if (Math.abs(currentScrollY - lastScrollY) < 2) {
+      const now = performance.now();
+
+      // Skip if scroll change is too small or too soon
+      if (Math.abs(currentScrollY - lastScrollY) < 5 || (now - lastUpdateTime) < THROTTLE_MS) {
         return;
       }
-      
+
       lastScrollY = currentScrollY;
-      
+      lastUpdateTime = now;
+
       if (!ticking) {
         ticking = true;
         animationFrameRef.current = requestAnimationFrame(() => {
-          if (!headerRef.current) {
-            ticking = false;
-            return;
-          }
-
-          const { offsetTop: headerTopOffset, offsetHeight: headerClientHeight } = headerRef.current;
-          const viewportHeight = window.innerHeight;
-
-          const scrollRelativeToStickyActive = Math.max(0, currentScrollY - headerTopOffset);
-          const parallaxActiveScrollRange = headerClientHeight - viewportHeight;
+          const scrollRelativeToStickyActive = Math.max(0, currentScrollY - cachedHeaderTop);
+          const parallaxActiveScrollRange = cachedHeaderHeight - cachedViewportHeight;
 
           if (parallaxActiveScrollRange <= 0) {
             setParallaxOffset(0);
             ticking = false;
             return;
           }
-          
+
           let effectiveParallaxScroll = Math.max(0, Math.min(scrollRelativeToStickyActive, parallaxActiveScrollRange));
-          if (currentScrollY < headerTopOffset) {
+          if (currentScrollY < cachedHeaderTop) {
             effectiveParallaxScroll = 0;
           }
 
           const scrollProgress = effectiveParallaxScroll / parallaxActiveScrollRange;
-          const MAX_OFFSET_PERCENT = 120; // Original value from working version
+          const MAX_OFFSET_PERCENT = 120;
           const newParallaxOffset = scrollProgress * MAX_OFFSET_PERCENT;
-          
-          // Only update if change is significant
+
+          // Only update if change is significant (increased threshold)
           setParallaxOffset(prev => {
-            if (Math.abs(prev - newParallaxOffset) > 0.5) {
+            if (Math.abs(prev - newParallaxOffset) > 1) {
               return newParallaxOffset;
             }
             return prev;
           });
-          
+
           ticking = false;
         });
       }
@@ -170,6 +195,7 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', updateCachedValues);
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
@@ -205,8 +231,8 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
         }
       });
       
-      // Karıştır ve 10 video seç
-      const mixedVideos = [...selectedVideos].sort(() => Math.random() - 0.5).slice(0, 10);
+      // Karıştır ve 11 video seç (mobil için 4+4+3=11)
+      const mixedVideos = [...selectedVideos].sort(() => Math.random() - 0.5).slice(0, 11);
       
       filteredVideos = mixedVideos.map(video => ({
         id: video.id,
@@ -260,8 +286,8 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
       // Commercial kategorisi için rastgele sıralama
       const categoryVideos = getVideosByCategory(selectedCategory);
       
-      // Videoları karıştır ve ilk 10'u al (12 video var)
-      const shuffledVideos = [...categoryVideos].sort(() => Math.random() - 0.5).slice(0, 10);
+      // Videoları karıştır ve ilk 11'i al (mobil için 4+4+3=11)
+      const shuffledVideos = [...categoryVideos].sort(() => Math.random() - 0.5).slice(0, 11);
       
       // MediaContent'ten preview URL'lerini çıkar ve VideoInfo formatına çevir
       filteredVideos = shuffledVideos.map(video => ({
@@ -289,8 +315,8 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
       }));
     }
     
-    // Always show 10 phones on desktop, 9 on mobile
-    const totalPhones = isMobile ? 9 : isTablet ? 7 : 10;
+    // Always show 10 phones on desktop, 11 on mobile (4+4+3)
+    const totalPhones = isMobile ? 11 : isTablet ? 7 : 10;
     
     console.log(`[Header3D] Category: ${selectedCategory}, Videos: ${filteredVideos.length}, Phones: ${totalPhones}`);
     
@@ -358,15 +384,15 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
         </div>
         
         {/* Static cursor indicator - animated entrance and hide when phone is selected */}
-        <div 
-          className="absolute z-50" 
-          style={{ 
-            right: '20%', 
+        <div
+          className="absolute z-50"
+          style={{
+            right: '20%',
             top: '10%',
-            opacity: selectedPhone ? 0 : (hasEntered ? 1 : 0),
-            transform: hasEntered ? 'scale(1) translateY(0)' : 'scale(0.5) translateY(30px)',
-            transition: 'all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)',
-            transitionDelay: hasEntered ? '0.5s' : '0s',
+            opacity: selectedPhone ? 0 : (showContent ? 1 : 0),
+            transform: showContent ? 'scale(1)' : 'scale(0.5)',
+            transition: 'all 1s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            transitionDelay: showContent ? '0.7s' : '0s',
             pointerEvents: selectedPhone ? 'none' : 'auto'
           }}
         >
@@ -489,27 +515,31 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
               far: 100,
             }}
             gl={{
-              antialias: true,  // Enable antialiasing for better quality
+              antialias: false,  // Disabled for performance
               alpha: true,
               powerPreference: 'high-performance',
               stencil: false,
               depth: true,
-              preserveDrawingBuffer: false,  // Better performance
+              preserveDrawingBuffer: false,
               failIfMajorPerformanceCaveat: false
             }}
-            dpr={[1, 2]}  // Allow up to 2x for retina displays
-            style={{ 
-              width: '100%', 
+            dpr={[1, 2]}  // Dynamic: uses device pixel ratio up to 2x
+            onCreated={() => {
+              // Signal that 3D is ready immediately
+              onReady?.();
+            }}
+            style={{
+              width: '100%',
               height: '100%',
               opacity: showContent ? 1 : 0,
-              animation: showContent ? 'fade-in 1.2s ease-out 0.2s forwards' : 'none',
+              transition: 'opacity 1s ease-out',
               cursor: `url('/images/cursor.svg') 16 16, pointer`,
               pointerEvents: 'auto'
             }}
           >
             <CameraController
               lookAt={[0, 0, 0]}
-              rotation={isMobile ? [0.5, 0.7, 0.4] : [0.5, 0.7, 0.4]}  // Desktop ile aynı açı
+              rotation={isMobile ? [0.60, 0.55, 0.4] : [0.5, 0.7, 0.4]}  // Desktop ile aynı açı
             />
             <ambientLight intensity={0.6} />
             <directionalLight position={[10, 40, 5]} intensity={1.2} />
@@ -517,13 +547,13 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
 
             <Suspense fallback={null}>
               <Environment preset="city" />
-              <group rotation={[0, 0, 0]} scale={isMobile ? 1.0 : isTablet ? 1.3 : 1.1} position={isMobile ? [0, 0, 0] : [0, 0, 0]}>
+              <group rotation={[0, 0, 0]} scale={isMobile ? 2.5 : isTablet ? 1.3 : 1.1} position={isMobile ? [0, 0, 0] : [0, 0, 0]}>
                 {(() => {
                   // Telefon sayısını ayarla: Sütun bazlı düzenleme
                   // Desktop: 3 sütun (4+3+3), Mobile: 3x3 diyagonal
                   const columns = 3;  // Hepsi 3 sütun
                   const phonesPerColumn = isMobile
-                    ? [3, 3, 3]  // Mobile: 3x3 = 9 telefon diyagonal düzen
+                    ? [4, 4, 3]  // Mobile: 4+4+3 = 11 telefon
                     : isTablet
                       ? [3, 2, 2]  // Tablet: 3 sütun (3+2+2 = 7 telefon)
                       : [4, 3, 3];  // Desktop: 3 sütun (4+3+3 = 10 telefon)
@@ -563,10 +593,13 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
                             const centerOffsetForColumn = (totalInColumn - 1) / 2;
                             let baseY = (row - centerOffsetForColumn) * spacingY;
 
-                            // 2. sütundaki telefonları bir telefon boyu yukarı taşı (desktop ile aynı)
-                            if (col === 1) {
-                              baseY += spacingY;
+                            // Sütun bazlı Y offset
+                            if (col === 0) {
+                              baseY += spacingY;  // 1. sütun bir satır yukarı
+                            } else if (col === 1) {
+                              baseY += spacingY;  // 2. sütun bir satır yukarı
                             }
+                            // 3. sütun offset yok - ikinci satırdan başlar
 
                             // Parallax efekti
                             const offsetMultiplier = 0.02;
@@ -617,9 +650,9 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
                           // Calculate entrance delay based on row and column for better stagger
                           const entranceDelay = hasEntered ? 0 : (col * 50 + row * 20); // Sütun bazlı gecikme
 
-                          // Mobile: hasEntered depends on scroll progress with stagger
+                          // Mobile: all phones enter immediately (no stagger)
                           const mobileHasEntered = isMobile
-                            ? mobileScrollProgress >= (index * 0.15)
+                            ? true
                             : hasEntered;
 
                           // All phones use AnimatedPhone
@@ -639,6 +672,7 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
                               showDebugNumber={selectedCategory === 'debug'}
                               debugNumber={phoneNumber}
                               onClick={() => handlePhoneClick(cfg.key, isSelected)}
+                              isMobile={isMobile}
                             />
                           );
                   });
@@ -728,9 +762,14 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
         
         {/* Project details - shown when phone is selected */}
         {(selectedPhone || isClosing) && (
-          <div className="absolute inset-0 z-40 pointer-events-none flex h-full">
-            {/* Left side - Project details */}
-            <div className={`w-full md:w-1/2 p-4 sm:p-8 md:p-12 lg:p-16 flex flex-col justify-center pointer-events-auto`}>
+          <div className="absolute inset-0 z-40 pointer-events-none flex flex-col md:flex-row h-full">
+            {/* Mobile: Top area - clickable to close */}
+            <div
+              className="md:hidden flex-1 pointer-events-auto"
+              onClick={() => selectedPhone && handlePhoneClick(selectedPhone, true)}
+            />
+            {/* Left side (desktop) / Bottom side (mobile) - Project details */}
+            <div className={`w-full md:w-1/2 p-4 sm:p-8 md:p-12 lg:p-16 flex flex-col justify-center md:justify-center pointer-events-auto bg-gradient-to-t from-white/95 via-white/80 to-transparent md:bg-none`}>
               {(() => {
                 const phoneKey = isClosing ? lastSelectedPhone : selectedPhone;
                 const selectedConfig = phoneConfigs.find(cfg => cfg.key === phoneKey);
@@ -802,7 +841,7 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
         )}
 
         {/* Content Layer */}
-        <div className={`z-50 text-left transition-opacity ${selectedPhone ? 'opacity-0' : 'opacity-100'} ${isMobile ? 'relative w-full px-4 pb-4' : 'relative max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-4xl p-6 sm:p-8 md:p-12 lg:p-16 xl:p-20'}`}
+        <div className={`z-50 text-left transition-opacity ${selectedPhone ? 'opacity-0' : 'opacity-100'} ${isMobile ? 'relative w-full px-4 pt-8 pb-4' : 'relative max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-4xl p-6 sm:p-8 md:p-12 lg:p-16 xl:p-20'}`}
              style={{
                transform: selectedPhone ? 'translateY(12px)' : 'translateY(0)',
                transitionDuration: selectedPhone ? '800ms' : '1000ms',
@@ -813,12 +852,13 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
           <div >
             <h1
               className="font-ramillas text-neutral-900 mb-4 md:mb-6"
-              style={{ 
+              style={{
                 fontSize: 'clamp(32px, 4.5vw, 58px)',
                 lineHeight: '1.15',
                 letterSpacing: '-0.02em',
-                opacity: 1, 
-                animation: showContent ? 'slide-in-left 0.4s ease-out' : 'none' 
+                opacity: showContent ? 1 : 0,
+                transform: showContent ? 'translateX(0)' : 'translateX(-40px)',
+                transition: 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1) 0.1s'
               }}
             >
               <div>
@@ -832,12 +872,13 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
             </h1>
             <p
               className="font-grotesk text-neutral-600 mb-6 sm:mb-8 md:mb-10"
-              style={{ 
+              style={{
                 fontSize: 'clamp(17px, 2vw, 22px)',
                 letterSpacing: '-0.01em',
                 fontWeight: '400',
-                opacity: 1, 
-                animation: showContent ? 'slide-in-left 0.4s ease-out 0.1s' : 'none',
+                opacity: showContent ? 1 : 0,
+                transform: showContent ? 'translateX(0)' : 'translateX(-40px)',
+                transition: 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1) 0.3s',
                 position: 'relative',
                 height: '1.5em'
               }}
@@ -864,9 +905,10 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote }) => {
           </div>
           <div
             className="w-full overflow-x-auto md:overflow-visible"
-            style={{ 
-              opacity: 1, 
-              animation: showContent ? 'slide-in-left 0.4s ease-out 0.2s' : 'none',
+            style={{
+              opacity: showContent ? 1 : 0,
+              transform: showContent ? 'translateX(0)' : 'translateX(-40px)',
+              transition: 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1) 0.5s',
               pointerEvents: 'auto',
               position: 'relative',
               zIndex: 100

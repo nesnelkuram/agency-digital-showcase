@@ -18,6 +18,7 @@ interface AnimatedPhoneProps {
   debugNumber?: number;
   mobileRotation?: [number, number, number];  // Mobil için özel rotasyon
   mobileScale?: number;  // Mobil için özel scale
+  isMobile?: boolean;  // Mobil cihaz mı
 }
 
 const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
@@ -33,7 +34,8 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
   showDebugNumber = false,
   debugNumber = 0,
   mobileRotation,
-  mobileScale = 1
+  mobileScale = 1,
+  isMobile = false
 }) => {
   // Loading state for full video
   const [isLoadingFullVideo, setIsLoadingFullVideo] = useState(false);
@@ -96,12 +98,16 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
   // Initial position for entrance animation (phones start very close)
   const initialPosition = hasEntered ? position : [position[0], position[1] - 0.5, position[2] - 3];
   
-  // Kamera FOV'u 8 derece ve rotation'ı dikkate alarak telefonu viewport'ta tut
-  const targetPosition = isSelected ? {
-    x: 3.4,       // Kamera rotation'ı nedeniyle sağa kaydır
-    y: -2,      // Kamera rotation'ı ve FOV için aşağıda tut - biraz yukarı aldık
-    z: 5      // Kameraya yakın ama tamamı görünecek mesafede
-  } : shouldFall ? {
+  // Kamera FOV'u ve rotation'ı dikkate alarak telefonu viewport'ta tut
+  const targetPosition = isSelected ? (isMobile ? {
+    x: 1.4,         // Mobilde ortada
+    y: 0,         // Mobilde biraz yukarıda
+    z: 2          // Mobilde kameraya yakın
+  } : {
+    x: 3.4,       // Desktop: Kamera rotation'ı nedeniyle sağa kaydır
+    y: -2,        // Desktop: Kamera rotation'ı ve FOV için aşağıda tut
+    z: 5          // Desktop: Kameraya yakın ama tamamı görünecek mesafede
+  }) : shouldFall ? {
     x: position[0],
     y: position[1],  // Keep same height
     z: position[2] - 35  // Fall backward away from camera (closer than before)
@@ -136,7 +142,7 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
     z: 0
   };
   
-  // Yavaş ve yumuşak animasyon - position ve rotation ayrı
+  // Optimized position animation - lighter config for better performance
   const { posX, posY, posZ, scale, opacity } = useSpring({
     from: {
       posX: position[0],
@@ -148,17 +154,17 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
     posX: targetPosition.x,
     posY: targetPosition.y,
     posZ: targetPosition.z,
-    scale: shouldFall ? 0.8 : (hasEntered ? mobileScale : 0.5),  // Mobil scale kullan
-    opacity: shouldFall ? 0 : (hasEntered ? 1 : 0),  // Start invisible then fade in
-    config: { 
-      mass: shouldFall ? 8 : (isSelected ? 1.5 : (hasEntered ? 1.2 : 1)),      // Heavier for smoother animations
-      tension: shouldFall ? 20 : (isSelected ? 70 : (hasEntered ? 70 : 80)),   // Lower tension for smoother motion
-      friction: shouldFall ? 30 : (isSelected ? 20 : (hasEntered ? 18 : 15)), // Higher friction for smoother feel
-      delay: shouldFall ? (fallDelay * 1) : (hasEntered ? 0 : 0)  // No delay for entrance when already entered
+    scale: shouldFall ? 0.8 : (hasEntered ? mobileScale : 0.5),
+    opacity: shouldFall ? 0 : (hasEntered ? 1 : 0),
+    config: {
+      mass: shouldFall ? 2 : (isSelected ? 1.5 : (hasEntered ? 1.2 : 1)),      // Lighter mass = faster settle
+      tension: shouldFall ? 80 : (isSelected ? 70 : (hasEntered ? 70 : 80)),   // Higher tension = snappier
+      friction: shouldFall ? 20 : (isSelected ? 20 : (hasEntered ? 18 : 15)),  // Lower friction = less drag
+      delay: shouldFall ? (fallDelay * 1) : (hasEntered ? 0 : 0)
     }
   });
 
-  // Separate rotation animation with its own delay
+  // Optimized rotation animation
   const { rotX, rotY, rotZ } = useSpring({
     from: {
       rotX: -Math.PI / 8,
@@ -168,11 +174,11 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
     rotX: targetRotation.x,
     rotY: targetRotation.y,
     rotZ: targetRotation.z,
-    config: { 
-      mass: shouldFall ? 5 : (isSelected ? 1.8 : (hasEntered ? 1.2 : 2)),  // Heavier for smoother rotation
-      tension: shouldFall ? 25 : (isSelected ? 60 : (hasEntered ? 70 : 50)),  // Lower tension for smoother response
-      friction: shouldFall ? 28 : (isSelected ? 22 : (hasEntered ? 18 : 18)),  // Higher friction for smoother motion
-      delay: shouldFall ? (rotationStartDelay * 0.7) : (hasEntered ? 0 : 0)  // No delay for entrance
+    config: {
+      mass: shouldFall ? 1.5 : (isSelected ? 1.8 : (hasEntered ? 1.2 : 2)),  // Lighter mass for faster settle
+      tension: shouldFall ? 100 : (isSelected ? 60 : (hasEntered ? 70 : 50)),  // Higher tension = faster response
+      friction: shouldFall ? 15 : (isSelected ? 22 : (hasEntered ? 18 : 18)),  // Lower friction = less drag
+      delay: shouldFall ? (rotationStartDelay * 0.7) : (hasEntered ? 0 : 0)
     }
   });
 
