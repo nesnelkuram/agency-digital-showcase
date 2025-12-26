@@ -149,6 +149,17 @@ const App: React.FC = () => {
           });
         }, 3000); // Load after user starts interacting
       }
+
+      // Preload FULL videos in background for instant playback when clicked
+      setTimeout(() => {
+        const fullVideoUrls = initialVideos.map(url =>
+          url.replace('/preview/', '/full/')
+        );
+        console.log(`[App] Starting full video preload in background (${fullVideoUrls.length} videos)`);
+        videoCache.preloadBatch(fullVideoUrls).then(() => {
+          console.log('[App] ✅ Full videos preloaded - clicks will be instant!');
+        });
+      }, 5000); // Wait 5 seconds after site loads
     });
     
     // Progress polling for smooth updates

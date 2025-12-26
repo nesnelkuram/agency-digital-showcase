@@ -17,17 +17,24 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote, onReady, revealed = fa
   const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
   const [isClosing, setIsClosing] = useState(false);
   const [lastSelectedPhone, setLastSelectedPhone] = useState<string | null>(null);
-  const [hasEntered, setHasEntered] = useState(true); // Start as true for immediate display
+  const [hasEntered, setHasEntered] = useState(false); // Start false for entrance animation
   const [showContent, setShowContent] = useState(false); // Content animations wait for reveal
 
-  // Start content animations after reveal
+  // Start content and phone entrance animations after reveal
   useEffect(() => {
     if (revealed) {
-      // Small delay after loading screen shrinks
-      const timer = setTimeout(() => {
+      // Phones enter first
+      const phoneTimer = setTimeout(() => {
+        setHasEntered(true);
+      }, 50);
+      // Content appears after phones start entering
+      const contentTimer = setTimeout(() => {
         setShowContent(true);
-      }, 100);
-      return () => clearTimeout(timer);
+      }, 300);
+      return () => {
+        clearTimeout(phoneTimer);
+        clearTimeout(contentTimer);
+      };
     }
   }, [revealed]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -650,10 +657,8 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote, onReady, revealed = fa
                           // Calculate entrance delay based on row and column for better stagger
                           const entranceDelay = hasEntered ? 0 : (col * 50 + row * 20); // Sütun bazlı gecikme
 
-                          // Mobile: all phones enter immediately (no stagger)
-                          const mobileHasEntered = isMobile
-                            ? true
-                            : hasEntered;
+                          // Mobile: use hasEntered directly (no scroll-based stagger)
+                          const mobileHasEntered = hasEntered;
 
                           // All phones use AnimatedPhone
                           const phoneNumber = index + 1;
