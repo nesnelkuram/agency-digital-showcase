@@ -387,8 +387,8 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote, onReady, revealed = fa
         <div
           className="absolute z-50"
           style={{
-            right: '20%',
-            top: '10%',
+            left: '5%',
+            top: '8%',
             opacity: selectedPhone ? 0 : (showContent ? 1 : 0),
             transform: showContent ? 'scale(1)' : 'scale(0.5)',
             transition: 'all 1s cubic-bezier(0.34, 1.56, 0.64, 1)',
