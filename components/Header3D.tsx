@@ -110,9 +110,6 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote, onReady, revealed = fa
     }
   }, [selectedPhone]);
 
-  // How many viewport-heights to scroll before parallax ends
-  const PARALLAX_DURATION_VIEWPORTS = 5; // Original value for extended parallax viewing
-  
   // Don't trigger entrance animation until videos are loaded
   // (This is now handled in the preload effect above)
   
@@ -210,6 +207,9 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote, onReady, revealed = fa
   }, []);
 
   const { isMobile, isTablet } = useBreakpoint();
+
+  // How many viewport-heights to scroll before parallax ends
+  const PARALLAX_DURATION_VIEWPORTS = isMobile ? 3.5 : 5; // Mobilde daha kısa, daha erken aşağı in
 
   // Mobile: No scroll animation, phones visible immediately
   useEffect(() => {
@@ -608,8 +608,8 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote, onReady, revealed = fa
                             }
                             // 3. sütun offset yok - ikinci satırdan başlar
 
-                            // Parallax efekti
-                            const offsetMultiplier = 0.02;
+                            // Parallax efekti - mobilde daha hızlı
+                            const offsetMultiplier = 0.035;
                             const yOffset = movingDown ? -parallaxOffset * offsetMultiplier : parallaxOffset * offsetMultiplier;
                             y = baseY + yOffset;
 
