@@ -100,7 +100,7 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
   
   // Kamera FOV'u ve rotation'ı dikkate alarak telefonu viewport'ta tut
   const targetPosition = isSelected ? (isMobile ? {
-    x: 1.4,         // Mobilde ortada
+    x: 1.5,         // Mobilde ortada
     y: 0,         // Mobilde biraz yukarıda
     z: 2          // Mobilde kameraya yakın
   } : {
@@ -124,7 +124,7 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
   // X ekseni: Üstten öne doğru eğilme
   // Y ekseni: Soldan sağa dönüş
   const targetRotation = isSelected ? {
-    x: Math.PI / 4.2,      // Eğim yok, düz duracak
+    x: Math.PI / 4,      // Eğim yok, düz duracak
     y: Math.PI * 2.12,      // 360 derece Y ekseninde dönüş
     z: 0
   } : shouldFall ? {
