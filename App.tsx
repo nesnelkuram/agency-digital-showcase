@@ -9,7 +9,7 @@ import { getVideosByCategory } from './videoUtils';
 // Lazy load heavy components
 const Header3D = lazy(() => import('./components/Header3D'));
 const Services = lazy(() => import('./components/Services'));
-const Portfolio = lazy(() => import('./components/Portfolio'));
+// Portfolio section removed
 const About = lazy(() => import('./components/About'));
 const Contact = lazy(() => import('./components/Contact'));
 const Footer = lazy(() => import('./components/Footer'));
@@ -240,7 +240,6 @@ const App: React.FC = () => {
       <main className="min-h-screen">
         <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
           <Services onOpenQuote={() => setIsQuoteLightboxOpen(true)} />
-          <Portfolio />
           <About />
           <Contact />
           <Footer />
