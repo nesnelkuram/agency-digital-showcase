@@ -46,6 +46,7 @@ export interface Question {
   placeholder?: string;
   options?: SelectionOption[] | null;
   action?: string;
+  stageDescription?: string;  // Aşama açıklaması (intro'da gösterilir)
 
   // Educational için
   stats?: Array<{

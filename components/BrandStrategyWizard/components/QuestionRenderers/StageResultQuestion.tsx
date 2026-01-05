@@ -22,13 +22,41 @@ const StageResultQuestion: React.FC<StageResultQuestionProps> = ({
       transition={{ duration: 0.5 }}
     >
       {/* Header */}
-      <div className="text-center space-y-3">
-        <h2 className="text-2xl md:text-3xl font-bold font-grotesk" style={{ color: '#171717' }}>
+      <div className="text-center space-y-4">
+        {/* Stage label - small, uppercase */}
+        {question.stage && (
+          <motion.span
+            className="block text-sm font-grotesk font-medium uppercase tracking-widest"
+            style={{ color: '#737373' }}
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1, duration: 0.5 }}
+          >
+            Aşama {question.stage.stage + 1} Sonucu
+          </motion.span>
+        )}
+
+        {/* Result title - large serif */}
+        <motion.h2
+          className="text-2xl md:text-3xl lg:text-4xl font-ramillas font-bold leading-tight"
+          style={{ color: '#171717' }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+        >
           {result.title}
-        </h2>
-        <p className="text-base leading-relaxed font-grotesk" style={{ color: '#525252' }}>
+        </motion.h2>
+
+        {/* Description */}
+        <motion.p
+          className="text-base md:text-lg leading-relaxed font-grotesk max-w-xl mx-auto"
+          style={{ color: '#525252' }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.5 }}
+        >
           {result.description}
-        </p>
+        </motion.p>
       </div>
 
       {/* Case Study */}

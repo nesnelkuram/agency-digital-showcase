@@ -23,8 +23,9 @@ export const questions: Question[] = [
       title: "Operasyonel Gerçeklik",
       description: "Brand Readiness Gate"
     },
-    script: "Güçlü bir imaj, zayıf bir operasyonu gizlemez. Aksine, onu hızla görünür kılar.",
-    text: "Aşama 0 — Operasyonel Gerçeklik",
+    script: "Operasyonunuz vaat ettiğinizi taşıyamazsa, pazarlama sadece problemi büyütür.",
+    text: "Aşama 1 — Operasyonel Gerçeklik",
+    stageDescription: "Bu aşama, markanızın vaatlerini operasyonel olarak taşıyıp taşıyamayacağınızı belirler. Pazarlama talebi artırır, ancak hazırlıksız bir operasyon bu talebi kriz haline getirir.",
     action: "Devam"
   },
 
@@ -122,7 +123,7 @@ export const questions: Question[] = [
     id: 7,
     type: 'stage_result',
     script: "Operasyonel hazırlık seviyeniz belirlendi",
-    text: "Aşama 0 Sonucu",
+    text: "Aşama 1 Sonucu",
     stageQuestions: [3, 4, 5],
     resultMatrix: [
       {
@@ -183,7 +184,8 @@ export const questions: Question[] = [
       description: "The Soul"
     },
     script: "İnsanlar yemeği unutur. Ama nasıl hissettiklerini hatırlar.",
-    text: "Aşama 1 — Marka Ruhu",
+    text: "Aşama 2 — Marka Ruhu",
+    stageDescription: "Bu aşama, markanızın duygusal kimliğini ve misafirlerinizde yaratmak istediğiniz hissi tanımlar. İnsanlar yemeği unutur, ama nasıl hissettiklerini hatırlar.",
     action: "Devam"
   },
 
@@ -282,7 +284,7 @@ export const questions: Question[] = [
     id: 13,
     type: 'stage_result',
     script: "Marka ruhunuz belirlendi",
-    text: "Aşama 1 Sonucu",
+    text: "Aşama 2 Sonucu",
     stageQuestions: [9, 10, 11],
     resultMatrix: [
       {
@@ -314,7 +316,8 @@ export const questions: Question[] = [
       description: "Arketip"
     },
     script: "Arketip, markanın neye benzediğini değil, krizde nasıl davrandığını belirler.",
-    text: "Aşama 2 — Marka Karakteri",
+    text: "Aşama 3 — Marka Karakteri",
+    stageDescription: "Bu aşama, markanızın davranış tarzını ve kriz anlarındaki tepkilerini tanımlar. Arketip, markanızın güzel göründüğünde değil, zorlandığında kim olduğunu belirler.",
     action: "Devam"
   },
 
@@ -414,7 +417,7 @@ export const questions: Question[] = [
     id: 19,
     type: 'stage_result',
     script: "Marka arketipi belirlendi",
-    text: "Aşama 2 Sonucu",
+    text: "Aşama 3 Sonucu",
     stageQuestions: [15, 16, 17],
     resultMatrix: [
       {
@@ -446,7 +449,8 @@ export const questions: Question[] = [
       description: "Anti-Persona"
     },
     script: "Herkes için olan yer, kimse için vazgeçilmez değildir.",
-    text: "Aşama 3 — Kim Değiliz",
+    text: "Aşama 4 — Kim Değiliz",
+    stageDescription: "Bu aşama, markanız için zararlı olan kitle profillerini belirlemenize yardımcı olur. Herkes için olan yer, kimse için vazgeçilmez değildir.",
     action: "Devam"
   },
 
@@ -544,7 +548,7 @@ export const questions: Question[] = [
     id: 25,
     type: 'stage_result',
     script: "Anti-persona stratejiniz belirlendi",
-    text: "Aşama 3 Sonucu",
+    text: "Aşama 4 Sonucu",
     stageQuestions: [21, 22, 23],
     resultMatrix: [
       {
@@ -574,7 +578,8 @@ export const questions: Question[] = [
       description: "Viral mi, Değer mi?"
     },
     script: "Ne istiyoruz? Bilinirlik mi, prestij mi, sadakat mi?",
-    text: "Aşama 4 — Hedef ve Başarı",
+    text: "Aşama 5 — Hedef ve Başarı",
+    stageDescription: "Bu aşama, bu projenin birincil hedefini ve başarı metriklerinizi netleştirir. Doluluk mu, prestij mi, sadakat mi? Hedef belirsizse strateji de belirsiz olur.",
     action: "Devam"
   },
 
@@ -673,7 +678,7 @@ export const questions: Question[] = [
     id: 31,
     type: 'stage_result',
     script: "Hedef stratejiniz belirlendi",
-    text: "Aşama 4 Sonucu",
+    text: "Aşama 5 Sonucu",
     stageQuestions: [27, 28, 29],
     resultMatrix: [
       {

@@ -83,7 +83,7 @@ const SelectionListQuestion: React.FC<SelectionListQuestionProps> = ({
                   )}
                 </div>
                 <div className="flex flex-col gap-2">
-                  <span className="font-grotesk font-medium text-lg" style={{ color: isSelected ? '#ffffff' : '#171717' }}>
+                  <span className="font-grotesk font-bold text-lg" style={{ color: isSelected ? '#ffffff' : '#171717' }}>
                     {option.title}
                   </span>
                   {option.desc && (

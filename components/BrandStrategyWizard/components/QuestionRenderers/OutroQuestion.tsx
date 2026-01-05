@@ -30,14 +30,14 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
     {
       id: 'commercial',
       title: 'Reklam Filmi',
-      description: 'Televizyon ve dijital platformlar için profesyonel prodüksiyon. Senaryo, kurgu, renk düzeltme ve ses tasarımı ile tam kapsamlı. 30-60 saniye arası, markanızın hikayesini sinematik dille anlatan geniş bütçeli içerik.',
+      description: 'Sosyal medya ve dijital platformlar için profesyonel prodüksiyon. Senaryo, kurgu, renk düzeltme ve ses tasarımı ile tam kapsamlı. 30-60 saniye arası, markanızın hikayesini sinematik dille anlatan kapsamlı içerik.',
       duration: '30-60 saniye',
       format: 'TV, YouTube, Web'
     },
     {
       id: 'story',
       title: 'Instagram Story & Reels',
-      description: 'Mobil-first, dikkat çeken kısa format videolar. Hızlı kurgu, dinamik geçişler, trend müzikler. 5-15 saniye arası, organik ve otantik görünümlü, sosyal medyada viral olmak için optimize edilmiş içerik.',
+      description: 'Mobil-first, dikkat çeken kısa format videolar. Hızlı kurgu, dinamik geçişler, hikayeye/anlatıya uygun müzik seçimi. 5-15 saniye arası, organik ve otantik görünümlü, sosyal medyada viral olmak için optimize edilmiş içerik.',
       duration: '5-15 saniye',
       format: 'Instagram, TikTok, Shorts'
     },

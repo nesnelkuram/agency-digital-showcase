@@ -83,7 +83,7 @@ const SelectionScoredQuestion: React.FC<SelectionScoredQuestionProps> = ({
                   )}
                 </div>
                 <div className="flex flex-col gap-1 md:gap-2">
-                  <span className="font-grotesk font-medium text-base md:text-lg" style={{ color: isSelected ? '#ffffff' : '#171717' }}>
+                  <span className="font-grotesk font-bold text-base md:text-lg" style={{ color: isSelected ? '#ffffff' : '#171717' }}>
                     {option.title}
                   </span>
                   {option.desc && (

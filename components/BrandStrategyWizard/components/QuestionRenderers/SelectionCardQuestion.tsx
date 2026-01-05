@@ -106,7 +106,7 @@ const SelectionCardQuestion: React.FC<SelectionCardQuestionProps> = ({
                   style={{ color: isSelected ? '#ffffff' : '#525252' }}
                 />
               )}
-              <h3 className="font-grotesk font-medium text-base md:text-lg mb-1" style={{ color: isSelected ? '#ffffff' : '#171717' }}>
+              <h3 className="font-grotesk font-bold text-base md:text-lg mb-1" style={{ color: isSelected ? '#ffffff' : '#171717' }}>
                 {option.title}
               </h3>
               {option.desc && (

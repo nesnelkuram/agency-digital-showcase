@@ -26,46 +26,7 @@ const EducationalQuestion: React.FC<EducationalQuestionProps> = ({ question, onN
         </p>
       </div>
 
-      {/* Stats Grid */}
-      {question.stats && question.stats.length > 0 && (
-        <motion.div
-          className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          {question.stats.map((stat, index) => (
-            <motion.div
-              key={index}
-              className="p-6 rounded-xl border-2"
-              style={{
-                backgroundColor: '#ffffff',
-                borderColor: '#e5e5e5',
-              }}
-              whileHover={{
-                borderColor: '#d4d4d4',
-                scale: 1.02,
-              }}
-              transition={{ duration: 0.2 }}
-            >
-              <div className="text-4xl font-bold font-grotesk mb-2" style={{ color: '#171717' }}>
-                {stat.value}
-              </div>
-              <div className="text-sm font-semibold font-grotesk mb-2" style={{ color: '#171717' }}>
-                {stat.label}
-              </div>
-              <p className="text-xs font-grotesk leading-relaxed mb-2" style={{ color: '#525252' }}>
-                {stat.description}
-              </p>
-              <p className="text-xs font-grotesk italic" style={{ color: '#737373' }}>
-                {stat.source}
-              </p>
-            </motion.div>
-          ))}
-        </motion.div>
-      )}
-
-      {/* Case Study */}
+      {/* Case Study - Hikaye önce gelsin */}
       {question.caseStudy && (
         <motion.div
           className="w-full p-6 rounded-xl border-2"
@@ -75,7 +36,7 @@ const EducationalQuestion: React.FC<EducationalQuestionProps> = ({ question, onN
           }}
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.3 }}
+          transition={{ delay: 0.2 }}
         >
           <div className="flex items-start gap-4">
             {question.caseStudy.type === 'failure' ? (
@@ -116,7 +77,7 @@ const EducationalQuestion: React.FC<EducationalQuestionProps> = ({ question, onN
           }}
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.4 }}
+          transition={{ delay: 0.3 }}
         >
           <div className="flex items-start gap-4">
             <TrendingUp className="w-8 h-8 flex-shrink-0" style={{ color: '#f59e0b' }} />
@@ -129,6 +90,45 @@ const EducationalQuestion: React.FC<EducationalQuestionProps> = ({ question, onN
               </p>
             </div>
           </div>
+        </motion.div>
+      )}
+
+      {/* Stats Grid - İstatistikler en sonda */}
+      {question.stats && question.stats.length > 0 && (
+        <motion.div
+          className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+        >
+          {question.stats.map((stat, index) => (
+            <motion.div
+              key={index}
+              className="p-6 rounded-xl border-2"
+              style={{
+                backgroundColor: '#ffffff',
+                borderColor: '#e5e5e5',
+              }}
+              whileHover={{
+                borderColor: '#d4d4d4',
+                scale: 1.02,
+              }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="text-4xl font-bold font-grotesk mb-2" style={{ color: '#171717' }}>
+                {stat.value}
+              </div>
+              <div className="text-sm font-semibold font-grotesk mb-2" style={{ color: '#171717' }}>
+                {stat.label}
+              </div>
+              <p className="text-xs font-grotesk leading-relaxed mb-2" style={{ color: '#525252' }}>
+                {stat.description}
+              </p>
+              <p className="text-xs font-grotesk italic" style={{ color: '#737373' }}>
+                {stat.source}
+              </p>
+            </motion.div>
+          ))}
         </motion.div>
       )}
 
