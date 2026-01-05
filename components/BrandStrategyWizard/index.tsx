@@ -209,9 +209,9 @@ const BrandStrategyWizard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen h-auto flex flex-col font-grotesk pb-20" style={{ backgroundColor: '#ebeef8', color: '#171717' }}>
+    <div className="min-h-screen w-full h-auto flex flex-col font-grotesk pb-20 overflow-x-hidden" style={{ backgroundColor: '#ebeef8', color: '#171717' }}>
       {/* Header with progress */}
-      <header className="p-6 flex items-center justify-between">
+      <header className="p-4 md:p-6 flex items-center justify-between max-w-full">
         <div className="w-10">
           {currentStep > 0 && currentQuestion.type !== 'intro' && (
             <motion.button
@@ -236,7 +236,7 @@ const BrandStrategyWizard: React.FC = () => {
       </header>
 
       {/* Main content */}
-      <main className="flex-1 flex flex-col items-center justify-center px-6 py-8">
+      <main className="flex-1 flex flex-col items-center justify-center px-4 md:px-6 py-8 w-full max-w-full overflow-x-hidden">
         {/* Question content with animation */}
         <AnimatePresence mode="wait">
           <motion.div
@@ -245,7 +245,7 @@ const BrandStrategyWizard: React.FC = () => {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -50 }}
             transition={{ duration: 0.3 }}
-            className="w-full flex flex-col items-center"
+            className="w-full max-w-full flex flex-col items-center"
           >
             {renderQuestion()}
           </motion.div>
@@ -257,7 +257,7 @@ const BrandStrategyWizard: React.FC = () => {
        currentQuestion.type !== 'educational' &&
        currentQuestion.type !== 'stage_result' &&
        currentQuestion.type !== 'outro' && (
-        <footer className="p-6 flex justify-center">
+        <footer className="p-4 md:p-6 flex justify-center w-full max-w-full">
           <motion.button
             onClick={handleNext}
             disabled={!isCurrentAnswered()}

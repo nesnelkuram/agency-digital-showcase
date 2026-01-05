@@ -175,7 +175,7 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
 
   return (
     <motion.div
-      className="flex flex-col items-center gap-8 w-full max-w-2xl"
+      className="flex flex-col items-center gap-8 w-full max-w-2xl px-2"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
@@ -248,14 +248,14 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3 w-full">
                 {services.map((service) => {
                   const isSelected = selectedServices.includes(service.id);
                   return (
                     <motion.div
                       key={service.id}
                       onClick={() => toggleService(service.id)}
-                      className="p-4 md:p-5 rounded-xl border-2 cursor-pointer transition-all duration-200"
+                      className="p-3 md:p-5 rounded-xl border-2 cursor-pointer transition-all duration-200 w-full"
                       style={{
                         backgroundColor: isSelected ? '#fffceb' : '#ffffff',
                         borderColor: isSelected ? '#171717' : '#e5e5e5',
@@ -276,11 +276,11 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
                         >
                           {isSelected && <Check className="w-3.5 h-3.5 md:w-3.5 md:h-3.5 text-white stroke-[3]" />}
                         </div>
-                        <div className="flex-1">
-                          <div className="font-semibold font-grotesk mb-1 text-sm md:text-base" style={{ color: '#171717' }}>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold font-grotesk mb-1 text-sm md:text-base break-words" style={{ color: '#171717' }}>
                             {service.title}
                           </div>
-                          <p className="text-xs font-grotesk leading-relaxed mb-2" style={{ color: '#525252' }}>
+                          <p className="text-xs font-grotesk leading-relaxed mb-2 break-words" style={{ color: '#525252' }}>
                             {service.description}
                           </p>
                           <div className="flex flex-wrap gap-1.5 md:gap-2">
