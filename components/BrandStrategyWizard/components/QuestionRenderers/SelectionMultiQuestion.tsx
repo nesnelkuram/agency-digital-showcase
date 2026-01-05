@@ -46,7 +46,7 @@ const SelectionMultiQuestion: React.FC<SelectionMultiQuestionProps> = ({
       transition={{ duration: 0.5 }}
     >
       <div className="space-y-3 text-center">
-        <h2 className="text-2xl md:text-3xl font-bold font-grotesk" style={{ color: '#171717' }}>
+        <h2 className="text-2xl md:text-3xl font-bold font-ramillas" style={{ color: '#171717' }}>
           {question.text}
         </h2>
         <p className="text-base md:text-lg leading-relaxed font-grotesk" style={{ color: '#525252' }}>
@@ -103,7 +103,7 @@ const SelectionMultiQuestion: React.FC<SelectionMultiQuestionProps> = ({
                     />
                   )}
                 </div>
-                <span className="font-grotesk font-medium text-lg" style={{ color: isSelected ? '#ffffff' : '#171717' }}>
+                <span className="font-grotesk font-bold text-lg" style={{ color: isSelected ? '#ffffff' : '#171717' }}>
                   {option.title}
                 </span>
               </motion.button>

@@ -191,7 +191,7 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
           >
             {/* Header */}
             <div className="text-center space-y-3 px-4">
-              <h2 className="text-2xl md:text-3xl font-bold font-grotesk" style={{ color: '#171717' }}>
+              <h2 className="text-2xl md:text-3xl font-bold font-ramillas" style={{ color: '#171717' }}>
                 Tebrikler! 🎉
               </h2>
               <p className="text-base md:text-lg leading-relaxed font-grotesk" style={{ color: '#525252' }}>
@@ -411,7 +411,7 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
             </motion.div>
 
             <div className="space-y-3">
-              <h2 className="text-xl md:text-2xl lg:text-3xl font-bold font-grotesk" style={{ color: '#171717' }}>
+              <h2 className="text-xl md:text-2xl lg:text-3xl font-bold font-ramillas" style={{ color: '#171717' }}>
                 Bilgileriniz Alındı! ✓
               </h2>
               <p className="text-sm md:text-base leading-relaxed font-grotesk" style={{ color: '#525252' }}>

@@ -26,7 +26,7 @@ const HybridQuestion: React.FC<HybridQuestionProps> = ({
       transition={{ duration: 0.5 }}
     >
       <div className="space-y-2">
-        <h2 className="text-2xl md:text-3xl font-bold font-grotesk" style={{ color: '#171717' }}>
+        <h2 className="text-2xl md:text-3xl font-bold font-ramillas" style={{ color: '#171717' }}>
           {question.text}
         </h2>
         <p className="text-base leading-relaxed font-grotesk" style={{ color: '#525252' }}>

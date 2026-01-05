@@ -235,9 +235,9 @@ const IntroQuestion: React.FC<IntroQuestionProps> = ({ question, onNext }) => {
         {question.script}
       </motion.p>
 
-      {/* Main title (bold, sans-serif) */}
+      {/* Main title (bold, serif) */}
       <motion.h1
-        className="text-2xl md:text-3xl font-bold font-grotesk leading-tight"
+        className="text-2xl md:text-3xl font-bold font-ramillas leading-tight"
         style={{ color: '#171717' }}
         variants={titleVariants}
         initial="hidden"

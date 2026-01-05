@@ -18,7 +18,7 @@ const EducationalQuestion: React.FC<EducationalQuestionProps> = ({ question, onN
     >
       {/* Header */}
       <div className="text-center space-y-3">
-        <h2 className="text-2xl md:text-3xl font-bold font-grotesk" style={{ color: '#171717' }}>
+        <h2 className="text-2xl md:text-3xl font-bold font-ramillas" style={{ color: '#171717' }}>
           {question.text}
         </h2>
         <p className="text-base md:text-lg leading-relaxed font-grotesk" style={{ color: '#525252' }}>
