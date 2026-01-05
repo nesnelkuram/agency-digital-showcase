@@ -14,21 +14,36 @@ interface IPhone3DProps {
   isSelected?: boolean;
   enableSound?: boolean;
   isLoading?: boolean;
+  loadDelay?: number;  // Delay in ms before starting video load (for staggered loading)
 }
 
-const IPhone3D: React.FC<IPhone3DProps> = ({ 
-  videoSrc, 
-  position = [0, 0, 0], 
+const IPhone3D: React.FC<IPhone3DProps> = ({
+  videoSrc,
+  position = [0, 0, 0],
   rotation = [0, 0, 0],
   scale = 1,
   onClick,
   isNearCamera = true,
   isSelected = false,
   enableSound = false,
-  isLoading = false
+  isLoading = false,
+  loadDelay = 0
 }) => {
   // Check if we should autoplay videos
   const [canAutoplay] = useState(() => shouldAutoplayVideos());
+  // Staggered loading - delay video load based on phone index
+  // TEMPORARILY DISABLED for debugging - set to true immediately
+  const [shouldLoadVideo, setShouldLoadVideo] = useState(true);
+
+  useEffect(() => {
+    // Start loading after delay (or immediately if delay is 0)
+    // TEMPORARILY DISABLED - loading immediately to test
+    // const timer = setTimeout(() => {
+    //   setShouldLoadVideo(true);
+    // }, loadDelay);
+    // return () => clearTimeout(timer);
+  }, [loadDelay]);
+
   // Load iPhone model
   const { scene } = useGLTF('/models/iphone_14_pro_max/scene.gltf') as any;
   
@@ -163,10 +178,25 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
       
       // If no video source, skip video setup for this phone
       if (!videoSrc) {
-        // Empty phone - no video
+        // Show black screen for empty phone
+        mesh.material = new THREE.MeshBasicMaterial({
+          color: '#000000',
+          toneMapped: false,
+          side: THREE.FrontSide
+        });
         return;
       }
-      
+
+      // Staggered loading: show black screen until ready to load
+      if (!shouldLoadVideo) {
+        mesh.material = new THREE.MeshBasicMaterial({
+          color: '#000000',
+          toneMapped: false,
+          side: THREE.FrontSide
+        });
+        return;
+      }
+
       // Create video element and texture with performance optimizations
       const video = document.createElement('video');
       
@@ -276,107 +306,24 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
       
       // Show loading state on screen if loading or if it's a full video that hasn't loaded yet
       if (isLoading || (isFullVideo && video.readyState < 2)) {
-        // Create loading animation with iPhone screen aspect ratio
-        const canvas = document.createElement('canvas');
-        // iPhone 14 Pro Max screen aspect ratio: 19.5:9 (approximately 2.17:1)
-        // Using 1170x2532 scaled down
-        canvas.width = 390;
-        canvas.height = 844;
-        const ctx = canvas.getContext('2d');
-        
-        // Create texture first to avoid reference errors
-        const loadingTexture = new THREE.CanvasTexture(canvas);
-        
-        // Apply same flip as video texture for consistency
-        loadingTexture.wrapS = THREE.ClampToEdgeWrapping;
-        loadingTexture.wrapT = THREE.ClampToEdgeWrapping;
-        loadingTexture.repeat.set(-1, 1);
-        loadingTexture.offset.set(1, 0);
-        
-        if (ctx) {
-          let animationFrame: number;
-          let rotation = 0;
-          
-          const animate = () => {
-            // Clear canvas
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // Draw modern spinner
-            const centerX = canvas.width / 2;
-            const centerY = canvas.height / 2 - 40;
-            const radius = 30;
-            
-            ctx.save();
-            ctx.translate(centerX, centerY);
-            ctx.rotate(rotation);
-            
-            // Draw spinner segments
-            const segments = 8;
-            for (let i = 0; i < segments; i++) {
-              const angle = (i / segments) * Math.PI * 2;
-              const alpha = 1 - (i / segments) * 0.7;
-              
-              ctx.save();
-              ctx.rotate(angle);
-              ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
-              ctx.fillRect(-3, -radius - 10, 6, 12);
-              ctx.restore();
-            }
-            
-            ctx.restore();
-            
-            // Loading text with better typography
-            ctx.fillStyle = '#ffffff';
-            ctx.font = '20px -apple-system, system-ui, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText('Loading video...', centerX, centerY + 70);
-            
-            // Smooth rotation
-            rotation += 0.15;
-            
-            // Update texture
-            loadingTexture.needsUpdate = true;
-            
-            // Continue animation if still loading
-            if (mesh.material && mesh.material.map === loadingTexture) {
-              animationFrame = requestAnimationFrame(animate);
-            }
-          };
-          
-          // Start animation
-          animate();
-          
-          // Clean up animation when done
-          const cleanup = () => {
-            if (animationFrame) {
-              cancelAnimationFrame(animationFrame);
-            }
-          };
-          
-          video.addEventListener('canplay', cleanup, { once: true });
-          video.addEventListener('error', cleanup, { once: true });
-        }
-        
+        // Use simple static black texture instead of animated spinner
+        // This eliminates 660 texture uploads/second (11 phones × 60fps)
         mesh.material = new THREE.MeshBasicMaterial({
-          map: loadingTexture,
+          color: '#000000',
           toneMapped: false,
           side: THREE.FrontSide
         });
-        
+
         // Replace with video texture when ready
-        if (isFullVideo) {
-          const replaceWithVideo = () => {
-            mesh.material = new THREE.MeshBasicMaterial({
-              map: videoTexture,
-              toneMapped: false,
-              side: THREE.FrontSide
-            });
-          };
-          
-          video.addEventListener('canplay', replaceWithVideo, { once: true });
-        }
+        const replaceWithVideo = () => {
+          mesh.material = new THREE.MeshBasicMaterial({
+            map: videoTexture,
+            toneMapped: false,
+            side: THREE.FrontSide
+          });
+        };
+
+        video.addEventListener('canplay', replaceWithVideo, { once: true });
       } else {
         mesh.material = new THREE.MeshBasicMaterial({
           map: videoTexture,
@@ -422,7 +369,7 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
         }
       }
     });
-  }, [clonedScene, videoSrc, enableSound, isLoading]);
+  }, [clonedScene, videoSrc, enableSound, isLoading, shouldLoadVideo]);
 
   // Control video playback based on viewport visibility AND selection state
   useEffect(() => {

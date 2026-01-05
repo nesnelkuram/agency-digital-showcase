@@ -1,5 +1,6 @@
-import React, { Suspense, useMemo, useState, useEffect, memo } from 'react';
+import React, { Suspense, useMemo, useState, useEffect, memo, useRef } from 'react';
 import { animated, useSpring } from '@react-spring/three';
+import { useFrame, useThree } from '@react-three/fiber';
 import { Text } from '@react-three/drei';
 import IPhone3D from './IPhone3D';
 import { smartVideoManager } from '../utils/smartVideoManager';
@@ -19,6 +20,7 @@ interface AnimatedPhoneProps {
   mobileRotation?: [number, number, number];  // Mobil için özel rotasyon
   mobileScale?: number;  // Mobil için özel scale
   isMobile?: boolean;  // Mobil cihaz mı
+  phoneIndex?: number;  // Phone index for staggered video loading
 }
 
 const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
@@ -35,7 +37,8 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
   debugNumber = 0,
   mobileRotation,
   mobileScale = 1,
-  isMobile = false
+  isMobile = false,
+  phoneIndex = 0
 }) => {
   // Loading state for full video
   const [isLoadingFullVideo, setIsLoadingFullVideo] = useState(false);
@@ -142,26 +145,34 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
     z: 0
   };
   
+  // Memoized spring configs - prevents recalculation on every render
+  const positionConfig = useMemo(() => {
+    if (shouldFall) return { mass: 1.5, tension: 100, friction: 18, delay: fallDelay };
+    if (isSelected) return { mass: 1.2, tension: 90, friction: 18, delay: 0 };
+    if (hasEntered) return { mass: 1, tension: 100, friction: 16, delay: 0 };  // Lighter for entrance
+    return { mass: 0.8, tension: 120, friction: 14, delay: 0 };  // Very light for initial
+  }, [shouldFall, isSelected, hasEntered, fallDelay]);
+
+  const rotationConfig = useMemo(() => {
+    if (shouldFall) return { mass: 1.2, tension: 120, friction: 14, delay: rotationStartDelay * 0.5 };
+    if (isSelected) return { mass: 1.5, tension: 80, friction: 20, delay: 0 };
+    if (hasEntered) return { mass: 1, tension: 100, friction: 16, delay: 0 };  // Lighter for entrance
+    return { mass: 1.5, tension: 70, friction: 16, delay: 0 };
+  }, [shouldFall, isSelected, hasEntered, rotationStartDelay]);
+
   // Optimized position animation - lighter config for better performance
-  const { posX, posY, posZ, scale, opacity } = useSpring({
+  const { posX, posY, posZ, scale } = useSpring({
     from: {
       posX: position[0],
       posY: position[1] - 0.5,
       posZ: position[2] - 3,
-      scale: 0.9,
-      opacity: 0
+      scale: 0.9
     },
     posX: targetPosition.x,
     posY: targetPosition.y,
     posZ: targetPosition.z,
     scale: shouldFall ? 0.8 : (hasEntered ? mobileScale : 0.5),
-    opacity: shouldFall ? 0 : (hasEntered ? 1 : 0),
-    config: {
-      mass: shouldFall ? 2 : (isSelected ? 1.5 : (hasEntered ? 1.2 : 1)),      // Lighter mass = faster settle
-      tension: shouldFall ? 80 : (isSelected ? 70 : (hasEntered ? 70 : 80)),   // Higher tension = snappier
-      friction: shouldFall ? 20 : (isSelected ? 20 : (hasEntered ? 18 : 15)),  // Lower friction = less drag
-      delay: shouldFall ? (fallDelay * 1) : (hasEntered ? 0 : 0)
-    }
+    config: positionConfig
   });
 
   // Optimized rotation animation
@@ -174,13 +185,32 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
     rotX: targetRotation.x,
     rotY: targetRotation.y,
     rotZ: targetRotation.z,
-    config: {
-      mass: shouldFall ? 1.5 : (isSelected ? 1.8 : (hasEntered ? 1.2 : 2)),  // Lighter mass for faster settle
-      tension: shouldFall ? 100 : (isSelected ? 60 : (hasEntered ? 70 : 50)),  // Higher tension = faster response
-      friction: shouldFall ? 15 : (isSelected ? 22 : (hasEntered ? 18 : 18)),  // Lower friction = less drag
-      delay: shouldFall ? (rotationStartDelay * 0.7) : (hasEntered ? 0 : 0)
+    config: rotationConfig
+  });
+
+  // Track animation state for invalidation
+  const isAnimating = useRef(true);
+  const { invalidate } = useThree();
+
+  // Invalidate frame when animations are active
+  useFrame(() => {
+    // During entrance, selection changes, or falling - invalidate to render
+    if (!hasEntered || isSelected || shouldFall || isAnimating.current) {
+      invalidate();
     }
   });
+
+  // Stop invalidating after entrance animation settles (approx 1.5s)
+  useEffect(() => {
+    if (hasEntered && !isSelected && !shouldFall) {
+      const timer = setTimeout(() => {
+        isAnimating.current = false;
+      }, 1500);
+      return () => clearTimeout(timer);
+    } else {
+      isAnimating.current = true;
+    }
+  }, [hasEntered, isSelected, shouldFall]);
 
   // LOD - viewport dışındaki telefonları optimize et
   // During entrance animation, always render the phone (no culling)
@@ -255,6 +285,7 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
               isNearCamera={isNearCamera}
               isSelected={isSelected}
               enableSound={isSelected}  // Only enable sound when selected
+              loadDelay={phoneIndex * 100}  // Staggered loading: 0ms, 100ms, 200ms, etc.
             />
           )}
         </Suspense>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
+import { Routes, Route } from 'react-router-dom';
 import SimpleLoadingScreen from './components/SimpleLoadingScreen';
 import SimpleQuoteLightbox from './components/SimpleQuoteLightbox';
 import UrgencyBar from './components/UrgencyBar';
@@ -13,8 +14,9 @@ const Services = lazy(() => import('./components/Services'));
 const About = lazy(() => import('./components/About'));
 const Contact = lazy(() => import('./components/Contact'));
 const Footer = lazy(() => import('./components/Footer'));
+const BrandStrategyWizard = lazy(() => import('./components/BrandStrategyWizard'));
 
-const App: React.FC = () => {
+const HomePage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [isQuoteLightboxOpen, setIsQuoteLightboxOpen] = useState(false);
@@ -260,6 +262,22 @@ const App: React.FC = () => {
         isActive={isLoading}
       />
     </>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+      <Route
+        path="/brand-strategy"
+        element={
+          <Suspense fallback={<div className="min-h-screen" style={{ backgroundColor: '#ebeef8' }} />}>
+            <BrandStrategyWizard />
+          </Suspense>
+        }
+      />
+    </Routes>
   );
 };
 

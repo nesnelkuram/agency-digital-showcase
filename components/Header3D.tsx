@@ -515,7 +515,7 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote, onReady, revealed = fa
         >
           <Canvas
             shadows={false}  // Disable shadows for better performance
-            frameloop="always"  // Always render for animations
+            frameloop="demand"  // Only render when needed - use invalidate() in animations
             camera={{
               // Mobil: Desktop gibi yan açıdan bakış (FOV artırıldı tüm telefonlar görünsün)
               position: isMobile ? [12, -6, 18] : [20, -12, 24.5],
@@ -680,6 +680,7 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote, onReady, revealed = fa
                               debugNumber={phoneNumber}
                               onClick={() => handlePhoneClick(cfg.key, isSelected)}
                               isMobile={isMobile}
+                              phoneIndex={index}
                             />
                           );
                   });
