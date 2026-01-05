@@ -96,13 +96,26 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
         services.find(s => s.id === id)?.title
       ).filter(Boolean).join(', ');
 
+      const timestamp = Date.now();
+      const submissionId = `BS-${timestamp}`;
+
       const reportData = {
+        // Submission Info
+        submissionId: submissionId,
+        submissionTime: new Date().toLocaleString('tr-TR', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        }),
+
         // User Info
         name: name.trim(),
         businessName: businessName.trim(),
         email: email.trim(),
         phone: phone.trim() || 'Belirtilmedi',
-        date: new Date().toLocaleString('tr-TR'),
 
         // Requested Services
         requestedServices: selectedServiceNames || 'Belirtilmedi',
@@ -121,7 +134,7 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
         allScores: JSON.stringify(scores, null, 2),
 
         // FormSubmit configuration
-        _subject: `Yeni Brand Strategy Değerlendirmesi - ${businessName.trim()}`,
+        _subject: `Brand Strategy #${submissionId} - ${businessName.trim()}`,
         _replyto: email.trim(),
         _template: 'table',
       };
