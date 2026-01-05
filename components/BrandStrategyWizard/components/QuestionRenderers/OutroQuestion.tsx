@@ -55,6 +55,13 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
       format: 'Tüm sosyal platformlar'
     },
     {
+      id: 'digital-marketing',
+      title: 'Dijital Pazarlama & Reklam Yönetimi',
+      description: 'Google Ads, Meta Ads (Facebook & Instagram), influencer işbirlikleri ve SEO stratejisi. Hedef kitle analizi, kampanya optimizasyonu, ROI takibi. Profesyonel reklam metinleri ve görsel tasarımları ile.',
+      duration: 'Aylık yönetim',
+      format: 'Google, Meta, TikTok Ads'
+    },
+    {
       id: 'branding',
       title: 'Marka Kimliği Tasarımı',
       description: 'Logo, renk paleti, tipografi, kurumsal kimlik rehberi. Menü tasarımı, ambalaj, tabela ve tüm markalaşma materyalleri. Stratejik konumlandırmadan görsel uygulamaya tam paket.',
@@ -160,48 +167,48 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
             transition={{ duration: 0.3 }}
           >
             {/* Header */}
-            <div className="text-center space-y-3">
+            <div className="text-center space-y-3 px-4">
               <h2 className="text-2xl md:text-3xl font-bold font-grotesk" style={{ color: '#171717' }}>
                 Tebrikler! 🎉
               </h2>
               <p className="text-base md:text-lg leading-relaxed font-grotesk" style={{ color: '#525252' }}>
                 Kapsamlı marka stratejisi değerlendirmeniz hazır.
               </p>
-              <p className="text-sm leading-relaxed font-grotesk" style={{ color: '#737373' }}>
+              <p className="text-sm md:text-base leading-relaxed font-grotesk" style={{ color: '#737373' }}>
                 Detaylı raporunuzu email adresinize göndermek için lütfen bilgilerinizi girin.
               </p>
             </div>
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-2 gap-4 w-full">
+            <div className="grid grid-cols-2 gap-3 md:gap-4 w-full">
               <motion.div
-                className="p-6 rounded-xl border-2"
+                className="p-4 md:p-6 rounded-xl border-2"
                 style={{
                   backgroundColor: '#ffffff',
                   borderColor: '#e5e5e5',
                 }}
                 whileHover={{ borderColor: '#d4d4d4', scale: 1.02 }}
               >
-                <div className="text-3xl font-bold font-grotesk mb-1" style={{ color: '#171717' }}>
+                <div className="text-2xl md:text-3xl font-bold font-grotesk mb-1" style={{ color: '#171717' }}>
                   {Object.keys(stageResults).length}
                 </div>
-                <div className="text-sm font-grotesk" style={{ color: '#525252' }}>
+                <div className="text-xs md:text-sm font-grotesk" style={{ color: '#525252' }}>
                   Aşama Tamamlandı
                 </div>
               </motion.div>
 
               <motion.div
-                className="p-6 rounded-xl border-2"
+                className="p-4 md:p-6 rounded-xl border-2"
                 style={{
                   backgroundColor: '#ffffff',
                   borderColor: '#e5e5e5',
                 }}
                 whileHover={{ borderColor: '#d4d4d4', scale: 1.02 }}
               >
-                <div className="text-3xl font-bold font-grotesk mb-1" style={{ color: '#171717' }}>
+                <div className="text-2xl md:text-3xl font-bold font-grotesk mb-1" style={{ color: '#171717' }}>
                   {Object.keys(answers).length}
                 </div>
-                <div className="text-sm font-grotesk" style={{ color: '#525252' }}>
+                <div className="text-xs md:text-sm font-grotesk" style={{ color: '#525252' }}>
                   Soru Cevaplandı
                 </div>
               </motion.div>
@@ -209,11 +216,11 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
 
             {/* Services Section */}
             <div className="w-full space-y-4">
-              <div className="text-center space-y-2">
-                <h3 className="text-xl font-bold font-grotesk" style={{ color: '#171717' }}>
+              <div className="text-center space-y-2 px-4">
+                <h3 className="text-lg md:text-xl font-bold font-grotesk" style={{ color: '#171717' }}>
                   Neye İhtiyacınız Olduğunu Düşünüyorsunuz?
                 </h3>
-                <p className="text-sm font-grotesk" style={{ color: '#737373' }}>
+                <p className="text-xs md:text-sm font-grotesk" style={{ color: '#737373' }}>
                   Birden fazla seçenek seçebilirsiniz
                 </p>
               </div>
@@ -225,7 +232,7 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
                     <motion.div
                       key={service.id}
                       onClick={() => toggleService(service.id)}
-                      className="p-5 rounded-xl border-2 cursor-pointer transition-all duration-200"
+                      className="p-4 md:p-5 rounded-xl border-2 cursor-pointer transition-all duration-200"
                       style={{
                         backgroundColor: isSelected ? '#fffceb' : '#ffffff',
                         borderColor: isSelected ? '#171717' : '#e5e5e5',
@@ -236,34 +243,34 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
                       }}
                       whileTap={{ scale: 0.98 }}
                     >
-                      <div className="flex items-start gap-3">
+                      <div className="flex items-start gap-2.5 md:gap-3">
                         <div
-                          className="w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all duration-200"
+                          className="w-4.5 h-4.5 md:w-5 md:h-5 rounded border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all duration-200"
                           style={{
                             backgroundColor: isSelected ? '#171717' : 'transparent',
                             borderColor: isSelected ? '#171717' : '#d4d4d4',
                           }}
                         >
-                          {isSelected && <Check className="w-3 h-3 text-white" />}
+                          {isSelected && <Check className="w-2.5 h-2.5 md:w-3 md:h-3 text-white" />}
                         </div>
                         <div className="flex-1">
-                          <div className="font-semibold font-grotesk mb-1 text-sm" style={{ color: '#171717' }}>
+                          <div className="font-semibold font-grotesk mb-1 text-sm md:text-base" style={{ color: '#171717' }}>
                             {service.title}
                           </div>
                           <p className="text-xs font-grotesk leading-relaxed mb-2" style={{ color: '#525252' }}>
                             {service.description}
                           </p>
-                          <div className="flex flex-wrap gap-2">
+                          <div className="flex flex-wrap gap-1.5 md:gap-2">
                             {service.duration && (
                               <span
-                                className="text-xs font-grotesk px-2 py-1 rounded"
+                                className="text-xs font-grotesk px-2 py-0.5 md:py-1 rounded"
                                 style={{ backgroundColor: '#f5f5f5', color: '#737373' }}
                               >
                                 {service.duration}
                               </span>
                             )}
                             <span
-                              className="text-xs font-grotesk px-2 py-1 rounded"
+                              className="text-xs font-grotesk px-2 py-0.5 md:py-1 rounded"
                               style={{ backgroundColor: '#f5f5f5', color: '#737373' }}
                             >
                               {service.format}
@@ -278,14 +285,14 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="w-full space-y-4">
+            <form onSubmit={handleSubmit} className="w-full space-y-3 md:space-y-4">
               <input
                 type="text"
                 placeholder="Adınız Soyadınız *"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                className="w-full px-6 py-4 rounded-xl font-grotesk text-base border-2 focus:outline-none focus:border-gray-400 transition-colors"
+                className="w-full px-4 md:px-6 py-3 md:py-4 rounded-xl font-grotesk text-sm md:text-base border-2 focus:outline-none focus:border-gray-400 transition-colors"
                 style={{
                   backgroundColor: '#ffffff',
                   borderColor: '#e5e5e5',
@@ -298,7 +305,7 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
                 value={businessName}
                 onChange={(e) => setBusinessName(e.target.value)}
                 required
-                className="w-full px-6 py-4 rounded-xl font-grotesk text-base border-2 focus:outline-none focus:border-gray-400 transition-colors"
+                className="w-full px-4 md:px-6 py-3 md:py-4 rounded-xl font-grotesk text-sm md:text-base border-2 focus:outline-none focus:border-gray-400 transition-colors"
                 style={{
                   backgroundColor: '#ffffff',
                   borderColor: '#e5e5e5',
@@ -311,7 +318,7 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-6 py-4 rounded-xl font-grotesk text-base border-2 focus:outline-none focus:border-gray-400 transition-colors"
+                className="w-full px-4 md:px-6 py-3 md:py-4 rounded-xl font-grotesk text-sm md:text-base border-2 focus:outline-none focus:border-gray-400 transition-colors"
                 style={{
                   backgroundColor: '#ffffff',
                   borderColor: '#e5e5e5',
@@ -323,7 +330,7 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
                 placeholder="Telefon Numaranız (Opsiyonel)"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="w-full px-6 py-4 rounded-xl font-grotesk text-base border-2 focus:outline-none focus:border-gray-400 transition-colors"
+                className="w-full px-4 md:px-6 py-3 md:py-4 rounded-xl font-grotesk text-sm md:text-base border-2 focus:outline-none focus:border-gray-400 transition-colors"
                 style={{
                   backgroundColor: '#ffffff',
                   borderColor: '#e5e5e5',
@@ -334,7 +341,7 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
               <motion.button
                 type="submit"
                 disabled={!name.trim() || !businessName.trim() || !email.trim() || isSubmitting}
-                className="w-full text-white rounded-full px-10 py-5 font-grotesk font-semibold text-lg
+                className="w-full text-white rounded-full px-8 md:px-10 py-4 md:py-5 font-grotesk font-semibold text-base md:text-lg
                            shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed
                            flex items-center justify-center gap-2"
                 style={{ backgroundColor: '#171717' }}
@@ -346,60 +353,60 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Gönderiliyor...
+                    <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" />
+                    <span className="text-sm md:text-base">Gönderiliyor...</span>
                   </>
                 ) : (
                   <>
-                    <Send className="w-5 h-5" />
-                    Raporumu Gönder
+                    <Send className="w-4 h-4 md:w-5 md:h-5" />
+                    <span className="text-sm md:text-base">Raporumu Gönder</span>
                   </>
                 )}
               </motion.button>
             </form>
 
-            <p className="text-xs text-center font-grotesk" style={{ color: '#737373' }}>
+            <p className="text-xs md:text-sm text-center font-grotesk px-4" style={{ color: '#737373' }}>
               Raporunuz işletmeniz için özel hazırlanmış stratejik öneriler içerecektir.
             </p>
           </motion.div>
         ) : (
           <motion.div
             key="success"
-            className="w-full flex flex-col items-center gap-6 text-center"
+            className="w-full flex flex-col items-center gap-6 text-center px-4"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
           >
             <motion.div
-              className="w-20 h-20 rounded-full flex items-center justify-center"
+              className="w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center"
               style={{ backgroundColor: '#10b981' }}
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
             >
-              <Check className="w-10 h-10 text-white" />
+              <Check className="w-8 h-8 md:w-10 md:h-10 text-white" />
             </motion.div>
 
             <div className="space-y-3">
-              <h2 className="text-2xl md:text-3xl font-bold font-grotesk" style={{ color: '#171717' }}>
+              <h2 className="text-xl md:text-2xl lg:text-3xl font-bold font-grotesk" style={{ color: '#171717' }}>
                 Raporunuz Gönderildi! ✓
               </h2>
-              <p className="text-base leading-relaxed font-grotesk" style={{ color: '#525252' }}>
+              <p className="text-sm md:text-base leading-relaxed font-grotesk" style={{ color: '#525252' }}>
                 Detaylı strategi raporunuz <strong>{email}</strong> adresine gönderildi.
               </p>
-              <p className="text-sm leading-relaxed font-grotesk" style={{ color: '#737373' }}>
+              <p className="text-xs md:text-sm leading-relaxed font-grotesk" style={{ color: '#737373' }}>
                 En kısa sürede ekibimiz sizinle iletişime geçecektir.
               </p>
             </div>
 
             <motion.div
-              className="w-full p-6 rounded-xl border-2"
+              className="w-full p-4 md:p-6 rounded-xl border-2"
               style={{
                 backgroundColor: '#f0fdf4',
                 borderColor: '#86efac',
               }}
             >
-              <p className="text-sm font-grotesk text-center mb-3" style={{ color: '#15803d' }}>
+              <p className="text-xs md:text-sm font-grotesk text-center mb-3" style={{ color: '#15803d' }}>
                 <strong>{businessName}</strong> için hazırladığımız kapsamlı rapor yakında inbox'unuzda!
               </p>
               {selectedServices.length > 0 && (
