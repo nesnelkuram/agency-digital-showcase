@@ -139,23 +139,22 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
         _template: 'table',
       };
 
-      // Send to FormSubmit.co using FormData (more reliable than JSON)
-      const formData = new FormData();
-
-      // Add all data as form fields
-      Object.entries(reportData).forEach(([key, value]) => {
-        formData.append(key, String(value));
-      });
-
-      const response = await fetch('https://formsubmit.co/info@intiba.co.uk', {
+      // Send to our API endpoint
+      const response = await fetch('/api/send-report', {
         method: 'POST',
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(reportData),
       });
 
-      console.log('Form submission response:', {
+      const result = await response.json();
+
+      console.log('API response:', {
         status: response.status,
         statusText: response.statusText,
-        ok: response.ok
+        ok: response.ok,
+        result
       });
 
       if (response.ok) {
@@ -163,11 +162,10 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
         onSubmit(reportData);
         console.log('Form submitted successfully:', reportData);
       } else {
-        const errorText = await response.text();
-        console.error('Form submission failed:', errorText);
-        throw new Error(`Form submission failed: ${response.status} ${response.statusText}`);
+        console.error('API error:', result);
+        throw new Error(result.error || 'Form submission failed');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error submitting form:', error);
       alert('Form gönderilirken bir hata oluştu. Lütfen tekrar deneyin veya doğrudan info@intiba.co.uk adresine email gönderin.');
     } finally {
