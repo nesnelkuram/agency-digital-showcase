@@ -33,3 +33,7 @@ Digital agency website with Brand Strategy Wizard and 3D interactive elements.
 ## Deployment
 
 Deployed on Vercel. Make sure to set `RESEND_API_KEY` in environment variables.
+
+### Testing
+
+Visit `/test-api.html` to test the email API endpoints.
