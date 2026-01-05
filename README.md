@@ -1,14 +1,35 @@
-# Run and deploy your AI Studio app
+# Agency Digital Showcase
 
-This contains everything you need to run your app locally.
+Digital agency website with Brand Strategy Wizard and 3D interactive elements.
 
 ## Run Locally
 
-**Prerequisites:**  Node.js
-
+**Prerequisites:** Node.js 18+
 
 1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+   ```bash
+   npm install
+   ```
+
+2. Set environment variables in `.env.local`:
+   ```env
+   RESEND_API_KEY=your_resend_api_key_here
+   ```
+
+3. Run the development server:
+   ```bash
+   npm run dev
+   ```
+
+4. Open http://localhost:5173
+
+## Features
+
+- 🎯 Brand Strategy Wizard with multi-stage decision tree
+- 📧 Email report delivery via Resend API
+- 🎨 Interactive 3D phone grid with parallax effects
+- 📱 Fully responsive mobile-first design
+
+## Deployment
+
+Deployed on Vercel. Make sure to set `RESEND_API_KEY` in environment variables.
