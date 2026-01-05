@@ -29,6 +29,57 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
   const [phone, setPhone] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+
+  const services = [
+    {
+      id: 'commercial',
+      title: 'Reklam Filmi',
+      description: 'Televizyon ve dijital platformlar için profesyonel prodüksiyon. Senaryo, kurgu, renk düzeltme ve ses tasarımı ile tam kapsamlı. 30-60 saniye arası, markanızın hikayesini sinematik dille anlatan geniş bütçeli içerik.',
+      duration: '30-60 saniye',
+      format: 'TV, YouTube, Web'
+    },
+    {
+      id: 'story',
+      title: 'Instagram Story & Reels',
+      description: 'Mobil-first, dikkat çeken kısa format videolar. Hızlı kurgu, dinamik geçişler, trend müzikler. 5-15 saniye arası, organik ve otantik görünümlü, sosyal medyada viral olmak için optimize edilmiş içerik.',
+      duration: '5-15 saniye',
+      format: 'Instagram, TikTok, Shorts'
+    },
+    {
+      id: 'photography',
+      title: 'Profesyonel Fotoğraf Çekimi',
+      description: 'Menü, mekan ve atmosfer fotoğrafçılığı. Profesyonel ışık kurulumu, styling, post-production. Web sitesi, menü ve sosyal medya için yüksek kaliteli görseller. 50-100 adet düzenlenmiş fotoğraf paketi.',
+      format: 'Web, Menü, Instagram Feed'
+    },
+    {
+      id: 'social',
+      title: 'Sosyal Medya İçerik Paketi',
+      description: 'Aylık düzenli içerik üretimi. 20-30 adet story, 8-12 adet feed post, caption yazımı. Planlama, çekim, kurgu ve yayınlama dahil. Tutarlı görsel dil ve marka sesi ile süreklilik.',
+      duration: 'Aylık paket',
+      format: 'Tüm sosyal platformlar'
+    },
+    {
+      id: 'branding',
+      title: 'Marka Kimliği Tasarımı',
+      description: 'Logo, renk paleti, tipografi, kurumsal kimlik rehberi. Menü tasarımı, ambalaj, tabela ve tüm markalaşma materyalleri. Stratejik konumlandırmadan görsel uygulamaya tam paket.',
+      format: 'Print & Digital'
+    },
+    {
+      id: 'website',
+      title: 'Web Sitesi & Rezervasyon Sistemi',
+      description: 'Mobil-responsive, hızlı, SEO-optimized web sitesi. Online rezervasyon entegrasyonu, menü yönetimi, fotoğraf galerisi. Modern tasarım ve kullanıcı dostu arayüz.',
+      format: 'Web'
+    }
+  ];
+
+  const toggleService = (serviceId: string) => {
+    setSelectedServices(prev =>
+      prev.includes(serviceId)
+        ? prev.filter(id => id !== serviceId)
+        : [...prev, serviceId]
+    );
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,6 +90,10 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
 
     try {
       // Prepare comprehensive report
+      const selectedServiceNames = selectedServices.map(id =>
+        services.find(s => s.id === id)?.title
+      ).filter(Boolean).join(', ');
+
       const reportData = {
         // User Info
         name: userInfo.name,
@@ -46,6 +101,10 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
         email: email.trim(),
         phone: phone.trim() || 'Belirtilmedi',
         date: new Date().toLocaleString('tr-TR'),
+
+        // Requested Services
+        requestedServices: selectedServiceNames || 'Belirtilmedi',
+        serviceCount: selectedServices.length,
 
         // Stage Results
         stage0: stageResults[0]?.title || 'N/A',
@@ -153,6 +212,76 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
               </motion.div>
             </div>
 
+            {/* Services Section */}
+            <div className="w-full space-y-4">
+              <div className="text-center space-y-2">
+                <h3 className="text-xl font-bold font-grotesk" style={{ color: '#171717' }}>
+                  Neye İhtiyacınız Olduğunu Düşünüyorsunuz?
+                </h3>
+                <p className="text-sm font-grotesk" style={{ color: '#737373' }}>
+                  Birden fazla seçenek seçebilirsiniz
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {services.map((service) => {
+                  const isSelected = selectedServices.includes(service.id);
+                  return (
+                    <motion.div
+                      key={service.id}
+                      onClick={() => toggleService(service.id)}
+                      className="p-5 rounded-xl border-2 cursor-pointer transition-all duration-200"
+                      style={{
+                        backgroundColor: isSelected ? '#fffceb' : '#ffffff',
+                        borderColor: isSelected ? '#171717' : '#e5e5e5',
+                      }}
+                      whileHover={{
+                        scale: 1.02,
+                        borderColor: isSelected ? '#171717' : '#d4d4d4',
+                      }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div
+                          className="w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all duration-200"
+                          style={{
+                            backgroundColor: isSelected ? '#171717' : 'transparent',
+                            borderColor: isSelected ? '#171717' : '#d4d4d4',
+                          }}
+                        >
+                          {isSelected && <Check className="w-3 h-3 text-white" />}
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-semibold font-grotesk mb-1 text-sm" style={{ color: '#171717' }}>
+                            {service.title}
+                          </div>
+                          <p className="text-xs font-grotesk leading-relaxed mb-2" style={{ color: '#525252' }}>
+                            {service.description}
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {service.duration && (
+                              <span
+                                className="text-xs font-grotesk px-2 py-1 rounded"
+                                style={{ backgroundColor: '#f5f5f5', color: '#737373' }}
+                              >
+                                {service.duration}
+                              </span>
+                            )}
+                            <span
+                              className="text-xs font-grotesk px-2 py-1 rounded"
+                              style={{ backgroundColor: '#f5f5f5', color: '#737373' }}
+                            >
+                              {service.format}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Form */}
             <form onSubmit={handleSubmit} className="w-full space-y-4">
               <input
@@ -249,9 +378,14 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
                 borderColor: '#86efac',
               }}
             >
-              <p className="text-sm font-grotesk text-center" style={{ color: '#15803d' }}>
+              <p className="text-sm font-grotesk text-center mb-3" style={{ color: '#15803d' }}>
                 <strong>{userInfo.businessName}</strong> için hazırladığımız kapsamlı rapor yakında inbox'unuzda!
               </p>
+              {selectedServices.length > 0 && (
+                <div className="text-xs font-grotesk text-center" style={{ color: '#16a34a' }}>
+                  Seçtiğiniz hizmetler: <strong>{selectedServices.map(id => services.find(s => s.id === id)?.title).join(', ')}</strong>
+                </div>
+              )}
             </motion.div>
           </motion.div>
         )}
