@@ -36,4 +36,6 @@ Deployed on Vercel. Make sure to set `RESEND_API_KEY` in environment variables.
 
 ### Testing
 
-Visit `/test-api.html` to test the email API endpoints.
+Visit `/api-test-v3.html` to test the email API endpoints.
+
+**Important:** Make sure `RESEND_API_KEY` is set in Vercel environment variables for the Production environment.
