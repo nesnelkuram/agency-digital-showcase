@@ -69,12 +69,68 @@
         <h1>🧪 API Test - Brand Strategy Wizard</h1>
         <p>Bu sayfa API endpoint'inizi test etmek için kullanılır.</p>
 
+        <button id="simpleTestBtn" onclick="testSimpleAPI()">🔍 Basit API Test</button>
         <button id="testBtn" onclick="testAPI()">📧 Test Email Gönder</button>
 
         <div id="result"></div>
     </div>
 
     <script>
+        async function testSimpleAPI() {
+            const resultDiv = document.getElementById('result');
+            const simpleTestBtn = document.getElementById('simpleTestBtn');
+
+            // Disable button
+            simpleTestBtn.disabled = true;
+            simpleTestBtn.textContent = '⏳ Test ediliyor...';
+
+            // Clear previous result
+            resultDiv.textContent = '';
+            resultDiv.className = '';
+
+            try {
+                console.log('Testing simple API endpoint...');
+
+                const response = await fetch('/api/test', {
+                    method: 'GET',
+                });
+
+                const result = await response.json();
+
+                console.log('Simple API Response:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    result
+                });
+
+                if (response.ok) {
+                    resultDiv.className = 'success';
+                    resultDiv.textContent = '✅ API ÇALIŞIYOR!\\n\\n' +
+                        `Status: ${response.status} ${response.statusText}\\n` +
+                        `Message: ${result.message}\\n` +
+                        `Method: ${result.method}\\n` +
+                        `Has Resend Key: ${result.hasResendKey}\\n` +
+                        `Timestamp: ${result.timestamp}\\n\\n` +
+                        'API endpoint düzgün çalışıyor!';
+                } else {
+                    resultDiv.className = 'error';
+                    resultDiv.textContent = '❌ API HATASI!\\n\\n' +
+                        `Status: ${response.status} ${response.statusText}\\n` +
+                        `Error: ${result.error || 'Unknown error'}`;
+                }
+            } catch (error) {
+                console.error('Simple test failed:', error);
+                resultDiv.className = 'error';
+                resultDiv.textContent = '❌ BAĞLANTI HATASI!\\n\\n' +
+                    `Error: ${error.message}\\n\\n` +
+                    'API endpoint\\'e ulaşılamıyor.';
+            } finally {
+                // Re-enable button
+                simpleTestBtn.disabled = false;
+                simpleTestBtn.textContent = '🔍 Basit API Test';
+            }
+        }
+
         async function testAPI() {
             const resultDiv = document.getElementById('result');
             const testBtn = document.getElementById('testBtn');
