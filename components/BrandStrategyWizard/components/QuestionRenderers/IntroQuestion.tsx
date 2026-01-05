@@ -1,26 +1,13 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Question } from '../../types';
 
 interface IntroQuestionProps {
   question: Question;
   onNext: () => void;
-  onUserInfoSubmit?: (info: { name: string; businessName: string }) => void;
 }
 
-const IntroQuestion: React.FC<IntroQuestionProps> = ({ question, onNext, onUserInfoSubmit }) => {
-  const [name, setName] = useState('');
-  const [businessName, setBusinessName] = useState('');
-
-  const isFirstIntro = question.id === 1;
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isFirstIntro && onUserInfoSubmit && name.trim() && businessName.trim()) {
-      onUserInfoSubmit({ name: name.trim(), businessName: businessName.trim() });
-    }
-    onNext();
-  };
+const IntroQuestion: React.FC<IntroQuestionProps> = ({ question, onNext }) => {
   // Split script into words for staggered animation
   const words = useMemo(() => question.script.split(' '), [question.script]);
 
@@ -154,78 +141,25 @@ const IntroQuestion: React.FC<IntroQuestionProps> = ({ question, onNext, onUserI
         {question.text}
       </motion.h1>
 
-      {/* Form or Button */}
-      {isFirstIntro ? (
-        <motion.form
-          onSubmit={handleSubmit}
-          className="w-full max-w-md space-y-4 mt-6"
-          variants={buttonVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          <input
-            type="text"
-            placeholder="İsminiz"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            className="w-full px-6 py-4 rounded-xl font-grotesk text-base border-2 focus:outline-none focus:border-gray-400 transition-colors"
-            style={{
-              backgroundColor: '#ffffff',
-              borderColor: '#e5e5e5',
-              color: '#171717',
-            }}
-          />
-          <input
-            type="text"
-            placeholder="İşletme / Restoran Adı"
-            value={businessName}
-            onChange={(e) => setBusinessName(e.target.value)}
-            required
-            className="w-full px-6 py-4 rounded-xl font-grotesk text-base border-2 focus:outline-none focus:border-gray-400 transition-colors"
-            style={{
-              backgroundColor: '#ffffff',
-              borderColor: '#e5e5e5',
-              color: '#171717',
-            }}
-          />
-          <motion.button
-            type="submit"
-            disabled={!name.trim() || !businessName.trim()}
-            className="w-full text-white rounded-full px-10 py-5 font-grotesk font-semibold text-lg
-                       shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{
-              backgroundColor: '#171717',
-            }}
-            whileHover={name.trim() && businessName.trim() ? {
-              scale: 1.02,
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.1)',
-            } : {}}
-            whileTap={name.trim() && businessName.trim() ? { scale: 0.98 } : {}}
-          >
-            {question.action}
-          </motion.button>
-        </motion.form>
-      ) : (
-        <motion.button
-          onClick={onNext}
-          className="mt-6 w-full max-w-md text-white rounded-full px-10 py-5 font-grotesk font-semibold text-lg
-                     shadow-lg hover:shadow-xl transition-all duration-300"
-          style={{
-            backgroundColor: '#171717',
-          }}
-          variants={buttonVariants}
-          initial="hidden"
-          animate="visible"
-          whileHover={{
-            scale: 1.02,
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.1)',
-          }}
-          whileTap={{ scale: 0.98 }}
-        >
-          {question.action}
-        </motion.button>
-      )}
+      {/* CTA Button */}
+      <motion.button
+        onClick={onNext}
+        className="mt-6 w-full max-w-md text-white rounded-full px-10 py-5 font-grotesk font-semibold text-lg
+                   shadow-lg hover:shadow-xl transition-all duration-300"
+        style={{
+          backgroundColor: '#171717',
+        }}
+        variants={buttonVariants}
+        initial="hidden"
+        animate="visible"
+        whileHover={{
+          scale: 1.02,
+          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.1)',
+        }}
+        whileTap={{ scale: 0.98 }}
+      >
+        {question.action}
+      </motion.button>
     </div>
   );
 };

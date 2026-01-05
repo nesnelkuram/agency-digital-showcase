@@ -20,12 +20,6 @@ const BrandStrategyWizard: React.FC = () => {
   const [answers, setAnswers] = useState<Record<number, string | string[]>>({});
   const [scores, setScores] = useState<Record<number, number>>({});
   const [stageResults, setStageResults] = useState<Record<number, ResultMatrix>>({});
-  const [userInfo, setUserInfo] = useState<{
-    name: string;
-    businessName: string;
-    email?: string;
-    phone?: string;
-  }>({ name: '', businessName: '' });
 
   const currentQuestion = questions[currentStep];
 
@@ -130,7 +124,6 @@ const BrandStrategyWizard: React.FC = () => {
           <IntroQuestion
             question={currentQuestion}
             onNext={handleNext}
-            onUserInfoSubmit={(info) => setUserInfo(prev => ({ ...prev, ...info }))}
           />
         );
 
@@ -204,10 +197,8 @@ const BrandStrategyWizard: React.FC = () => {
             answers={answers}
             scores={scores}
             stageResults={stageResults}
-            userInfo={userInfo}
-            onEmailSubmit={(email, phone) => {
-              setUserInfo(prev => ({ ...prev, email, phone }));
-              console.log('Final submission:', { userInfo, answers, scores, stageResults });
+            onSubmit={(data) => {
+              console.log('Final submission:', data);
             }}
           />
         );

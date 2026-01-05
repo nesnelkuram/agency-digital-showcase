@@ -8,13 +8,7 @@ interface OutroQuestionProps {
   answers: Record<number, string | string[]>;
   scores: Record<number, number>;
   stageResults: Record<number, ResultMatrix>;
-  userInfo: {
-    name: string;
-    businessName: string;
-    email?: string;
-    phone?: string;
-  };
-  onEmailSubmit: (email: string, phone?: string) => void;
+  onSubmit: (data: any) => void;
 }
 
 const OutroQuestion: React.FC<OutroQuestionProps> = ({
@@ -22,9 +16,10 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
   answers,
   scores,
   stageResults,
-  userInfo,
-  onEmailSubmit,
+  onSubmit,
 }) => {
+  const [name, setName] = useState('');
+  const [businessName, setBusinessName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -84,7 +79,7 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!email.trim()) return;
+    if (!name.trim() || !businessName.trim() || !email.trim()) return;
 
     setIsSubmitting(true);
 
@@ -96,8 +91,8 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
 
       const reportData = {
         // User Info
-        name: userInfo.name,
-        businessName: userInfo.businessName,
+        name: name.trim(),
+        businessName: businessName.trim(),
         email: email.trim(),
         phone: phone.trim() || 'Belirtilmedi',
         date: new Date().toLocaleString('tr-TR'),
@@ -119,7 +114,7 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
         allScores: JSON.stringify(scores, null, 2),
 
         // FormSubmit configuration
-        _subject: `Yeni Brand Strategy Değerlendirmesi - ${userInfo.businessName}`,
+        _subject: `Yeni Brand Strategy Değerlendirmesi - ${businessName.trim()}`,
         _replyto: email.trim(),
         _template: 'table',
       };
@@ -136,7 +131,7 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
 
       if (response.ok) {
         setIsSubmitted(true);
-        onEmailSubmit(email.trim(), phone.trim());
+        onSubmit(reportData);
       } else {
         throw new Error('Form submission failed');
       }
@@ -167,10 +162,10 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
             {/* Header */}
             <div className="text-center space-y-3">
               <h2 className="text-2xl md:text-3xl font-bold font-grotesk" style={{ color: '#171717' }}>
-                Tebrikler, {userInfo.name}! 🎉
+                Tebrikler! 🎉
               </h2>
               <p className="text-base md:text-lg leading-relaxed font-grotesk" style={{ color: '#525252' }}>
-                {userInfo.businessName} için kapsamlı marka stratejisi değerlendirmeniz hazır.
+                Kapsamlı marka stratejisi değerlendirmeniz hazır.
               </p>
               <p className="text-sm leading-relaxed font-grotesk" style={{ color: '#737373' }}>
                 Detaylı raporunuzu email adresinize göndermek için lütfen bilgilerinizi girin.
@@ -285,6 +280,32 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
             {/* Form */}
             <form onSubmit={handleSubmit} className="w-full space-y-4">
               <input
+                type="text"
+                placeholder="Adınız Soyadınız *"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                className="w-full px-6 py-4 rounded-xl font-grotesk text-base border-2 focus:outline-none focus:border-gray-400 transition-colors"
+                style={{
+                  backgroundColor: '#ffffff',
+                  borderColor: '#e5e5e5',
+                  color: '#171717',
+                }}
+              />
+              <input
+                type="text"
+                placeholder="İşletme Adı *"
+                value={businessName}
+                onChange={(e) => setBusinessName(e.target.value)}
+                required
+                className="w-full px-6 py-4 rounded-xl font-grotesk text-base border-2 focus:outline-none focus:border-gray-400 transition-colors"
+                style={{
+                  backgroundColor: '#ffffff',
+                  borderColor: '#e5e5e5',
+                  color: '#171717',
+                }}
+              />
+              <input
                 type="email"
                 placeholder="Email Adresiniz *"
                 value={email}
@@ -312,16 +333,16 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
 
               <motion.button
                 type="submit"
-                disabled={!email.trim() || isSubmitting}
+                disabled={!name.trim() || !businessName.trim() || !email.trim() || isSubmitting}
                 className="w-full text-white rounded-full px-10 py-5 font-grotesk font-semibold text-lg
                            shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed
                            flex items-center justify-center gap-2"
                 style={{ backgroundColor: '#171717' }}
-                whileHover={email.trim() && !isSubmitting ? {
+                whileHover={name.trim() && businessName.trim() && email.trim() && !isSubmitting ? {
                   scale: 1.02,
                   boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.1)',
                 } : {}}
-                whileTap={email.trim() && !isSubmitting ? { scale: 0.98 } : {}}
+                whileTap={name.trim() && businessName.trim() && email.trim() && !isSubmitting ? { scale: 0.98 } : {}}
               >
                 {isSubmitting ? (
                   <>
@@ -338,7 +359,7 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
             </form>
 
             <p className="text-xs text-center font-grotesk" style={{ color: '#737373' }}>
-              Raporunuz {userInfo.businessName} için özel hazırlanmış stratejik öneriler içerecektir.
+              Raporunuz işletmeniz için özel hazırlanmış stratejik öneriler içerecektir.
             </p>
           </motion.div>
         ) : (
@@ -379,7 +400,7 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
               }}
             >
               <p className="text-sm font-grotesk text-center mb-3" style={{ color: '#15803d' }}>
-                <strong>{userInfo.businessName}</strong> için hazırladığımız kapsamlı rapor yakında inbox'unuzda!
+                <strong>{businessName}</strong> için hazırladığımız kapsamlı rapor yakında inbox'unuzda!
               </p>
               {selectedServices.length > 0 && (
                 <div className="text-xs font-grotesk text-center" style={{ color: '#16a34a' }}>
