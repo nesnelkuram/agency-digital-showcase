@@ -209,7 +209,7 @@ const BrandStrategyWizard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col font-grotesk" style={{ backgroundColor: '#ebeef8', color: '#171717' }}>
+    <div className="min-h-screen h-auto flex flex-col font-grotesk pb-20" style={{ backgroundColor: '#ebeef8', color: '#171717' }}>
       {/* Header with progress */}
       <header className="p-6 flex items-center justify-between">
         <div className="w-10">

@@ -268,13 +268,13 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
                     >
                       <div className="flex items-start gap-2.5 md:gap-3">
                         <div
-                          className="w-4.5 h-4.5 md:w-5 md:h-5 rounded border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all duration-200"
+                          className="w-5 h-5 md:w-5 md:h-5 rounded border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all duration-200"
                           style={{
                             backgroundColor: isSelected ? '#171717' : 'transparent',
                             borderColor: isSelected ? '#171717' : '#d4d4d4',
                           }}
                         >
-                          {isSelected && <Check className="w-2.5 h-2.5 md:w-3 md:h-3 text-white" />}
+                          {isSelected && <Check className="w-3.5 h-3.5 md:w-3.5 md:h-3.5 text-white stroke-[3]" />}
                         </div>
                         <div className="flex-1">
                           <div className="font-semibold font-grotesk mb-1 text-sm md:text-base" style={{ color: '#171717' }}>
@@ -412,10 +412,10 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
 
             <div className="space-y-3">
               <h2 className="text-xl md:text-2xl lg:text-3xl font-bold font-grotesk" style={{ color: '#171717' }}>
-                Raporunuz Gönderildi! ✓
+                Bilgileriniz Alındı! ✓
               </h2>
               <p className="text-sm md:text-base leading-relaxed font-grotesk" style={{ color: '#525252' }}>
-                Detaylı strategi raporunuz <strong>{email}</strong> adresine gönderildi.
+                Detaylı strateji raporunuz <strong>{email}</strong> adresine çalışılarak gönderilecektir.
               </p>
               <p className="text-xs md:text-sm leading-relaxed font-grotesk" style={{ color: '#737373' }}>
                 En kısa sürede ekibimiz sizinle iletişime geçecektir.
