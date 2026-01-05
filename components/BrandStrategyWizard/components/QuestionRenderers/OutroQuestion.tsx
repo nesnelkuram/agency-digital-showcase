@@ -55,11 +55,18 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
       format: 'Tüm sosyal platformlar'
     },
     {
-      id: 'digital-marketing',
-      title: 'Dijital Pazarlama & Reklam Yönetimi',
-      description: 'Google Ads, Meta Ads (Facebook & Instagram), influencer işbirlikleri ve SEO stratejisi. Hedef kitle analizi, kampanya optimizasyonu, ROI takibi. Profesyonel reklam metinleri ve görsel tasarımları ile.',
+      id: 'google-ads',
+      title: 'Google Ads Yönetimi',
+      description: 'Google Arama, Display ve YouTube reklamları. Anahtar kelime araştırması, teklif optimizasyonu, A/B testler. Detaylı performans raporlama ve sürekli iyileştirme. Doğru zamanda doğru müşteriye ulaşın.',
       duration: 'Aylık yönetim',
-      format: 'Google, Meta, TikTok Ads'
+      format: 'Google Search, Display, YouTube'
+    },
+    {
+      id: 'meta-ads',
+      title: 'Meta Ads Yönetimi (Facebook & Instagram)',
+      description: 'Facebook ve Instagram reklam kampanyaları. Hedef kitle segmentasyonu, lookalike audiences, retargeting. Görsel ve video reklam yaratımı dahil. Sosyal medyada satış ve bilinirlik artışı.',
+      duration: 'Aylık yönetim',
+      format: 'Facebook & Instagram Ads'
     },
     {
       id: 'branding',
