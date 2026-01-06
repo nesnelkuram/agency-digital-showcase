@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "baseUrl": ".",
     "target": "ES2020",
     "experimentalDecorators": true,
     "useDefineForClassFields": false,
@@ -24,7 +25,11 @@
     "noUncheckedSideEffectImports": true,
 
     "paths": {
-      "@/*" :  ["./*"]
+      "@/*": ["./*"],
+      "@admin/*": ["admin/*"],
+      "@lib/*": ["lib/*"],
+      "@shared/*": ["shared/*"],
+      "@contexts/*": ["contexts/*"]
     }
   }
 }

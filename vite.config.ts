@@ -7,12 +7,16 @@ export default defineConfig(({ mode }) => {
     return {
       define: {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
+        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
       },
       resolve: {
         alias: {
           '@': path.resolve(__dirname, '.'),
-        }
+          '@admin': path.resolve(__dirname, 'admin'),
+          '@lib': path.resolve(__dirname, 'lib'),
+          '@shared': path.resolve(__dirname, 'shared'),
+          '@contexts': path.resolve(__dirname, 'contexts'),
+        },
       },
       build: {
         target: 'es2020',
@@ -30,6 +34,7 @@ export default defineConfig(({ mode }) => {
               'three-vendor': ['three'],
               'react-three': ['@react-three/fiber', '@react-three/drei'],
               'react-vendor': ['react', 'react-dom'],
+              'firebase-vendor': ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage'],
             },
           },
         },
@@ -39,7 +44,7 @@ export default defineConfig(({ mode }) => {
         assetsInlineLimit: 4096,
       },
       optimizeDeps: {
-        include: ['three', '@react-three/fiber', '@react-three/drei'],
+        include: ['three', '@react-three/fiber', '@react-three/drei', 'firebase/app', 'firebase/auth', 'firebase/firestore'],
       },
       plugins: [
         viteCompression({

@@ -6,6 +6,7 @@ import UrgencyBar from './components/UrgencyBar';
 import { videoCache } from './utils/videoCache';
 import { useBreakpoint } from './hooks/useMediaQuery';
 import { getVideosByCategory } from './videoUtils';
+import { AuthProvider } from '@/contexts/AuthContext';
 
 // Lazy load heavy components
 const Header3D = lazy(() => import('./components/Header3D'));
@@ -15,6 +16,10 @@ const About = lazy(() => import('./components/About'));
 const Contact = lazy(() => import('./components/Contact'));
 const Footer = lazy(() => import('./components/Footer'));
 const BrandStrategyWizard = lazy(() => import('./components/BrandStrategyWizard'));
+
+// Admin Panel (lazy loaded)
+const AdminApp = lazy(() => import('./admin'));
+const LoginPage = lazy(() => import('./admin/auth/LoginPage'));
 
 const HomePage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -267,17 +272,38 @@ const HomePage: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <Routes>
-      <Route path="/" element={<HomePage />} />
-      <Route
-        path="/brand-strategy"
-        element={
-          <Suspense fallback={<div className="min-h-screen" style={{ backgroundColor: '#ebeef8' }} />}>
-            <BrandStrategyWizard />
-          </Suspense>
-        }
-      />
-    </Routes>
+    <AuthProvider>
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/" element={<HomePage />} />
+        <Route
+          path="/brand-strategy"
+          element={
+            <Suspense fallback={<div className="min-h-screen" style={{ backgroundColor: '#ebeef8' }} />}>
+              <BrandStrategyWizard />
+            </Suspense>
+          }
+        />
+
+        {/* Admin Routes */}
+        <Route
+          path="/admin/login"
+          element={
+            <Suspense fallback={<div className="min-h-screen" style={{ backgroundColor: '#ebeef8' }} />}>
+              <LoginPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/admin/*"
+          element={
+            <Suspense fallback={<div className="min-h-screen" style={{ backgroundColor: '#ebeef8' }} />}>
+              <AdminApp />
+            </Suspense>
+          }
+        />
+      </Routes>
+    </AuthProvider>
   );
 };
 
