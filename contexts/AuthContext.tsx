@@ -7,7 +7,7 @@ import {
   sendPasswordResetEmail,
 } from 'firebase/auth';
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase/config';
+import { auth, db, isFirebaseConfigured } from '@/lib/firebase/config';
 import { User } from '@/shared/types/user';
 
 interface AuthContextType {
@@ -31,6 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   const fetchUserData = useCallback(async (uid: string): Promise<User | null> => {
+    if (!db) return null;
     try {
       const userDoc = await getDoc(doc(db, 'users', uid));
       if (userDoc.exists()) {
@@ -44,6 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const updateLastLogin = useCallback(async (uid: string) => {
+    if (!db) return;
     try {
       await updateDoc(doc(db, 'users', uid), {
         'metadata.lastLoginAt': serverTimestamp(),
@@ -54,6 +56,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // If Firebase isn't configured, skip auth state listener
+    if (!isFirebaseConfigured || !auth) {
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setFirebaseUser(firebaseUser);
 
@@ -86,6 +94,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = useCallback(
     async (email: string, password: string) => {
+      if (!auth) {
+        setError('Firebase yapılandırılmamış. Lütfen yönetici ile iletişime geçin.');
+        throw new Error('Firebase yapılandırılmamış.');
+      }
       setLoading(true);
       setError(null);
       try {
@@ -115,6 +127,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const signOut = useCallback(async () => {
+    if (!auth) return;
     try {
       await firebaseSignOut(auth);
       setUser(null);
@@ -126,6 +139,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const resetPassword = useCallback(async (email: string) => {
+    if (!auth) {
+      setError('Firebase yapılandırılmamış.');
+      throw new Error('Firebase yapılandırılmamış.');
+    }
     try {
       await sendPasswordResetEmail(auth, email);
     } catch (err: any) {

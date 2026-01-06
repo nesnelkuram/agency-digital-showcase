@@ -12,20 +12,40 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase (singleton pattern)
-let app: FirebaseApp;
-let auth: Auth;
-let db: Firestore;
-let storage: FirebaseStorage;
+// Check if Firebase is configured
+const isFirebaseConfigured = !!(
+  firebaseConfig.apiKey &&
+  firebaseConfig.authDomain &&
+  firebaseConfig.projectId
+);
 
-if (getApps().length === 0) {
-  app = initializeApp(firebaseConfig);
-} else {
-  app = getApps()[0];
+if (!isFirebaseConfigured) {
+  console.warn('[Firebase] Configuration missing. Admin panel will not work.');
+  console.warn('[Firebase] Please add VITE_FIREBASE_* variables to .env.local');
 }
 
-auth = getAuth(app);
-db = getFirestore(app);
-storage = getStorage(app);
+// Initialize Firebase (singleton pattern)
+let app: FirebaseApp | null = null;
+let auth: Auth | null = null;
+let db: Firestore | null = null;
+let storage: FirebaseStorage | null = null;
 
-export { app, auth, db, storage };
+if (isFirebaseConfigured) {
+  try {
+    if (getApps().length === 0) {
+      app = initializeApp(firebaseConfig);
+    } else {
+      app = getApps()[0];
+    }
+
+    auth = getAuth(app);
+    db = getFirestore(app);
+    storage = getStorage(app);
+
+    console.log('[Firebase] Initialized successfully');
+  } catch (error) {
+    console.error('[Firebase] Initialization failed:', error);
+  }
+}
+
+export { app, auth, db, storage, isFirebaseConfigured };
