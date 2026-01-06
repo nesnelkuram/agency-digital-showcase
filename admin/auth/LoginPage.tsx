@@ -148,7 +148,7 @@ const LoginPage: React.FC = () => {
                 <motion.button
                   type="submit"
                   disabled={isLoading || !email || !password}
-                  className="w-full py-4 bg-[#171717] text-white rounded-full font-grotesk font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full py-4 bg-neutral-900 text-white rounded-full font-grotesk font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   whileHover={!isLoading ? { scale: 1.02 } : {}}
                   whileTap={!isLoading ? { scale: 0.98 } : {}}
                 >
@@ -228,7 +228,7 @@ const LoginPage: React.FC = () => {
                   <motion.button
                     type="submit"
                     disabled={isLoading || !email}
-                    className="w-full py-4 bg-[#171717] text-white rounded-full font-grotesk font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="w-full py-4 bg-neutral-900 text-white rounded-full font-grotesk font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     whileHover={!isLoading ? { scale: 1.02 } : {}}
                     whileTap={!isLoading ? { scale: 0.98 } : {}}
                   >
