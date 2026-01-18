@@ -46,19 +46,6 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote, onReady, revealed = fa
   const headerRef = useRef<HTMLElement | null>(null);
   const animationFrameRef = useRef<number | undefined>(undefined);
   
-  // Animated locations with icons
-  const locations = [
-    { name: 'Bodrum', icon: '🌊' },      // Sea/Waves (Bodrum's beaches)
-    { name: 'Istanbul', icon: '🕌' },    // Mosque
-    { name: 'London', icon: '🎡' },      // London Eye
-    { name: 'Dubai', icon: '🏙️' },      // Skyscrapers
-    { name: 'New York', icon: '🗽' },   // Statue of Liberty
-    { name: 'Paris', icon: '🗼' },       // Eiffel Tower
-    { name: 'Milan', icon: '👗' },       // Fashion
-    { name: 'Tokyo', icon: '🗾' }        // Japan/Mt. Fuji
-  ];
-  const [currentLocationIndex, setCurrentLocationIndex] = useState(0);
-  const [isLocationChanging, setIsLocationChanging] = useState(false);
 
   // Handle category change
   const handleCategoryChange = useCallback((category: string) => {
@@ -112,19 +99,6 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote, onReady, revealed = fa
 
   // Don't trigger entrance animation until videos are loaded
   // (This is now handled in the preload effect above)
-  
-  // Animate location text
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setIsLocationChanging(true);
-      setTimeout(() => {
-        setCurrentLocationIndex((prev) => (prev + 1) % locations.length);
-        setIsLocationChanging(false);
-      }, 300);
-    }, 2500);
-    
-    return () => clearInterval(interval);
-  }, []);
 
   useEffect(() => {
     let ticking = false;
@@ -886,29 +860,11 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote, onReady, revealed = fa
                 fontWeight: '400',
                 opacity: showContent ? 1 : 0,
                 transform: showContent ? 'translateX(0)' : 'translateX(-40px)',
-                transition: 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1) 0.3s',
-                position: 'relative',
-                height: '1.5em'
+                transition: 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1) 0.3s'
               }}
             >
               <span className="mr-1" style={{ opacity: 0.7 }}>—</span>
-              Award-winning video production that increases brand awareness by 300%+ in{' '}
-              <span 
-                className="inline-flex items-center gap-1"
-                style={{
-                  opacity: isLocationChanging ? 0 : 1,
-                  transform: isLocationChanging ? 'translateY(-10px)' : 'translateY(0)',
-                  transition: 'all 0.3s ease-in-out',
-                  minWidth: '150px'
-                }}
-              >
-                <span style={{ fontSize: '1.1em', verticalAlign: 'middle' }}>
-                  {locations[currentLocationIndex].icon}
-                </span>
-                <span className="font-semibold" style={{ color: '#111' }}>
-                  {locations[currentLocationIndex].name}
-                </span>
-              </span>
+              Award-winning video production that increases brand awareness by 300%+
             </p>
           </div>
           <div
