@@ -16,6 +16,7 @@ const About = lazy(() => import('./components/About'));
 const Contact = lazy(() => import('./components/Contact'));
 const Footer = lazy(() => import('./components/Footer'));
 const BrandStrategyWizard = lazy(() => import('./components/BrandStrategyWizard'));
+const LandingPage = lazy(() => import('./components/LandingPage'));
 
 // Admin Panel (lazy loaded)
 const AdminApp = lazy(() => import('./admin'));
@@ -281,6 +282,16 @@ const App: React.FC = () => {
           element={
             <Suspense fallback={<div className="min-h-screen" style={{ backgroundColor: '#ebeef8' }} />}>
               <BrandStrategyWizard />
+            </Suspense>
+          }
+        />
+
+        {/* SEO Landing Pages - Dynamic route for all landing page variations */}
+        <Route
+          path="/:slug"
+          element={
+            <Suspense fallback={<div className="min-h-screen" style={{ backgroundColor: '#ebeef8' }} />}>
+              <LandingPage />
             </Suspense>
           }
         />

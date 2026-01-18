@@ -1,0 +1,12 @@
+specVersion: "v1beta"
+serviceId: "agency-digital-showcase"
+location: "us-central1"
+schema:
+  source: "./schema"
+  datasource:
+    postgresql:
+      database: "fdcdb"
+      cloudSql:
+        instanceId: "agency-digital-showcase-fdc"
+      # schemaValidation: "COMPATIBLE"
+connectorDirs: ["./connector"]

@@ -1,8 +1,9 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
 import { questions } from './questions';
 import { ResultMatrix } from './types';
+import { Sector } from '@/shared/types/brandLead';
 import ProgressIndicator from './components/ProgressIndicator';
 import {
   IntroQuestion,
@@ -15,7 +16,12 @@ import {
   OutroQuestion,
 } from './components/QuestionRenderers';
 
-const BrandStrategyWizard: React.FC = () => {
+interface BrandStrategyWizardProps {
+  sector?: Sector;
+}
+
+const BrandStrategyWizard: React.FC<BrandStrategyWizardProps> = ({ sector = 'gastronomi' }) => {
+  const startTime = useRef(Date.now());
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string | string[]>>({});
   const [scores, setScores] = useState<Record<number, number>>({});
@@ -197,6 +203,8 @@ const BrandStrategyWizard: React.FC = () => {
             answers={answers}
             scores={scores}
             stageResults={stageResults}
+            sector={sector}
+            completionTime={Date.now() - startTime.current}
             onSubmit={(data) => {
               console.log('Final submission:', data);
             }}

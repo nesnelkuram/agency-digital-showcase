@@ -20,6 +20,12 @@ export const ROLES: Record<string, RoleConfig> = {
     displayName: 'Staff Member',
     description: 'Agency employee with project management access',
     permissions: [
+      // Leads
+      PERMISSIONS.LEADS_VIEW,
+      PERMISSIONS.LEADS_EDIT,
+      PERMISSIONS.LEADS_ASSIGN,
+      PERMISSIONS.LEADS_AI_ANALYZE,
+
       // Projects
       PERMISSIONS.PROJECTS_VIEW,
       PERMISSIONS.PROJECTS_CREATE,

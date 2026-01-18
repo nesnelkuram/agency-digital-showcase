@@ -1,0 +1,245 @@
+import { useState, useEffect, useCallback } from 'react';
+import {
+  collection,
+  query,
+  getDocs,
+  doc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  orderBy,
+  where,
+  serverTimestamp,
+  Timestamp,
+} from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
+import { User, UserRole, Invitation, InvitationStatus } from '@/shared/types/user';
+import { useAuth } from '@/contexts/AuthContext';
+
+interface UseUserManagementReturn {
+  users: User[];
+  invitations: Invitation[];
+  loading: boolean;
+  error: string | null;
+  inviteUser: (email: string, displayName: string, role: UserRole) => Promise<void>;
+  updateUserRole: (uid: string, role: UserRole) => Promise<void>;
+  updateUserStatus: (uid: string, status: 'active' | 'suspended') => Promise<void>;
+  cancelInvitation: (invitationId: string) => Promise<void>;
+  resendInvitation: (invitationId: string) => Promise<void>;
+  refetch: () => Promise<void>;
+}
+
+export function useUserManagement(): UseUserManagementReturn {
+  const { user: currentUser } = useAuth();
+  const [users, setUsers] = useState<User[]>([]);
+  const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchData = useCallback(async () => {
+    if (!db) {
+      setError('Firestore baglantisi kurulamadi');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Fetch users and invitations in parallel
+      const [usersSnapshot, invitationsSnapshot] = await Promise.all([
+        getDocs(query(collection(db, 'users'), orderBy('metadata.createdAt', 'desc'))),
+        getDocs(
+          query(
+            collection(db, 'invitations'),
+            where('status', '==', 'pending'),
+            orderBy('createdAt', 'desc')
+          )
+        ),
+      ]);
+
+      const usersList: User[] = [];
+      usersSnapshot.forEach((doc) => {
+        const data = doc.data();
+        usersList.push({
+          uid: doc.id,
+          email: data.email || '',
+          displayName: data.displayName || '',
+          photoURL: data.photoURL,
+          role: data.role || 'staff',
+          organizationId: data.organizationId,
+          permissions: data.permissions || [],
+          status: data.status || 'active',
+          metadata: {
+            createdAt: data.metadata?.createdAt,
+            updatedAt: data.metadata?.updatedAt,
+            lastLoginAt: data.metadata?.lastLoginAt,
+            invitedBy: data.metadata?.invitedBy,
+          },
+          profile: data.profile || {},
+          settings: data.settings || {
+            notifications: { email: true, push: true, approvalReminders: true },
+          },
+        } as User);
+      });
+
+      const invitationsList: Invitation[] = [];
+      invitationsSnapshot.forEach((doc) => {
+        const data = doc.data();
+        invitationsList.push({
+          id: doc.id,
+          email: data.email || '',
+          displayName: data.displayName || '',
+          role: data.role || 'staff',
+          status: data.status || 'pending',
+          invitedBy: data.invitedBy || '',
+          invitedByName: data.invitedByName || '',
+          createdAt: data.createdAt?.toDate?.() || new Date(),
+          expiresAt: data.expiresAt?.toDate?.() || new Date(),
+          acceptedAt: data.acceptedAt?.toDate?.(),
+        });
+      });
+
+      setUsers(usersList);
+      setInvitations(invitationsList);
+    } catch (err) {
+      console.error('[UserManagement] Error fetching data:', err);
+      setError('Kullanici verileri yuklenirken bir hata olustu');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const inviteUser = useCallback(
+    async (email: string, displayName: string, role: UserRole) => {
+      if (!db || !currentUser) {
+        throw new Error('Baglanti hatasi');
+      }
+
+      // Check if user already exists
+      const existingUser = users.find(
+        (u) => u.email.toLowerCase() === email.toLowerCase()
+      );
+      if (existingUser) {
+        throw new Error('Bu email adresi zaten kayitli');
+      }
+
+      // Check if invitation already exists
+      const existingInvitation = invitations.find(
+        (i) => i.email.toLowerCase() === email.toLowerCase()
+      );
+      if (existingInvitation) {
+        throw new Error('Bu email adresine zaten davetiye gonderilmis');
+      }
+
+      // Create invitation
+      const invitationRef = doc(collection(db, 'invitations'));
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7); // 7 gun gecerli
+
+      await setDoc(invitationRef, {
+        email: email.toLowerCase(),
+        displayName,
+        role,
+        status: 'pending' as InvitationStatus,
+        invitedBy: currentUser.uid,
+        invitedByName: currentUser.displayName || currentUser.email,
+        createdAt: serverTimestamp(),
+        expiresAt: Timestamp.fromDate(expiresAt),
+      });
+
+      // TODO: Send invitation email using Resend API
+      console.log('[UserManagement] Invitation created:', invitationRef.id);
+
+      // Refetch to update the list
+      await fetchData();
+    },
+    [db, currentUser, users, invitations, fetchData]
+  );
+
+  const updateUserRole = useCallback(
+    async (uid: string, role: UserRole) => {
+      if (!db) throw new Error('Baglanti hatasi');
+
+      await updateDoc(doc(db, 'users', uid), {
+        role,
+        'metadata.updatedAt': serverTimestamp(),
+      });
+
+      // Update local state
+      setUsers((prev) =>
+        prev.map((u) => (u.uid === uid ? { ...u, role } : u))
+      );
+    },
+    [db]
+  );
+
+  const updateUserStatus = useCallback(
+    async (uid: string, status: 'active' | 'suspended') => {
+      if (!db) throw new Error('Baglanti hatasi');
+
+      await updateDoc(doc(db, 'users', uid), {
+        status,
+        'metadata.updatedAt': serverTimestamp(),
+      });
+
+      // Update local state
+      setUsers((prev) =>
+        prev.map((u) => (u.uid === uid ? { ...u, status } : u))
+      );
+    },
+    [db]
+  );
+
+  const cancelInvitation = useCallback(
+    async (invitationId: string) => {
+      if (!db) throw new Error('Baglanti hatasi');
+
+      await updateDoc(doc(db, 'invitations', invitationId), {
+        status: 'cancelled' as InvitationStatus,
+      });
+
+      // Update local state
+      setInvitations((prev) => prev.filter((i) => i.id !== invitationId));
+    },
+    [db]
+  );
+
+  const resendInvitation = useCallback(
+    async (invitationId: string) => {
+      if (!db) throw new Error('Baglanti hatasi');
+
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
+
+      await updateDoc(doc(db, 'invitations', invitationId), {
+        expiresAt: Timestamp.fromDate(expiresAt),
+        createdAt: serverTimestamp(),
+      });
+
+      // TODO: Resend invitation email
+
+      // Refetch to update the list
+      await fetchData();
+    },
+    [db, fetchData]
+  );
+
+  return {
+    users,
+    invitations,
+    loading,
+    error,
+    inviteUser,
+    updateUserRole,
+    updateUserStatus,
+    cancelInvitation,
+    resendInvitation,
+    refetch: fetchData,
+  };
+}

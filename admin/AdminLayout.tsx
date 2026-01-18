@@ -15,6 +15,7 @@ import {
   LogOut,
   User,
   ChevronDown,
+  Users,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermission } from '@/shared/hooks/usePermission';
@@ -32,6 +33,12 @@ const navItems: NavItem[] = [
     label: 'Dashboard',
     path: '/admin',
     icon: <LayoutDashboard className="w-5 h-5" />,
+  },
+  {
+    label: 'Basvurular',
+    path: '/admin/leads',
+    icon: <Users className="w-5 h-5" />,
+    permission: PERMISSIONS.LEADS_VIEW,
   },
   {
     label: 'Projeler',
@@ -87,7 +94,7 @@ const AdminLayout: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#ebeef8]">
+    <div className="min-h-screen bg-[#ebeef8] flex">
       {/* Mobile Sidebar Overlay */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -102,14 +109,14 @@ const AdminLayout: React.FC = () => {
       </AnimatePresence>
 
       {/* Sidebar */}
-      <motion.aside
-        className={`fixed top-0 left-0 h-full w-64 bg-[#171717] z-50 transform lg:translate-x-0 transition-transform duration-300 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } lg:static lg:z-auto`}
+      <aside
+        className={`fixed top-0 left-0 h-full w-64 bg-[#171717] z-50 transform transition-transform duration-300 lg:relative lg:translate-x-0 lg:flex-shrink-0 ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        }`}
       >
         {/* Logo */}
         <div className="h-16 flex items-center justify-between px-6 border-b border-white/10">
-          <span className="font-ramillas text-xl font-bold text-white">Intiba</span>
+          <span className="font-grotesk text-xl font-bold text-white tracking-tight">Intiba</span>
           <button
             onClick={() => setSidebarOpen(false)}
             className="lg:hidden text-white/70 hover:text-white"
@@ -119,14 +126,14 @@ const AdminLayout: React.FC = () => {
         </div>
 
         {/* Navigation */}
-        <nav className="p-4 space-y-1">
+        <nav className="p-6 space-y-1.5">
           {filteredNavItems.map((item) => {
             const isActive = isActiveRoute(item.path);
             return (
               <a
                 key={item.path}
                 href={item.path}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg font-grotesk text-sm transition-all duration-200 ${
+                className={`flex items-center gap-3 px-5 py-3.5 rounded-xl font-grotesk text-sm transition-all duration-200 ${
                   isActive
                     ? 'bg-white/10 text-white'
                     : 'text-white/60 hover:bg-white/5 hover:text-white'
@@ -161,10 +168,10 @@ const AdminLayout: React.FC = () => {
             </div>
           </div>
         </div>
-      </motion.aside>
+      </aside>
 
       {/* Main Content */}
-      <div className="lg:ml-64">
+      <div className="flex-1 lg:ml-0 ml-0">
         {/* Header */}
         <header className="h-16 bg-white border-b border-neutral-200 sticky top-0 z-30">
           <div className="h-full px-4 lg:px-6 flex items-center justify-between">
@@ -261,7 +268,7 @@ const AdminLayout: React.FC = () => {
         </header>
 
         {/* Page Content */}
-        <main className="p-4 lg:p-6">
+        <main className="p-6 lg:p-8">
           <Outlet />
         </main>
       </div>

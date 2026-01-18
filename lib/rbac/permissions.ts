@@ -1,4 +1,12 @@
 export const PERMISSIONS = {
+  // Leads (Brand Strategy Form Submissions)
+  LEADS_VIEW: 'leads:view',
+  LEADS_EDIT: 'leads:edit',
+  LEADS_DELETE: 'leads:delete',
+  LEADS_ASSIGN: 'leads:assign',
+  LEADS_CONVERT: 'leads:convert',
+  LEADS_AI_ANALYZE: 'leads:ai_analyze',
+
   // Project Management
   PROJECTS_VIEW: 'projects:view',
   PROJECTS_VIEW_OWN: 'projects:view_own',

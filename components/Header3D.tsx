@@ -6,13 +6,38 @@ import { ALL_MEDIA_CONTENT } from '../constants';
 import { useBreakpoint } from '../hooks/useMediaQuery';
 import { getVideosByCategory } from '../videoUtils';
 
+interface HeroContent {
+  headline: string;
+  highlightedText: string;
+  subheadline: string;
+  subtext: string;
+  ctaText: string;
+}
+
 interface Header3DProps {
   onOpenQuote?: () => void;
   onReady?: () => void;  // Called when 3D content is fully rendered
   revealed?: boolean;    // True when loading screen has finished transitioning
+  heroContent?: HeroContent;  // Optional custom hero content for landing pages
+  defaultCategory?: 'all' | 'fashion' | 'commercial' | 'gastronomy' | 'interview';
 }
 
-const Header3D: React.FC<Header3DProps> = ({ onOpenQuote, onReady, revealed = false }) => {
+// Default hero content
+const defaultHeroContent: HeroContent = {
+  headline: 'Transform Your Brand With',
+  highlightedText: 'Premium Video Content',
+  subheadline: 'That Drives Real Results',
+  subtext: 'Award-winning video production that increases brand awareness by 300%+',
+  ctaText: 'Get Free Strategy Session',
+};
+
+const Header3D: React.FC<Header3DProps> = ({
+  onOpenQuote,
+  onReady,
+  revealed = false,
+  heroContent = defaultHeroContent,
+  defaultCategory = 'all'
+}) => {
   const [parallaxOffset, setParallaxOffset] = useState(0);
   const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
   const [isClosing, setIsClosing] = useState(false);
@@ -37,7 +62,7 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote, onReady, revealed = fa
       };
     }
   }, [revealed]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>(defaultCategory);
   const [isCategoryChanging, setIsCategoryChanging] = useState(false);
   const [phonesShouldFall, setPhonesShouldFall] = useState(false);
   const [carouselIndex, setCarouselIndex] = useState(0);
@@ -844,12 +869,11 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote, onReady, revealed = fa
               }}
             >
               <div>
-                <span className="font-normal">Transform Your Brand With </span>
-                <span className="font-bold">Premium Video Content</span>
+                <span className="font-normal">{heroContent.headline} </span>
+                <span className="font-bold">{heroContent.highlightedText}</span>
               </div>
               <div>
-                <span className="font-normal">That </span>
-                <span className="font-normal italic">Drives Real Results</span>
+                <span className="font-normal italic">{heroContent.subheadline}</span>
               </div>
             </h1>
             <p
@@ -864,7 +888,7 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote, onReady, revealed = fa
               }}
             >
               <span className="mr-1" style={{ opacity: 0.7 }}>—</span>
-              Award-winning video production that increases brand awareness by 300%+
+              {heroContent.subtext}
             </p>
           </div>
           <div
@@ -999,7 +1023,7 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote, onReady, revealed = fa
                     clipRule="evenodd" 
                   />
                 </svg>
-                <span className="relative z-10">Get Free Strategy Session</span>
+                <span className="relative z-10">{heroContent.ctaText}</span>
                 <div 
                   className="absolute inset-0 rounded-lg transition-all duration-300 ease-in-out"
                   style={{

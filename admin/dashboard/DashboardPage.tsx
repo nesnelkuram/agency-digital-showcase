@@ -102,7 +102,7 @@ const DashboardPage: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Welcome Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
@@ -127,14 +127,14 @@ const DashboardPage: React.FC = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
           <motion.div
             key={stat.label}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
-            className="bg-white rounded-xl p-6 shadow-sm border border-neutral-100"
+            className="bg-white rounded-2xl p-7 shadow-sm border border-neutral-100"
           >
             <div className="flex items-start justify-between">
               <div className={`p-3 rounded-lg ${stat.color}`}>{stat.icon}</div>
@@ -161,22 +161,22 @@ const DashboardPage: React.FC = () => {
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Recent Activity */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-neutral-100"
+          className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-neutral-100"
         >
-          <div className="p-6 border-b border-neutral-100">
+          <div className="p-7 border-b border-neutral-100">
             <h2 className="font-ramillas text-xl font-bold text-[#171717]">
               Son Aktiviteler
             </h2>
           </div>
           <div className="divide-y divide-neutral-100">
             {recentActivity.map((activity, index) => (
-              <div key={index} className="p-4 hover:bg-neutral-50 transition-colors">
+              <div key={index} className="p-5 hover:bg-neutral-50 transition-colors">
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-full bg-[#fffceb] flex items-center justify-center flex-shrink-0">
                     <span className="font-grotesk font-bold text-[#171717]">
@@ -198,7 +198,7 @@ const DashboardPage: React.FC = () => {
               </div>
             ))}
           </div>
-          <div className="p-4 border-t border-neutral-100">
+          <div className="p-5 border-t border-neutral-100">
             <a
               href="/admin/activity"
               className="font-grotesk text-sm text-neutral-600 hover:text-[#171717] transition-colors"
@@ -213,16 +213,16 @@ const DashboardPage: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="bg-white rounded-xl shadow-sm border border-neutral-100"
+          className="bg-white rounded-2xl shadow-sm border border-neutral-100"
         >
-          <div className="p-6 border-b border-neutral-100">
+          <div className="p-7 border-b border-neutral-100">
             <h2 className="font-ramillas text-xl font-bold text-[#171717]">
               Bekleyen Onaylar
             </h2>
           </div>
           <div className="divide-y divide-neutral-100">
             {pendingApprovals.map((approval, index) => (
-              <div key={index} className="p-4 hover:bg-neutral-50 transition-colors">
+              <div key={index} className="p-5 hover:bg-neutral-50 transition-colors">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="font-grotesk text-sm font-medium text-[#171717] truncate">
@@ -245,7 +245,7 @@ const DashboardPage: React.FC = () => {
               </div>
             ))}
           </div>
-          <div className="p-4 border-t border-neutral-100">
+          <div className="p-5 border-t border-neutral-100">
             <a
               href="/admin/approvals"
               className="font-grotesk text-sm text-neutral-600 hover:text-[#171717] transition-colors"

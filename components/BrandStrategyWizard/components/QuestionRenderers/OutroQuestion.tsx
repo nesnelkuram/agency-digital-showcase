@@ -2,12 +2,17 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Send, Loader2 } from 'lucide-react';
 import { Question, ResultMatrix } from '../../types';
+import { Sector } from '@/shared/types/brandLead';
+import { createBrandLeadFromWebsite } from '@/shared/services/brandLeadService';
+import { isFirebaseConfigured } from '@/lib/firebase/config';
 
 interface OutroQuestionProps {
   question: Question;
   answers: Record<number, string | string[]>;
   scores: Record<number, number>;
   stageResults: Record<number, ResultMatrix>;
+  sector: Sector;
+  completionTime: number;
   onSubmit: (data: any) => void;
 }
 
@@ -16,6 +21,8 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
   answers,
   scores,
   stageResults,
+  sector,
+  completionTime,
   onSubmit,
 }) => {
   const [name, setName] = useState('');
@@ -91,7 +98,7 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
     setIsSubmitting(true);
 
     try {
-      // Prepare comprehensive report
+      // Prepare comprehensive report for email
       const selectedServiceNames = selectedServices.map(id =>
         services.find(s => s.id === id)?.title
       ).filter(Boolean).join(', ');
@@ -100,7 +107,6 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
       const submissionId = `BS-${timestamp}`;
 
       const reportData = {
-        // Submission Info
         submissionId: submissionId,
         submissionTime: new Date().toLocaleString('tr-TR', {
           year: 'numeric',
@@ -110,36 +116,77 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
           minute: '2-digit',
           second: '2-digit'
         }),
-
-        // User Info
         name: name.trim(),
         businessName: businessName.trim(),
         email: email.trim(),
         phone: phone.trim() || 'Belirtilmedi',
-
-        // Requested Services
         requestedServices: selectedServiceNames || 'Belirtilmedi',
         serviceCount: selectedServices.length,
-
-        // Stage Results
         stage0: stageResults[0]?.title || 'N/A',
         stage0Score: Object.keys(scores).filter(k => [3, 4, 5].includes(Number(k))).reduce((sum, k) => sum + scores[Number(k)], 0),
         stage1: stageResults[1]?.title || 'N/A',
         stage2: stageResults[2]?.title || 'N/A',
         stage3: stageResults[3]?.title || 'N/A',
         stage4: stageResults[4]?.title || 'N/A',
-
-        // All Answers (formatted)
         allAnswers: JSON.stringify(answers, null, 2),
         allScores: JSON.stringify(scores, null, 2),
-
-        // FormSubmit configuration
         _subject: `Brand Strategy #${submissionId} - ${businessName.trim()}`,
         _replyto: email.trim(),
         _template: 'table',
       };
 
-      // Send to our API endpoint
+      // Save to Firestore if configured
+      if (isFirebaseConfigured) {
+        try {
+          // Prepare stage results array
+          const stageResultsArray = Object.entries(stageResults).map(([stage, result]) => ({
+            stage: parseInt(stage),
+            title: result.title,
+            description: result.description,
+            score: Object.keys(scores)
+              .filter(k => result.minScore !== undefined)
+              .reduce((sum, k) => sum + (scores[parseInt(k)] || 0), 0),
+          }));
+
+          // Prepare requested services array
+          const requestedServicesArray = selectedServices.map(id => {
+            const service = services.find(s => s.id === id);
+            return service ? { id: service.id, title: service.title, description: service.description } : null;
+          }).filter(Boolean) as { id: string; title: string; description?: string }[];
+
+          // Get UTM parameters from URL
+          const urlParams = new URLSearchParams(window.location.search);
+
+          await createBrandLeadFromWebsite({
+            sector,
+            contact: {
+              name: name.trim(),
+              email: email.trim(),
+              phone: phone.trim() || undefined,
+              businessName: businessName.trim(),
+            },
+            wizard: {
+              answers,
+              scores,
+              stageResults: stageResultsArray,
+              wizardVersion: '1.0',
+              completionTime,
+            },
+            requestedServices: requestedServicesArray,
+            source: 'website_wizard',
+            utmSource: urlParams.get('utm_source') || undefined,
+            utmMedium: urlParams.get('utm_medium') || undefined,
+            utmCampaign: urlParams.get('utm_campaign') || undefined,
+          });
+
+          console.log('Lead saved to Firestore');
+        } catch (firestoreError) {
+          console.error('Firestore save failed:', firestoreError);
+          // Continue with email submission even if Firestore fails
+        }
+      }
+
+      // Send to email API endpoint
       const response = await fetch('/api/send-report', {
         method: 'POST',
         headers: {

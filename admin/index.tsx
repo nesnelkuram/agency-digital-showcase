@@ -4,7 +4,9 @@ import AdminLayout from './AdminLayout';
 import AuthGuard from './auth/AuthGuard';
 import DashboardPage from './dashboard/DashboardPage';
 
-// Lazy load other pages (will be implemented later)
+// Lazy load other pages
+const LeadsPage = React.lazy(() => import('./leads/LeadsPage'));
+const LeadDetailPage = React.lazy(() => import('./leads/LeadDetailPage'));
 const ProjectsPage = React.lazy(() => import('./projects/ProjectListPage'));
 const ApprovalsPage = React.lazy(() => import('./approvals/ApprovalsPage'));
 const AssetsPage = React.lazy(() => import('./assets/AssetLibraryPage'));
@@ -17,6 +19,22 @@ const AdminApp: React.FC = () => {
       <Routes>
         <Route element={<AdminLayout />}>
           <Route index element={<DashboardPage />} />
+          <Route
+            path="leads"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <LeadsPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="leads/:id"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <LeadDetailPage />
+              </React.Suspense>
+            }
+          />
           <Route
             path="projects/*"
             element={
