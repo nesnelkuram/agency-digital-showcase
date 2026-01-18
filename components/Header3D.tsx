@@ -26,8 +26,8 @@ interface Header3DProps {
 const defaultHeroContent: HeroContent = {
   headline: 'We Don\'t Make Videos.',
   highlightedText: 'We Make Brands Unforgettable.',
-  subheadline: 'Bodrum\'s most-booked creative team.',
-  subtext: '47M views generated last year. For brands you\'ve definitely heard of.',
+  subheadline: 'The creative team brands keep coming back to.',
+  subtext: 'From concept to final cut — content that makes people stop scrolling.',
   ctaText: 'See Our Work',
 };
 
