@@ -515,7 +515,7 @@ const Header3D: React.FC<Header3DProps> = ({ onOpenQuote, onReady, revealed = fa
         >
           <Canvas
             shadows={false}  // Disable shadows for better performance
-            frameloop="demand"  // Only render when needed - use invalidate() in animations
+            frameloop="always"  // Render every frame for animations
             camera={{
               // Mobil: Desktop gibi yan açıdan bakış (FOV artırıldı tüm telefonlar görünsün)
               position: isMobile ? [12, -6, 18] : [20, -12, 24.5],
