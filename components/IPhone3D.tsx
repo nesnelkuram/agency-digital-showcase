@@ -32,17 +32,15 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
   // Check if we should autoplay videos
   const [canAutoplay] = useState(() => shouldAutoplayVideos());
   // Staggered loading - delay video load based on phone index
-  // TEMPORARILY DISABLED for debugging - set to true immediately
-  const [shouldLoadVideo, setShouldLoadVideo] = useState(true);
+  const [shouldLoadVideo, setShouldLoadVideo] = useState(true);  // Always true - disable staggered loading for now
 
-  useEffect(() => {
-    // Start loading after delay (or immediately if delay is 0)
-    // TEMPORARILY DISABLED - loading immediately to test
-    // const timer = setTimeout(() => {
-    //   setShouldLoadVideo(true);
-    // }, loadDelay);
-    // return () => clearTimeout(timer);
-  }, [loadDelay]);
+  // Staggered loading temporarily disabled - causing videos not to show
+  // useEffect(() => {
+  //   const timer = setTimeout(() => {
+  //     setShouldLoadVideo(true);
+  //   }, loadDelay);
+  //   return () => clearTimeout(timer);
+  // }, [loadDelay]);
 
   // Load iPhone model
   const { scene } = useGLTF('/models/iphone_14_pro_max/scene.gltf') as any;
@@ -187,10 +185,36 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
         return;
       }
 
-      // Staggered loading: show black screen until ready to load
+      // Staggered loading: show gradient placeholder until ready to load
       if (!shouldLoadVideo) {
+        // Create a gradient canvas texture for loading state
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+
+        if (ctx) {
+          // Dark gradient background
+          const gradient = ctx.createLinearGradient(0, 0, 0, 512);
+          gradient.addColorStop(0, '#1a1a2e');
+          gradient.addColorStop(0.5, '#16213e');
+          gradient.addColorStop(1, '#0f0f23');
+          ctx.fillStyle = gradient;
+          ctx.fillRect(0, 0, 256, 512);
+
+          // Subtle loading indicator (pulsing circle placeholder)
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+          ctx.beginPath();
+          ctx.arc(128, 256, 30, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        const placeholderTexture = new THREE.CanvasTexture(canvas);
+        placeholderTexture.minFilter = THREE.LinearFilter;
+        placeholderTexture.magFilter = THREE.LinearFilter;
+
         mesh.material = new THREE.MeshBasicMaterial({
-          color: '#000000',
+          map: placeholderTexture,
           toneMapped: false,
           side: THREE.FrontSide
         });

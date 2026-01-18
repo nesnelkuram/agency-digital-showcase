@@ -214,11 +214,11 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
 
   // LOD - viewport dışındaki telefonları optimize et
   // During entrance animation, always render the phone (no culling)
-  const isInViewport = !hasEntered || Math.abs(position[1]) < 10;  // No culling during entrance
-  
+  const isInViewport = !hasEntered || Math.abs(position[1]) < 10;  // Restored to original
+
   // Don't play videos on non-selected phones when one is selected
   // Videos only play when near camera, not during initial load
-  const isNearCamera = Math.abs(position[1]) < 6 && !shouldFall;   // Stop playing when falling
+  const isNearCamera = Math.abs(position[1]) < 6 && !shouldFall;   // Restored to original
   
   // Handle video with smart manager
   useEffect(() => {
@@ -285,7 +285,7 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
               isNearCamera={isNearCamera}
               isSelected={isSelected}
               enableSound={isSelected}  // Only enable sound when selected
-              loadDelay={phoneIndex * 100}  // Staggered loading: 0ms, 100ms, 200ms, etc.
+              loadDelay={phoneIndex * 300}  // Staggered loading: 0ms, 300ms, 600ms, etc.
             />
           )}
         </Suspense>
