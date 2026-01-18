@@ -22,13 +22,13 @@ interface Header3DProps {
   defaultCategory?: 'all' | 'fashion' | 'commercial' | 'gastronomy' | 'interview';
 }
 
-// Default hero content
+// Default hero content - Harry Dry style copywriting
 const defaultHeroContent: HeroContent = {
-  headline: 'Transform Your Brand With',
-  highlightedText: 'Premium Video Content',
-  subheadline: 'That Drives Real Results',
-  subtext: 'Award-winning video production that increases brand awareness by 300%+',
-  ctaText: 'Get Free Strategy Session',
+  headline: 'We Don\'t Make Videos.',
+  highlightedText: 'We Make Brands Unforgettable.',
+  subheadline: 'Bodrum\'s most-booked creative team.',
+  subtext: '47M views generated last year. For brands you\'ve definitely heard of.',
+  ctaText: 'See Our Work',
 };
 
 const Header3D: React.FC<Header3DProps> = ({
