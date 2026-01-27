@@ -11,6 +11,7 @@ export type Sector =
   | 'tech'         // Teknoloji, startup
   | 'health'       // Sağlık, wellness
   | 'education'    // Eğitim, kurslar
+  | 'fmcg'         // Gıda, FMCG, ürün markaları
   | 'other';       // Diğer
 
 export const SECTOR_LABELS: Record<Sector, string> = {
@@ -20,6 +21,7 @@ export const SECTOR_LABELS: Record<Sector, string> = {
   tech: 'Teknoloji',
   health: 'Sağlık & Wellness',
   education: 'Eğitim',
+  fmcg: 'Gıda & FMCG',
   other: 'Diğer',
 };
 

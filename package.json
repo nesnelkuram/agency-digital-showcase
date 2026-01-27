@@ -33,6 +33,7 @@
     "@types/node": "^22.14.0",
     "@types/three": "^0.177.0",
     "@vercel/node": "^5.5.16",
+    "@vitejs/plugin-react": "^4.7.0",
     "autoprefixer": "^10.4.21",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",

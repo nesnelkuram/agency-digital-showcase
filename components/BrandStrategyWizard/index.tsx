@@ -1,10 +1,11 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { Component, useState, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft } from 'lucide-react';
-import { questions } from './questions';
-import { ResultMatrix } from './types';
+import { ArrowLeft, RefreshCw } from 'lucide-react';
+import { getQuestionsForSector } from './questions';
+import { Question, ResultMatrix } from './types';
 import { Sector } from '@/shared/types/brandLead';
 import ProgressIndicator from './components/ProgressIndicator';
+import SectorSelection from './components/SectorSelection';
 import {
   IntroQuestion,
   SelectionCardQuestion,
@@ -16,56 +17,87 @@ import {
   OutroQuestion,
 } from './components/QuestionRenderers';
 
-interface BrandStrategyWizardProps {
-  sector?: Sector;
-}
+const VALID_SECTORS: Sector[] = ['gastronomi', 'retail', 'corporate', 'tech', 'health', 'education', 'fmcg'];
 
-const BrandStrategyWizard: React.FC<BrandStrategyWizardProps> = ({ sector = 'gastronomi' }) => {
+const BrandStrategyWizard: React.FC = () => {
   const startTime = useRef(Date.now());
+
+  // Read sector from URL params on mount
+  const initialSector = useMemo((): Sector | null => {
+    const params = new URLSearchParams(window.location.search);
+    const urlSector = params.get('sector') as Sector | null;
+    if (urlSector && VALID_SECTORS.includes(urlSector)) {
+      return urlSector;
+    }
+    return null;
+  }, []);
+
+  const [selectedSector, setSelectedSector] = useState<Sector | null>(initialSector);
+  const [questions, setQuestions] = useState<Question[]>(
+    initialSector ? getQuestionsForSector(initialSector) : []
+  );
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string | string[]>>({});
   const [scores, setScores] = useState<Record<number, number>>({});
   const [stageResults, setStageResults] = useState<Record<number, ResultMatrix>>({});
 
+  const handleSectorSelect = useCallback((sector: Sector) => {
+    setSelectedSector(sector);
+    setQuestions(getQuestionsForSector(sector));
+    setCurrentStep(0);
+    setAnswers({});
+    setScores({});
+    setStageResults({});
+    startTime.current = Date.now();
+    // Update URL without reload
+    const url = new URL(window.location.href);
+    url.searchParams.set('sector', sector);
+    window.history.replaceState(null, '', url.toString());
+  }, []);
+
+  // If no sector selected, show sector selection
+  if (!selectedSector || questions.length === 0) {
+    return <SectorSelection onSelect={handleSectorSelect} />;
+  }
+
   const currentQuestion = questions[currentStep];
 
-  const handleNext = useCallback(() => {
+  const handleNext = () => {
     if (currentStep < questions.length - 1) {
       setCurrentStep((prev) => prev + 1);
     }
-  }, [currentStep]);
+  };
 
-  const handleBack = useCallback(() => {
+  const handleBack = () => {
     if (currentStep > 0) {
       setCurrentStep((prev) => prev - 1);
     }
-  }, [currentStep]);
+  };
 
-  const handleAnswer = useCallback((questionId: number, value: string | string[]) => {
+  const handleAnswer = (questionId: number, value: string | string[]) => {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
-  }, []);
+  };
 
-  const handleScoredAnswer = useCallback((questionId: number, value: string, score: number) => {
+  const handleScoredAnswer = (questionId: number, value: string, score: number) => {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
     setScores((prev) => ({ ...prev, [questionId]: score }));
-  }, []);
+  };
 
   // Calculate stage result based on scores
-  const calculateStageResult = useCallback((stageQuestions: number[]): ResultMatrix | null => {
+  const calculateStageResult = (stageQuestions: number[]): ResultMatrix | null => {
     const totalScore = stageQuestions.reduce((sum, qId) => sum + (scores[qId] || 0), 0);
 
     if (!currentQuestion.resultMatrix) return null;
 
-    // Find matching result matrix
     const result = currentQuestion.resultMatrix.find(
       (matrix) => totalScore >= matrix.minScore && totalScore <= matrix.maxScore
     );
 
     return result || currentQuestion.resultMatrix[0];
-  }, [scores, currentQuestion]);
+  };
 
   // Get stage result for display
-  const getStageResult = useCallback((): ResultMatrix | null => {
+  const getStageResult = (): ResultMatrix | null => {
     if (currentQuestion.type !== 'stage_result' || !currentQuestion.stageQuestions) {
       return null;
     }
@@ -81,7 +113,7 @@ const BrandStrategyWizard: React.FC<BrandStrategyWizardProps> = ({ sector = 'gas
     }
 
     return result;
-  }, [currentQuestion, stageResults, calculateStageResult]);
+  };
 
   // Check if the current question is answered
   const isCurrentAnswered = (): boolean => {
@@ -184,7 +216,7 @@ const BrandStrategyWizard: React.FC<BrandStrategyWizardProps> = ({ sector = 'gas
           />
         );
 
-      case 'stage_result':
+      case 'stage_result': {
         const result = getStageResult();
         if (!result) return null;
 
@@ -195,15 +227,17 @@ const BrandStrategyWizard: React.FC<BrandStrategyWizardProps> = ({ sector = 'gas
             onNext={handleNext}
           />
         );
+      }
 
       case 'outro':
         return (
           <OutroQuestion
             question={currentQuestion}
+            questions={questions}
             answers={answers}
             scores={scores}
             stageResults={stageResults}
-            sector={sector}
+            sector={selectedSector}
             completionTime={Date.now() - startTime.current}
             onSubmit={(data) => {
               console.log('Final submission:', data);
@@ -291,4 +325,55 @@ const BrandStrategyWizard: React.FC<BrandStrategyWizardProps> = ({ sector = 'gas
   );
 };
 
-export default BrandStrategyWizard;
+// Error Boundary for graceful failure
+interface ErrorBoundaryState {
+  hasError: boolean;
+}
+
+class WizardErrorBoundary extends Component<{ children: React.ReactNode }, ErrorBoundaryState> {
+  state: ErrorBoundaryState = { hasError: false };
+
+  static getDerivedStateFromError(): ErrorBoundaryState {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    console.error('BrandStrategyWizard error:', error, info);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div
+          className="min-h-screen flex flex-col items-center justify-center px-6 font-grotesk"
+          style={{ backgroundColor: '#ebeef8', color: '#171717' }}
+        >
+          <div className="text-center space-y-4 max-w-md">
+            <h2 className="text-2xl font-bold font-ramillas">Bir sorun oluştu</h2>
+            <p className="text-base" style={{ color: '#525252' }}>
+              Değerlendirme sırasında beklenmeyen bir hata meydana geldi. Lütfen sayfayı yenileyin.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-white font-semibold"
+              style={{ backgroundColor: '#171717' }}
+            >
+              <RefreshCw className="w-4 h-4" />
+              Sayfayı Yenile
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+export default function BrandStrategyWizardWithBoundary() {
+  return (
+    <WizardErrorBoundary>
+      <BrandStrategyWizard />
+    </WizardErrorBoundary>
+  );
+}

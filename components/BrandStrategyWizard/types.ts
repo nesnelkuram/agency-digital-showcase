@@ -74,3 +74,55 @@ export interface WizardState {
   scores: Record<number, number>;  // Her aşamanın puanı
   stageResults: Record<number, ResultMatrix>;  // Her aşamanın sonucu
 }
+
+// ============================================================================
+// SEKTÖR SORU KONFİGÜRASYONU
+// ============================================================================
+
+export interface StageQuestion {
+  type: 'selection_scored' | 'selection_list' | 'selection_card' | 'selection_multi';
+  script: string;
+  text: string;
+  options: SelectionOption[];
+  placeholder?: string;
+}
+
+export interface EducationalContent {
+  script: string;
+  text: string;
+  stats: Array<{
+    value: string;
+    label: string;
+    description: string;
+    source: string;
+  }>;
+  caseStudy: {
+    title: string;
+    summary: string;
+    outcome: string;
+    type: 'success' | 'failure';
+  };
+  scenario: string;
+}
+
+export interface StageConfig {
+  intro: {
+    script: string;
+    stageDescription: string;
+  };
+  questions: [StageQuestion, StageQuestion, StageQuestion];
+  educational: EducationalContent;
+  resultMatrix: ResultMatrix[];
+}
+
+export interface SectorQuestionConfig {
+  sectorId: string;
+  intro: {
+    script: string;
+    text: string;
+  };
+  stages: [StageConfig, StageConfig, StageConfig, StageConfig, StageConfig];
+  outro?: {
+    script?: string;
+  };
+}

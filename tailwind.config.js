@@ -4,6 +4,8 @@ export default {
     "./index.html",
     "./components/**/*.{js,ts,jsx,tsx}",
     "./utils/**/*.{js,ts,jsx,tsx}",
+    "./admin/**/*.{js,ts,jsx,tsx}",
+    "./shared/**/*.{js,ts,jsx,tsx}",
     "./App.tsx",
     "./index.tsx"
   ],
@@ -26,6 +28,7 @@ export default {
       fontFamily: {
         'ramillas': ['TT Ramillas', 'serif'],
         'grotesk': ['HK Grotesk', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        'commons': ['TT Commons', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
       },
     },
   },

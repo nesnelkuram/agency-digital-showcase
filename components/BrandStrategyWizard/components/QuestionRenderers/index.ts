@@ -1,5 +1,4 @@
 export { default as IntroQuestion } from './IntroQuestion';
-export { default as HybridQuestion } from './HybridQuestion';
 export { default as SelectionCardQuestion } from './SelectionCardQuestion';
 export { default as SelectionMultiQuestion } from './SelectionMultiQuestion';
 export { default as SelectionListQuestion } from './SelectionListQuestion';

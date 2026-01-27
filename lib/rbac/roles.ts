@@ -61,6 +61,12 @@ export const ROLES: Record<string, RoleConfig> = {
 
       // Analytics
       PERMISSIONS.ANALYTICS_VIEW,
+
+      // Feedback
+      PERMISSIONS.FEEDBACK_VIEW,
+      PERMISSIONS.FEEDBACK_CREATE,
+      PERMISSIONS.FEEDBACK_COMMENT,
+      PERMISSIONS.FEEDBACK_DELETE,
     ],
   },
 
@@ -88,6 +94,11 @@ export const ROLES: Record<string, RoleConfig> = {
       // Training (if applicable)
       PERMISSIONS.TRAINING_VIEW,
       PERMISSIONS.TRAINING_COMPLETE,
+
+      // Feedback
+      PERMISSIONS.FEEDBACK_VIEW,
+      PERMISSIONS.FEEDBACK_CREATE,
+      PERMISSIONS.FEEDBACK_COMMENT,
     ],
   },
 
@@ -117,6 +128,11 @@ export const ROLES: Record<string, RoleConfig> = {
       // Training
       PERMISSIONS.TRAINING_VIEW,
       PERMISSIONS.TRAINING_COMPLETE,
+
+      // Feedback
+      PERMISSIONS.FEEDBACK_VIEW,
+      PERMISSIONS.FEEDBACK_CREATE,
+      PERMISSIONS.FEEDBACK_COMMENT,
     ],
   },
 };

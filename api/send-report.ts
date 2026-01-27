@@ -25,16 +25,20 @@ export default async function handler(
       stage0,
       stage0Score,
       stage1,
+      stage1Score,
       stage2,
+      stage2Score,
       stage3,
+      stage3Score,
       stage4,
+      stage4Score,
       allAnswers,
       allScores,
     } = req.body;
 
     // Send email using Resend
     const { data, error } = await resend.emails.send({
-      from: 'Brand Strategy Wizard <onboarding@resend.dev>', // You'll change this to your domain
+      from: 'Brand Strategy Wizard <noreply@intiba.co.uk>',
       to: ['info@intiba.co.uk'],
       replyTo: email,
       subject: `Brand Strategy #${submissionId} - ${businessName}`,
@@ -80,19 +84,19 @@ export default async function handler(
               <div class="section">
                 <h2>📊 Aşama Sonuçları</h2>
                 <div class="value">
-                  <span class="label">Aşama 0:</span> ${stage0} (Skor: ${stage0Score})
+                  <span class="label">Operasyonel Gerçeklik:</span> ${stage0} (Skor: ${stage0Score})
                 </div>
                 <div class="value">
-                  <span class="label">Aşama 1:</span> ${stage1}
+                  <span class="label">Marka Ruhu:</span> ${stage1} (Skor: ${stage1Score})
                 </div>
                 <div class="value">
-                  <span class="label">Aşama 2:</span> ${stage2}
+                  <span class="label">Marka Karakteri:</span> ${stage2} (Skor: ${stage2Score})
                 </div>
                 <div class="value">
-                  <span class="label">Aşama 3:</span> ${stage3}
+                  <span class="label">Kim Değiliz:</span> ${stage3} (Skor: ${stage3Score})
                 </div>
                 <div class="value">
-                  <span class="label">Aşama 4:</span> ${stage4}
+                  <span class="label">Hedef ve Başarı:</span> ${stage4} (Skor: ${stage4Score})
                 </div>
               </div>
 

@@ -30,6 +30,26 @@ import {
 
 const COLLECTION_NAME = 'brand_leads';
 
+/**
+ * Recursively remove undefined values from an object.
+ * Preserves Firestore Timestamp instances.
+ */
+function stripUndefined(obj: any): any {
+  if (obj === null || obj === undefined) return obj;
+  if (obj instanceof Timestamp) return obj;
+  if (Array.isArray(obj)) return obj.map(stripUndefined);
+  if (typeof obj === 'object') {
+    const result: any = {};
+    for (const [key, val] of Object.entries(obj)) {
+      if (val !== undefined) {
+        result[key] = stripUndefined(val);
+      }
+    }
+    return result;
+  }
+  return obj;
+}
+
 // ============================================
 // TEMEL CRUD İŞLEMLERİ
 // ============================================
@@ -76,7 +96,7 @@ export async function createBrandLead(
     updatedAt: Timestamp.now(),
   };
 
-  const docRef = await addDoc(collection(db, COLLECTION_NAME), leadData);
+  const docRef = await addDoc(collection(db, COLLECTION_NAME), stripUndefined(leadData));
   return docRef.id;
 }
 
@@ -121,7 +141,7 @@ export async function createBrandLeadFromWebsite(
     updatedAt: Timestamp.now(),
   };
 
-  const docRef = await addDoc(collection(db, COLLECTION_NAME), leadData);
+  const docRef = await addDoc(collection(db, COLLECTION_NAME), stripUndefined(leadData));
   return docRef.id;
 }
 

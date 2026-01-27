@@ -19,8 +19,9 @@ const BrandStrategyWizard = lazy(() => import('./components/BrandStrategyWizard'
 const LandingPage = lazy(() => import('./components/LandingPage'));
 
 // Admin Panel (lazy loaded)
-const AdminApp = lazy(() => import('./admin'));
+const AdminApp = lazy(() => import('./admin/AdminApp'));
 const LoginPage = lazy(() => import('./admin/auth/LoginPage'));
+const FeedbackSharePage = lazy(() => import('./components/FeedbackSharePage'));
 
 const HomePage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -282,6 +283,16 @@ const App: React.FC = () => {
           element={
             <Suspense fallback={<div className="min-h-screen" style={{ backgroundColor: '#ebeef8' }} />}>
               <BrandStrategyWizard />
+            </Suspense>
+          }
+        />
+
+        {/* Feedback Share Page - Public video sharing */}
+        <Route
+          path="/feedback/:shareToken"
+          element={
+            <Suspense fallback={<div className="min-h-screen" style={{ backgroundColor: '#0a0a0a' }} />}>
+              <FeedbackSharePage />
             </Suspense>
           }
         />

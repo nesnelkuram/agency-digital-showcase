@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Send, Loader2 } from 'lucide-react';
 import { Question, ResultMatrix } from '../../types';
@@ -8,6 +8,7 @@ import { isFirebaseConfigured } from '@/lib/firebase/config';
 
 interface OutroQuestionProps {
   question: Question;
+  questions: Question[];
   answers: Record<number, string | string[]>;
   scores: Record<number, number>;
   stageResults: Record<number, ResultMatrix>;
@@ -18,6 +19,7 @@ interface OutroQuestionProps {
 
 const OutroQuestion: React.FC<OutroQuestionProps> = ({
   question,
+  questions,
   answers,
   scores,
   stageResults,
@@ -31,7 +33,21 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
   const [phone, setPhone] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
+
+  // Compute stage scores from questions metadata instead of hardcoded IDs
+  const stageScores = useMemo(() => {
+    const result: Record<number, number> = {};
+    questions
+      .filter(q => q.type === 'stage_result' && q.stageQuestions && q.stage)
+      .forEach(q => {
+        const stageNum = q.stage!.stage;
+        const total = q.stageQuestions!.reduce((sum, qId) => sum + (scores[qId] || 0), 0);
+        result[stageNum] = total;
+      });
+    return result;
+  }, [questions, scores]);
 
   const services = [
     {
@@ -96,6 +112,7 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
     if (!name.trim() || !businessName.trim() || !email.trim()) return;
 
     setIsSubmitting(true);
+    setSubmitError(null);
 
     try {
       // Prepare comprehensive report for email
@@ -123,11 +140,15 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
         requestedServices: selectedServiceNames || 'Belirtilmedi',
         serviceCount: selectedServices.length,
         stage0: stageResults[0]?.title || 'N/A',
-        stage0Score: Object.keys(scores).filter(k => [3, 4, 5].includes(Number(k))).reduce((sum, k) => sum + scores[Number(k)], 0),
+        stage0Score: stageScores[0] || 0,
         stage1: stageResults[1]?.title || 'N/A',
+        stage1Score: stageScores[1] || 0,
         stage2: stageResults[2]?.title || 'N/A',
+        stage2Score: stageScores[2] || 0,
         stage3: stageResults[3]?.title || 'N/A',
+        stage3Score: stageScores[3] || 0,
         stage4: stageResults[4]?.title || 'N/A',
+        stage4Score: stageScores[4] || 0,
         allAnswers: JSON.stringify(answers, null, 2),
         allScores: JSON.stringify(scores, null, 2),
         _subject: `Brand Strategy #${submissionId} - ${businessName.trim()}`,
@@ -135,28 +156,28 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
         _template: 'table',
       };
 
+      let firestoreSaved = false;
+      let firestoreErrorMsg = '';
+
       // Save to Firestore if configured
+      console.log('[Wizard] Firebase configured:', isFirebaseConfigured);
       if (isFirebaseConfigured) {
         try {
-          // Prepare stage results array
           const stageResultsArray = Object.entries(stageResults).map(([stage, result]) => ({
             stage: parseInt(stage),
             title: result.title,
             description: result.description,
-            score: Object.keys(scores)
-              .filter(k => result.minScore !== undefined)
-              .reduce((sum, k) => sum + (scores[parseInt(k)] || 0), 0),
+            score: stageScores[parseInt(stage)] || 0,
           }));
 
-          // Prepare requested services array
           const requestedServicesArray = selectedServices.map(id => {
             const service = services.find(s => s.id === id);
             return service ? { id: service.id, title: service.title, description: service.description } : null;
           }).filter(Boolean) as { id: string; title: string; description?: string }[];
 
-          // Get UTM parameters from URL
           const urlParams = new URLSearchParams(window.location.search);
 
+          console.log('[Wizard] Attempting Firestore save...');
           await createBrandLeadFromWebsite({
             sector,
             contact: {
@@ -179,42 +200,49 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
             utmCampaign: urlParams.get('utm_campaign') || undefined,
           });
 
-          console.log('Lead saved to Firestore');
-        } catch (firestoreError) {
-          console.error('Firestore save failed:', firestoreError);
-          // Continue with email submission even if Firestore fails
+          firestoreSaved = true;
+          console.log('[Wizard] Lead saved to Firestore successfully');
+        } catch (firestoreError: any) {
+          firestoreErrorMsg = firestoreError?.code || firestoreError?.message || 'Unknown error';
+          console.error('[Wizard] Firestore save failed:', firestoreError?.code, firestoreError?.message, firestoreError);
         }
+      } else {
+        firestoreErrorMsg = 'Firebase not configured';
+        console.error('[Wizard] Firebase is NOT configured - check VITE_FIREBASE_* env vars');
       }
 
-      // Send to email API endpoint
-      const response = await fetch('/api/send-report', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(reportData),
-      });
+      // Send email notification (non-blocking - Firestore is the primary store)
+      let emailSent = false;
+      try {
+        const response = await fetch('/api/send-report', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(reportData),
+        });
 
-      const result = await response.json();
+        if (response.ok) {
+          const result = await response.json();
+          emailSent = true;
+          console.log('[Wizard] Email sent:', result);
+        } else {
+          console.warn('[Wizard] Email API returned error:', response.status);
+        }
+      } catch (emailError) {
+        console.warn('[Wizard] Email send failed (API may not be available in dev):', emailError);
+      }
 
-      console.log('API response:', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok,
-        result
-      });
-
-      if (response.ok) {
+      // Success if either Firestore saved or email sent
+      if (firestoreSaved || emailSent) {
         setIsSubmitted(true);
         onSubmit(reportData);
-        console.log('Form submitted successfully:', reportData);
+        console.log('[Wizard] Form submitted successfully:', { firestoreSaved, emailSent });
       } else {
-        console.error('API error:', result);
-        throw new Error(result.error || 'Form submission failed');
+        const debugInfo = firestoreErrorMsg ? ` (Hata: ${firestoreErrorMsg})` : '';
+        setSubmitError(`Bilgileriniz kaydedilemedi.${debugInfo} Lütfen tekrar deneyin veya doğrudan info@intiba.co.uk adresine email gönderin.`);
       }
     } catch (error: any) {
       console.error('Error submitting form:', error);
-      alert('Form gönderilirken bir hata oluştu. Lütfen tekrar deneyin veya doğrudan info@intiba.co.uk adresine email gönderin.');
+      setSubmitError('Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin veya doğrudan info@intiba.co.uk adresine email gönderin.');
     } finally {
       setIsSubmitting(false);
     }
@@ -434,6 +462,19 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
                 )}
               </motion.button>
             </form>
+
+            {submitError && (
+              <motion.div
+                className="w-full p-4 rounded-xl border-2 text-center"
+                style={{ backgroundColor: '#fef2f2', borderColor: '#fca5a5' }}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <p className="text-sm font-grotesk" style={{ color: '#dc2626' }}>
+                  {submitError}
+                </p>
+              </motion.div>
+            )}
 
             <p className="text-xs md:text-sm text-center font-grotesk px-4" style={{ color: '#737373' }}>
               Raporunuz işletmeniz için özel hazırlanmış stratejik öneriler içerecektir.

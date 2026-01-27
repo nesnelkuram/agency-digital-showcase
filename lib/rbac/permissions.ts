@@ -64,6 +64,13 @@ export const PERMISSIONS = {
 
   // Activity Log
   ACTIVITY_VIEW: 'activity:view',
+
+  // Feedback (Loom-style video feedback)
+  FEEDBACK_VIEW: 'feedback:view',
+  FEEDBACK_CREATE: 'feedback:create',
+  FEEDBACK_COMMENT: 'feedback:comment',
+  FEEDBACK_DELETE: 'feedback:delete',
+  FEEDBACK_MANAGE: 'feedback:manage',
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
