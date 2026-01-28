@@ -87,8 +87,8 @@ export const fmcgConfig: SectorQuestionConfig = {
           }
         ],
         caseStudy: {
-          title: "Felchlin vs Ülker Tablet",
-          summary: "İsviçreli çikolata üreticisi Felchlin, dünya çapında premium kakao tedarik zinciri kurdu. Her parti aynı tadı garantiliyor. Hammadde kaynağı değişse bile formül adapte ediliyor. Sonuç: 100+ yıldır premium segmentte lider. Öte yandan pek çok yerel gıda markası hızlı büyüme peşinde koşarken hammadde kalitesinden ödün verdi. Tat değişti, müşteri fark etti, güven kayboldu. Üretim tutarlılığı olmadan marka vaadi boş kalır.",
+          title: "Felchlin: 100 Yıllık Tutarlılık",
+          summary: "İsviçreli çikolata üreticisi Felchlin, dünya çapında premium kakao tedarik zinciri kurdu. Her parti aynı tadı garantiliyor. Hammadde kaynağı değişse bile formül adapte ediliyor. Sonuç: 100+ yıldır premium segmentte lider. Gıda sektöründe hızlı büyüme peşinde koşan markalar genellikle hammadde kalitesinden ödün veriyor. Tat değişince müşteri fark ediyor, güven kayboluyor. Üretim tutarlılığı olmadan marka vaadi boş kalır.",
           outcome: "Sonuç: Gıda sektöründe tutarlılık = güven. Bir kez tat değişirse müşteri geri gelmez.",
           type: 'success'
         },
