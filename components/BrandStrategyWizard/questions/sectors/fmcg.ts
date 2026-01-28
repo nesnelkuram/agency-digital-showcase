@@ -58,7 +58,7 @@ export const fmcgConfig: SectorQuestionConfig = {
         }
       ],
       educational: {
-        script: "İki gıda markası hikayesi: Biri parlak bir lansmanla girdi, diğeri sessizce altyapısını kurdu. Sadece biri rafta kaldı.",
+        script: "Gıda sektöründe yeni ürünlerin %72'si ilk yıl raftan kalkıyor. Hayatta kalanların ortak özelliği: Sessizce altyapısını kuranlar.",
         text: "Operasyonel Tutarlılık",
         stats: [
           {
