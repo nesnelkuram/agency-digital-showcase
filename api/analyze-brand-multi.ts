@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { runPipeline } from '../server/lib/pipeline';
-import type { PipelineInput, PipelineState } from '../server/lib/types';
+import { runPipeline } from './_lib/pipeline';
+import type { PipelineInput, PipelineState } from './_lib/types';
 
 export const config = {
   maxDuration: 60,

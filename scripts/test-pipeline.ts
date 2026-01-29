@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { runPipeline } from '../server/lib/pipeline';
+import { runPipeline } from '../api/_lib/pipeline';
 
 async function test() {
   try {
