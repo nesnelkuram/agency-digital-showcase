@@ -28,3 +28,6 @@ public/videos/full/
 
 # PDF files
 *.pdf
+
+# Generated API bundles (built by esbuild during vercel-build)
+api/analyze-brand-multi.js
