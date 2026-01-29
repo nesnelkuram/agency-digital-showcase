@@ -181,9 +181,59 @@ export interface AIAnalysis {
     recommendations: string[];
   };
 
+  // Marka konumlandırma (multi-agent)
+  positioning?: {
+    statement: string;
+    targetAudience: string;
+    differentiator: string;
+    competitiveAdvantage: string;
+    alternativePositions?: string[];
+  };
+
+  // Sektör araştırma verileri (multi-agent)
+  sectorResearch?: {
+    competitors: Array<{
+      name: string;
+      positioning: string;
+      strengths: string[];
+      weaknesses: string[];
+    }>;
+    marketTrends: string[];
+    sectorBenchmarks: string[];
+    searchQueries: string[];
+    sourcesUsed: number;
+  };
+
+  // Strateji tartışma kaydı (multi-agent)
+  debate?: {
+    strategistPosition: string;
+    challengerPosition: string;
+    challengerAlternatives: string[];
+    synthesisRationale: string;
+    debateCompleted: boolean;
+  };
+
+  // Veri kalitesi değerlendirmesi (multi-agent)
+  dataQuality?: {
+    completeness: number; // 0-1
+    contradictions: string[];
+    patterns: string[];
+    missingAreas: string[];
+  };
+
+  // Pipeline metadata (multi-agent)
+  pipelineMetadata?: {
+    version: string;
+    agentsRun: string[];
+    totalDuration: number; // ms
+    agentDurations: Record<string, number>;
+    researchAvailable: boolean;
+    fallbackUsed: boolean;
+  };
+
   // Meta
   analyzedAt: Timestamp;
-  analyzedBy: 'gemini' | 'gemini-2.0-flash' | 'manual';
+  analyzedBy: 'gemini' | 'gemini-2.0-flash' | 'gemini-multi-agent' | 'manual';
   modelVersion?: string;
   confidence?: number; // 0-1
 }

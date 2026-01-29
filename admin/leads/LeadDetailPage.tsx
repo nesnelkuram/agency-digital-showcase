@@ -23,6 +23,9 @@ import {
   Target,
   TrendingUp,
   Lightbulb,
+  RefreshCw,
+  Database,
+  Zap,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermission } from '@/shared/hooks/usePermission';
@@ -38,6 +41,10 @@ import {
 } from '@/shared/types/brandLead';
 import { isFirebaseConfigured } from '@/lib/firebase/config';
 import { PERMISSIONS } from '@/lib/rbac/permissions';
+import AnalysisProgressIndicator from './components/AnalysisProgressIndicator';
+import ResearchFindings from './components/ResearchFindings';
+import DebateView from './components/DebateView';
+import PositioningSection from './components/PositioningSection';
 
 const LeadDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -53,15 +60,15 @@ const LeadDetailPage: React.FC = () => {
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
 
-  // AI Analysis
-  const handleAnalyzeWithAI = async () => {
+  // AI Analysis — Multi-Agent Pipeline
+  const handleAnalyzeWithAI = async (mode: 'full' | 'lite' = 'full') => {
     if (!lead || !user || analyzing) return;
 
     setAnalyzing(true);
     setAnalyzeError(null);
 
     try {
-      const response = await fetch('/api/analyze-brand', {
+      const response = await fetch('/api/analyze-brand-multi', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -69,6 +76,8 @@ const LeadDetailPage: React.FC = () => {
           sector: lead.sector,
           wizard: lead.wizard,
           requestedServices: lead.requestedServices,
+          leadId: lead.id,
+          mode,
         }),
       });
 
@@ -81,9 +90,6 @@ const LeadDetailPage: React.FC = () => {
       const aiAnalysis = {
         ...data.analysis,
         analyzedAt: new Date(),
-        analyzedBy: 'gemini' as const,
-        modelVersion: 'gemini-3-pro-preview',
-        confidence: 0.85,
       };
 
       await updateBrandLead(
@@ -265,21 +271,40 @@ const LeadDetailPage: React.FC = () => {
         </div>
 
         <div className="flex gap-2">
-          {can(PERMISSIONS.LEADS_AI_ANALYZE) && !lead.aiAnalysis && (
-            <motion.button
-              onClick={handleAnalyzeWithAI}
-              disabled={analyzing}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-full font-grotesk text-sm font-medium hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              whileHover={!analyzing ? { scale: 1.02 } : {}}
-              whileTap={!analyzing ? { scale: 0.98 } : {}}
-            >
-              {analyzing ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+          {can(PERMISSIONS.LEADS_AI_ANALYZE) && (
+            <>
+              {!lead.aiAnalysis ? (
+                <motion.button
+                  onClick={() => handleAnalyzeWithAI('full')}
+                  disabled={analyzing}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-full font-grotesk text-sm font-medium hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  whileHover={!analyzing ? { scale: 1.02 } : {}}
+                  whileTap={!analyzing ? { scale: 0.98 } : {}}
+                >
+                  {analyzing ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-4 h-4" />
+                  )}
+                  {analyzing ? 'Analiz Ediliyor...' : 'Multi-Agent Analiz'}
+                </motion.button>
               ) : (
-                <Sparkles className="w-4 h-4" />
+                <motion.button
+                  onClick={() => handleAnalyzeWithAI('full')}
+                  disabled={analyzing}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-neutral-100 text-neutral-700 rounded-full font-grotesk text-sm font-medium hover:bg-neutral-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  whileHover={!analyzing ? { scale: 1.02 } : {}}
+                  whileTap={!analyzing ? { scale: 0.98 } : {}}
+                >
+                  {analyzing ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4" />
+                  )}
+                  {analyzing ? 'Analiz Ediliyor...' : 'Yeniden Analiz Et'}
+                </motion.button>
               )}
-              {analyzing ? 'Analiz Ediliyor...' : 'AI ile Analiz Et'}
-            </motion.button>
+            </>
           )}
           {can(PERMISSIONS.LEADS_CONVERT) && lead.status !== 'won' && (
             <motion.button
@@ -551,17 +576,42 @@ const LeadDetailPage: React.FC = () => {
             {activeTab === 'ai' && (
               <div>
                 {analyzing ? (
-                  <div className="text-center py-16">
-                    <Loader2 className="w-12 h-12 text-purple-400 mx-auto mb-4 animate-spin" />
-                    <h3 className="font-ramillas text-xl font-bold text-neutral-700 mb-2">
-                      AI Analizi Yapiliyor...
-                    </h3>
-                    <p className="font-grotesk text-neutral-500">
-                      Gemini marka stratejisi olusturuyor. Bu islem 10-20 saniye surebilir.
-                    </p>
-                  </div>
+                  <AnalysisProgressIndicator />
                 ) : lead.aiAnalysis ? (
                   <div className="space-y-8">
+                    {/* Pipeline Metadata Badge */}
+                    {lead.aiAnalysis.pipelineMetadata && (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-100 text-purple-700 rounded-full font-grotesk text-xs font-medium">
+                          <Zap className="w-3 h-3" />
+                          Multi-Agent v{lead.aiAnalysis.pipelineMetadata.version}
+                        </span>
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-neutral-100 text-neutral-600 rounded-full font-grotesk text-xs">
+                          {lead.aiAnalysis.pipelineMetadata.agentsRun?.length || 0} agent
+                        </span>
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-neutral-100 text-neutral-600 rounded-full font-grotesk text-xs">
+                          {lead.aiAnalysis.pipelineMetadata.totalDuration
+                            ? `${(lead.aiAnalysis.pipelineMetadata.totalDuration / 1000).toFixed(1)}s`
+                            : '-'}
+                        </span>
+                        {lead.aiAnalysis.pipelineMetadata.researchAvailable && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-100 text-emerald-700 rounded-full font-grotesk text-xs">
+                            Web Arastirmasi
+                          </span>
+                        )}
+                        {lead.aiAnalysis.pipelineMetadata.fallbackUsed && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-100 text-amber-700 rounded-full font-grotesk text-xs">
+                            Fallback
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Positioning (Multi-Agent) */}
+                    {lead.aiAnalysis.positioning && (
+                      <PositioningSection positioning={lead.aiAnalysis.positioning} />
+                    )}
+
                     {/* Brand Personality */}
                     {lead.aiAnalysis.brandPersonality && (
                       <div>
@@ -604,6 +654,16 @@ const LeadDetailPage: React.FC = () => {
                       </div>
                     )}
 
+                    {/* Sector Research (Multi-Agent) */}
+                    {lead.aiAnalysis.sectorResearch && lead.aiAnalysis.sectorResearch.sourcesUsed > 0 && (
+                      <ResearchFindings research={lead.aiAnalysis.sectorResearch} />
+                    )}
+
+                    {/* Debate (Multi-Agent) */}
+                    {lead.aiAnalysis.debate && (
+                      <DebateView debate={lead.aiAnalysis.debate} />
+                    )}
+
                     {/* Visual World */}
                     {lead.aiAnalysis.visualWorld && (
                       <div>
@@ -614,7 +674,7 @@ const LeadDetailPage: React.FC = () => {
                           </h4>
                         </div>
                         <div className="bg-pink-50 rounded-xl p-5 space-y-4">
-                          {lead.aiAnalysis.visualWorld.moodKeywords && (
+                          {lead.aiAnalysis.visualWorld.moodKeywords && lead.aiAnalysis.visualWorld.moodKeywords.length > 0 && (
                             <div>
                               <p className="font-grotesk text-xs text-pink-500 uppercase tracking-wider mb-2">Mood Anahtar Kelimeler</p>
                               <div className="flex flex-wrap gap-2">
@@ -626,7 +686,7 @@ const LeadDetailPage: React.FC = () => {
                               </div>
                             </div>
                           )}
-                          {lead.aiAnalysis.visualWorld.colorPalette && (
+                          {lead.aiAnalysis.visualWorld.colorPalette && lead.aiAnalysis.visualWorld.colorPalette.length > 0 && (
                             <div>
                               <p className="font-grotesk text-xs text-pink-500 uppercase tracking-wider mb-2">Renk Paleti</p>
                               <div className="flex gap-3">
@@ -644,14 +704,18 @@ const LeadDetailPage: React.FC = () => {
                             </div>
                           )}
                           <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <p className="font-grotesk text-xs text-pink-500 uppercase tracking-wider mb-1">Tipografi</p>
-                              <p className="font-grotesk text-sm text-neutral-700">{lead.aiAnalysis.visualWorld.typographyStyle}</p>
-                            </div>
-                            <div>
-                              <p className="font-grotesk text-xs text-pink-500 uppercase tracking-wider mb-1">Gorsel Stil</p>
-                              <p className="font-grotesk text-sm text-neutral-700">{lead.aiAnalysis.visualWorld.imageryStyle}</p>
-                            </div>
+                            {lead.aiAnalysis.visualWorld.typographyStyle && (
+                              <div>
+                                <p className="font-grotesk text-xs text-pink-500 uppercase tracking-wider mb-1">Tipografi</p>
+                                <p className="font-grotesk text-sm text-neutral-700">{lead.aiAnalysis.visualWorld.typographyStyle}</p>
+                              </div>
+                            )}
+                            {lead.aiAnalysis.visualWorld.imageryStyle && (
+                              <div>
+                                <p className="font-grotesk text-xs text-pink-500 uppercase tracking-wider mb-1">Gorsel Stil</p>
+                                <p className="font-grotesk text-sm text-neutral-700">{lead.aiAnalysis.visualWorld.imageryStyle}</p>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -667,7 +731,7 @@ const LeadDetailPage: React.FC = () => {
                           </h4>
                         </div>
                         <div className="bg-blue-50 rounded-xl p-5 space-y-4">
-                          {lead.aiAnalysis.contentStrategy.pillars && (
+                          {lead.aiAnalysis.contentStrategy.pillars && lead.aiAnalysis.contentStrategy.pillars.length > 0 && (
                             <div>
                               <p className="font-grotesk text-xs text-blue-500 uppercase tracking-wider mb-2">Icerik Sutunlari</p>
                               <div className="grid grid-cols-2 gap-2">
@@ -679,20 +743,33 @@ const LeadDetailPage: React.FC = () => {
                               </div>
                             </div>
                           )}
-                          {lead.aiAnalysis.contentStrategy.keyMessages && (
+                          {lead.aiAnalysis.contentStrategy.toneGuidelines && lead.aiAnalysis.contentStrategy.toneGuidelines.length > 0 && (
+                            <div>
+                              <p className="font-grotesk text-xs text-blue-500 uppercase tracking-wider mb-2">Ton Rehberi</p>
+                              <ul className="space-y-1">
+                                {lead.aiAnalysis.contentStrategy.toneGuidelines.map((g: string, i: number) => (
+                                  <li key={i} className="font-grotesk text-sm text-neutral-700 flex items-start gap-2">
+                                    <span className="text-blue-400 mt-0.5">&#9679;</span>
+                                    {g}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {lead.aiAnalysis.contentStrategy.keyMessages && lead.aiAnalysis.contentStrategy.keyMessages.length > 0 && (
                             <div>
                               <p className="font-grotesk text-xs text-blue-500 uppercase tracking-wider mb-2">Anahtar Mesajlar</p>
                               <ul className="space-y-1">
                                 {lead.aiAnalysis.contentStrategy.keyMessages.map((msg: string, i: number) => (
                                   <li key={i} className="font-grotesk text-sm text-neutral-700 flex items-start gap-2">
-                                    <span className="text-blue-400 mt-0.5">•</span>
+                                    <span className="text-blue-400 mt-0.5">&#8226;</span>
                                     {msg}
                                   </li>
                                 ))}
                               </ul>
                             </div>
                           )}
-                          {lead.aiAnalysis.contentStrategy.hashtags && (
+                          {lead.aiAnalysis.contentStrategy.hashtags && lead.aiAnalysis.contentStrategy.hashtags.length > 0 && (
                             <div>
                               <p className="font-grotesk text-xs text-blue-500 uppercase tracking-wider mb-2">Hashtag Onerileri</p>
                               <div className="flex flex-wrap gap-2">
@@ -718,7 +795,7 @@ const LeadDetailPage: React.FC = () => {
                           </h4>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
-                          {lead.aiAnalysis.analysis.strengths && (
+                          {lead.aiAnalysis.analysis.strengths && lead.aiAnalysis.analysis.strengths.length > 0 && (
                             <div className="bg-green-50 rounded-xl p-4">
                               <p className="font-grotesk text-xs text-green-600 uppercase tracking-wider mb-2">Guclu Yanlar</p>
                               <ul className="space-y-1">
@@ -730,19 +807,19 @@ const LeadDetailPage: React.FC = () => {
                               </ul>
                             </div>
                           )}
-                          {lead.aiAnalysis.analysis.opportunities && (
+                          {lead.aiAnalysis.analysis.opportunities && lead.aiAnalysis.analysis.opportunities.length > 0 && (
                             <div className="bg-blue-50 rounded-xl p-4">
                               <p className="font-grotesk text-xs text-blue-600 uppercase tracking-wider mb-2">Firsatlar</p>
                               <ul className="space-y-1">
                                 {lead.aiAnalysis.analysis.opportunities.map((o: string, i: number) => (
                                   <li key={i} className="font-grotesk text-sm text-neutral-700 flex items-start gap-2">
-                                    <span className="text-blue-400 mt-0.5">→</span> {o}
+                                    <span className="text-blue-400 mt-0.5">&#8594;</span> {o}
                                   </li>
                                 ))}
                               </ul>
                             </div>
                           )}
-                          {lead.aiAnalysis.analysis.challenges && (
+                          {lead.aiAnalysis.analysis.challenges && lead.aiAnalysis.analysis.challenges.length > 0 && (
                             <div className="bg-amber-50 rounded-xl p-4">
                               <p className="font-grotesk text-xs text-amber-600 uppercase tracking-wider mb-2">Zorluklar</p>
                               <ul className="space-y-1">
@@ -754,14 +831,70 @@ const LeadDetailPage: React.FC = () => {
                               </ul>
                             </div>
                           )}
-                          {lead.aiAnalysis.analysis.recommendations && (
+                          {lead.aiAnalysis.analysis.recommendations && lead.aiAnalysis.analysis.recommendations.length > 0 && (
                             <div className="bg-purple-50 rounded-xl p-4">
                               <p className="font-grotesk text-xs text-purple-600 uppercase tracking-wider mb-2">Oneriler</p>
                               <ul className="space-y-1">
                                 {lead.aiAnalysis.analysis.recommendations.map((r: string, i: number) => (
                                   <li key={i} className="font-grotesk text-sm text-neutral-700 flex items-start gap-2">
-                                    <span className="text-purple-400 mt-0.5">★</span> {r}
+                                    <span className="text-purple-400 mt-0.5">&#9733;</span> {r}
                                   </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Data Quality (Multi-Agent) */}
+                    {lead.aiAnalysis.dataQuality && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-4">
+                          <Database className="w-5 h-5 text-neutral-500" />
+                          <h4 className="font-ramillas text-lg font-bold text-[#171717]">
+                            Veri Kalitesi
+                          </h4>
+                          <span className="ml-auto font-grotesk text-sm font-medium text-neutral-600">
+                            %{Math.round((lead.aiAnalysis.dataQuality.completeness || 0) * 100)}
+                          </span>
+                        </div>
+                        <div className="bg-neutral-50 rounded-xl p-5 space-y-3">
+                          {/* Progress bar */}
+                          <div className="w-full bg-neutral-200 rounded-full h-2">
+                            <div
+                              className="bg-green-500 h-2 rounded-full transition-all"
+                              style={{ width: `${(lead.aiAnalysis.dataQuality.completeness || 0) * 100}%` }}
+                            />
+                          </div>
+                          {lead.aiAnalysis.dataQuality.patterns && lead.aiAnalysis.dataQuality.patterns.length > 0 && (
+                            <div>
+                              <p className="font-grotesk text-xs text-neutral-500 uppercase tracking-wider mb-1">Tespit Edilen Oruntular</p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {lead.aiAnalysis.dataQuality.patterns.map((p: string, i: number) => (
+                                  <span key={i} className="px-2 py-0.5 bg-white rounded font-grotesk text-xs text-neutral-600 border border-neutral-200">
+                                    {p}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {lead.aiAnalysis.dataQuality.contradictions && lead.aiAnalysis.dataQuality.contradictions.length > 0 && (
+                            <div>
+                              <p className="font-grotesk text-xs text-amber-600 uppercase tracking-wider mb-1">Celiskiler</p>
+                              <ul className="space-y-0.5">
+                                {lead.aiAnalysis.dataQuality.contradictions.map((c: string, i: number) => (
+                                  <li key={i} className="font-grotesk text-xs text-neutral-600">! {c}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {lead.aiAnalysis.dataQuality.missingAreas && lead.aiAnalysis.dataQuality.missingAreas.length > 0 && (
+                            <div>
+                              <p className="font-grotesk text-xs text-red-500 uppercase tracking-wider mb-1">Eksik Alanlar</p>
+                              <ul className="space-y-0.5">
+                                {lead.aiAnalysis.dataQuality.missingAreas.map((m: string, i: number) => (
+                                  <li key={i} className="font-grotesk text-xs text-neutral-600">- {m}</li>
                                 ))}
                               </ul>
                             </div>
@@ -773,8 +906,9 @@ const LeadDetailPage: React.FC = () => {
                     {/* Meta Info */}
                     <div className="pt-4 border-t border-neutral-100">
                       <p className="font-grotesk text-xs text-neutral-400">
-                        Analiz: {lead.aiAnalysis.modelVersion || 'Gemini'} •{' '}
+                        Analiz: {lead.aiAnalysis.analyzedBy === 'gemini-multi-agent' ? 'Multi-Agent Pipeline' : (lead.aiAnalysis.modelVersion || 'Gemini')} •{' '}
                         {lead.aiAnalysis.analyzedAt ? formatDate(lead.aiAnalysis.analyzedAt) : '-'}
+                        {lead.aiAnalysis.confidence != null && ` • Guven: %${Math.round(lead.aiAnalysis.confidence * 100)}`}
                       </p>
                     </div>
                   </div>
@@ -785,7 +919,7 @@ const LeadDetailPage: React.FC = () => {
                       AI Analizi Henuz Yapilmadi
                     </h3>
                     <p className="font-grotesk text-neutral-500 mb-4">
-                      Gemini AI ile marka analizi yapmak icin butona tiklayin.
+                      5 uzman agent ile detayli marka stratejisi olusturmak icin analizi baslatin.
                     </p>
                     {analyzeError && (
                       <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg inline-flex items-center gap-2">
@@ -794,14 +928,22 @@ const LeadDetailPage: React.FC = () => {
                       </div>
                     )}
                     {can(PERMISSIONS.LEADS_AI_ANALYZE) && (
-                      <div>
+                      <div className="flex gap-3 justify-center">
                         <button
-                          onClick={handleAnalyzeWithAI}
+                          onClick={() => handleAnalyzeWithAI('full')}
                           disabled={analyzing}
                           className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-full font-grotesk text-sm font-medium hover:bg-purple-700 transition-colors disabled:opacity-50"
                         >
                           <Sparkles className="w-4 h-4" />
-                          AI ile Analiz Et
+                          Multi-Agent Analiz
+                        </button>
+                        <button
+                          onClick={() => handleAnalyzeWithAI('lite')}
+                          disabled={analyzing}
+                          className="inline-flex items-center gap-2 px-6 py-3 bg-neutral-100 text-neutral-700 rounded-full font-grotesk text-sm font-medium hover:bg-neutral-200 transition-colors disabled:opacity-50"
+                        >
+                          <Zap className="w-4 h-4" />
+                          Hizli Analiz
                         </button>
                       </div>
                     )}
