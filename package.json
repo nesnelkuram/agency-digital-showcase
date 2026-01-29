@@ -10,6 +10,7 @@
     "vercel-build": "vite build"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^5.2.2",
     "@react-spring/three": "^10.0.1",
     "@react-three/drei": "^10.3.0",
@@ -35,9 +36,11 @@
     "@vercel/node": "^5.5.16",
     "@vitejs/plugin-react": "^4.7.0",
     "autoprefixer": "^10.4.21",
+    "dotenv": "^17.2.3",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
     "terser": "^5.43.1",
+    "tsx": "^4.21.0",
     "typescript": "~5.7.2",
     "vite": "^6.2.0",
     "vite-plugin-compression": "^0.5.1"

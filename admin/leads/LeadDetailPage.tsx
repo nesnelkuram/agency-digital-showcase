@@ -18,6 +18,11 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
+  Loader2,
+  Palette,
+  Target,
+  TrendingUp,
+  Lightbulb,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermission } from '@/shared/hooks/usePermission';
@@ -45,6 +50,59 @@ const LeadDetailPage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [newNote, setNewNote] = useState('');
   const [activeTab, setActiveTab] = useState<'overview' | 'wizard' | 'timeline' | 'ai'>('overview');
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analyzeError, setAnalyzeError] = useState<string | null>(null);
+
+  // AI Analysis
+  const handleAnalyzeWithAI = async () => {
+    if (!lead || !user || analyzing) return;
+
+    setAnalyzing(true);
+    setAnalyzeError(null);
+
+    try {
+      const response = await fetch('/api/analyze-brand', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contact: lead.contact,
+          sector: lead.sector,
+          wizard: lead.wizard,
+          requestedServices: lead.requestedServices,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Analiz basarisiz oldu');
+      }
+
+      const aiAnalysis = {
+        ...data.analysis,
+        analyzedAt: new Date(),
+        analyzedBy: 'gemini' as const,
+        modelVersion: 'gemini-2.0-flash',
+        confidence: 0.85,
+      };
+
+      await updateBrandLead(
+        lead.id,
+        { aiAnalysis },
+        user.uid,
+        user.displayName || 'Unknown'
+      );
+
+      const updatedLead = await getBrandLead(lead.id);
+      setLead(updatedLead);
+      setActiveTab('ai');
+    } catch (error: any) {
+      console.error('AI analysis error:', error);
+      setAnalyzeError(error.message || 'Bir hata olustu');
+    } finally {
+      setAnalyzing(false);
+    }
+  };
 
   // Load lead
   useEffect(() => {
@@ -209,12 +267,18 @@ const LeadDetailPage: React.FC = () => {
         <div className="flex gap-2">
           {can(PERMISSIONS.LEADS_AI_ANALYZE) && !lead.aiAnalysis && (
             <motion.button
-              className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-full font-grotesk text-sm font-medium hover:bg-purple-700 transition-colors"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+              onClick={handleAnalyzeWithAI}
+              disabled={analyzing}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-full font-grotesk text-sm font-medium hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              whileHover={!analyzing ? { scale: 1.02 } : {}}
+              whileTap={!analyzing ? { scale: 0.98 } : {}}
             >
-              <Sparkles className="w-4 h-4" />
-              AI ile Analiz Et
+              {analyzing ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4" />
+              )}
+              {analyzing ? 'Analiz Ediliyor...' : 'AI ile Analiz Et'}
             </motion.button>
           )}
           {can(PERMISSIONS.LEADS_CONVERT) && lead.status !== 'won' && (
@@ -485,22 +549,237 @@ const LeadDetailPage: React.FC = () => {
             )}
 
             {activeTab === 'ai' && (
-              <div className="text-center py-12">
-                {lead.aiAnalysis ? (
-                  <div className="text-left space-y-6">
+              <div>
+                {analyzing ? (
+                  <div className="text-center py-16">
+                    <Loader2 className="w-12 h-12 text-purple-400 mx-auto mb-4 animate-spin" />
+                    <h3 className="font-ramillas text-xl font-bold text-neutral-700 mb-2">
+                      AI Analizi Yapiliyor...
+                    </h3>
+                    <p className="font-grotesk text-neutral-500">
+                      Gemini marka stratejisi olusturuyor. Bu islem 10-20 saniye surebilir.
+                    </p>
+                  </div>
+                ) : lead.aiAnalysis ? (
+                  <div className="space-y-8">
+                    {/* Brand Personality */}
                     {lead.aiAnalysis.brandPersonality && (
                       <div>
-                        <h4 className="font-grotesk font-medium text-[#171717] mb-2">
-                          Marka Kisiligi
-                        </h4>
-                        <p className="font-grotesk text-sm text-neutral-600">
-                          {lead.aiAnalysis.brandPersonality.archetype}
-                        </p>
+                        <div className="flex items-center gap-2 mb-4">
+                          <Sparkles className="w-5 h-5 text-purple-600" />
+                          <h4 className="font-ramillas text-lg font-bold text-[#171717]">
+                            Marka Kisiligi
+                          </h4>
+                        </div>
+                        <div className="bg-purple-50 rounded-xl p-5 space-y-3">
+                          <div>
+                            <p className="font-grotesk text-xs text-purple-500 uppercase tracking-wider mb-1">Arketip</p>
+                            <p className="font-grotesk font-semibold text-[#171717]">
+                              {lead.aiAnalysis.brandPersonality.archetype}
+                            </p>
+                          </div>
+                          {lead.aiAnalysis.brandPersonality.traits && (
+                            <div>
+                              <p className="font-grotesk text-xs text-purple-500 uppercase tracking-wider mb-1">Ozellikler</p>
+                              <div className="flex flex-wrap gap-2">
+                                {lead.aiAnalysis.brandPersonality.traits.map((trait: string, i: number) => (
+                                  <span key={i} className="px-3 py-1 bg-white rounded-full font-grotesk text-xs text-purple-700 border border-purple-200">
+                                    {trait}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <p className="font-grotesk text-xs text-purple-500 uppercase tracking-wider mb-1">Ton</p>
+                              <p className="font-grotesk text-sm text-neutral-700">{lead.aiAnalysis.brandPersonality.tone}</p>
+                            </div>
+                            <div>
+                              <p className="font-grotesk text-xs text-purple-500 uppercase tracking-wider mb-1">Ses</p>
+                              <p className="font-grotesk text-sm text-neutral-700">{lead.aiAnalysis.brandPersonality.voice}</p>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     )}
+
+                    {/* Visual World */}
+                    {lead.aiAnalysis.visualWorld && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-4">
+                          <Palette className="w-5 h-5 text-pink-600" />
+                          <h4 className="font-ramillas text-lg font-bold text-[#171717]">
+                            Gorsel Dunya
+                          </h4>
+                        </div>
+                        <div className="bg-pink-50 rounded-xl p-5 space-y-4">
+                          {lead.aiAnalysis.visualWorld.moodKeywords && (
+                            <div>
+                              <p className="font-grotesk text-xs text-pink-500 uppercase tracking-wider mb-2">Mood Anahtar Kelimeler</p>
+                              <div className="flex flex-wrap gap-2">
+                                {lead.aiAnalysis.visualWorld.moodKeywords.map((kw: string, i: number) => (
+                                  <span key={i} className="px-3 py-1 bg-white rounded-full font-grotesk text-xs text-pink-700 border border-pink-200">
+                                    {kw}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {lead.aiAnalysis.visualWorld.colorPalette && (
+                            <div>
+                              <p className="font-grotesk text-xs text-pink-500 uppercase tracking-wider mb-2">Renk Paleti</p>
+                              <div className="flex gap-3">
+                                {lead.aiAnalysis.visualWorld.colorPalette.map((color: any, i: number) => (
+                                  <div key={i} className="text-center">
+                                    <div
+                                      className="w-12 h-12 rounded-xl shadow-sm border border-neutral-200"
+                                      style={{ backgroundColor: color.hex }}
+                                    />
+                                    <p className="font-grotesk text-[10px] text-neutral-500 mt-1">{color.name}</p>
+                                    <p className="font-grotesk text-[10px] text-pink-400">{color.usage}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <p className="font-grotesk text-xs text-pink-500 uppercase tracking-wider mb-1">Tipografi</p>
+                              <p className="font-grotesk text-sm text-neutral-700">{lead.aiAnalysis.visualWorld.typographyStyle}</p>
+                            </div>
+                            <div>
+                              <p className="font-grotesk text-xs text-pink-500 uppercase tracking-wider mb-1">Gorsel Stil</p>
+                              <p className="font-grotesk text-sm text-neutral-700">{lead.aiAnalysis.visualWorld.imageryStyle}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Content Strategy */}
+                    {lead.aiAnalysis.contentStrategy && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-4">
+                          <Target className="w-5 h-5 text-blue-600" />
+                          <h4 className="font-ramillas text-lg font-bold text-[#171717]">
+                            Icerik Stratejisi
+                          </h4>
+                        </div>
+                        <div className="bg-blue-50 rounded-xl p-5 space-y-4">
+                          {lead.aiAnalysis.contentStrategy.pillars && (
+                            <div>
+                              <p className="font-grotesk text-xs text-blue-500 uppercase tracking-wider mb-2">Icerik Sutunlari</p>
+                              <div className="grid grid-cols-2 gap-2">
+                                {lead.aiAnalysis.contentStrategy.pillars.map((pillar: string, i: number) => (
+                                  <div key={i} className="px-3 py-2 bg-white rounded-lg font-grotesk text-sm text-neutral-700 border border-blue-100">
+                                    {pillar}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {lead.aiAnalysis.contentStrategy.keyMessages && (
+                            <div>
+                              <p className="font-grotesk text-xs text-blue-500 uppercase tracking-wider mb-2">Anahtar Mesajlar</p>
+                              <ul className="space-y-1">
+                                {lead.aiAnalysis.contentStrategy.keyMessages.map((msg: string, i: number) => (
+                                  <li key={i} className="font-grotesk text-sm text-neutral-700 flex items-start gap-2">
+                                    <span className="text-blue-400 mt-0.5">•</span>
+                                    {msg}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {lead.aiAnalysis.contentStrategy.hashtags && (
+                            <div>
+                              <p className="font-grotesk text-xs text-blue-500 uppercase tracking-wider mb-2">Hashtag Onerileri</p>
+                              <div className="flex flex-wrap gap-2">
+                                {lead.aiAnalysis.contentStrategy.hashtags.map((tag: string, i: number) => (
+                                  <span key={i} className="px-3 py-1 bg-white rounded-full font-grotesk text-xs text-blue-700 border border-blue-200">
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* SWOT Analysis */}
+                    {lead.aiAnalysis.analysis && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-4">
+                          <TrendingUp className="w-5 h-5 text-green-600" />
+                          <h4 className="font-ramillas text-lg font-bold text-[#171717]">
+                            Stratejik Analiz
+                          </h4>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          {lead.aiAnalysis.analysis.strengths && (
+                            <div className="bg-green-50 rounded-xl p-4">
+                              <p className="font-grotesk text-xs text-green-600 uppercase tracking-wider mb-2">Guclu Yanlar</p>
+                              <ul className="space-y-1">
+                                {lead.aiAnalysis.analysis.strengths.map((s: string, i: number) => (
+                                  <li key={i} className="font-grotesk text-sm text-neutral-700 flex items-start gap-2">
+                                    <span className="text-green-400 mt-0.5">+</span> {s}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {lead.aiAnalysis.analysis.opportunities && (
+                            <div className="bg-blue-50 rounded-xl p-4">
+                              <p className="font-grotesk text-xs text-blue-600 uppercase tracking-wider mb-2">Firsatlar</p>
+                              <ul className="space-y-1">
+                                {lead.aiAnalysis.analysis.opportunities.map((o: string, i: number) => (
+                                  <li key={i} className="font-grotesk text-sm text-neutral-700 flex items-start gap-2">
+                                    <span className="text-blue-400 mt-0.5">→</span> {o}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {lead.aiAnalysis.analysis.challenges && (
+                            <div className="bg-amber-50 rounded-xl p-4">
+                              <p className="font-grotesk text-xs text-amber-600 uppercase tracking-wider mb-2">Zorluklar</p>
+                              <ul className="space-y-1">
+                                {lead.aiAnalysis.analysis.challenges.map((c: string, i: number) => (
+                                  <li key={i} className="font-grotesk text-sm text-neutral-700 flex items-start gap-2">
+                                    <span className="text-amber-400 mt-0.5">!</span> {c}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {lead.aiAnalysis.analysis.recommendations && (
+                            <div className="bg-purple-50 rounded-xl p-4">
+                              <p className="font-grotesk text-xs text-purple-600 uppercase tracking-wider mb-2">Oneriler</p>
+                              <ul className="space-y-1">
+                                {lead.aiAnalysis.analysis.recommendations.map((r: string, i: number) => (
+                                  <li key={i} className="font-grotesk text-sm text-neutral-700 flex items-start gap-2">
+                                    <span className="text-purple-400 mt-0.5">★</span> {r}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Meta Info */}
+                    <div className="pt-4 border-t border-neutral-100">
+                      <p className="font-grotesk text-xs text-neutral-400">
+                        Analiz: {lead.aiAnalysis.modelVersion || 'Gemini'} •{' '}
+                        {lead.aiAnalysis.analyzedAt ? formatDate(lead.aiAnalysis.analyzedAt) : '-'}
+                      </p>
+                    </div>
                   </div>
                 ) : (
-                  <>
+                  <div className="text-center py-16">
                     <Sparkles className="w-12 h-12 text-purple-200 mx-auto mb-4" />
                     <h3 className="font-ramillas text-xl font-bold text-neutral-700 mb-2">
                       AI Analizi Henuz Yapilmadi
@@ -508,13 +787,25 @@ const LeadDetailPage: React.FC = () => {
                     <p className="font-grotesk text-neutral-500 mb-4">
                       Gemini AI ile marka analizi yapmak icin butona tiklayin.
                     </p>
-                    {can(PERMISSIONS.LEADS_AI_ANALYZE) && (
-                      <button className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-full font-grotesk text-sm font-medium hover:bg-purple-700 transition-colors">
-                        <Sparkles className="w-4 h-4" />
-                        AI ile Analiz Et
-                      </button>
+                    {analyzeError && (
+                      <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg inline-flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-red-500" />
+                        <p className="font-grotesk text-sm text-red-600">{analyzeError}</p>
+                      </div>
                     )}
-                  </>
+                    {can(PERMISSIONS.LEADS_AI_ANALYZE) && (
+                      <div>
+                        <button
+                          onClick={handleAnalyzeWithAI}
+                          disabled={analyzing}
+                          className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-full font-grotesk text-sm font-medium hover:bg-purple-700 transition-colors disabled:opacity-50"
+                        >
+                          <Sparkles className="w-4 h-4" />
+                          AI ile Analiz Et
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             )}

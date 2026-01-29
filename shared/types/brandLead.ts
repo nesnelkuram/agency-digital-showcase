@@ -183,7 +183,7 @@ export interface AIAnalysis {
 
   // Meta
   analyzedAt: Timestamp;
-  analyzedBy: 'gemini' | 'manual';
+  analyzedBy: 'gemini' | 'gemini-2.0-flash' | 'manual';
   modelVersion?: string;
   confidence?: number; // 0-1
 }
