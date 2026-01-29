@@ -4,10 +4,8 @@ export type ModelTier = 'flash' | 'pro';
 
 const MODEL_IDS: Record<ModelTier, string> = {
   flash: 'gemini-2.0-flash',
-  pro: 'gemini-2.0-flash',
+  pro: 'gemini-3-pro-preview',
 };
-// NOTE: Both tiers use gemini-2.0-flash for now.
-// Upgrade pro to 'gemini-2.5-pro' once model availability is confirmed.
 
 export function createGeminiModel(
   tier: ModelTier,
