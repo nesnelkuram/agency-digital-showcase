@@ -1,9 +1,4 @@
 {
-  "functions": {
-    "api/analyze-brand-multi.ts": {
-      "maxDuration": 60
-    }
-  },
   "headers": [
     {
       "source": "/fonts/(.*)",
