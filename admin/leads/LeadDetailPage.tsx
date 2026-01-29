@@ -82,7 +82,7 @@ const LeadDetailPage: React.FC = () => {
         ...data.analysis,
         analyzedAt: new Date(),
         analyzedBy: 'gemini' as const,
-        modelVersion: 'gemini-2.0-flash',
+        modelVersion: 'gemini-3-pro-preview',
         confidence: 0.85,
       };
 
