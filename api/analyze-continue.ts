@@ -12,6 +12,7 @@ export const config = {
 };
 
 const BUDGET_MS = 290_000; // 10s safety margin
+const PIPELINE_BUDGET_MS = 150_000; // strategist(50s) + challenger(27s) + synthesizer(67s) + buffer(6s)
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Content-Type', 'application/json');
@@ -38,6 +39,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const errors: Array<{ agent: string; error: string; timestamp: number }> = [];
     const agentsRun: string[] = [];
 
+    console.log(`analyze-continue: START — existingFindings=${!!existingFindings}, drInteractionId=${drInteractionId || 'none'}`);
+
     // ============================
     // PHASE A: Research (if needed)
     // ============================
@@ -55,7 +58,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
         timings.sectorResearch = Date.now() - researchStart;
         agentsRun.push('sectorResearch');
-        console.log(`analyze-continue: sectorResearch done in ${timings.sectorResearch}ms`);
+
+        // Log research summary for debugging
+        const rc = researchFindings;
+        console.log(`analyze-continue: sectorResearch done in ${timings.sectorResearch}ms — competitors=${rc?.competitors?.length || 0}, sourcesUsed=${rc?.sourcesUsed}, marketSize=${rc?.marketData?.marketSize?.slice?.(0, 50) || 'N/A'}, hasRawSnippets=${(rc?.rawSnippets?.[0]?.length || 0) > 0}`);
       } catch (error: any) {
         timings.sectorResearch = Date.now() - researchStart;
         errors.push({ agent: 'sectorResearch', error: error.message, timestamp: Date.now() });
@@ -63,19 +69,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       // Not enough time for pipeline? Return research and let client call again
-      if (remaining() < 80_000) {
-        console.log(`analyze-continue: Not enough time for pipeline (${remaining()}ms remaining), returning research`);
+      if (remaining() < PIPELINE_BUDGET_MS) {
+        console.log(`analyze-continue: Not enough time for pipeline (${remaining()}ms remaining < ${PIPELINE_BUDGET_MS}ms needed), returning research for next call`);
         return res.status(200).json({
           status: researchFindings ? 'research_complete' : 'failed',
           researchFindings,
-          debug: { timings, errors, agentsRun },
+          debug: { timings, errors, agentsRun, remainingMs: remaining() },
         });
       }
+    } else {
+      console.log(`analyze-continue: Using pre-existing research — competitors=${existingFindings?.competitors?.length || 0}, sourcesUsed=${existingFindings?.sourcesUsed}`);
     }
 
     // ============================
     // PHASE B: Pipeline agents
     // ============================
+    console.log(`analyze-continue: PHASE B START — remaining=${remaining()}ms, hasResearch=${!!researchFindings}, sourcesUsed=${researchFindings?.sourcesUsed}`);
 
     // Agent 3: Brand Strategist (required)
     let strategistOutput = null;
@@ -86,14 +95,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         strategistOutput = await runBrandStrategist(normalizedData, researchFindings);
         timings.brandStrategist = Date.now() - stratStart;
         agentsRun.push('brandStrategist');
+        console.log(`analyze-continue: brandStrategist done in ${timings.brandStrategist}ms — archetype=${strategistOutput?.archetype}`);
       } catch (error: any) {
         timings.brandStrategist = Date.now() - stratStart;
         errors.push({ agent: 'brandStrategist', error: error.message, timestamp: Date.now() });
         console.error('analyze-continue: brandStrategist failed:', error.message);
       }
+    } else {
+      console.log(`analyze-continue: SKIPPING brandStrategist — remaining=${remaining()}ms`);
     }
 
     if (!strategistOutput) {
+      console.error('analyze-continue: brandStrategist produced no output, returning failed');
       return res.status(200).json({
         status: 'failed',
         error: 'Brand strategist failed',
@@ -111,12 +124,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         challengerOutput = await runBrandChallenger(normalizedData, researchFindings, strategistOutput);
         timings.brandChallenger = Date.now() - challStart;
         agentsRun.push('brandChallenger');
+        console.log(`analyze-continue: brandChallenger done in ${timings.brandChallenger}ms`);
       } catch (error: any) {
         timings.brandChallenger = Date.now() - challStart;
         errors.push({ agent: 'brandChallenger', error: error.message, timestamp: Date.now() });
+        console.error(`analyze-continue: brandChallenger failed in ${timings.brandChallenger}ms: ${error.message}`);
       }
     } else {
-      console.log('analyze-continue: Skipping challenger (not enough time)');
+      console.log(`analyze-continue: SKIPPING brandChallenger — remaining=${remaining()}ms`);
     }
 
     // Agent 5: Strategy Synthesizer (optional with fallback)
@@ -128,18 +143,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         synthesizedAnalysis = await runStrategySynthesizer(normalizedData, researchFindings, strategistOutput, challengerOutput);
         timings.strategySynthesizer = Date.now() - synthStart;
         agentsRun.push('strategySynthesizer');
+        console.log(`analyze-continue: strategySynthesizer done in ${timings.strategySynthesizer}ms`);
       } catch (error: any) {
         timings.strategySynthesizer = Date.now() - synthStart;
         errors.push({ agent: 'strategySynthesizer', error: error.message, timestamp: Date.now() });
+        console.error(`analyze-continue: strategySynthesizer failed in ${timings.strategySynthesizer}ms: ${error.message}`);
       }
+    } else {
+      console.log(`analyze-continue: SKIPPING strategySynthesizer — remaining=${remaining()}ms`);
     }
 
     // ============================
     // FORMAT ANALYSIS
     // ============================
+    const usedFallback = !synthesizedAnalysis;
     const synthesized = synthesizedAnalysis || buildFallbackSynthesis(strategistOutput);
     const totalDuration = Date.now() - startTime;
     timings.total = totalDuration;
+
+    console.log(`analyze-continue: FORMAT — fallback=${usedFallback}, agents=[${agentsRun.join(',')}], total=${totalDuration}ms, remaining=${remaining()}ms`);
 
     const analysis = {
       brandPersonality: synthesized.brandPersonality,
@@ -194,7 +216,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ),
         researchAvailable: !!researchFindings && (researchFindings.sourcesUsed !== 0),
         researchMethod: researchFindings?.sourcesUsed === -1 ? 'deep-research' : researchFindings?.sourcesUsed ? 'grounding' : 'none',
-        fallbackUsed: !synthesizedAnalysis,
+        fallbackUsed: usedFallback,
         asyncPipeline: true,
       },
 

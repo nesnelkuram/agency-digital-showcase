@@ -617,7 +617,8 @@ KURALLAR:
     return {
       ...EMPTY_RESEARCH,
       searchQueries: allSearchQueries,
-      sourcesUsed,
+      sourcesUsed: researchMethod === "deep-research" ? -1 : sourcesUsed,
+      // preserve DR flag even on extraction failure
       sourceUrls: allSourceUrls,
       rawSnippets: [researchText.slice(0, 1e4)]
     };

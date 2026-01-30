@@ -99,6 +99,7 @@ const LeadDetailPage: React.FC = () => {
       // Full mode: async 2-phase pipeline
       // Phase 1: Start — dataNormalizer + DR interaction
       setAnalysisPhase('normalizing');
+      console.log('[AsyncPipeline] Phase 1: Starting analyze-start...');
       const startRes = await fetch('/api/analyze-start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -113,6 +114,7 @@ const LeadDetailPage: React.FC = () => {
         throw new Error(err.error || `Baslatma hatasi (${startRes.status})`);
       }
       const startData = await startRes.json();
+      console.log(`[AsyncPipeline] Phase 1 done: status=${startData.status}, drInteractionId=${startData.drInteractionId || 'none'}`);
       setAnalysisPhase('researching');
 
       // Phase 2: Continue loop — DR poll + pipeline
@@ -123,6 +125,7 @@ const LeadDetailPage: React.FC = () => {
 
       while (result.status !== 'completed' && result.status !== 'failed' && attempts < MAX_ATTEMPTS) {
         attempts++;
+        console.log(`[AsyncPipeline] Continue call #${attempts}: hasResearch=${!!researchFindings}`);
         const continueRes = await fetch('/api/analyze-continue', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -147,20 +150,24 @@ const LeadDetailPage: React.FC = () => {
         }
 
         result = await continueRes.json();
+        console.log(`[AsyncPipeline] Continue #${attempts} result: status=${result.status}, hasFindings=${!!result.researchFindings}, agents=${result.debug?.agentsRun?.join(',') || 'N/A'}, fallback=${result.debug?.agentsRun ? !result.debug.agentsRun.includes('strategySynthesizer') : 'N/A'}`);
 
         if (result.researchFindings) {
           researchFindings = result.researchFindings;
+          console.log(`[AsyncPipeline] Research received: competitors=${researchFindings.competitors?.length || 0}, sourcesUsed=${researchFindings.sourcesUsed}`);
           setAnalysisPhase('analyzing');
         }
       }
 
       if (result.status === 'completed' && result.analysis) {
+        console.log(`[AsyncPipeline] COMPLETED: agents=[${result.analysis.pipelineMetadata?.agentsRun?.join(',') || 'N/A'}], fallback=${result.analysis.pipelineMetadata?.fallbackUsed}, researchMethod=${result.analysis.pipelineMetadata?.researchMethod}, totalDuration=${result.analysis.pipelineMetadata?.totalDuration}ms`);
         const aiAnalysis = { ...result.analysis, analyzedAt: new Date() };
         await updateBrandLead(lead.id, { aiAnalysis }, user.uid, user.displayName || 'Unknown');
         const updatedLead = await getBrandLead(lead.id);
         setLead(updatedLead);
         setActiveTab('ai');
       } else {
+        console.error(`[AsyncPipeline] FAILED: status=${result.status}, error=${result.error}, debug=`, result.debug);
         throw new Error(result.error || 'Pipeline tamamlanamadi');
       }
     } catch (error: any) {
