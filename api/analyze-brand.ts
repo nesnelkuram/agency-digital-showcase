@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 
 // Question ID → { question text, answer options } per sector
 // IDs: 3,4,5 (Stage 0), 9,10,11 (Stage 1), 15,16,17 (Stage 2), 21,22,23 (Stage 3), 27,28,29 (Stage 4)
@@ -159,22 +159,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Missing required fields: contact, sector, wizard' });
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-3-pro-preview' });
+    const client = new GoogleGenAI({ apiKey });
 
     const prompt = buildPrompt(contact, sector, wizard, requestedServices);
 
-    const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: {
+    const result = await client.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: {
         temperature: 0.7,
         topP: 0.9,
         maxOutputTokens: 4096,
         responseMimeType: 'application/json',
+        thinkingConfig: { thinkingBudget: 0 },
       },
     });
 
-    const responseText = result.response.text();
+    const responseText = result.text ?? '';
+    if (!responseText) {
+      throw new Error('Gemini returned empty response');
+    }
     const analysis = JSON.parse(responseText);
 
     return res.status(200).json({ success: true, analysis });
