@@ -1,4 +1,4 @@
-import { generateGroundedText, generateJSON } from '../geminiClient';
+import { runDeepResearch, generateGroundedText, generateJSON } from '../geminiClient';
 import type { PipelineInput, ResearchFindings } from '../types';
 
 const EMPTY_RESEARCH: ResearchFindings = {
@@ -25,159 +25,183 @@ const EMPTY_RESEARCH: ResearchFindings = {
   rawSnippets: [],
 };
 
-export async function runSectorResearch(input: PipelineInput): Promise<ResearchFindings> {
-  const { contact, sector } = input;
-  const businessName = contact.businessName;
+// --- Deep Research prompt: product-level investigation ---
+function buildDeepResearchPrompt(businessName: string, sector: string): string {
+  return `Sen bir sektor arastirmacisisin. Asagidaki marka hakkinda KAPSAMLI ve URUN BAZLI bir arastirma yap.
 
-  // Step A: 3 parallel grounded calls for rich web data
-  const competitorPrompt = `Sen bir sektor arastirmacisisin. ${sector} sektorunde Turkiye'de faaliyet gosteren ve "${businessName}" ile ayni segmentte rekabet eden markalari arastir.
+Marka: ${businessName}
+Sektor: ${sector}
 
-Her rakip icin su bilgileri bul:
-- GERCEK marka/sirket adi (tahmin yapma, sadece buldugun isimler)
-- Web sitesi URL'si
-- Pazar konumlandirmasi (ne vaat ediyorlar, fiyat segmenti)
-- Guclu yanlari (somut: sube sayisi, musteri tabani, urun cesitliligi vb.)
-- Zayif yanlari (somut: musteri sikayetleri, eksik hizmetler vb.)
-- Tahmini olcek (sube sayisi, calisan sayisi, ciro tahmini vb.)
-- Sosyal medya varligi (Instagram, TikTok, YouTube takipci sayilari)
+ARASTIRMA ADIMLARI (sirayla uygula):
 
-ONEMLI: Sadece dogrulanabilir bilgiler ver. Tahmin ettigin bilgileri acikca "[tahmin]" olarak belirt.
-EN AZ 3, EN FAZLA 7 rakip listele.
-Turkce yaz.`;
+ADIM 1 — MARKANIN KENDISI:
+- "${businessName}" web sitesini bul ve ziyaret et.
+- Hangi URUN ve HIZMETLERI sunuyor? Her birini listele.
+- Fiyat araliklari nedir? (mumkunse gercek fiyatlar)
+- Kendini nasil konumlandiriyor? (ucuz/orta/premium)
+- Alt markalari varsa her birini ayri ayri incele.
 
-  const marketPrompt = `Sen bir pazar arastirmacisisin. ${sector} sektoru icin Turkiye pazarini arastir.
+ADIM 2 — URUN BAZLI RAKIP ANALIZI:
+- Adim 1'de buldugun HER urun/hizmet kategorisi icin dogrudan rakipleri arastir.
+- Ornek: Eger marka "findik kremasi" satiyorsa → "findik kremasi markalari Turkiye" ara.
+- Her rakibin web sitesini ziyaret et.
+- Rakip urun fiyatlarini karsilastir.
+- Her rakibin guclu ve zayif yanlarini belirle (somut: urun cesitliligi, dagitim agi, fiyat, kalite algisi).
+- EN AZ 4, EN FAZLA 8 rakip bul.
 
-Asagidaki bilgileri bul:
-1. PAZAR BUYUKLUGU: Tahmini pazar buyuklugu (TL veya USD cinsinden), mumkunse kaynak belirt
-2. BUYUME HIZI: Yillik buyume orani veya trend yonu
-3. ANAHTAR OYUNCULAR: Sektorun en buyuk 5-7 markasi/sirketi
-4. HEDEF KITLE PROFILI: Bu sektorde alisveris yapan tuketicilerin:
-   - Yas araligi, cinsiyet dagilimi, gelir duzeyi
-   - Yogunlukla yasadiklari sehirler
-   - Degerleri ve yasam tarzi
-   - En buyuk sikayetleri ve acil ihtiyaclari (pain points)
-   - Satin alma kanallari (online/offline/sosyal medya)
-   - Satin alma karar sureci
-5. TUKETICI TRENDLERI: Son 1 yilda degisen tuketici davranislari
-6. REGULASYON: Sektoru etkileyen yasal duzenlemeler veya standartlar
+ADIM 3 — PAZAR VERILERI:
+- Bu URUN KATEGORISININ (genel sektor degil, spesifik urun!) Turkiye'deki pazar buyuklugu.
+- Yillik buyume orani veya trend yonu.
+- Tuketici davranislari: Kim aliyor, nasil aliyor, ne siklikla aliyor.
+- Fiyat hassasiyeti: Tuketiciler fiyat icin marka degistirir mi?
 
-Somut rakamlar ve kaynaklar ver. Turkce yaz.`;
+ADIM 4 — HEDEF KITLE PROFILI:
+- Bu urunleri gercekte kimler satin aliyor?
+- Yas araligi, gelir duzeyi, yasadiklari sehirler.
+- Satin alma motivasyonlari (fiyat, kalite, marka, organik/dogal icerikleri vb.).
+- Hangi kanallarda alisveris yapiyorlar (market, online, organik dukkan vb.).
 
-  const trendPrompt = `Sen bir sektor analistisin. ${sector} sektoru icin Turkiye'deki guncel trendleri, firsatlari ve tehditleri arastir.
+SONUCLARI DETAYLI OLARAK TURKCE YAZ. Her bilginin kaynagini belirt.`;
+}
 
-1. DIJITAL TRENDLER: Sektorde dijital donusum, e-ticaret, sosyal medya trendleri, yapay zeka kullanimi
-2. TUKETICI DAVRANISI: Degisen tuketici beklentileri ve yeni alisveris aliskanliklari
-3. REKABET DINAMIKLERI: Yeni girisimler, pazar konsolidasyonlari, fiyat rekabeti
-4. FIRSATLAR: "${businessName}" icin somut firsatlar (neden firsat, nasil degerlendirilir)
-5. TEHDITLER: "${businessName}" icin somut tehditler (ne riski var, nasil onlenir)
-6. SEKTOR STANDARTLARI: Basarili markalarin ortak ozellikleri, sektorde basari icin gereken minimum gereksinimler
-7. BENCHMARK METRIKLER: Sektorde ortalama musteri edinme maliyeti, donusum oranlari, musteri sadakati gibi olculebilir degerler
+// --- Grounding-based fallback (3 parallel searches) ---
+async function runGroundingFallback(businessName: string, sector: string) {
+  const competitorPrompt = `Sen bir sektor arastirmacisisin. ${sector} sektorunde Turkiye'de faaliyet gosteren ve "${businessName}" ile ayni segmentte rekabet eden markalari arastir. Her rakip icin gercek marka adi, web sitesi, konumlandirma, guclu/zayif yanlar, tahmini olcek bul. EN AZ 3, EN FAZLA 7 rakip. Turkce yaz.`;
+  const marketPrompt = `Sen bir pazar arastirmacisisin. ${sector} sektoru icin Turkiye pazar buyuklugu, buyume hizi, tuketici profili, satin alma davranislari, dijital trendler arastir. Somut rakamlar ver. Turkce yaz.`;
+  const trendPrompt = `${sector} sektoru ${businessName} icin firsatlar, tehditler, sektor standartlari, benchmark metrikler arastir. Turkce yaz.`;
 
-Somut ornekler ve kaynaklar ver. Turkce yaz.`;
+  const [competitorRes, marketRes, trendRes] = await Promise.all([
+    generateGroundedText(competitorPrompt, 'SectorResearch-Competitors', { maxOutputTokens: 8192 }),
+    generateGroundedText(marketPrompt, 'SectorResearch-Market', { maxOutputTokens: 8192 }),
+    generateGroundedText(trendPrompt, 'SectorResearch-Trends', { maxOutputTokens: 8192 }),
+  ]);
 
-  let allGroundedText = '';
   let allSourceUrls: Array<{ title: string; url: string }> = [];
   let allSearchQueries: string[] = [];
   let sourcesUsed = 0;
 
-  try {
-    // Run 3 grounded searches in parallel
-    const [competitorRes, marketRes, trendRes] = await Promise.all([
-      generateGroundedText(competitorPrompt, 'SectorResearch-Competitors', { maxOutputTokens: 8192 }),
-      generateGroundedText(marketPrompt, 'SectorResearch-Market', { maxOutputTokens: 8192 }),
-      generateGroundedText(trendPrompt, 'SectorResearch-Trends', { maxOutputTokens: 8192 }),
-    ]);
+  const allGroundedText = `## RAKIP ANALIZI\n${competitorRes.text}\n\n## PAZAR VE HEDEF KITLE\n${marketRes.text}\n\n## TRENDLER VE FIRSATLAR\n${trendRes.text}`;
 
-    // Combine all grounded text
-    allGroundedText = `## RAKIP ANALIZI\n${competitorRes.text}\n\n## PAZAR VE HEDEF KITLE\n${marketRes.text}\n\n## TRENDLER VE FIRSATLAR\n${trendRes.text}`;
-
-    // Collect source URLs from grounding metadata
-    for (const res of [competitorRes, marketRes, trendRes]) {
-      if (res.groundingMetadata) {
-        for (const chunk of res.groundingMetadata.groundingChunks) {
-          if (chunk.web?.uri) {
-            sourcesUsed++;
-            allSourceUrls.push({
-              title: chunk.web.title || chunk.web.uri,
-              url: chunk.web.uri,
-            });
-          }
+  for (const res of [competitorRes, marketRes, trendRes]) {
+    if (res.groundingMetadata) {
+      for (const chunk of res.groundingMetadata.groundingChunks) {
+        if (chunk.web?.uri) {
+          sourcesUsed++;
+          allSourceUrls.push({ title: chunk.web.title || chunk.web.uri, url: chunk.web.uri });
         }
-        allSearchQueries.push(...res.groundingMetadata.webSearchQueries);
       }
+      allSearchQueries.push(...res.groundingMetadata.webSearchQueries);
     }
-
-    // Deduplicate source URLs
-    const seen = new Set<string>();
-    allSourceUrls = allSourceUrls.filter((s) => {
-      if (seen.has(s.url)) return false;
-      seen.add(s.url);
-      return true;
-    });
-
-  } catch (error) {
-    console.error('SectorResearch: Grounded search failed:', error);
-    return { ...EMPTY_RESEARCH, searchQueries: [`${businessName} ${sector} Turkiye`] };
   }
 
-  if (!allGroundedText || allGroundedText.length < 100) {
-    console.warn('SectorResearch: Grounded search returned minimal data');
+  const seen = new Set<string>();
+  allSourceUrls = allSourceUrls.filter((s) => {
+    if (seen.has(s.url)) return false;
+    seen.add(s.url);
+    return true;
+  });
+
+  return { allGroundedText, allSourceUrls, allSearchQueries, sourcesUsed };
+}
+
+// --- Main research function ---
+export async function runSectorResearch(input: PipelineInput): Promise<ResearchFindings> {
+  const { contact, sector } = input;
+  const businessName = contact.businessName;
+
+  let researchText = '';
+  let allSourceUrls: Array<{ title: string; url: string }> = [];
+  let allSearchQueries: string[] = [];
+  let sourcesUsed = 0;
+  let researchMethod = 'none';
+
+  // Primary: Deep Research
+  try {
+    console.log('SectorResearch: Starting Deep Research...');
+    const drResult = await runDeepResearch(
+      buildDeepResearchPrompt(businessName, sector),
+      140_000, // 140s budget
+    );
+
+    if (drResult.status === 'completed' && drResult.text.length > 200) {
+      researchText = drResult.text;
+      researchMethod = 'deep-research';
+      console.log(`SectorResearch: Deep Research completed (${researchText.length} chars)`);
+    } else {
+      console.log(`SectorResearch: Deep Research ${drResult.status}, falling back to grounding...`);
+    }
+  } catch (error) {
+    console.error('SectorResearch: Deep Research failed:', error);
+  }
+
+  // Fallback: Grounding (if Deep Research didn't work)
+  if (!researchText) {
+    try {
+      console.log('SectorResearch: Running grounding fallback...');
+      const fb = await runGroundingFallback(businessName, sector);
+      researchText = fb.allGroundedText;
+      allSourceUrls = fb.allSourceUrls;
+      allSearchQueries = fb.allSearchQueries;
+      sourcesUsed = fb.sourcesUsed;
+      researchMethod = 'grounding';
+    } catch (error) {
+      console.error('SectorResearch: Grounding fallback also failed:', error);
+      return { ...EMPTY_RESEARCH, searchQueries: [`${businessName} ${sector} Turkiye`] };
+    }
+  }
+
+  if (!researchText || researchText.length < 100) {
     return { ...EMPTY_RESEARCH, searchQueries: allSearchQueries, sourcesUsed };
   }
 
-  // Step B: Extract structured JSON from grounded text
-  const extractionPrompt = `Asagidaki sektor arastirmasi metnini analiz ederek JSON yapisinda yapilandir. Metinde gecen TUM somut bilgileri koru: marka adlari, web siteleri, rakamlar, kaynaklar. Bilgi UYDURMADAN sadece metinde olan bilgileri yapilandir. Eger bir alan icin veri yoksa bos birak veya "Veri bulunamadi" yaz.
+  // Extract structured JSON from research text
+  const extractionPrompt = `Asagidaki arastirma metnini analiz ederek JSON yapisinda yapilandir.
+ONEMLI: Metinde gecen TUM somut bilgileri koru. Bilgi UYDURMADAN sadece metinde olan bilgileri yapilandir.
 
 ## Arastirma Metni
-${allGroundedText.slice(0, 30000)}
+${researchText.slice(0, 40000)}
 
-## Kaynaklar
-${allSourceUrls.map((s) => `- [${s.title}](${s.url})`).join('\n')}
+${allSourceUrls.length > 0 ? `## Kaynaklar\n${allSourceUrls.map((s) => `- [${s.title}](${s.url})`).join('\n')}` : ''}
 
 ---
-
-Yukaridaki metni asagidaki JSON yapisinda yapilandir:
-
+JSON yapisi:
 {
   "competitors": [
     {
-      "name": "Gercek marka/sirket adi",
-      "website": "Web sitesi URL'si (metinde varsa)",
-      "positioning": "Pazar konumlandirmasi",
+      "name": "Gercek marka adi",
+      "website": "Web sitesi URL'si",
+      "positioning": "Pazar konumlandirmasi ve fiyat segmenti",
       "strengths": ["Guclu yan 1", "Guclu yan 2"],
       "weaknesses": ["Zayif yan 1"],
-      "estimatedScale": "Tahmini olcek bilgisi (sube, calisan, ciro)",
+      "estimatedScale": "Olcek bilgisi (sube, calisan, ciro)",
       "socialPresence": "Sosyal medya bilgisi",
-      "sourceSnippet": "Bu bilginin metindeki kaynak cumlesi"
+      "sourceSnippet": "Bu bilginin kaynagi"
     }
   ],
   "marketData": {
-    "marketSize": "Pazar buyuklugu (rakam ve birim)",
-    "growthRate": "Buyume orani veya trendi",
-    "keyPlayers": ["Sektordeki buyuk oyuncular"],
-    "consumerTrends": ["Tuketici trendi 1", "Tuketici trendi 2"],
-    "regulatoryFactors": ["Yasal duzenleme veya standart"]
+    "marketSize": "Pazar buyuklugu (rakam)",
+    "growthRate": "Buyume orani",
+    "keyPlayers": ["Buyuk oyuncu 1"],
+    "consumerTrends": ["Tuketici trendi 1"],
+    "regulatoryFactors": ["Duzenleme 1"]
   },
   "targetAudienceInsights": {
-    "demographics": "Yas, cinsiyet, gelir, lokasyon bilgileri",
-    "psychographics": "Degerler, yasam tarzi, motivasyonlar",
-    "painPoints": ["Tuketici sikayeti/ihtiyaci 1", "Tuketici sikayeti/ihtiyaci 2"],
-    "purchaseBehavior": "Satin alma kanallari ve karar sureci"
+    "demographics": "Yas, cinsiyet, gelir, lokasyon",
+    "psychographics": "Degerler, yasam tarzi",
+    "painPoints": ["Ihtiyac 1", "Ihtiyac 2"],
+    "purchaseBehavior": "Satin alma davranisi"
   },
-  "opportunities": ["Somut firsat 1", "Somut firsat 2"],
-  "threats": ["Somut tehdit 1", "Somut tehdit 2"],
-  "sectorBenchmarks": ["Sektor standardi/olcutu 1", "Sektor standardi/olcutu 2"]
+  "opportunities": ["Firsat 1", "Firsat 2"],
+  "threats": ["Tehdit 1", "Tehdit 2"],
+  "sectorBenchmarks": ["Benchmark 1"]
 }
 
 KURALLAR:
-1. "competitors" EN AZ 3 rakip icermeli. Metinde adi gecen TUM rakipleri dahil et.
-2. Her rakibin "name" alani GERCEK bir marka adi olmali, uydurma yasak.
-3. "marketData.marketSize" mumkunse rakamsal deger icermeli (TL/USD).
-4. "targetAudienceInsights.painPoints" en az 2 madde icermeli.
-5. "opportunities" ve "threats" en az 2'ser madde icermeli.
-6. Metinde olmayan bilgiyi UYDURMADAN "Veri bulunamadi" yaz.
-7. Tum metinler TURKCE olmali.
-8. Sadece JSON don.`;
+1. EN AZ 3 rakip. Metinde adi gecen TUM rakipleri dahil et.
+2. Urun bazli rakip bilgileri oncelikli (sadece sektor degil, spesifik urun kategorisi).
+3. Metinde olmayan bilgiyi UYDURMADAN "Veri bulunamadi" yaz.
+4. Tum metinler TURKCE.
+5. Sadece JSON don.`;
 
   try {
     type ResearchJSON = Omit<ResearchFindings, 'searchQueries' | 'sourcesUsed' | 'sourceUrls' | 'rawSnippets'>;
@@ -214,9 +238,9 @@ KURALLAR:
       threats: Array.isArray(parsed.threats) ? parsed.threats : [],
       sectorBenchmarks: Array.isArray(parsed.sectorBenchmarks) ? parsed.sectorBenchmarks : [],
       searchQueries: allSearchQueries,
-      sourcesUsed,
+      sourcesUsed: researchMethod === 'deep-research' ? -1 : sourcesUsed, // -1 = Deep Research (many)
       sourceUrls: allSourceUrls,
-      rawSnippets: [allGroundedText.slice(0, 2000)],
+      rawSnippets: [researchText.slice(0, 3000)],
     };
   } catch (error) {
     console.error('SectorResearch: JSON extraction failed:', error);
@@ -225,7 +249,7 @@ KURALLAR:
       searchQueries: allSearchQueries,
       sourcesUsed,
       sourceUrls: allSourceUrls,
-      rawSnippets: [allGroundedText.slice(0, 2000)],
+      rawSnippets: [researchText.slice(0, 3000)],
     };
   }
 }

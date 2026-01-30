@@ -62,6 +62,36 @@ async function generateGroundedText(prompt, agentName, config) {
     } : null
   };
 }
+var DEEP_RESEARCH_AGENT = "deep-research-pro-preview-12-2025";
+var POLL_INTERVAL_MS = 1e4;
+async function runDeepResearch(prompt, timeoutMs = 14e4) {
+  const client = getClient();
+  const interaction = await client.interactions.create({
+    agent: DEEP_RESEARCH_AGENT,
+    input: prompt,
+    background: true
+  });
+  const interactionId = interaction.id;
+  if (!interactionId) {
+    return { text: "", status: "failed" };
+  }
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+    const result = await client.interactions.get(interactionId);
+    const status = result.status;
+    if (status === "completed") {
+      const outputs = result.outputs || [];
+      const lastOutput = outputs[outputs.length - 1];
+      const text = lastOutput?.text || "";
+      return { text, status: "completed" };
+    }
+    if (status === "failed" || status === "cancelled") {
+      return { text: "", status: "failed" };
+    }
+  }
+  return { text: "", status: "timeout" };
+}
 function safeParseJSON(text, agentName) {
   try {
     return JSON.parse(text);
@@ -329,62 +359,56 @@ var EMPTY_RESEARCH = {
   sourceUrls: [],
   rawSnippets: []
 };
-async function runSectorResearch(input) {
-  const { contact, sector } = input;
-  const businessName = contact.businessName;
-  const competitorPrompt = `Sen bir sektor arastirmacisisin. ${sector} sektorunde Turkiye'de faaliyet gosteren ve "${businessName}" ile ayni segmentte rekabet eden markalari arastir.
+function buildDeepResearchPrompt(businessName, sector) {
+  return `Sen bir sektor arastirmacisisin. Asagidaki marka hakkinda KAPSAMLI ve URUN BAZLI bir arastirma yap.
 
-Her rakip icin su bilgileri bul:
-- GERCEK marka/sirket adi (tahmin yapma, sadece buldugun isimler)
-- Web sitesi URL'si
-- Pazar konumlandirmasi (ne vaat ediyorlar, fiyat segmenti)
-- Guclu yanlari (somut: sube sayisi, musteri tabani, urun cesitliligi vb.)
-- Zayif yanlari (somut: musteri sikayetleri, eksik hizmetler vb.)
-- Tahmini olcek (sube sayisi, calisan sayisi, ciro tahmini vb.)
-- Sosyal medya varligi (Instagram, TikTok, YouTube takipci sayilari)
+Marka: ${businessName}
+Sektor: ${sector}
 
-ONEMLI: Sadece dogrulanabilir bilgiler ver. Tahmin ettigin bilgileri acikca "[tahmin]" olarak belirt.
-EN AZ 3, EN FAZLA 7 rakip listele.
-Turkce yaz.`;
-  const marketPrompt = `Sen bir pazar arastirmacisisin. ${sector} sektoru icin Turkiye pazarini arastir.
+ARASTIRMA ADIMLARI (sirayla uygula):
 
-Asagidaki bilgileri bul:
-1. PAZAR BUYUKLUGU: Tahmini pazar buyuklugu (TL veya USD cinsinden), mumkunse kaynak belirt
-2. BUYUME HIZI: Yillik buyume orani veya trend yonu
-3. ANAHTAR OYUNCULAR: Sektorun en buyuk 5-7 markasi/sirketi
-4. HEDEF KITLE PROFILI: Bu sektorde alisveris yapan tuketicilerin:
-   - Yas araligi, cinsiyet dagilimi, gelir duzeyi
-   - Yogunlukla yasadiklari sehirler
-   - Degerleri ve yasam tarzi
-   - En buyuk sikayetleri ve acil ihtiyaclari (pain points)
-   - Satin alma kanallari (online/offline/sosyal medya)
-   - Satin alma karar sureci
-5. TUKETICI TRENDLERI: Son 1 yilda degisen tuketici davranislari
-6. REGULASYON: Sektoru etkileyen yasal duzenlemeler veya standartlar
+ADIM 1 \u2014 MARKANIN KENDISI:
+- "${businessName}" web sitesini bul ve ziyaret et.
+- Hangi URUN ve HIZMETLERI sunuyor? Her birini listele.
+- Fiyat araliklari nedir? (mumkunse gercek fiyatlar)
+- Kendini nasil konumlandiriyor? (ucuz/orta/premium)
+- Alt markalari varsa her birini ayri ayri incele.
 
-Somut rakamlar ve kaynaklar ver. Turkce yaz.`;
-  const trendPrompt = `Sen bir sektor analistisin. ${sector} sektoru icin Turkiye'deki guncel trendleri, firsatlari ve tehditleri arastir.
+ADIM 2 \u2014 URUN BAZLI RAKIP ANALIZI:
+- Adim 1'de buldugun HER urun/hizmet kategorisi icin dogrudan rakipleri arastir.
+- Ornek: Eger marka "findik kremasi" satiyorsa \u2192 "findik kremasi markalari Turkiye" ara.
+- Her rakibin web sitesini ziyaret et.
+- Rakip urun fiyatlarini karsilastir.
+- Her rakibin guclu ve zayif yanlarini belirle (somut: urun cesitliligi, dagitim agi, fiyat, kalite algisi).
+- EN AZ 4, EN FAZLA 8 rakip bul.
 
-1. DIJITAL TRENDLER: Sektorde dijital donusum, e-ticaret, sosyal medya trendleri, yapay zeka kullanimi
-2. TUKETICI DAVRANISI: Degisen tuketici beklentileri ve yeni alisveris aliskanliklari
-3. REKABET DINAMIKLERI: Yeni girisimler, pazar konsolidasyonlari, fiyat rekabeti
-4. FIRSATLAR: "${businessName}" icin somut firsatlar (neden firsat, nasil degerlendirilir)
-5. TEHDITLER: "${businessName}" icin somut tehditler (ne riski var, nasil onlenir)
-6. SEKTOR STANDARTLARI: Basarili markalarin ortak ozellikleri, sektorde basari icin gereken minimum gereksinimler
-7. BENCHMARK METRIKLER: Sektorde ortalama musteri edinme maliyeti, donusum oranlari, musteri sadakati gibi olculebilir degerler
+ADIM 3 \u2014 PAZAR VERILERI:
+- Bu URUN KATEGORISININ (genel sektor degil, spesifik urun!) Turkiye'deki pazar buyuklugu.
+- Yillik buyume orani veya trend yonu.
+- Tuketici davranislari: Kim aliyor, nasil aliyor, ne siklikla aliyor.
+- Fiyat hassasiyeti: Tuketiciler fiyat icin marka degistirir mi?
 
-Somut ornekler ve kaynaklar ver. Turkce yaz.`;
-  let allGroundedText = "";
+ADIM 4 \u2014 HEDEF KITLE PROFILI:
+- Bu urunleri gercekte kimler satin aliyor?
+- Yas araligi, gelir duzeyi, yasadiklari sehirler.
+- Satin alma motivasyonlari (fiyat, kalite, marka, organik/dogal icerikleri vb.).
+- Hangi kanallarda alisveris yapiyorlar (market, online, organik dukkan vb.).
+
+SONUCLARI DETAYLI OLARAK TURKCE YAZ. Her bilginin kaynagini belirt.`;
+}
+async function runGroundingFallback(businessName, sector) {
+  const competitorPrompt = `Sen bir sektor arastirmacisisin. ${sector} sektorunde Turkiye'de faaliyet gosteren ve "${businessName}" ile ayni segmentte rekabet eden markalari arastir. Her rakip icin gercek marka adi, web sitesi, konumlandirma, guclu/zayif yanlar, tahmini olcek bul. EN AZ 3, EN FAZLA 7 rakip. Turkce yaz.`;
+  const marketPrompt = `Sen bir pazar arastirmacisisin. ${sector} sektoru icin Turkiye pazar buyuklugu, buyume hizi, tuketici profili, satin alma davranislari, dijital trendler arastir. Somut rakamlar ver. Turkce yaz.`;
+  const trendPrompt = `${sector} sektoru ${businessName} icin firsatlar, tehditler, sektor standartlari, benchmark metrikler arastir. Turkce yaz.`;
+  const [competitorRes, marketRes, trendRes] = await Promise.all([
+    generateGroundedText(competitorPrompt, "SectorResearch-Competitors", { maxOutputTokens: 8192 }),
+    generateGroundedText(marketPrompt, "SectorResearch-Market", { maxOutputTokens: 8192 }),
+    generateGroundedText(trendPrompt, "SectorResearch-Trends", { maxOutputTokens: 8192 })
+  ]);
   let allSourceUrls = [];
   let allSearchQueries = [];
   let sourcesUsed = 0;
-  try {
-    const [competitorRes, marketRes, trendRes] = await Promise.all([
-      generateGroundedText(competitorPrompt, "SectorResearch-Competitors", { maxOutputTokens: 8192 }),
-      generateGroundedText(marketPrompt, "SectorResearch-Market", { maxOutputTokens: 8192 }),
-      generateGroundedText(trendPrompt, "SectorResearch-Trends", { maxOutputTokens: 8192 })
-    ]);
-    allGroundedText = `## RAKIP ANALIZI
+  const allGroundedText = `## RAKIP ANALIZI
 ${competitorRes.text}
 
 ## PAZAR VE HEDEF KITLE
@@ -392,86 +416,115 @@ ${marketRes.text}
 
 ## TRENDLER VE FIRSATLAR
 ${trendRes.text}`;
-    for (const res of [competitorRes, marketRes, trendRes]) {
-      if (res.groundingMetadata) {
-        for (const chunk of res.groundingMetadata.groundingChunks) {
-          if (chunk.web?.uri) {
-            sourcesUsed++;
-            allSourceUrls.push({
-              title: chunk.web.title || chunk.web.uri,
-              url: chunk.web.uri
-            });
-          }
+  for (const res of [competitorRes, marketRes, trendRes]) {
+    if (res.groundingMetadata) {
+      for (const chunk of res.groundingMetadata.groundingChunks) {
+        if (chunk.web?.uri) {
+          sourcesUsed++;
+          allSourceUrls.push({ title: chunk.web.title || chunk.web.uri, url: chunk.web.uri });
         }
-        allSearchQueries.push(...res.groundingMetadata.webSearchQueries);
       }
+      allSearchQueries.push(...res.groundingMetadata.webSearchQueries);
     }
-    const seen = /* @__PURE__ */ new Set();
-    allSourceUrls = allSourceUrls.filter((s) => {
-      if (seen.has(s.url)) return false;
-      seen.add(s.url);
-      return true;
-    });
-  } catch (error) {
-    console.error("SectorResearch: Grounded search failed:", error);
-    return { ...EMPTY_RESEARCH, searchQueries: [`${businessName} ${sector} Turkiye`] };
   }
-  if (!allGroundedText || allGroundedText.length < 100) {
-    console.warn("SectorResearch: Grounded search returned minimal data");
+  const seen = /* @__PURE__ */ new Set();
+  allSourceUrls = allSourceUrls.filter((s) => {
+    if (seen.has(s.url)) return false;
+    seen.add(s.url);
+    return true;
+  });
+  return { allGroundedText, allSourceUrls, allSearchQueries, sourcesUsed };
+}
+async function runSectorResearch(input) {
+  const { contact, sector } = input;
+  const businessName = contact.businessName;
+  let researchText = "";
+  let allSourceUrls = [];
+  let allSearchQueries = [];
+  let sourcesUsed = 0;
+  let researchMethod = "none";
+  try {
+    console.log("SectorResearch: Starting Deep Research...");
+    const drResult = await runDeepResearch(
+      buildDeepResearchPrompt(businessName, sector),
+      14e4
+      // 140s budget
+    );
+    if (drResult.status === "completed" && drResult.text.length > 200) {
+      researchText = drResult.text;
+      researchMethod = "deep-research";
+      console.log(`SectorResearch: Deep Research completed (${researchText.length} chars)`);
+    } else {
+      console.log(`SectorResearch: Deep Research ${drResult.status}, falling back to grounding...`);
+    }
+  } catch (error) {
+    console.error("SectorResearch: Deep Research failed:", error);
+  }
+  if (!researchText) {
+    try {
+      console.log("SectorResearch: Running grounding fallback...");
+      const fb = await runGroundingFallback(businessName, sector);
+      researchText = fb.allGroundedText;
+      allSourceUrls = fb.allSourceUrls;
+      allSearchQueries = fb.allSearchQueries;
+      sourcesUsed = fb.sourcesUsed;
+      researchMethod = "grounding";
+    } catch (error) {
+      console.error("SectorResearch: Grounding fallback also failed:", error);
+      return { ...EMPTY_RESEARCH, searchQueries: [`${businessName} ${sector} Turkiye`] };
+    }
+  }
+  if (!researchText || researchText.length < 100) {
     return { ...EMPTY_RESEARCH, searchQueries: allSearchQueries, sourcesUsed };
   }
-  const extractionPrompt = `Asagidaki sektor arastirmasi metnini analiz ederek JSON yapisinda yapilandir. Metinde gecen TUM somut bilgileri koru: marka adlari, web siteleri, rakamlar, kaynaklar. Bilgi UYDURMADAN sadece metinde olan bilgileri yapilandir. Eger bir alan icin veri yoksa bos birak veya "Veri bulunamadi" yaz.
+  const extractionPrompt = `Asagidaki arastirma metnini analiz ederek JSON yapisinda yapilandir.
+ONEMLI: Metinde gecen TUM somut bilgileri koru. Bilgi UYDURMADAN sadece metinde olan bilgileri yapilandir.
 
 ## Arastirma Metni
-${allGroundedText.slice(0, 3e4)}
+${researchText.slice(0, 4e4)}
 
-## Kaynaklar
-${allSourceUrls.map((s) => `- [${s.title}](${s.url})`).join("\n")}
+${allSourceUrls.length > 0 ? `## Kaynaklar
+${allSourceUrls.map((s) => `- [${s.title}](${s.url})`).join("\n")}` : ""}
 
 ---
-
-Yukaridaki metni asagidaki JSON yapisinda yapilandir:
-
+JSON yapisi:
 {
   "competitors": [
     {
-      "name": "Gercek marka/sirket adi",
-      "website": "Web sitesi URL'si (metinde varsa)",
-      "positioning": "Pazar konumlandirmasi",
+      "name": "Gercek marka adi",
+      "website": "Web sitesi URL'si",
+      "positioning": "Pazar konumlandirmasi ve fiyat segmenti",
       "strengths": ["Guclu yan 1", "Guclu yan 2"],
       "weaknesses": ["Zayif yan 1"],
-      "estimatedScale": "Tahmini olcek bilgisi (sube, calisan, ciro)",
+      "estimatedScale": "Olcek bilgisi (sube, calisan, ciro)",
       "socialPresence": "Sosyal medya bilgisi",
-      "sourceSnippet": "Bu bilginin metindeki kaynak cumlesi"
+      "sourceSnippet": "Bu bilginin kaynagi"
     }
   ],
   "marketData": {
-    "marketSize": "Pazar buyuklugu (rakam ve birim)",
-    "growthRate": "Buyume orani veya trendi",
-    "keyPlayers": ["Sektordeki buyuk oyuncular"],
-    "consumerTrends": ["Tuketici trendi 1", "Tuketici trendi 2"],
-    "regulatoryFactors": ["Yasal duzenleme veya standart"]
+    "marketSize": "Pazar buyuklugu (rakam)",
+    "growthRate": "Buyume orani",
+    "keyPlayers": ["Buyuk oyuncu 1"],
+    "consumerTrends": ["Tuketici trendi 1"],
+    "regulatoryFactors": ["Duzenleme 1"]
   },
   "targetAudienceInsights": {
-    "demographics": "Yas, cinsiyet, gelir, lokasyon bilgileri",
-    "psychographics": "Degerler, yasam tarzi, motivasyonlar",
-    "painPoints": ["Tuketici sikayeti/ihtiyaci 1", "Tuketici sikayeti/ihtiyaci 2"],
-    "purchaseBehavior": "Satin alma kanallari ve karar sureci"
+    "demographics": "Yas, cinsiyet, gelir, lokasyon",
+    "psychographics": "Degerler, yasam tarzi",
+    "painPoints": ["Ihtiyac 1", "Ihtiyac 2"],
+    "purchaseBehavior": "Satin alma davranisi"
   },
-  "opportunities": ["Somut firsat 1", "Somut firsat 2"],
-  "threats": ["Somut tehdit 1", "Somut tehdit 2"],
-  "sectorBenchmarks": ["Sektor standardi/olcutu 1", "Sektor standardi/olcutu 2"]
+  "opportunities": ["Firsat 1", "Firsat 2"],
+  "threats": ["Tehdit 1", "Tehdit 2"],
+  "sectorBenchmarks": ["Benchmark 1"]
 }
 
 KURALLAR:
-1. "competitors" EN AZ 3 rakip icermeli. Metinde adi gecen TUM rakipleri dahil et.
-2. Her rakibin "name" alani GERCEK bir marka adi olmali, uydurma yasak.
-3. "marketData.marketSize" mumkunse rakamsal deger icermeli (TL/USD).
-4. "targetAudienceInsights.painPoints" en az 2 madde icermeli.
-5. "opportunities" ve "threats" en az 2'ser madde icermeli.
-6. Metinde olmayan bilgiyi UYDURMADAN "Veri bulunamadi" yaz.
-7. Tum metinler TURKCE olmali.
-8. Sadece JSON don.`;
+1. EN AZ 3 rakip. Metinde adi gecen TUM rakipleri dahil et.
+2. Urun bazli rakip bilgileri oncelikli (sadece sektor degil, spesifik urun kategorisi).
+3. Metinde olmayan bilgiyi UYDURMADAN "Veri bulunamadi" yaz.
+4. Tum metinler TURKCE.
+5. Sadece JSON don.`;
   try {
     const parsed = await generateJSON("flash", extractionPrompt, "SectorResearch-Extract", {
       temperature: 0.3,
@@ -505,9 +558,10 @@ KURALLAR:
       threats: Array.isArray(parsed.threats) ? parsed.threats : [],
       sectorBenchmarks: Array.isArray(parsed.sectorBenchmarks) ? parsed.sectorBenchmarks : [],
       searchQueries: allSearchQueries,
-      sourcesUsed,
+      sourcesUsed: researchMethod === "deep-research" ? -1 : sourcesUsed,
+      // -1 = Deep Research (many)
       sourceUrls: allSourceUrls,
-      rawSnippets: [allGroundedText.slice(0, 2e3)]
+      rawSnippets: [researchText.slice(0, 3e3)]
     };
   } catch (error) {
     console.error("SectorResearch: JSON extraction failed:", error);
@@ -516,7 +570,7 @@ KURALLAR:
       searchQueries: allSearchQueries,
       sourcesUsed,
       sourceUrls: allSourceUrls,
-      rawSnippets: [allGroundedText.slice(0, 2e3)]
+      rawSnippets: [researchText.slice(0, 3e3)]
     };
   }
 }
@@ -529,7 +583,7 @@ async function runBrandStrategist(normalizedData, researchFindings) {
 ${questions}`;
   }).join("\n\n");
   let researchContext = "";
-  const hasResearch = researchFindings && researchFindings.sourcesUsed > 0;
+  const hasResearch = researchFindings && researchFindings.sourcesUsed !== 0;
   if (hasResearch) {
     const competitorSummary = researchFindings.competitors.map((c) => `  - ${c.name}${c.website ? ` (${c.website})` : ""}: ${c.positioning}
     Olcek: ${c.estimatedScale || "Bilinmiyor"} | Sosyal: ${c.socialPresence || "Bilinmiyor"}
@@ -592,24 +646,33 @@ Yukaridaki tum verileri analiz ederek asagidaki JSON yapisinda bir marka stratej
   "tone": "Markanin iletisim tonu. ORNEK CUMLE ile goster: 'Sicak ve samimi \u2014 ornegin: Hosgeldiniz! Sizin icin en iyisini bulmaya haziriz.'",
   "voice": "Markanin sesi. ORNEK CUMLE ile goster: 'Bilgili ama ukala olmayan \u2014 ornegin: Bu konuda sunu bilmeniz faydali olur...'",
   "positioningStatement": "Markanin konumlandirma cumlesi. FORMAT: '[Hedef kitle] icin [fark yaratan ozellik] sunan [marka] dir.' \u2014 SOMUT ve OLCULEBILIR olacak. (1-2 cumle)",
+  "valuePropositionReasoning": {
+    "whatBusinessProduces": "Bu isletme ne uretiyor/sunuyor? SOMUT urun/hizmet listesi. Arastirma verisinde buldugun gercek urunleri yaz.",
+    "coreBenefit": "Musteriye sagladigi TEMEL fayda nedir? Tek cumle.",
+    "whoBenefits": "Bu faydadan KIM yararlanir? DAVRANISSAL tanimla (demografik degil).",
+    "pricePositioning": "Fiyat konumlandirmasi: ucuz/orta/premium? RAKAMLARLA. Ornek: 'Orta-ust: findik kremasi 400g 89 TL \u2014 Nutella 59 TL, Nusret 129 TL'",
+    "willingToPayProfile": "Bu fiyati ODEMEYE ISTEKLI kisi profili. Gelir seviyesi, harcama aliskanligiI."
+  },
   "targetAudience": {
-    "primaryPersona": {
-      "name": "Turkce bir isim, yas ve sehir. Ornek: 'Ayse, 32, Istanbul Kadikoy'",
-      "demographics": "Yas, cinsiyet, gelir duzeyi, egitim, meslek, lokasyon \u2014 SOMUT rakamlarla",
-      "psychographics": "Degerleri, yasam tarzi, motivasyonlari \u2014 sektore ozgu detaylarla",
-      "painPoints": ["Bu kisinin en buyuk 2-3 sikayeti/ihtiyaci \u2014 sektore ozgu, gercekci"],
-      "mediaHabits": "Hangi sosyal medya platformlarini, ne siklikla, ne icin kullaniyor",
-      "decisionDrivers": ["Satin alma kararini etkileyen 2-3 faktor \u2014 fiyat, kalite, kolaylik vb."]
+    "primarySegment": {
+      "segmentLabel": "Birincil Segment",
+      "demographics": "Yas ARALIGI, lokasyon tipi, meslek GRUBU, gelir ARALIGI. Ornek: '25-40 yas, buyuksehir, beyaz yakali, aylik 20-35K TL'",
+      "behavioralProfile": "Tuketim davranislari \u2014 SOMUT. Ornek: 'Organik market musterisi, etiket okuyan, haftalik 2+ online alisveris'",
+      "coreNeed": "Bu segmentin BU ISLETMEDEN beklentisi \u2014 tek cumle",
+      "mediaHabits": "Hangi platformlar, ne siklikla. Ornek: 'Instagram, YouTube saglikli yasam kanallari, gunde 2+ saat'",
+      "purchaseTriggers": ["Satin alma tetikleyicileri \u2014 3-5 adet. SPESIFIK: 'kalite' degil, 'icerik etiketi temizligi' gibi"],
+      "estimatedSegmentSize": "Bu segmentin Turkiye'deki tahmini buyuklugu \u2014 kaynak belirt"
     },
-    "secondaryPersona": {
-      "name": "Farkli bir profil \u2014 ornek: 'Mehmet, 45, Ankara Cankaya'",
-      "demographics": "...",
-      "psychographics": "...",
-      "painPoints": ["..."],
+    "secondarySegment": {
+      "segmentLabel": "Ikincil Segment",
+      "demographics": "Farkli yas araligi/gelir/meslek grubu",
+      "behavioralProfile": "Farkli tuketim davranisi",
+      "coreNeed": "...",
       "mediaHabits": "...",
-      "decisionDrivers": ["..."]
+      "purchaseTriggers": ["..."],
+      "estimatedSegmentSize": "..."
     },
-    "marketSizeEstimate": "Bu hedef kitlenin Turkiye'deki tahmini buyuklugu (kisi sayisi veya hanehalki)"
+    "marketSizeEstimate": "Toplam adreslenebilir pazar (TAM) ve hizmet verilebilir pazar (SAM) tahmini"
   },
   "differentiator": "Markayi rakiplerinden ayiran temel fark. SOMUT ve OLCULEBILIR: 'X rakibinin sunmadigi Y hizmetini sunuyoruz' gibi. (1-2 cumle)",
   "competitiveAdvantage": "Markanin rekabet avantaji. Neden musteriler X, Y, Z yerine bu markayi secmeli? SOMUT kanit ile. (1-2 cumle)",
@@ -621,7 +684,7 @@ ${competitiveMapSchema}
 KRITIK KURALLAR:
 1. KANIT ZORUNLULUGU: Her iddia icin kaynak goster. "Premium" diyorsan wizard cevabi veya sektor verisinden NEDEN premium oldugunu acikla. Kanitlanmayan iddia = BASARISIZ rapor.
 2. BOS LAF YASAK: "Yenilikci ve dinamik", "kaliteli ve guvenilir", "musteri odakli" gibi HER MARKAYA soylenebilecek sifatlar YASAK. "${normalizedData.businessName}'in [somut ozelliginden] kaynaklanan [somut avantaj]" gibi SPESIFIK ol.
-3. PERSONA SOMUTLUGU: "Genc profesyoneller" veya "orta-ust gelir grubu" gibi GENEL ifadeler YASAK. Isim, yas, sehir, gelir rakam\u0131, somut aliskanlik \u2014 bir insan gibi tanimla.
+3. SEGMENT KURALLARI: a) Kurgusal karakter KESINLIKLE YASAK \u2014 "Ayse, 32" gibi isim YAZMA. b) Oncelikle valuePropositionReasoning'i doldur \u2014 ne uretiliyor, kime fayda, fiyat ne? c) Segmentler DAVRANISSAL: tuketim sikligi, kanal tercihi, harcama aliskanligi. d) demographics = yas ARALIGI, gelir ARALIGI, meslek GRUBU. e) estimatedSegmentSize icin KAYNAK goster (TUIK, sektor raporu). f) purchaseTriggers SPESIFIK: "kalite" degil \u2192 "Instagram'da gordugun gorsel cazibe" gibi.
 4. "competitiveMap" alaninda arastirmada bulunan HER rakip icin somut avantaj/dezavantaj belirt. Yoksa en az 2 rakip tanimla.
 5. "archetypeRationale" alaninda hangi wizard cevaplari (soru ID veya icerik) ve hangi sektor verileri bu secimi destekledigini ACIKCA belirt.
 6. "tone" ve "voice" alanlarinda ORNEK CUMLE ver \u2014 soyut tanimlama yerine gercek bir cumle yaz.
@@ -632,13 +695,21 @@ KRITIK KURALLAR:
     temperature: 0.7,
     maxOutputTokens: 8192
   });
-  const defaultPersona = {
-    name: "Belirtilmedi",
+  const defaultSegment = {
+    segmentLabel: "Belirtilmedi",
     demographics: "Belirtilmedi",
-    psychographics: "Belirtilmedi",
-    painPoints: ["Belirtilmedi"],
+    behavioralProfile: "Belirtilmedi",
+    coreNeed: "Belirtilmedi",
     mediaHabits: "Belirtilmedi",
-    decisionDrivers: ["Belirtilmedi"]
+    purchaseTriggers: ["Belirtilmedi"],
+    estimatedSegmentSize: "Belirtilmedi"
+  };
+  const defaultValuePropReasoning = {
+    whatBusinessProduces: "Belirtilmedi",
+    coreBenefit: "Belirtilmedi",
+    whoBenefits: "Belirtilmedi",
+    pricePositioning: "Belirtilmedi",
+    willingToPayProfile: "Belirtilmedi"
   };
   return {
     archetype: parsed.archetype || "Yaratici",
@@ -647,9 +718,10 @@ KRITIK KURALLAR:
     tone: parsed.tone || "Profesyonel ve samimi",
     voice: parsed.voice || "Bilgili ve ulas\u0131labilir",
     positioningStatement: parsed.positioningStatement || `${normalizedData.businessName}, ${normalizedData.sector} sektorunde fark yaratan bir markadir.`,
+    valuePropositionReasoning: parsed.valuePropositionReasoning ? { ...defaultValuePropReasoning, ...parsed.valuePropositionReasoning } : defaultValuePropReasoning,
     targetAudience: {
-      primaryPersona: parsed.targetAudience?.primaryPersona ? { ...defaultPersona, ...parsed.targetAudience.primaryPersona } : defaultPersona,
-      secondaryPersona: parsed.targetAudience?.secondaryPersona ? { ...defaultPersona, ...parsed.targetAudience.secondaryPersona } : defaultPersona,
+      primarySegment: parsed.targetAudience?.primarySegment ? { ...defaultSegment, ...parsed.targetAudience.primarySegment } : defaultSegment,
+      secondarySegment: parsed.targetAudience?.secondarySegment ? { ...defaultSegment, ...parsed.targetAudience.secondarySegment } : defaultSegment,
       marketSizeEstimate: parsed.targetAudience?.marketSizeEstimate || "Tahmin mevcut degil"
     },
     differentiator: parsed.differentiator || "Farklilik bilgisi belirlenememistir.",
@@ -661,7 +733,7 @@ KRITIK KURALLAR:
 // src/pipeline/agents/brandChallenger.ts
 async function runBrandChallenger(normalizedData, researchFindings, strategistOutput) {
   let researchContext = "";
-  const hasResearch = researchFindings && researchFindings.sourcesUsed > 0;
+  const hasResearch = researchFindings && researchFindings.sourcesUsed !== 0;
   if (hasResearch) {
     const competitorSummary = researchFindings.competitors.map((c) => `- ${c.name}${c.website ? ` (${c.website})` : ""}: ${c.positioning}
     Olcek: ${c.estimatedScale || "Bilinmiyor"} | Sosyal: ${c.socialPresence || "Bilinmiyor"}
@@ -694,9 +766,15 @@ ${researchFindings.threats.map((t) => `- ${t}`).join("\n") || "Bilgi yok"}
 ${researchFindings.sectorBenchmarks.map((b) => `- ${b}`).join("\n") || "Bilgi yok"}
 `;
   }
-  const taPersona = strategistOutput.targetAudience;
-  const targetAudienceSummary = typeof taPersona === "string" ? taPersona : `Birincil Persona: ${taPersona.primaryPersona?.name || "Belirtilmedi"} \u2014 ${taPersona.primaryPersona?.demographics || ""}
-Ikincil Persona: ${taPersona.secondaryPersona?.name || "Belirtilmedi"} \u2014 ${taPersona.secondaryPersona?.demographics || ""}`;
+  const taSegments = strategistOutput.targetAudience;
+  const targetAudienceSummary = typeof taSegments === "string" ? taSegments : `Birincil Segment: ${taSegments.primarySegment?.demographics || "Belirtilmedi"} \u2014 ${taSegments.primarySegment?.behavioralProfile || ""}
+Ikincil Segment: ${taSegments.secondarySegment?.demographics || "Belirtilmedi"} \u2014 ${taSegments.secondarySegment?.behavioralProfile || ""}`;
+  const vpReasoning = strategistOutput.valuePropositionReasoning;
+  const vpSummary = vpReasoning ? `
+- Urun/Hizmet: ${vpReasoning.whatBusinessProduces}
+- Temel Fayda: ${vpReasoning.coreBenefit}
+- Kimin Icin: ${vpReasoning.whoBenefits}
+- Fiyat Konumlandirmasi: ${vpReasoning.pricePositioning}` : "";
   const prompt = `Sen deneyimli bir marka danismanisin ve SEYTAN AVUKATI olarak gorev yapiyorsun. Bir baska strateji uzmani asagidaki marka konumlandirmasini onerdi. Senin gorevin bu stratejiyi ELESTIREL ve KANIT TABANLI gozle incelemek.
 
 ## Isletme Bilgileri
@@ -711,7 +789,7 @@ Ikincil Persona: ${taPersona.secondaryPersona?.name || "Belirtilmedi"} \u2014 ${
 - Iletisim Tonu: ${strategistOutput.tone}
 - Marka Sesi: ${strategistOutput.voice}
 - Konumlandirma: ${strategistOutput.positioningStatement}
-- Hedef Kitle: ${targetAudienceSummary}
+- Hedef Kitle: ${targetAudienceSummary}${vpSummary}
 - Farklilik: ${strategistOutput.differentiator}
 - Rekabet Avantaji: ${strategistOutput.competitiveAdvantage}
 
@@ -775,9 +853,16 @@ KRITIK KURALLAR:
 
 // src/pipeline/agents/strategySynthesizer.ts
 async function runStrategySynthesizer(normalizedData, researchFindings, strategistOutput, challengerOutput) {
-  const taPersona = strategistOutput.targetAudience;
-  const targetAudienceSummary = typeof taPersona === "string" ? taPersona : `Birincil: ${taPersona.primaryPersona?.name || "N/A"} (${taPersona.primaryPersona?.demographics || ""})
-Ikincil: ${taPersona.secondaryPersona?.name || "N/A"} (${taPersona.secondaryPersona?.demographics || ""})`;
+  const taSegments = strategistOutput.targetAudience;
+  const targetAudienceSummary = typeof taSegments === "string" ? taSegments : `Birincil Segment: ${taSegments.primarySegment?.demographics || "N/A"} \u2014 ${taSegments.primarySegment?.behavioralProfile || ""}
+Ikincil Segment: ${taSegments.secondarySegment?.demographics || "N/A"} \u2014 ${taSegments.secondarySegment?.behavioralProfile || ""}`;
+  const vpReasoning = strategistOutput.valuePropositionReasoning;
+  const vpSummary = vpReasoning ? `
+- Urun/Hizmet: ${vpReasoning.whatBusinessProduces}
+- Temel Fayda: ${vpReasoning.coreBenefit}
+- Kimin Icin: ${vpReasoning.whoBenefits}
+- Fiyat Konumlandirmasi: ${vpReasoning.pricePositioning}
+- Odemeye Istekli Profil: ${vpReasoning.willingToPayProfile}` : "";
   const strategistSummary = `
 ### Strateji Uzmani Onerisi
 - Arketip: ${strategistOutput.archetype}
@@ -785,7 +870,7 @@ Ikincil: ${taPersona.secondaryPersona?.name || "N/A"} (${taPersona.secondaryPers
 - Kisilik Ozellikleri: ${strategistOutput.traits.join(", ")}
 - Iletisim Tonu: ${strategistOutput.tone}
 - Marka Sesi: ${strategistOutput.voice}
-- Konumlandirma: ${strategistOutput.positioningStatement}
+- Konumlandirma: ${strategistOutput.positioningStatement}${vpSummary}
 - Hedef Kitle: ${targetAudienceSummary}
 - Farklilik: ${strategistOutput.differentiator}
 - Rekabet Avantaji: ${strategistOutput.competitiveAdvantage}`;
@@ -816,7 +901,7 @@ ${challengerOutput.blindSpots.map((b) => `  - ${b}`).join("\n")}`;
   }
   let researchContext = "";
   let sourceUrlsList = "";
-  const hasResearch = researchFindings && researchFindings.sourcesUsed > 0;
+  const hasResearch = researchFindings && researchFindings.sourcesUsed !== 0;
   if (hasResearch) {
     const competitorNames = researchFindings.competitors.map((c) => `${c.name}${c.website ? ` (${c.website})` : ""}`).join(", ");
     const marketInfo = researchFindings.marketData;
@@ -872,9 +957,32 @@ Tum verileri sentezleyerek asagidaki JSON yapisinda NIHAI marka stratejisi rapor
   "positioning": {
     "statement": "Nihai konumlandirma cumlesi. SOMUT, akilda kalici, OLCULEBILIR. (1-2 cumle)",
     "targetAudience": "Hedef kitle ozet tanimi. (2-3 cumle)",
-    "targetPersonas": [
-      { "name": "Persona ismi (yas, sehir)", "profile": "3-4 cumlelik detayli profil", "keyNeed": "Bu kisinin en acil ihtiyaci" },
-      { "name": "Ikinci persona", "profile": "...", "keyNeed": "..." }
+    "valuePropositionReasoning": {
+      "whatBusinessProduces": "Bu isletmenin SOMUT urun/hizmet listesi",
+      "coreBenefit": "Musteriye saglanan TEMEL fayda \u2014 tek cumle",
+      "whoBenefits": "Bu faydadan DAVRANISSAL olarak kim yararlanir",
+      "pricePositioning": "Fiyat konumlandirmasi RAKAMLARLA ve rakip karsilastirmasiyla",
+      "willingToPayProfile": "Bu fiyati odemeye istekli kisi profili \u2014 gelir ve harcama aliskanligi"
+    },
+    "targetSegments": [
+      {
+        "segmentLabel": "Birincil Segment",
+        "demographics": "Yas ARALIGI, lokasyon tipi, meslek GRUBU, gelir ARALIGI",
+        "behavioralProfile": "Tuketim davranislari \u2014 SOMUT",
+        "coreNeed": "Bu segmentin BU ISLETMEDEN beklentisi",
+        "mediaHabits": "Hangi platformlar, ne siklikla",
+        "purchaseTriggers": ["Satin alma tetikleyicileri \u2014 SPESIFIK"],
+        "estimatedSegmentSize": "Turkiye'deki tahmini buyukluk \u2014 kaynak belirt"
+      },
+      {
+        "segmentLabel": "Ikincil Segment",
+        "demographics": "...",
+        "behavioralProfile": "...",
+        "coreNeed": "...",
+        "mediaHabits": "...",
+        "purchaseTriggers": ["..."],
+        "estimatedSegmentSize": "..."
+      }
     ],
     "differentiator": "Temel fark. (1-2 cumle)",
     "competitiveAdvantage": "Rekabet avantaji. (1-2 cumle)",
@@ -987,8 +1095,9 @@ KRITIK KURALLAR \u2014 BU KURALLARA UYMAYAN RAPOR BASARISIZ SAYILIR:
     },
     positioning: {
       statement: parsed.positioning?.statement || strategistOutput.positioningStatement,
-      targetAudience: parsed.positioning?.targetAudience || (typeof strategistOutput.targetAudience === "string" ? strategistOutput.targetAudience : `${strategistOutput.targetAudience.primaryPersona?.name || ""} ve benzeri profiller`),
-      targetPersonas: Array.isArray(parsed.positioning?.targetPersonas) && parsed.positioning.targetPersonas.length > 0 ? parsed.positioning.targetPersonas : [],
+      targetAudience: parsed.positioning?.targetAudience || (typeof strategistOutput.targetAudience === "string" ? strategistOutput.targetAudience : `${strategistOutput.targetAudience.primarySegment?.demographics || ""} davranissal segment`),
+      valuePropositionReasoning: parsed.positioning?.valuePropositionReasoning || strategistOutput.valuePropositionReasoning || { whatBusinessProduces: "", coreBenefit: "", whoBenefits: "", pricePositioning: "", willingToPayProfile: "" },
+      targetSegments: Array.isArray(parsed.positioning?.targetSegments) && parsed.positioning.targetSegments.length > 0 ? parsed.positioning.targetSegments : [strategistOutput.targetAudience.primarySegment, strategistOutput.targetAudience.secondarySegment].filter(Boolean),
       differentiator: parsed.positioning?.differentiator || strategistOutput.differentiator,
       competitiveAdvantage: parsed.positioning?.competitiveAdvantage || strategistOutput.competitiveAdvantage,
       competitiveLandscape: parsed.positioning?.competitiveLandscape || "",
@@ -1119,7 +1228,7 @@ async function runPipeline(input) {
   } else {
     console.log("Using strategist output as fallback (synthesizer skipped or failed)");
     const taObj = strategistOutput.targetAudience;
-    const taSummary = typeof taObj === "string" ? taObj : `${taObj.primaryPersona?.name || ""} ve benzeri profiller`;
+    const taSummary = typeof taObj === "string" ? taObj : `${taObj.primarySegment?.demographics || ""} davranissal segment`;
     state.synthesizedAnalysis = {
       brandPersonality: {
         archetype: strategistOutput.archetype,
@@ -1130,7 +1239,14 @@ async function runPipeline(input) {
       positioning: {
         statement: strategistOutput.positioningStatement,
         targetAudience: taSummary,
-        targetPersonas: [],
+        valuePropositionReasoning: strategistOutput.valuePropositionReasoning || {
+          whatBusinessProduces: "",
+          coreBenefit: "",
+          whoBenefits: "",
+          pricePositioning: "",
+          willingToPayProfile: ""
+        },
+        targetSegments: [taObj.primarySegment, taObj.secondarySegment].filter(Boolean),
         differentiator: strategistOutput.differentiator,
         competitiveAdvantage: strategistOutput.competitiveAdvantage,
         competitiveLandscape: "",

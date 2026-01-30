@@ -9,7 +9,7 @@ export async function runBrandChallenger(
 
   // Build rich research context (if available)
   let researchContext = '';
-  const hasResearch = researchFindings && researchFindings.sourcesUsed > 0;
+  const hasResearch = researchFindings && researchFindings.sourcesUsed !== 0;
   if (hasResearch) {
     const competitorSummary = researchFindings.competitors
       .map((c) => `- ${c.name}${c.website ? ` (${c.website})` : ''}: ${c.positioning}
@@ -48,10 +48,16 @@ ${researchFindings.sectorBenchmarks.map((b) => `- ${b}`).join('\n') || 'Bilgi yo
   }
 
   // Format strategist's target audience for context
-  const taPersona = strategistOutput.targetAudience;
-  const targetAudienceSummary = typeof taPersona === 'string'
-    ? taPersona
-    : `Birincil Persona: ${taPersona.primaryPersona?.name || 'Belirtilmedi'} — ${taPersona.primaryPersona?.demographics || ''}\nIkincil Persona: ${taPersona.secondaryPersona?.name || 'Belirtilmedi'} — ${taPersona.secondaryPersona?.demographics || ''}`;
+  const taSegments = strategistOutput.targetAudience;
+  const targetAudienceSummary = typeof taSegments === 'string'
+    ? taSegments
+    : `Birincil Segment: ${taSegments.primarySegment?.demographics || 'Belirtilmedi'} — ${taSegments.primarySegment?.behavioralProfile || ''}\nIkincil Segment: ${taSegments.secondarySegment?.demographics || 'Belirtilmedi'} — ${taSegments.secondarySegment?.behavioralProfile || ''}`;
+
+  // Format value proposition reasoning for context
+  const vpReasoning = strategistOutput.valuePropositionReasoning;
+  const vpSummary = vpReasoning
+    ? `\n- Urun/Hizmet: ${vpReasoning.whatBusinessProduces}\n- Temel Fayda: ${vpReasoning.coreBenefit}\n- Kimin Icin: ${vpReasoning.whoBenefits}\n- Fiyat Konumlandirmasi: ${vpReasoning.pricePositioning}`
+    : '';
 
   const prompt = `Sen deneyimli bir marka danismanisin ve SEYTAN AVUKATI olarak gorev yapiyorsun. Bir baska strateji uzmani asagidaki marka konumlandirmasini onerdi. Senin gorevin bu stratejiyi ELESTIREL ve KANIT TABANLI gozle incelemek.
 
@@ -67,7 +73,7 @@ ${researchFindings.sectorBenchmarks.map((b) => `- ${b}`).join('\n') || 'Bilgi yo
 - Iletisim Tonu: ${strategistOutput.tone}
 - Marka Sesi: ${strategistOutput.voice}
 - Konumlandirma: ${strategistOutput.positioningStatement}
-- Hedef Kitle: ${targetAudienceSummary}
+- Hedef Kitle: ${targetAudienceSummary}${vpSummary}
 - Farklilik: ${strategistOutput.differentiator}
 - Rekabet Avantaji: ${strategistOutput.competitiveAdvantage}
 

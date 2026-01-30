@@ -18,7 +18,7 @@ export async function runBrandStrategist(
 
   // Build rich research context (if available)
   let researchContext = '';
-  const hasResearch = researchFindings && researchFindings.sourcesUsed > 0;
+  const hasResearch = researchFindings && researchFindings.sourcesUsed !== 0;
   if (hasResearch) {
     const competitorSummary = researchFindings.competitors
       .map((c) => `  - ${c.name}${c.website ? ` (${c.website})` : ''}: ${c.positioning}
@@ -92,24 +92,33 @@ Yukaridaki tum verileri analiz ederek asagidaki JSON yapisinda bir marka stratej
   "tone": "Markanin iletisim tonu. ORNEK CUMLE ile goster: 'Sicak ve samimi — ornegin: Hosgeldiniz! Sizin icin en iyisini bulmaya haziriz.'",
   "voice": "Markanin sesi. ORNEK CUMLE ile goster: 'Bilgili ama ukala olmayan — ornegin: Bu konuda sunu bilmeniz faydali olur...'",
   "positioningStatement": "Markanin konumlandirma cumlesi. FORMAT: '[Hedef kitle] icin [fark yaratan ozellik] sunan [marka] dir.' — SOMUT ve OLCULEBILIR olacak. (1-2 cumle)",
+  "valuePropositionReasoning": {
+    "whatBusinessProduces": "Bu isletme ne uretiyor/sunuyor? SOMUT urun/hizmet listesi. Arastirma verisinde buldugun gercek urunleri yaz.",
+    "coreBenefit": "Musteriye sagladigi TEMEL fayda nedir? Tek cumle.",
+    "whoBenefits": "Bu faydadan KIM yararlanir? DAVRANISSAL tanimla (demografik degil).",
+    "pricePositioning": "Fiyat konumlandirmasi: ucuz/orta/premium? RAKAMLARLA. Ornek: 'Orta-ust: findik kremasi 400g 89 TL — Nutella 59 TL, Nusret 129 TL'",
+    "willingToPayProfile": "Bu fiyati ODEMEYE ISTEKLI kisi profili. Gelir seviyesi, harcama aliskanligiI."
+  },
   "targetAudience": {
-    "primaryPersona": {
-      "name": "Turkce bir isim, yas ve sehir. Ornek: 'Ayse, 32, Istanbul Kadikoy'",
-      "demographics": "Yas, cinsiyet, gelir duzeyi, egitim, meslek, lokasyon — SOMUT rakamlarla",
-      "psychographics": "Degerleri, yasam tarzi, motivasyonlari — sektore ozgu detaylarla",
-      "painPoints": ["Bu kisinin en buyuk 2-3 sikayeti/ihtiyaci — sektore ozgu, gercekci"],
-      "mediaHabits": "Hangi sosyal medya platformlarini, ne siklikla, ne icin kullaniyor",
-      "decisionDrivers": ["Satin alma kararini etkileyen 2-3 faktor — fiyat, kalite, kolaylik vb."]
+    "primarySegment": {
+      "segmentLabel": "Birincil Segment",
+      "demographics": "Yas ARALIGI, lokasyon tipi, meslek GRUBU, gelir ARALIGI. Ornek: '25-40 yas, buyuksehir, beyaz yakali, aylik 20-35K TL'",
+      "behavioralProfile": "Tuketim davranislari — SOMUT. Ornek: 'Organik market musterisi, etiket okuyan, haftalik 2+ online alisveris'",
+      "coreNeed": "Bu segmentin BU ISLETMEDEN beklentisi — tek cumle",
+      "mediaHabits": "Hangi platformlar, ne siklikla. Ornek: 'Instagram, YouTube saglikli yasam kanallari, gunde 2+ saat'",
+      "purchaseTriggers": ["Satin alma tetikleyicileri — 3-5 adet. SPESIFIK: 'kalite' degil, 'icerik etiketi temizligi' gibi"],
+      "estimatedSegmentSize": "Bu segmentin Turkiye'deki tahmini buyuklugu — kaynak belirt"
     },
-    "secondaryPersona": {
-      "name": "Farkli bir profil — ornek: 'Mehmet, 45, Ankara Cankaya'",
-      "demographics": "...",
-      "psychographics": "...",
-      "painPoints": ["..."],
+    "secondarySegment": {
+      "segmentLabel": "Ikincil Segment",
+      "demographics": "Farkli yas araligi/gelir/meslek grubu",
+      "behavioralProfile": "Farkli tuketim davranisi",
+      "coreNeed": "...",
       "mediaHabits": "...",
-      "decisionDrivers": ["..."]
+      "purchaseTriggers": ["..."],
+      "estimatedSegmentSize": "..."
     },
-    "marketSizeEstimate": "Bu hedef kitlenin Turkiye'deki tahmini buyuklugu (kisi sayisi veya hanehalki)"
+    "marketSizeEstimate": "Toplam adreslenebilir pazar (TAM) ve hizmet verilebilir pazar (SAM) tahmini"
   },
   "differentiator": "Markayi rakiplerinden ayiran temel fark. SOMUT ve OLCULEBILIR: 'X rakibinin sunmadigi Y hizmetini sunuyoruz' gibi. (1-2 cumle)",
   "competitiveAdvantage": "Markanin rekabet avantaji. Neden musteriler X, Y, Z yerine bu markayi secmeli? SOMUT kanit ile. (1-2 cumle)",
@@ -121,7 +130,7 @@ ${competitiveMapSchema}
 KRITIK KURALLAR:
 1. KANIT ZORUNLULUGU: Her iddia icin kaynak goster. "Premium" diyorsan wizard cevabi veya sektor verisinden NEDEN premium oldugunu acikla. Kanitlanmayan iddia = BASARISIZ rapor.
 2. BOS LAF YASAK: "Yenilikci ve dinamik", "kaliteli ve guvenilir", "musteri odakli" gibi HER MARKAYA soylenebilecek sifatlar YASAK. "${normalizedData.businessName}'in [somut ozelliginden] kaynaklanan [somut avantaj]" gibi SPESIFIK ol.
-3. PERSONA SOMUTLUGU: "Genc profesyoneller" veya "orta-ust gelir grubu" gibi GENEL ifadeler YASAK. Isim, yas, sehir, gelir rakamı, somut aliskanlik — bir insan gibi tanimla.
+3. SEGMENT KURALLARI: a) Kurgusal karakter KESINLIKLE YASAK — "Ayse, 32" gibi isim YAZMA. b) Oncelikle valuePropositionReasoning'i doldur — ne uretiliyor, kime fayda, fiyat ne? c) Segmentler DAVRANISSAL: tuketim sikligi, kanal tercihi, harcama aliskanligi. d) demographics = yas ARALIGI, gelir ARALIGI, meslek GRUBU. e) estimatedSegmentSize icin KAYNAK goster (TUIK, sektor raporu). f) purchaseTriggers SPESIFIK: "kalite" degil → "Instagram'da gordugun gorsel cazibe" gibi.
 4. "competitiveMap" alaninda arastirmada bulunan HER rakip icin somut avantaj/dezavantaj belirt. Yoksa en az 2 rakip tanimla.
 5. "archetypeRationale" alaninda hangi wizard cevaplari (soru ID veya icerik) ve hangi sektor verileri bu secimi destekledigini ACIKCA belirt.
 6. "tone" ve "voice" alanlarinda ORNEK CUMLE ver — soyut tanimlama yerine gercek bir cumle yaz.
@@ -135,13 +144,22 @@ KRITIK KURALLAR:
   });
 
   // Validate and provide fallbacks for required fields
-  const defaultPersona = {
-    name: 'Belirtilmedi',
+  const defaultSegment = {
+    segmentLabel: 'Belirtilmedi',
     demographics: 'Belirtilmedi',
-    psychographics: 'Belirtilmedi',
-    painPoints: ['Belirtilmedi'],
+    behavioralProfile: 'Belirtilmedi',
+    coreNeed: 'Belirtilmedi',
     mediaHabits: 'Belirtilmedi',
-    decisionDrivers: ['Belirtilmedi'],
+    purchaseTriggers: ['Belirtilmedi'],
+    estimatedSegmentSize: 'Belirtilmedi',
+  };
+
+  const defaultValuePropReasoning = {
+    whatBusinessProduces: 'Belirtilmedi',
+    coreBenefit: 'Belirtilmedi',
+    whoBenefits: 'Belirtilmedi',
+    pricePositioning: 'Belirtilmedi',
+    willingToPayProfile: 'Belirtilmedi',
   };
 
   return {
@@ -151,13 +169,16 @@ KRITIK KURALLAR:
     tone: parsed.tone || 'Profesyonel ve samimi',
     voice: parsed.voice || 'Bilgili ve ulasılabilir',
     positioningStatement: parsed.positioningStatement || `${normalizedData.businessName}, ${normalizedData.sector} sektorunde fark yaratan bir markadir.`,
+    valuePropositionReasoning: parsed.valuePropositionReasoning
+      ? { ...defaultValuePropReasoning, ...parsed.valuePropositionReasoning }
+      : defaultValuePropReasoning,
     targetAudience: {
-      primaryPersona: parsed.targetAudience?.primaryPersona
-        ? { ...defaultPersona, ...parsed.targetAudience.primaryPersona }
-        : defaultPersona,
-      secondaryPersona: parsed.targetAudience?.secondaryPersona
-        ? { ...defaultPersona, ...parsed.targetAudience.secondaryPersona }
-        : defaultPersona,
+      primarySegment: parsed.targetAudience?.primarySegment
+        ? { ...defaultSegment, ...parsed.targetAudience.primarySegment }
+        : defaultSegment,
+      secondarySegment: parsed.targetAudience?.secondarySegment
+        ? { ...defaultSegment, ...parsed.targetAudience.secondarySegment }
+        : defaultSegment,
       marketSizeEstimate: parsed.targetAudience?.marketSizeEstimate || 'Tahmin mevcut degil',
     },
     differentiator: parsed.differentiator || 'Farklilik bilgisi belirlenememistir.',

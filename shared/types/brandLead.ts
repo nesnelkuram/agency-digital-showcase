@@ -185,7 +185,23 @@ export interface AIAnalysis {
   positioning?: {
     statement: string;
     targetAudience: string;
-    targetPersonas?: Array<{ name: string; profile: string; keyNeed: string }>;
+    valuePropositionReasoning?: {
+      whatBusinessProduces: string;
+      coreBenefit: string;
+      whoBenefits: string;
+      pricePositioning: string;
+      willingToPayProfile: string;
+    };
+    targetSegments?: Array<{
+      segmentLabel: string;
+      demographics: string;
+      behavioralProfile: string;
+      coreNeed: string;
+      mediaHabits: string;
+      purchaseTriggers: string[];
+      estimatedSegmentSize: string;
+    }>;
+    targetPersonas?: Array<{ name: string; profile: string; keyNeed: string }>; // backward compat
     differentiator: string;
     competitiveAdvantage: string;
     competitiveLandscape?: string;

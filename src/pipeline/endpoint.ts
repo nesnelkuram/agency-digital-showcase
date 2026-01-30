@@ -103,7 +103,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         agentDurations: Object.fromEntries(
           Object.entries(state.timings).filter(([k]) => k !== 'total')
         ),
-        researchAvailable: !!state.researchFindings && (state.researchFindings.sourcesUsed > 0),
+        researchAvailable: !!state.researchFindings && (state.researchFindings.sourcesUsed !== 0),
         fallbackUsed: !state.synthesizedAnalysis || state.errors.some((e) => e.agent === 'strategySynthesizer'),
       },
 

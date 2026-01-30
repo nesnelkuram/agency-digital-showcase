@@ -118,7 +118,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineState> 
     const taObj = strategistOutput.targetAudience;
     const taSummary = typeof taObj === 'string'
       ? taObj
-      : `${taObj.primaryPersona?.name || ''} ve benzeri profiller`;
+      : `${taObj.primarySegment?.demographics || ''} davranissal segment`;
     state.synthesizedAnalysis = {
       brandPersonality: {
         archetype: strategistOutput.archetype,
@@ -129,7 +129,10 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineState> 
       positioning: {
         statement: strategistOutput.positioningStatement,
         targetAudience: taSummary,
-        targetPersonas: [],
+        valuePropositionReasoning: strategistOutput.valuePropositionReasoning || {
+          whatBusinessProduces: '', coreBenefit: '', whoBenefits: '', pricePositioning: '', willingToPayProfile: '',
+        },
+        targetSegments: [taObj.primarySegment, taObj.secondarySegment].filter(Boolean),
         differentiator: strategistOutput.differentiator,
         competitiveAdvantage: strategistOutput.competitiveAdvantage,
         competitiveLandscape: '',

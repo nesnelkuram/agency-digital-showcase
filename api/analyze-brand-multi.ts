@@ -89,13 +89,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         : undefined,
 
       pipelineMetadata: {
-        version: '2.0.0',
+        version: '3.0.0',
         agentsRun: Object.keys(state.timings).filter((k) => k !== 'total'),
         totalDuration: state.timings.total || 0,
         agentDurations: Object.fromEntries(
           Object.entries(state.timings).filter(([k]) => k !== 'total')
         ),
-        researchAvailable: !!state.researchFindings && (state.researchFindings.sourcesUsed > 0),
+        researchAvailable: !!state.researchFindings && (state.researchFindings.sourcesUsed !== 0),
         fallbackUsed: !state.synthesizedAnalysis || state.errors.some((e) => e.agent === 'strategySynthesizer'),
       },
 

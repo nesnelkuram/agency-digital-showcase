@@ -69,16 +69,27 @@ export interface ResearchFindings {
   rawSnippets: string[];
 }
 
-// Agent 3 Output
-export interface TargetPersona {
-  name: string;
-  demographics: string;
-  psychographics: string;
-  painPoints: string[];
-  mediaHabits: string;
-  decisionDrivers: string[];
+// Value Proposition Reasoning — agent must answer these BEFORE defining audience
+export interface ValuePropositionReasoning {
+  whatBusinessProduces: string;
+  coreBenefit: string;
+  whoBenefits: string;
+  pricePositioning: string;
+  willingToPayProfile: string;
 }
 
+// Behavioral audience segment (replaces fictional TargetPersona)
+export interface AudienceSegment {
+  segmentLabel: string;
+  demographics: string;
+  behavioralProfile: string;
+  coreNeed: string;
+  mediaHabits: string;
+  purchaseTriggers: string[];
+  estimatedSegmentSize: string;
+}
+
+// Agent 3 Output
 export interface StrategistOutput {
   archetype: string;
   archetypeRationale: string;
@@ -86,9 +97,10 @@ export interface StrategistOutput {
   tone: string;
   voice: string;
   positioningStatement: string;
+  valuePropositionReasoning: ValuePropositionReasoning;
   targetAudience: {
-    primaryPersona: TargetPersona;
-    secondaryPersona: TargetPersona;
+    primarySegment: AudienceSegment;
+    secondarySegment: AudienceSegment;
     marketSizeEstimate: string;
   };
   differentiator: string;
@@ -131,7 +143,8 @@ export interface SynthesizedAnalysis {
   positioning: {
     statement: string;
     targetAudience: string;
-    targetPersonas: Array<{ name: string; profile: string; keyNeed: string }>;
+    targetSegments: AudienceSegment[];
+    valuePropositionReasoning: ValuePropositionReasoning;
     differentiator: string;
     competitiveAdvantage: string;
     competitiveLandscape: string;

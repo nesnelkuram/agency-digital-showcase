@@ -8,11 +8,17 @@ export async function runStrategySynthesizer(
   challengerOutput: ChallengerOutput | null
 ): Promise<SynthesizedAnalysis> {
 
-  // Format target audience from strategist
-  const taPersona = strategistOutput.targetAudience;
-  const targetAudienceSummary = typeof taPersona === 'string'
-    ? taPersona
-    : `Birincil: ${taPersona.primaryPersona?.name || 'N/A'} (${taPersona.primaryPersona?.demographics || ''})\nIkincil: ${taPersona.secondaryPersona?.name || 'N/A'} (${taPersona.secondaryPersona?.demographics || ''})`;
+  // Format target audience from strategist (segments, not personas)
+  const taSegments = strategistOutput.targetAudience;
+  const targetAudienceSummary = typeof taSegments === 'string'
+    ? taSegments
+    : `Birincil Segment: ${taSegments.primarySegment?.demographics || 'N/A'} — ${taSegments.primarySegment?.behavioralProfile || ''}\nIkincil Segment: ${taSegments.secondarySegment?.demographics || 'N/A'} — ${taSegments.secondarySegment?.behavioralProfile || ''}`;
+
+  // Format value proposition reasoning
+  const vpReasoning = strategistOutput.valuePropositionReasoning;
+  const vpSummary = vpReasoning
+    ? `\n- Urun/Hizmet: ${vpReasoning.whatBusinessProduces}\n- Temel Fayda: ${vpReasoning.coreBenefit}\n- Kimin Icin: ${vpReasoning.whoBenefits}\n- Fiyat Konumlandirmasi: ${vpReasoning.pricePositioning}\n- Odemeye Istekli Profil: ${vpReasoning.willingToPayProfile}`
+    : '';
 
   // Build strategist summary
   const strategistSummary = `
@@ -22,7 +28,7 @@ export async function runStrategySynthesizer(
 - Kisilik Ozellikleri: ${strategistOutput.traits.join(', ')}
 - Iletisim Tonu: ${strategistOutput.tone}
 - Marka Sesi: ${strategistOutput.voice}
-- Konumlandirma: ${strategistOutput.positioningStatement}
+- Konumlandirma: ${strategistOutput.positioningStatement}${vpSummary}
 - Hedef Kitle: ${targetAudienceSummary}
 - Farklilik: ${strategistOutput.differentiator}
 - Rekabet Avantaji: ${strategistOutput.competitiveAdvantage}`;
@@ -57,7 +63,7 @@ ${challengerOutput.blindSpots.map((b) => `  - ${b}`).join('\n')}`;
   // Build rich research context (if available)
   let researchContext = '';
   let sourceUrlsList = '';
-  const hasResearch = researchFindings && researchFindings.sourcesUsed > 0;
+  const hasResearch = researchFindings && researchFindings.sourcesUsed !== 0;
   if (hasResearch) {
     const competitorNames = researchFindings.competitors.map((c) => `${c.name}${c.website ? ` (${c.website})` : ''}`).join(', ');
     const marketInfo = researchFindings.marketData;
@@ -122,9 +128,32 @@ Tum verileri sentezleyerek asagidaki JSON yapisinda NIHAI marka stratejisi rapor
   "positioning": {
     "statement": "Nihai konumlandirma cumlesi. SOMUT, akilda kalici, OLCULEBILIR. (1-2 cumle)",
     "targetAudience": "Hedef kitle ozet tanimi. (2-3 cumle)",
-    "targetPersonas": [
-      { "name": "Persona ismi (yas, sehir)", "profile": "3-4 cumlelik detayli profil", "keyNeed": "Bu kisinin en acil ihtiyaci" },
-      { "name": "Ikinci persona", "profile": "...", "keyNeed": "..." }
+    "valuePropositionReasoning": {
+      "whatBusinessProduces": "Bu isletmenin SOMUT urun/hizmet listesi",
+      "coreBenefit": "Musteriye saglanan TEMEL fayda — tek cumle",
+      "whoBenefits": "Bu faydadan DAVRANISSAL olarak kim yararlanir",
+      "pricePositioning": "Fiyat konumlandirmasi RAKAMLARLA ve rakip karsilastirmasiyla",
+      "willingToPayProfile": "Bu fiyati odemeye istekli kisi profili — gelir ve harcama aliskanligi"
+    },
+    "targetSegments": [
+      {
+        "segmentLabel": "Birincil Segment",
+        "demographics": "Yas ARALIGI, lokasyon tipi, meslek GRUBU, gelir ARALIGI",
+        "behavioralProfile": "Tuketim davranislari — SOMUT",
+        "coreNeed": "Bu segmentin BU ISLETMEDEN beklentisi",
+        "mediaHabits": "Hangi platformlar, ne siklikla",
+        "purchaseTriggers": ["Satin alma tetikleyicileri — SPESIFIK"],
+        "estimatedSegmentSize": "Turkiye'deki tahmini buyukluk — kaynak belirt"
+      },
+      {
+        "segmentLabel": "Ikincil Segment",
+        "demographics": "...",
+        "behavioralProfile": "...",
+        "coreNeed": "...",
+        "mediaHabits": "...",
+        "purchaseTriggers": ["..."],
+        "estimatedSegmentSize": "..."
+      }
     ],
     "differentiator": "Temel fark. (1-2 cumle)",
     "competitiveAdvantage": "Rekabet avantaji. (1-2 cumle)",
@@ -245,10 +274,13 @@ KRITIK KURALLAR — BU KURALLARA UYMAYAN RAPOR BASARISIZ SAYILIR:
       statement: parsed.positioning?.statement || strategistOutput.positioningStatement,
       targetAudience: parsed.positioning?.targetAudience || (typeof strategistOutput.targetAudience === 'string'
         ? strategistOutput.targetAudience
-        : `${strategistOutput.targetAudience.primaryPersona?.name || ''} ve benzeri profiller`),
-      targetPersonas: Array.isArray(parsed.positioning?.targetPersonas) && parsed.positioning.targetPersonas.length > 0
-        ? parsed.positioning.targetPersonas
-        : [],
+        : `${strategistOutput.targetAudience.primarySegment?.demographics || ''} davranissal segment`),
+      valuePropositionReasoning: parsed.positioning?.valuePropositionReasoning
+        || strategistOutput.valuePropositionReasoning
+        || { whatBusinessProduces: '', coreBenefit: '', whoBenefits: '', pricePositioning: '', willingToPayProfile: '' },
+      targetSegments: Array.isArray(parsed.positioning?.targetSegments) && parsed.positioning.targetSegments.length > 0
+        ? parsed.positioning.targetSegments
+        : [strategistOutput.targetAudience.primarySegment, strategistOutput.targetAudience.secondarySegment].filter(Boolean),
       differentiator: parsed.positioning?.differentiator || strategistOutput.differentiator,
       competitiveAdvantage: parsed.positioning?.competitiveAdvantage || strategistOutput.competitiveAdvantage,
       competitiveLandscape: parsed.positioning?.competitiveLandscape || '',

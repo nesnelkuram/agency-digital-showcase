@@ -89,6 +89,60 @@ export async function generateGroundedText(
   };
 }
 
+// --- Deep Research via Interactions API ---
+
+export interface DeepResearchResult {
+  text: string;
+  status: 'completed' | 'failed' | 'timeout';
+}
+
+const DEEP_RESEARCH_AGENT = 'deep-research-pro-preview-12-2025';
+const POLL_INTERVAL_MS = 10_000; // 10s between polls
+
+export async function runDeepResearch(
+  prompt: string,
+  timeoutMs: number = 140_000,
+): Promise<DeepResearchResult> {
+  const client = getClient();
+
+  // Start background research
+  const interaction = await (client as any).interactions.create({
+    agent: DEEP_RESEARCH_AGENT,
+    input: prompt,
+    background: true,
+  });
+
+  const interactionId = interaction.id;
+  if (!interactionId) {
+    return { text: '', status: 'failed' };
+  }
+
+  const deadline = Date.now() + timeoutMs;
+
+  // Poll for completion
+  while (Date.now() < deadline) {
+    await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS));
+
+    const result = await (client as any).interactions.get(interactionId);
+    const status = result.status;
+
+    if (status === 'completed') {
+      const outputs = result.outputs || [];
+      const lastOutput = outputs[outputs.length - 1];
+      const text = lastOutput?.text || '';
+      return { text, status: 'completed' };
+    }
+
+    if (status === 'failed' || status === 'cancelled') {
+      return { text: '', status: 'failed' };
+    }
+    // status === 'in_progress' → keep polling
+  }
+
+  // Timeout
+  return { text: '', status: 'timeout' };
+}
+
 export function safeParseJSON<T>(text: string, agentName: string): T {
   try {
     return JSON.parse(text);
