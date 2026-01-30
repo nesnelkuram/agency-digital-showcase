@@ -1,4 +1,4 @@
-import { createGeminiModel, safeParseJSON } from '../geminiClient';
+import { generateJSON } from '../geminiClient';
 import type { NormalizedData, ResearchFindings, StrategistOutput, ChallengerOutput, SynthesizedAnalysis } from '../types';
 
 export async function runStrategySynthesizer(
@@ -7,10 +7,6 @@ export async function runStrategySynthesizer(
   strategistOutput: StrategistOutput,
   challengerOutput: ChallengerOutput | null
 ): Promise<SynthesizedAnalysis> {
-  const model = createGeminiModel('pro', {
-    temperature: 0.6,
-    maxOutputTokens: 4096,
-  });
 
   // Build strategist summary
   const strategistSummary = `
@@ -131,12 +127,10 @@ ONEMLI KURALLAR:
 9. Tum metinler TURKCE olmali.
 10. Sadece JSON don, baska bir sey yazma.`;
 
-  const result = await model.generateContent({
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+  const parsed = await generateJSON<SynthesizedAnalysis>('pro', prompt, 'StrategySynthesizer', {
+    temperature: 0.6,
+    maxOutputTokens: 4096,
   });
-
-  const responseText = result.response.text();
-  const parsed = safeParseJSON<SynthesizedAnalysis>(responseText, 'StrategySynthesizer');
 
   // Deep validation with fallbacks for all required nested fields
   return {

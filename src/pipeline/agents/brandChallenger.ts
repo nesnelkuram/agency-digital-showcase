@@ -1,4 +1,4 @@
-import { createGeminiModel, safeParseJSON } from '../geminiClient';
+import { generateJSON } from '../geminiClient';
 import type { NormalizedData, ResearchFindings, StrategistOutput, ChallengerOutput } from '../types';
 
 export async function runBrandChallenger(
@@ -6,10 +6,6 @@ export async function runBrandChallenger(
   researchFindings: ResearchFindings | null,
   strategistOutput: StrategistOutput
 ): Promise<ChallengerOutput> {
-  const model = createGeminiModel('pro', {
-    temperature: 0.8,
-    maxOutputTokens: 2048,
-  });
 
   // Build research context (if available)
   let researchContext = '';
@@ -94,12 +90,10 @@ ONEMLI KURALLAR:
 9. Tum metinler TURKCE olmali.
 10. Sadece JSON don, baska bir sey yazma.`;
 
-  const result = await model.generateContent({
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+  const parsed = await generateJSON<ChallengerOutput>('pro', prompt, 'BrandChallenger', {
+    temperature: 0.8,
+    maxOutputTokens: 2048,
   });
-
-  const responseText = result.response.text();
-  const parsed = safeParseJSON<ChallengerOutput>(responseText, 'BrandChallenger');
 
   // Validate and provide fallbacks
   return {

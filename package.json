@@ -10,7 +10,7 @@
     "vercel-build": "node scripts/build-api.mjs && vite build"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
+    "@google/genai": "^1.0.0",
     "@hookform/resolvers": "^5.2.2",
     "@react-spring/three": "^10.0.1",
     "@react-three/drei": "^10.3.0",

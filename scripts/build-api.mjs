@@ -11,6 +11,8 @@ await build({
   banner: { js: '// @vercel-bundled' },
   minify: false,
   sourcemap: false,
+  mainFields: ['module', 'main'],
+  conditions: ['import', 'module', 'default'],
 });
 
 console.log('Built api/analyze-brand-multi.js');

@@ -7,6 +7,8 @@ export const config = {
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  res.setHeader('Content-Type', 'application/json');
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -122,9 +124,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   } catch (error: any) {
     console.error('Multi-agent analysis error:', error);
-    return res.status(500).json({
-      error: error.message || 'Multi-agent analysis failed',
-      details: error.stack?.split('\n').slice(0, 3),
-    });
+    try {
+      return res.status(500).json({
+        error: String(error?.message || 'Multi-agent analysis failed'),
+        details: String(error?.stack || '').split('\n').slice(0, 3),
+      });
+    } catch (jsonError) {
+      console.error('Failed to serialize error response:', jsonError);
+      return res.status(500).end(
+        JSON.stringify({ error: 'Internal server error' })
+      );
+    }
   }
 }

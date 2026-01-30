@@ -81,10 +81,22 @@ const LeadDetailPage: React.FC = () => {
         }),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.error || 'Analiz basarisiz oldu');
+        let errorMessage = `Sunucu hatasi (${response.status})`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // Response body was not JSON
+        }
+        throw new Error(errorMessage);
+      }
+
+      let data;
+      try {
+        data = await response.json();
+      } catch {
+        throw new Error('Sunucu gecerli bir yanit dondurmedi. Lutfen tekrar deneyin.');
       }
 
       const aiAnalysis = {

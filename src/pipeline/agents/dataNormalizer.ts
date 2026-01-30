@@ -1,12 +1,8 @@
-import { createGeminiModel, safeParseJSON } from '../geminiClient';
+import { generateJSON } from '../geminiClient';
 import { resolveAnswers, STAGE_NAMES, STAGE_QUESTION_IDS, QUESTION_MAP } from '../prompts';
 import type { PipelineInput, NormalizedData } from '../types';
 
 export async function runDataNormalizer(input: PipelineInput): Promise<NormalizedData> {
-  const model = createGeminiModel('flash', {
-    temperature: 0.3,
-    maxOutputTokens: 2048,
-  });
 
   const { contact, sector, wizard, requestedServices } = input;
   const resolvedQA = resolveAnswers(sector, wizard.answers, wizard.scores);
@@ -71,12 +67,10 @@ ONEMLI KURALLAR:
 7. Tum metinler TURKCE olmali.
 8. Sadece JSON don, baska bir sey yazma.`;
 
-  const result = await model.generateContent({
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+  const parsed = await generateJSON<NormalizedData>('flash', prompt, 'DataNormalizer', {
+    temperature: 0.3,
+    maxOutputTokens: 2048,
   });
-
-  const responseText = result.response.text();
-  const parsed = safeParseJSON<NormalizedData>(responseText, 'DataNormalizer');
 
   // Ensure required fields have fallback values
   return {

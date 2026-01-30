@@ -1,4 +1,4 @@
-import { createGeminiModel, safeParseJSON } from '../geminiClient';
+import { generateJSON } from '../geminiClient';
 import { searchWeb, buildSearchQueries } from '../webSearch';
 import type { PipelineInput, ResearchFindings } from '../types';
 
@@ -61,11 +61,6 @@ export async function runSectorResearch(input: PipelineInput): Promise<ResearchF
   const rawSnippetsForOutput = allSnippets.slice(0, 5);
 
   // Step 4: Send to Gemini Pro for synthesis
-  const model = createGeminiModel('pro', {
-    temperature: 0.5,
-    maxOutputTokens: 3072,
-  });
-
   const prompt = `Sen sektor arastirmacisisin. Asagidaki web arama sonuclarini analiz et ve ${sector} sektoru icin bir rekabet ve pazar analizi olustur.
 
 ## Isletme Bilgileri
@@ -104,14 +99,11 @@ ONEMLI KURALLAR:
 7. Tum metinler TURKCE olmali.
 8. Sadece JSON don, baska bir sey yazma.`;
 
-  const result = await model.generateContent({
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
-  });
-
-  const responseText = result.response.text();
-  const parsed = safeParseJSON<Omit<ResearchFindings, 'searchQueries' | 'sourcesUsed' | 'rawSnippets'>>(
-    responseText,
-    'SectorResearch'
+  const parsed = await generateJSON<Omit<ResearchFindings, 'searchQueries' | 'sourcesUsed' | 'rawSnippets'>>(
+    'pro', prompt, 'SectorResearch', {
+      temperature: 0.5,
+      maxOutputTokens: 3072,
+    }
   );
 
   return {

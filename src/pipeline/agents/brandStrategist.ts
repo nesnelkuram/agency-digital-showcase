@@ -1,14 +1,10 @@
-import { createGeminiModel, safeParseJSON } from '../geminiClient';
+import { generateJSON } from '../geminiClient';
 import type { NormalizedData, ResearchFindings, StrategistOutput } from '../types';
 
 export async function runBrandStrategist(
   normalizedData: NormalizedData,
   researchFindings: ResearchFindings | null
 ): Promise<StrategistOutput> {
-  const model = createGeminiModel('pro', {
-    temperature: 0.7,
-    maxOutputTokens: 3072,
-  });
 
   // Build structured answers summary
   const answersSummary = normalizedData.structuredAnswers
@@ -88,12 +84,10 @@ ONEMLI KURALLAR:
 8. Tum metinler TURKCE olmali.
 9. Sadece JSON don, baska bir sey yazma.`;
 
-  const result = await model.generateContent({
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+  const parsed = await generateJSON<StrategistOutput>('pro', prompt, 'BrandStrategist', {
+    temperature: 0.7,
+    maxOutputTokens: 3072,
   });
-
-  const responseText = result.response.text();
-  const parsed = safeParseJSON<StrategistOutput>(responseText, 'BrandStrategist');
 
   // Validate and provide fallbacks for required fields
   return {

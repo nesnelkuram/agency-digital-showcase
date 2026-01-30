@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 
 export type ModelTier = 'flash' | 'pro';
 
@@ -7,23 +7,39 @@ const MODEL_IDS: Record<ModelTier, string> = {
   pro: 'gemini-3-pro-preview',
 };
 
-export function createGeminiModel(
-  tier: ModelTier,
-  config?: { temperature?: number; maxOutputTokens?: number }
-) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
+let _client: GoogleGenAI | null = null;
 
-  const genAI = new GoogleGenerativeAI(apiKey);
-  return genAI.getGenerativeModel({
+function getClient(): GoogleGenAI {
+  if (!_client) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
+    _client = new GoogleGenAI({ apiKey });
+  }
+  return _client;
+}
+
+export async function generateJSON<T>(
+  tier: ModelTier,
+  prompt: string,
+  agentName: string,
+  config?: { temperature?: number; maxOutputTokens?: number }
+): Promise<T> {
+  const client = getClient();
+  const result = await client.models.generateContent({
     model: MODEL_IDS[tier],
-    generationConfig: {
+    contents: prompt,
+    config: {
       temperature: config?.temperature ?? 0.7,
       topP: 0.9,
       maxOutputTokens: config?.maxOutputTokens ?? 4096,
       responseMimeType: 'application/json',
     },
   });
+  const text = result.text ?? '';
+  if (!text) {
+    throw new Error(`Agent "${agentName}" returned empty response from Gemini API`);
+  }
+  return safeParseJSON<T>(text, agentName);
 }
 
 export function safeParseJSON<T>(text: string, agentName: string): T {
