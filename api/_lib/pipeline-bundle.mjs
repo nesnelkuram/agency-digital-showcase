@@ -66,29 +66,50 @@ var DEEP_RESEARCH_AGENT = "deep-research-pro-preview-12-2025";
 var POLL_INTERVAL_MS = 1e4;
 async function runDeepResearch(prompt, timeoutMs = 14e4) {
   const client = getClient();
-  const interaction = await client.interactions.create({
-    agent: DEEP_RESEARCH_AGENT,
-    input: prompt,
-    background: true
-  });
-  const interactionId = interaction.id;
-  if (!interactionId) {
+  let interactionId;
+  try {
+    const interaction = await client.interactions.create({
+      agent: DEEP_RESEARCH_AGENT,
+      input: prompt,
+      background: true
+    });
+    interactionId = interaction.id;
+    if (!interactionId) {
+      console.log("DeepResearch: No interaction ID returned");
+      return { text: "", status: "failed" };
+    }
+    console.log(`DeepResearch: Interaction created \u2014 ${interactionId}`);
+  } catch (createError) {
+    console.error(`DeepResearch: create() failed \u2014 ${createError.message}`);
     return { text: "", status: "failed" };
   }
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
-    const result = await client.interactions.get(interactionId);
-    const status = result.status;
-    if (status === "completed") {
-      const outputs = result.outputs || [];
-      const lastOutput = outputs[outputs.length - 1];
-      const text = lastOutput?.text || "";
-      return { text, status: "completed" };
-    }
-    if (status === "failed" || status === "cancelled") {
+    try {
+      const result = await client.interactions.get(interactionId);
+      const status = result.status;
+      console.log(`DeepResearch: poll status=${status}`);
+      if (status === "completed") {
+        const outputs = result.outputs || [];
+        const textParts = outputs.filter((o) => o.type === "text" && o.text).map((o) => o.text);
+        const text = textParts.join("\n\n");
+        console.log(`DeepResearch: completed \u2014 ${text.length} chars from ${textParts.length} outputs`);
+        return { text, status: "completed" };
+      }
+      if (status === "failed" || status === "cancelled") {
+        console.log(`DeepResearch: ended with status=${status}`);
+        return { text: "", status: "failed" };
+      }
+    } catch (pollError) {
+      console.error(`DeepResearch: poll error \u2014 ${pollError.message}`);
       return { text: "", status: "failed" };
     }
+  }
+  console.log(`DeepResearch: timeout after ${timeoutMs}ms`);
+  try {
+    await client.interactions.cancel(interactionId);
+  } catch {
   }
   return { text: "", status: "timeout" };
 }
@@ -475,8 +496,10 @@ async function runSectorResearch(input) {
     }
   }
   if (!researchText || researchText.length < 100) {
+    console.log(`SectorResearch: Insufficient text (${researchText.length} chars), returning empty`);
     return { ...EMPTY_RESEARCH, searchQueries: allSearchQueries, sourcesUsed };
   }
+  console.log(`SectorResearch: Using ${researchMethod} data (${researchText.length} chars, ${sourcesUsed} sources)`);
   const extractionPrompt = `Asagidaki arastirma metnini analiz ederek JSON yapisinda yapilandir.
 ONEMLI: Metinde gecen TUM somut bilgileri koru. Bilgi UYDURMADAN sadece metinde olan bilgileri yapilandir.
 

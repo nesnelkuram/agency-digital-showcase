@@ -105,15 +105,22 @@ export async function runDeepResearch(
 ): Promise<DeepResearchResult> {
   const client = getClient();
 
-  // Start background research
-  const interaction = await (client as any).interactions.create({
-    agent: DEEP_RESEARCH_AGENT,
-    input: prompt,
-    background: true,
-  });
-
-  const interactionId = interaction.id;
-  if (!interactionId) {
+  // Start background research (fail fast if API unavailable)
+  let interactionId: string;
+  try {
+    const interaction = await client.interactions.create({
+      agent: DEEP_RESEARCH_AGENT,
+      input: prompt,
+      background: true,
+    });
+    interactionId = interaction.id;
+    if (!interactionId) {
+      console.log('DeepResearch: No interaction ID returned');
+      return { text: '', status: 'failed' };
+    }
+    console.log(`DeepResearch: Interaction created — ${interactionId}`);
+  } catch (createError: any) {
+    console.error(`DeepResearch: create() failed — ${createError.message}`);
     return { text: '', status: 'failed' };
   }
 
@@ -123,23 +130,38 @@ export async function runDeepResearch(
   while (Date.now() < deadline) {
     await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS));
 
-    const result = await (client as any).interactions.get(interactionId);
-    const status = result.status;
+    try {
+      const result = await client.interactions.get(interactionId);
+      const status = result.status;
+      console.log(`DeepResearch: poll status=${status}`);
 
-    if (status === 'completed') {
-      const outputs = result.outputs || [];
-      const lastOutput = outputs[outputs.length - 1];
-      const text = lastOutput?.text || '';
-      return { text, status: 'completed' };
-    }
+      if (status === 'completed') {
+        // Extract text from outputs (TextContent objects have { type: 'text', text: '...' })
+        const outputs: any[] = result.outputs || [];
+        const textParts = outputs
+          .filter((o: any) => o.type === 'text' && o.text)
+          .map((o: any) => o.text);
+        const text = textParts.join('\n\n');
+        console.log(`DeepResearch: completed — ${text.length} chars from ${textParts.length} outputs`);
+        return { text, status: 'completed' };
+      }
 
-    if (status === 'failed' || status === 'cancelled') {
+      if (status === 'failed' || status === 'cancelled') {
+        console.log(`DeepResearch: ended with status=${status}`);
+        return { text: '', status: 'failed' };
+      }
+      // status === 'in_progress' or 'requires_action' → keep polling
+    } catch (pollError: any) {
+      console.error(`DeepResearch: poll error — ${pollError.message}`);
       return { text: '', status: 'failed' };
     }
-    // status === 'in_progress' → keep polling
   }
 
-  // Timeout
+  // Timeout — try to cancel the background interaction
+  console.log(`DeepResearch: timeout after ${timeoutMs}ms`);
+  try {
+    await client.interactions.cancel(interactionId);
+  } catch { /* ignore cancel errors */ }
   return { text: '', status: 'timeout' };
 }
 

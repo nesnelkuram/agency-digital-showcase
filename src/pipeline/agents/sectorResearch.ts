@@ -151,8 +151,12 @@ export async function runSectorResearch(input: PipelineInput): Promise<ResearchF
   }
 
   if (!researchText || researchText.length < 100) {
+    console.log(`SectorResearch: Insufficient text (${researchText.length} chars), returning empty`);
     return { ...EMPTY_RESEARCH, searchQueries: allSearchQueries, sourcesUsed };
   }
+
+  console.log(`SectorResearch: Using ${researchMethod} data (${researchText.length} chars, ${sourcesUsed} sources)`);
+
 
   // Extract structured JSON from research text
   const extractionPrompt = `Asagidaki arastirma metnini analiz ederek JSON yapisinda yapilandir.
