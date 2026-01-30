@@ -7,7 +7,7 @@ await build({
   target: 'node18',
   format: 'esm',
   outfile: 'api/analyze-brand-multi.js',
-  external: ['@vercel/node'],
+  external: ['@vercel/node', '@google/genai'],
   banner: { js: '// @vercel-bundled' },
   minify: false,
   sourcemap: false,
