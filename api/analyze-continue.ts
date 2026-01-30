@@ -6,6 +6,7 @@ import {
   pollDeepResearch,
   runBrandStrategist,
   runBrandChallenger,
+  runBlogStrategyAdvisor,
   runStrategySynthesizer,
 } from './_lib/pipeline-bundle.mjs';
 
@@ -159,23 +160,51 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    // Agent 4: Brand Challenger (optional)
+    // Agent 4a + 4b: Brand Challenger + Blog Strategy Advisor (PARALLEL, optional)
     let challengerOutput = null;
+    let blogAdvisorOutput = null;
     if (remaining() > 30_000) {
-      const challStart = Date.now();
-      try {
-        console.log('analyze-continue: Running brandChallenger...');
-        challengerOutput = await runBrandChallenger(normalizedData, researchFindings, strategistOutput);
-        timings.brandChallenger = Date.now() - challStart;
-        agentsRun.push('brandChallenger');
-        console.log(`analyze-continue: brandChallenger done in ${timings.brandChallenger}ms`);
-      } catch (error: any) {
-        timings.brandChallenger = Date.now() - challStart;
-        errors.push({ agent: 'brandChallenger', error: error.message, timestamp: Date.now() });
-        console.error(`analyze-continue: brandChallenger failed in ${timings.brandChallenger}ms: ${error.message}`);
-      }
+      const parallelStart = Date.now();
+      console.log('analyze-continue: Running brandChallenger + blogStrategyAdvisor in parallel...');
+
+      const [challResult, blogResult] = await Promise.all([
+        (async () => {
+          const s = Date.now();
+          try {
+            const r = await runBrandChallenger(normalizedData, researchFindings, strategistOutput);
+            timings.brandChallenger = Date.now() - s;
+            agentsRun.push('brandChallenger');
+            console.log(`analyze-continue: brandChallenger done in ${timings.brandChallenger}ms`);
+            return r;
+          } catch (error: any) {
+            timings.brandChallenger = Date.now() - s;
+            errors.push({ agent: 'brandChallenger', error: error.message, timestamp: Date.now() });
+            console.error(`analyze-continue: brandChallenger failed in ${timings.brandChallenger}ms: ${error.message}`);
+            return null;
+          }
+        })(),
+        (async () => {
+          const s = Date.now();
+          try {
+            const r = await runBlogStrategyAdvisor(normalizedData, researchFindings, strategistOutput);
+            timings.blogStrategyAdvisor = Date.now() - s;
+            agentsRun.push('blogStrategyAdvisor');
+            console.log(`analyze-continue: blogStrategyAdvisor done in ${timings.blogStrategyAdvisor}ms`);
+            return r;
+          } catch (error: any) {
+            timings.blogStrategyAdvisor = Date.now() - s;
+            errors.push({ agent: 'blogStrategyAdvisor', error: error.message, timestamp: Date.now() });
+            console.error(`analyze-continue: blogStrategyAdvisor failed in ${timings.blogStrategyAdvisor}ms: ${error.message}`);
+            return null;
+          }
+        })(),
+      ]);
+
+      challengerOutput = challResult;
+      blogAdvisorOutput = blogResult;
+      console.log(`analyze-continue: parallel agents done in ${Date.now() - parallelStart}ms — challenger=${!!challResult}, blogAdvisor=${!!blogResult}`);
     } else {
-      console.log(`analyze-continue: SKIPPING brandChallenger — remaining=${remaining()}ms`);
+      console.log(`analyze-continue: SKIPPING challenger+blogAdvisor — remaining=${remaining()}ms`);
     }
 
     // Agent 5: Strategy Synthesizer (optional with fallback)
@@ -184,7 +213,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const synthStart = Date.now();
       try {
         console.log('analyze-continue: Running strategySynthesizer...');
-        synthesizedAnalysis = await runStrategySynthesizer(normalizedData, researchFindings, strategistOutput, challengerOutput);
+        synthesizedAnalysis = await runStrategySynthesizer(normalizedData, researchFindings, strategistOutput, challengerOutput, blogAdvisorOutput);
         timings.strategySynthesizer = Date.now() - synthStart;
         agentsRun.push('strategySynthesizer');
         console.log(`analyze-continue: strategySynthesizer done in ${timings.strategySynthesizer}ms`);
@@ -236,9 +265,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             challengerPosition: challengerOutput
               ? `${challengerOutput.alternativeArchetype}: ${challengerOutput.counterPosition}`
               : 'Muhalif degerlendirmesi yapilmadi',
+            blogAdvisorPosition: blogAdvisorOutput
+              ? `Felsefi uyum: ${blogAdvisorOutput.philosophicalAlignment.score}/10 — ${blogAdvisorOutput.philosophicalAlignment.rationale}`
+              : 'Blog danismani degerlendirmesi yapilmadi',
             challengerAlternatives: challengerOutput?.alternativePositionings || [],
             synthesisRationale: synthesized.synthesisRationale || '',
             debateCompleted: !!challengerOutput,
+            blogAdvisorCompleted: !!blogAdvisorOutput,
+          }
+        : undefined,
+
+      blogAdvisorInsights: blogAdvisorOutput
+        ? {
+            philosophicalAlignmentScore: blogAdvisorOutput.philosophicalAlignment.score,
+            alignedPrinciples: blogAdvisorOutput.philosophicalAlignment.alignedPrinciples,
+            conflictingPrinciples: blogAdvisorOutput.philosophicalAlignment.conflictingPrinciples,
+            keyRecommendations: blogAdvisorOutput.strategicRecommendations.map(
+              (r: any) => `[${r.area}] ${r.recommendation} (Ref: ${r.blogReference})`
+            ),
+            contentPillars: blogAdvisorOutput.contentStrategyInsights.contentPillars,
+            topicSuggestions: blogAdvisorOutput.contentStrategyInsights.topicSuggestions,
+            narrativeApproach: blogAdvisorOutput.contentStrategyInsights.narrativeApproach,
+            unconventionalInsights: blogAdvisorOutput.unconventionalInsights,
+            authorPerspective: blogAdvisorOutput.authorPerspective,
           }
         : undefined,
 
@@ -252,7 +301,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         : undefined,
 
       pipelineMetadata: {
-        version: '3.1.0',
+        version: '3.2.0',
         agentsRun,
         totalDuration,
         agentDurations: Object.fromEntries(

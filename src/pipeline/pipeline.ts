@@ -1,8 +1,9 @@
-import type { PipelineInput, PipelineState, NormalizedData, ResearchFindings, StrategistOutput, ChallengerOutput, SynthesizedAnalysis } from './types';
+import type { PipelineInput, PipelineState, NormalizedData, ResearchFindings, StrategistOutput, ChallengerOutput, BlogAdvisorOutput, SynthesizedAnalysis } from './types';
 import { runDataNormalizer } from './agents/dataNormalizer';
 import { runSectorResearch } from './agents/sectorResearch';
 import { runBrandStrategist } from './agents/brandStrategist';
 import { runBrandChallenger } from './agents/brandChallenger';
+import { runBlogStrategyAdvisor } from './agents/blogStrategyAdvisor';
 import { runStrategySynthesizer } from './agents/strategySynthesizer';
 
 // Re-exports for async pipeline endpoints
@@ -11,10 +12,11 @@ export { runSectorResearch, extractResearchJSON } from './agents/sectorResearch'
 export type { SectorResearchOptions } from './agents/sectorResearch';
 export { runBrandStrategist } from './agents/brandStrategist';
 export { runBrandChallenger } from './agents/brandChallenger';
+export { runBlogStrategyAdvisor } from './agents/blogStrategyAdvisor';
 export { runStrategySynthesizer } from './agents/strategySynthesizer';
 export { startDeepResearch, pollDeepResearch } from './geminiClient';
 export { buildDeepResearchPrompt } from './agents/sectorResearch';
-export type { PipelineInput, NormalizedData, ResearchFindings, StrategistOutput, ChallengerOutput, SynthesizedAnalysis } from './types';
+export type { PipelineInput, NormalizedData, ResearchFindings, StrategistOutput, ChallengerOutput, BlogAdvisorOutput, SynthesizedAnalysis } from './types';
 
 const TIMEOUT_BUDGET = 290_000; // 290s (10s safety margin from 300s Vercel limit)
 
@@ -91,17 +93,29 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineState> 
   }
   state.strategistOutput = strategistOutput;
 
-  // Step 3: Agent 4 (Challenger) — optional, skip if lite or low on time
+  // Step 3: Agent 4a (Challenger) + Agent 4b (Blog Advisor) — run in PARALLEL
   let challengerOutput: ChallengerOutput | null = null;
+  let blogAdvisorOutput: BlogAdvisorOutput | null = null;
+
   if (!isLite && remainingTime(startTime) > 22_000) {
-    challengerOutput = await runAgent<ChallengerOutput>(
-      'brandChallenger',
-      () => runBrandChallenger(normalizedData, researchFindings, strategistOutput),
-      state,
-      false
-    );
+    const [challResult, blogResult] = await Promise.all([
+      runAgent<ChallengerOutput>(
+        'brandChallenger',
+        () => runBrandChallenger(normalizedData, researchFindings, strategistOutput),
+        state,
+        false
+      ),
+      runAgent<BlogAdvisorOutput>(
+        'blogStrategyAdvisor',
+        () => runBlogStrategyAdvisor(normalizedData, researchFindings, strategistOutput),
+        state,
+        false
+      ),
+    ]);
+    challengerOutput = challResult;
+    blogAdvisorOutput = blogResult;
   } else if (!isLite) {
-    console.log('Skipping challenger: not enough time remaining');
+    console.log('Skipping challenger + blog advisor: not enough time remaining');
     state.errors.push({
       agent: 'brandChallenger',
       error: 'Skipped due to timeout budget',
@@ -109,13 +123,14 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineState> 
     });
   }
   state.challengerOutput = challengerOutput ?? undefined;
+  state.blogAdvisorOutput = blogAdvisorOutput ?? undefined;
 
   // Step 4: Agent 5 (Synthesizer) — optional with fallback
   let synthesizedAnalysis: SynthesizedAnalysis | null = null;
   if (remainingTime(startTime) > 8_000) {
     synthesizedAnalysis = await runAgent<SynthesizedAnalysis>(
       'strategySynthesizer',
-      () => runStrategySynthesizer(normalizedData, researchFindings, strategistOutput, challengerOutput),
+      () => runStrategySynthesizer(normalizedData, researchFindings, strategistOutput, challengerOutput, blogAdvisorOutput),
       state,
       false
     );

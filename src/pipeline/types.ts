@@ -113,7 +113,7 @@ export interface StrategistOutput {
   }>;
 }
 
-// Agent 4 Output
+// Agent 4a Output
 export interface ChallengerOutput {
   counterPosition: string;
   alternativeArchetype: string;
@@ -122,6 +122,29 @@ export interface ChallengerOutput {
   alternativePositionings: string[];
   riskAssessment: string;
   blindSpots: string[];
+}
+
+// Agent 4b Output (Blog Strategy Advisor)
+export interface BlogAdvisorOutput {
+  philosophicalAlignment: {
+    score: number;
+    rationale: string;
+    alignedPrinciples: string[];
+    conflictingPrinciples: string[];
+  };
+  strategicRecommendations: Array<{
+    area: string;
+    recommendation: string;
+    blogReference: string;
+  }>;
+  contentStrategyInsights: {
+    toneAlignment: string;
+    contentPillars: string[];
+    narrativeApproach: string;
+    topicSuggestions: string[];
+  };
+  authorPerspective: string;
+  unconventionalInsights: string[];
 }
 
 // Action plan item for 90-day roadmap
@@ -180,6 +203,13 @@ export interface SynthesizedAnalysis {
     confidenceLevel: string;
   };
   synthesisRationale: string;
+  blogAdvisorInsights?: {
+    philosophicalAlignmentScore: number;
+    keyRecommendations: string[];
+    contentPillars: string[];
+    unconventionalInsights: string[];
+    authorPerspective: string;
+  };
 }
 
 // Pipeline state passed through agents
@@ -189,6 +219,7 @@ export interface PipelineState {
   researchFindings?: ResearchFindings;
   strategistOutput?: StrategistOutput;
   challengerOutput?: ChallengerOutput;
+  blogAdvisorOutput?: BlogAdvisorOutput;
   synthesizedAnalysis?: SynthesizedAnalysis;
   errors: Array<{ agent: string; error: string; timestamp: number }>;
   timings: Record<string, number>;

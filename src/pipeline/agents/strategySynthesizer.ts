@@ -1,11 +1,12 @@
 import { generateJSON } from '../geminiClient';
-import type { NormalizedData, ResearchFindings, StrategistOutput, ChallengerOutput, SynthesizedAnalysis } from '../types';
+import type { NormalizedData, ResearchFindings, StrategistOutput, ChallengerOutput, BlogAdvisorOutput, SynthesizedAnalysis } from '../types';
 
 export async function runStrategySynthesizer(
   normalizedData: NormalizedData,
   researchFindings: ResearchFindings | null,
   strategistOutput: StrategistOutput,
-  challengerOutput: ChallengerOutput | null
+  challengerOutput: ChallengerOutput | null,
+  blogAdvisorOutput: BlogAdvisorOutput | null = null
 ): Promise<SynthesizedAnalysis> {
 
   // Format target audience from strategist (segments, not personas)
@@ -60,6 +61,27 @@ ${challengerOutput.alternativePositionings.map((p) => `  - ${p}`).join('\n')}
 ${challengerOutput.blindSpots.map((b) => `  - ${b}`).join('\n')}`;
   }
 
+  // Build blog advisor summary (if available)
+  let blogAdvisorSummary = '';
+  if (blogAdvisorOutput) {
+    blogAdvisorSummary = `
+
+### Blog Strateji Danismani Degerlendirmesi (Engin Tezcan Perspektifi)
+- Felsefi Uyum Skoru: ${blogAdvisorOutput.philosophicalAlignment.score}/10
+- Gerekce: ${blogAdvisorOutput.philosophicalAlignment.rationale}
+- Uyumlu Prensipler: ${blogAdvisorOutput.philosophicalAlignment.alignedPrinciples.join('; ') || 'Yok'}
+- Celisen Prensipler: ${blogAdvisorOutput.philosophicalAlignment.conflictingPrinciples.join('; ') || 'Yok'}
+- Stratejik Oneriler:
+${blogAdvisorOutput.strategicRecommendations.map((r) => `  - [${r.area}] ${r.recommendation} (Kaynak: ${r.blogReference})`).join('\n')}
+- Icerik Stratejisi:
+  - Ton Uyumu: ${blogAdvisorOutput.contentStrategyInsights.toneAlignment}
+  - Icerik Sutunlari: ${blogAdvisorOutput.contentStrategyInsights.contentPillars.join(', ')}
+  - Anlati Yaklasimi: ${blogAdvisorOutput.contentStrategyInsights.narrativeApproach}
+- Yazar Perspektifi: ${blogAdvisorOutput.authorPerspective}
+- Gayrinizami Icgoruler:
+${blogAdvisorOutput.unconventionalInsights.map((i) => `  - ${i}`).join('\n')}`;
+  }
+
   // Build rich research context (if available)
   let researchContext = '';
   let sourceUrlsList = '';
@@ -91,8 +113,13 @@ ${challengerOutput.blindSpots.map((b) => `  - ${b}`).join('\n')}`;
     }
   }
 
-  const debateInstruction = challengerOutput
+  const expertCount = 1 + (challengerOutput ? 1 : 0) + (blogAdvisorOutput ? 1 : 0);
+  const debateInstruction = expertCount === 3
+    ? 'Uc farkli uzmanin goruslerini sentezlemen gerekiyor: Strateji uzmani, seytan avukati ve blog strateji danismani (Engin Tezcan perspektifi). Her ucunun en guclu argumanlarin birlestirerek, cesur ama temelli nihai stratejiyi olustur.'
+    : challengerOutput
     ? 'Iki farkli uzmanin goruslerini inceleyip en iyi stratejiyi sentezlemen gerekiyor. Strateji uzmaninin onerisiyle seytan avukatinin elestirisini dengeleyerek, en guclu ve tutarli sonucu olustur.'
+    : blogAdvisorOutput
+    ? 'Strateji uzmaninin onerisi ve blog strateji danismaninin (Engin Tezcan perspektifi) degerlendirmesini sentezleyerek nihai stratejiyi olustur.'
     : 'Strateji uzmaninin onerisini inceleyip, rafine ederek nihai stratejiyi olusturman gerekiyor. Karsi-analiz mevcut olmadigindan, kendi elestirel gozunle stratejiyi guclendirerek sentezle.';
 
   const sourceCount = researchFindings?.sourcesUsed || 0;
@@ -110,6 +137,7 @@ ${challengerOutput.blindSpots.map((b) => `  - ${b}`).join('\n')}`;
 ${strategistSummary}
 ${competitiveMapSummary}
 ${challengerSummary}
+${blogAdvisorSummary}
 ${researchContext}
 
 ${sourceUrlsList ? `## Arastirma Kaynaklari\n${sourceUrlsList}` : ''}
