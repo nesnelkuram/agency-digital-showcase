@@ -5,7 +5,7 @@ import { runBrandStrategist } from './agents/brandStrategist';
 import { runBrandChallenger } from './agents/brandChallenger';
 import { runStrategySynthesizer } from './agents/strategySynthesizer';
 
-const TIMEOUT_BUDGET = 55_000; // 55s (5s safety margin from 60s Vercel limit)
+const TIMEOUT_BUDGET = 290_000; // 290s (10s safety margin from 300s Vercel limit)
 
 async function runAgent<T>(
   name: string,

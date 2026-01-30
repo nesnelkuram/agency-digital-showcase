@@ -92,7 +92,7 @@ ONEMLI KURALLAR:
 
   const parsed = await generateJSON<ChallengerOutput>('pro', prompt, 'BrandChallenger', {
     temperature: 0.8,
-    maxOutputTokens: 2048,
+    maxOutputTokens: 8192,
   });
 
   // Validate and provide fallbacks

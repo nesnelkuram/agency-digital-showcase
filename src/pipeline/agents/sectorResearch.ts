@@ -102,7 +102,7 @@ ONEMLI KURALLAR:
   const parsed = await generateJSON<Omit<ResearchFindings, 'searchQueries' | 'sourcesUsed' | 'rawSnippets'>>(
     'pro', prompt, 'SectorResearch', {
       temperature: 0.5,
-      maxOutputTokens: 3072,
+      maxOutputTokens: 8192,
     }
   );
 

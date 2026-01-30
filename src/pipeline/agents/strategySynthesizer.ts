@@ -129,7 +129,7 @@ ONEMLI KURALLAR:
 
   const parsed = await generateJSON<SynthesizedAnalysis>('pro', prompt, 'StrategySynthesizer', {
     temperature: 0.6,
-    maxOutputTokens: 4096,
+    maxOutputTokens: 8192,
   });
 
   // Deep validation with fallbacks for all required nested fields

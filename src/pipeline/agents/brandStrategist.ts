@@ -86,7 +86,7 @@ ONEMLI KURALLAR:
 
   const parsed = await generateJSON<StrategistOutput>('pro', prompt, 'BrandStrategist', {
     temperature: 0.7,
-    maxOutputTokens: 3072,
+    maxOutputTokens: 8192,
   });
 
   // Validate and provide fallbacks for required fields

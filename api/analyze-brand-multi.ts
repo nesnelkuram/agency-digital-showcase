@@ -3,7 +3,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { runPipeline } from './_lib/pipeline-bundle.mjs';
 
 export const config = {
-  maxDuration: 60,
+  maxDuration: 300,
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
