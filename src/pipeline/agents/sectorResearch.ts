@@ -196,15 +196,33 @@ export async function runSectorResearch(
 
   console.log(`SectorResearch: Using ${researchMethod} data (${researchText.length} chars, ${sourcesUsed} sources)`);
 
+  return extractResearchJSON(
+    researchText,
+    allSourceUrls,
+    allSearchQueries,
+    researchMethod === 'deep-research' ? -1 : sourcesUsed,
+  );
+}
 
-  // Extract structured JSON from research text
+// --- Exported: extract structured JSON from raw research text ---
+export async function extractResearchJSON(
+  researchText: string,
+  sourceUrls: Array<{ title: string; url: string }> = [],
+  searchQueries: string[] = [],
+  sourcesUsedCount: number = 0,
+): Promise<ResearchFindings> {
+  if (!researchText || researchText.length < 100) {
+    console.log(`extractResearchJSON: Insufficient text (${researchText?.length || 0} chars), returning empty`);
+    return { ...EMPTY_RESEARCH, searchQueries, sourcesUsed: sourcesUsedCount, sourceUrls, rawSnippets: [researchText?.slice(0, 10000) || ''] };
+  }
+
   const extractionPrompt = `Asagidaki arastirma metnini analiz ederek JSON yapisinda yapilandir.
 ONEMLI: Metinde gecen TUM somut bilgileri koru. Bilgi UYDURMADAN sadece metinde olan bilgileri yapilandir.
 
 ## Arastirma Metni
 ${researchText.slice(0, 40000)}
 
-${allSourceUrls.length > 0 ? `## Kaynaklar\n${allSourceUrls.map((s) => `- [${s.title}](${s.url})`).join('\n')}` : ''}
+${sourceUrls.length > 0 ? `## Kaynaklar\n${sourceUrls.map((s) => `- [${s.title}](${s.url})`).join('\n')}` : ''}
 
 ---
 JSON yapisi:
@@ -280,18 +298,18 @@ KURALLAR:
       opportunities: Array.isArray(parsed.opportunities) ? parsed.opportunities : [],
       threats: Array.isArray(parsed.threats) ? parsed.threats : [],
       sectorBenchmarks: Array.isArray(parsed.sectorBenchmarks) ? parsed.sectorBenchmarks : [],
-      searchQueries: allSearchQueries,
-      sourcesUsed: researchMethod === 'deep-research' ? -1 : sourcesUsed, // -1 = Deep Research (many)
-      sourceUrls: allSourceUrls,
+      searchQueries,
+      sourcesUsed: sourcesUsedCount,
+      sourceUrls,
       rawSnippets: [researchText.slice(0, 10000)],
     };
   } catch (error) {
-    console.error('SectorResearch: JSON extraction failed:', error);
+    console.error('extractResearchJSON: JSON extraction failed:', error);
     return {
       ...EMPTY_RESEARCH,
-      searchQueries: allSearchQueries,
-      sourcesUsed: researchMethod === 'deep-research' ? -1 : sourcesUsed, // preserve DR flag even on extraction failure
-      sourceUrls: allSourceUrls,
+      searchQueries,
+      sourcesUsed: sourcesUsedCount,
+      sourceUrls,
       rawSnippets: [researchText.slice(0, 10000)],
     };
   }

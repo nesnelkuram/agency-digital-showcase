@@ -112,11 +112,7 @@ async function pollDeepResearch(interactionId, timeoutMs = 24e4) {
       return { text: "", status: "failed" };
     }
   }
-  console.log(`DeepResearch: timeout after ${timeoutMs}ms`);
-  try {
-    await client.interactions.cancel(interactionId);
-  } catch {
-  }
+  console.log(`DeepResearch: poll timeout after ${timeoutMs}ms \u2014 interaction still alive on Gemini`);
   return { text: "", status: "timeout" };
 }
 async function runDeepResearch(prompt, timeoutMs = 12e4) {
@@ -534,14 +530,26 @@ async function runSectorResearch(input, options) {
     return { ...EMPTY_RESEARCH, searchQueries: allSearchQueries, sourcesUsed };
   }
   console.log(`SectorResearch: Using ${researchMethod} data (${researchText.length} chars, ${sourcesUsed} sources)`);
+  return extractResearchJSON(
+    researchText,
+    allSourceUrls,
+    allSearchQueries,
+    researchMethod === "deep-research" ? -1 : sourcesUsed
+  );
+}
+async function extractResearchJSON(researchText, sourceUrls = [], searchQueries = [], sourcesUsedCount = 0) {
+  if (!researchText || researchText.length < 100) {
+    console.log(`extractResearchJSON: Insufficient text (${researchText?.length || 0} chars), returning empty`);
+    return { ...EMPTY_RESEARCH, searchQueries, sourcesUsed: sourcesUsedCount, sourceUrls, rawSnippets: [researchText?.slice(0, 1e4) || ""] };
+  }
   const extractionPrompt = `Asagidaki arastirma metnini analiz ederek JSON yapisinda yapilandir.
 ONEMLI: Metinde gecen TUM somut bilgileri koru. Bilgi UYDURMADAN sadece metinde olan bilgileri yapilandir.
 
 ## Arastirma Metni
 ${researchText.slice(0, 4e4)}
 
-${allSourceUrls.length > 0 ? `## Kaynaklar
-${allSourceUrls.map((s) => `- [${s.title}](${s.url})`).join("\n")}` : ""}
+${sourceUrls.length > 0 ? `## Kaynaklar
+${sourceUrls.map((s) => `- [${s.title}](${s.url})`).join("\n")}` : ""}
 
 ---
 JSON yapisi:
@@ -614,20 +622,18 @@ KURALLAR:
       opportunities: Array.isArray(parsed.opportunities) ? parsed.opportunities : [],
       threats: Array.isArray(parsed.threats) ? parsed.threats : [],
       sectorBenchmarks: Array.isArray(parsed.sectorBenchmarks) ? parsed.sectorBenchmarks : [],
-      searchQueries: allSearchQueries,
-      sourcesUsed: researchMethod === "deep-research" ? -1 : sourcesUsed,
-      // -1 = Deep Research (many)
-      sourceUrls: allSourceUrls,
+      searchQueries,
+      sourcesUsed: sourcesUsedCount,
+      sourceUrls,
       rawSnippets: [researchText.slice(0, 1e4)]
     };
   } catch (error) {
-    console.error("SectorResearch: JSON extraction failed:", error);
+    console.error("extractResearchJSON: JSON extraction failed:", error);
     return {
       ...EMPTY_RESEARCH,
-      searchQueries: allSearchQueries,
-      sourcesUsed: researchMethod === "deep-research" ? -1 : sourcesUsed,
-      // preserve DR flag even on extraction failure
-      sourceUrls: allSourceUrls,
+      searchQueries,
+      sourcesUsed: sourcesUsedCount,
+      sourceUrls,
       rawSnippets: [researchText.slice(0, 1e4)]
     };
   }
@@ -1352,6 +1358,8 @@ async function runPipeline(input) {
 }
 export {
   buildDeepResearchPrompt,
+  extractResearchJSON,
+  pollDeepResearch,
   runBrandChallenger,
   runBrandStrategist,
   runDataNormalizer,

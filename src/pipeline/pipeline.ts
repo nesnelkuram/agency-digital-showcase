@@ -7,12 +7,12 @@ import { runStrategySynthesizer } from './agents/strategySynthesizer';
 
 // Re-exports for async pipeline endpoints
 export { runDataNormalizer } from './agents/dataNormalizer';
-export { runSectorResearch } from './agents/sectorResearch';
+export { runSectorResearch, extractResearchJSON } from './agents/sectorResearch';
 export type { SectorResearchOptions } from './agents/sectorResearch';
 export { runBrandStrategist } from './agents/brandStrategist';
 export { runBrandChallenger } from './agents/brandChallenger';
 export { runStrategySynthesizer } from './agents/strategySynthesizer';
-export { startDeepResearch } from './geminiClient';
+export { startDeepResearch, pollDeepResearch } from './geminiClient';
 export { buildDeepResearchPrompt } from './agents/sectorResearch';
 export type { PipelineInput, NormalizedData, ResearchFindings, StrategistOutput, ChallengerOutput, SynthesizedAnalysis } from './types';
 

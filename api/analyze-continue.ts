@@ -2,6 +2,8 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 // @ts-ignore — pre-bundled by esbuild during vercel-build
 import {
   runSectorResearch,
+  extractResearchJSON,
+  pollDeepResearch,
   runBrandStrategist,
   runBrandChallenger,
   runStrategySynthesizer,
@@ -48,33 +50,73 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (!researchFindings) {
       const researchStart = Date.now();
-      const drTimeout = Math.min(180_000, remaining() - 80_000); // leave 80s for grounding fallback + extraction
 
-      try {
-        console.log(`analyze-continue: Running sectorResearch (drInteractionId=${drInteractionId || 'none'}, timeout=${drTimeout}ms)`);
-        researchFindings = await runSectorResearch(input, {
-          drInteractionId: drInteractionId || undefined,
-          drTimeout: Math.max(drTimeout, 30_000), // at least 30s
-          startTimeMs: startTime,
-          budgetMs: BUDGET_MS,
-        });
-        timings.sectorResearch = Date.now() - researchStart;
-        agentsRun.push('sectorResearch');
+      if (drInteractionId) {
+        // --- DR interaction exists: poll it (NO grounding fallback on timeout) ---
+        const drPollTimeout = Math.min(250_000, remaining() - 40_000); // 40s buffer for JSON response
+        console.log(`analyze-continue: Polling DR (${drInteractionId}), timeout=${Math.max(drPollTimeout, 30_000)}ms`);
 
-        // Log research summary for debugging
-        const rc = researchFindings;
-        console.log(`analyze-continue: sectorResearch done in ${timings.sectorResearch}ms — competitors=${rc?.competitors?.length || 0}, sourcesUsed=${rc?.sourcesUsed}, marketSize=${rc?.marketData?.marketSize?.slice?.(0, 50) || 'N/A'}, hasRawSnippets=${(rc?.rawSnippets?.[0]?.length || 0) > 0}`);
-      } catch (error: any) {
-        timings.sectorResearch = Date.now() - researchStart;
-        errors.push({ agent: 'sectorResearch', error: error.message, timestamp: Date.now() });
-        console.error('analyze-continue: sectorResearch failed:', error.message);
+        try {
+          const drResult = await pollDeepResearch(drInteractionId, Math.max(drPollTimeout, 30_000));
+          timings.drPoll = Date.now() - researchStart;
+
+          if (drResult.status === 'completed' && drResult.text.length > 200) {
+            // DR tamamlandi → JSON extraction
+            console.log(`analyze-continue: DR completed (${drResult.text.length} chars), extracting JSON...`);
+            const extractStart = Date.now();
+            researchFindings = await extractResearchJSON(drResult.text, [], [], -1);
+            timings.researchExtraction = Date.now() - extractStart;
+            agentsRun.push('sectorResearch');
+            const rc = researchFindings;
+            console.log(`analyze-continue: Research extraction done in ${timings.researchExtraction}ms — competitors=${rc?.competitors?.length || 0}, sourcesUsed=${rc?.sourcesUsed}, marketSize=${rc?.marketData?.marketSize?.slice?.(0, 50) || 'N/A'}`);
+          } else if (drResult.status === 'timeout') {
+            // DR HALA CALISIYOR → client'a "tekrar dene" de (grounding'e DUSME)
+            console.log(`analyze-continue: DR still running (poll timeout after ${timings.drPoll}ms), returning 'researching'`);
+            return res.status(200).json({
+              status: 'researching',
+              debug: { timings, errors, agentsRun, drStatus: 'polling', remainingMs: remaining() },
+            });
+          } else {
+            // DR GERCEKTEN BASARISIZ (failed/cancelled) → grounding fallback
+            console.log(`analyze-continue: DR failed (${drResult.status}), falling back to grounding...`);
+            try {
+              researchFindings = await runSectorResearch(input, { drTimeout: 0, startTimeMs: startTime, budgetMs: BUDGET_MS });
+              timings.sectorResearch = Date.now() - researchStart;
+              agentsRun.push('sectorResearch');
+              const rc = researchFindings;
+              console.log(`analyze-continue: Grounding fallback done in ${timings.sectorResearch}ms — competitors=${rc?.competitors?.length || 0}, sourcesUsed=${rc?.sourcesUsed}`);
+            } catch (error: any) {
+              timings.sectorResearch = Date.now() - researchStart;
+              errors.push({ agent: 'sectorResearch', error: error.message, timestamp: Date.now() });
+              console.error('analyze-continue: Grounding fallback failed:', error.message);
+            }
+          }
+        } catch (error: any) {
+          timings.drPoll = Date.now() - researchStart;
+          errors.push({ agent: 'drPoll', error: error.message, timestamp: Date.now() });
+          console.error('analyze-continue: DR poll error:', error.message);
+        }
+      } else {
+        // --- drInteractionId yok → dogrudan grounding ---
+        console.log('analyze-continue: No DR interaction, running grounding research...');
+        try {
+          researchFindings = await runSectorResearch(input, { drTimeout: 0, startTimeMs: startTime, budgetMs: BUDGET_MS });
+          timings.sectorResearch = Date.now() - researchStart;
+          agentsRun.push('sectorResearch');
+          const rc = researchFindings;
+          console.log(`analyze-continue: Grounding research done in ${timings.sectorResearch}ms — competitors=${rc?.competitors?.length || 0}, sourcesUsed=${rc?.sourcesUsed}`);
+        } catch (error: any) {
+          timings.sectorResearch = Date.now() - researchStart;
+          errors.push({ agent: 'sectorResearch', error: error.message, timestamp: Date.now() });
+          console.error('analyze-continue: Grounding research failed:', error.message);
+        }
       }
 
       // Not enough time for pipeline? Return research and let client call again
-      if (remaining() < PIPELINE_BUDGET_MS) {
+      if (researchFindings && remaining() < PIPELINE_BUDGET_MS) {
         console.log(`analyze-continue: Not enough time for pipeline (${remaining()}ms remaining < ${PIPELINE_BUDGET_MS}ms needed), returning research for next call`);
         return res.status(200).json({
-          status: researchFindings ? 'research_complete' : 'failed',
+          status: 'research_complete',
           researchFindings,
           debug: { timings, errors, agentsRun, remainingMs: remaining() },
         });

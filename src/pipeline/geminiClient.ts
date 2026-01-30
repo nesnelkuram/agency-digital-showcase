@@ -162,10 +162,7 @@ export async function pollDeepResearch(
     }
   }
 
-  console.log(`DeepResearch: timeout after ${timeoutMs}ms`);
-  try {
-    await client.interactions.cancel(interactionId);
-  } catch { /* ignore cancel errors */ }
+  console.log(`DeepResearch: poll timeout after ${timeoutMs}ms — interaction still alive on Gemini`);
   return { text: '', status: 'timeout' };
 }
 

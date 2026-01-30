@@ -121,7 +121,7 @@ const LeadDetailPage: React.FC = () => {
       let result = startData;
       let researchFindings = null;
       let attempts = 0;
-      const MAX_ATTEMPTS = 5; // safety: max 5 continue calls
+      const MAX_ATTEMPTS = 8; // DR can take 5+ min, each call polls ~250s
 
       while (result.status !== 'completed' && result.status !== 'failed' && attempts < MAX_ATTEMPTS) {
         attempts++;
@@ -152,7 +152,10 @@ const LeadDetailPage: React.FC = () => {
         result = await continueRes.json();
         console.log(`[AsyncPipeline] Continue #${attempts} result: status=${result.status}, hasFindings=${!!result.researchFindings}, agents=${result.debug?.agentsRun?.join(',') || 'N/A'}, fallback=${result.debug?.agentsRun ? !result.debug.agentsRun.includes('strategySynthesizer') : 'N/A'}`);
 
-        if (result.researchFindings) {
+        if (result.status === 'researching') {
+          // DR still running on Gemini, keep polling
+          console.log(`[AsyncPipeline] DR still running, will poll again (attempt ${attempts}/${MAX_ATTEMPTS})...`);
+        } else if (result.researchFindings) {
           researchFindings = result.researchFindings;
           console.log(`[AsyncPipeline] Research received: competitors=${researchFindings.competitors?.length || 0}, sourcesUsed=${researchFindings.sourcesUsed}`);
           setAnalysisPhase('analyzing');
