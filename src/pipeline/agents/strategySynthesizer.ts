@@ -75,17 +75,17 @@ ${challengerOutput.blindSpots.map((b) => `  - ${b}`).join('\n')}`;
 - Rakipler: ${competitorNames || 'Bilgi yok'}
 - Pazar Buyuklugu: ${marketInfo.marketSize}
 - Buyume Hizi: ${marketInfo.growthRate}
-- Tuketici Trendleri: ${marketInfo.consumerTrends.slice(0, 3).join('; ') || 'Bilgi yok'}
+- Tuketici Trendleri: ${marketInfo.consumerTrends.join('; ') || 'Bilgi yok'}
 - Hedef Kitle Demografisi: ${audience.demographics}
 - Hedef Kitle Ihtiyaclari: ${audience.painPoints.join('; ') || 'Bilgi yok'}
-- Firsatlar: ${researchFindings.opportunities.slice(0, 3).join('; ') || 'Bilgi yok'}
-- Tehditler: ${researchFindings.threats.slice(0, 3).join('; ') || 'Bilgi yok'}
-- Sektor Standartlari: ${researchFindings.sectorBenchmarks.slice(0, 3).join('; ') || 'Bilgi yok'}
+- Firsatlar: ${researchFindings.opportunities.join('; ') || 'Bilgi yok'}
+- Tehditler: ${researchFindings.threats.join('; ') || 'Bilgi yok'}
+- Sektor Standartlari: ${researchFindings.sectorBenchmarks.join('; ') || 'Bilgi yok'}
 - Kullanilan Kaynak Sayisi: ${researchFindings.sourcesUsed}`;
 
     if (researchFindings.sourceUrls && researchFindings.sourceUrls.length > 0) {
       sourceUrlsList = researchFindings.sourceUrls
-        .slice(0, 10)
+        .slice(0, 20)
         .map((s) => `  - ${s.title}: ${s.url}`)
         .join('\n');
     }

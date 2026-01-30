@@ -418,9 +418,13 @@ ADIM 4 \u2014 HEDEF KITLE PROFILI:
 SONUCLARI DETAYLI OLARAK TURKCE YAZ. Her bilginin kaynagini belirt.`;
 }
 async function runGroundingFallback(businessName, sector) {
-  const competitorPrompt = `Sen bir sektor arastirmacisisin. ${sector} sektorunde Turkiye'de faaliyet gosteren ve "${businessName}" ile ayni segmentte rekabet eden markalari arastir. Her rakip icin gercek marka adi, web sitesi, konumlandirma, guclu/zayif yanlar, tahmini olcek bul. EN AZ 3, EN FAZLA 7 rakip. Turkce yaz.`;
-  const marketPrompt = `Sen bir pazar arastirmacisisin. ${sector} sektoru icin Turkiye pazar buyuklugu, buyume hizi, tuketici profili, satin alma davranislari, dijital trendler arastir. Somut rakamlar ver. Turkce yaz.`;
-  const trendPrompt = `${sector} sektoru ${businessName} icin firsatlar, tehditler, sektor standartlari, benchmark metrikler arastir. Turkce yaz.`;
+  const today = (/* @__PURE__ */ new Date()).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
+  const dateRule = `
+
+ONEMLI: Bugun ${today} tarihidir. SADECE 2025-2026 yilina ait GUNCEL verileri ara. 2024 ve oncesi veriler YETERSIZDIR \u2014 daha guncel kaynak bul. Resmi kurum raporlari (TUIK, TMO, sanayi birlikleri, ihracatci birlikleri) ONCELIKLI kaynaktir.`;
+  const competitorPrompt = `Sen bir sektor arastirmacisisin. ${sector} sektorunde Turkiye'de faaliyet gosteren ve "${businessName}" ile ayni segmentte rekabet eden markalari arastir. Her rakip icin gercek marka adi, web sitesi, konumlandirma, guclu/zayif yanlar, tahmini olcek bul. EN AZ 3, EN FAZLA 7 rakip. Turkce yaz.${dateRule}`;
+  const marketPrompt = `Sen bir pazar arastirmacisisin. ${sector} sektoru icin Turkiye pazar buyuklugu, buyume hizi, tuketici profili, satin alma davranislari, dijital trendler arastir. Somut rakamlar ver. Turkce yaz.${dateRule}`;
+  const trendPrompt = `${sector} sektoru ${businessName} icin firsatlar, tehditler, sektor standartlari, benchmark metrikler arastir. Turkce yaz.${dateRule}`;
   const [competitorRes, marketRes, trendRes] = await Promise.all([
     generateGroundedText(competitorPrompt, "SectorResearch-Competitors", { maxOutputTokens: 8192 }),
     generateGroundedText(marketPrompt, "SectorResearch-Market", { maxOutputTokens: 8192 }),
@@ -468,8 +472,8 @@ async function runSectorResearch(input) {
     console.log("SectorResearch: Starting Deep Research...");
     const drResult = await runDeepResearch(
       buildDeepResearchPrompt(businessName, sector),
-      14e4
-      // 140s budget
+      12e4
+      // 120s budget (reduced from 140s to leave room for Pro extraction)
     );
     if (drResult.status === "completed" && drResult.text.length > 200) {
       researchText = drResult.text;
@@ -549,8 +553,8 @@ KURALLAR:
 4. Tum metinler TURKCE.
 5. Sadece JSON don.`;
   try {
-    const parsed = await generateJSON("flash", extractionPrompt, "SectorResearch-Extract", {
-      temperature: 0.3,
+    const parsed = await generateJSON("pro", extractionPrompt, "SectorResearch-Extract", {
+      temperature: 0.5,
       maxOutputTokens: 8192
     });
     return {
@@ -584,7 +588,7 @@ KURALLAR:
       sourcesUsed: researchMethod === "deep-research" ? -1 : sourcesUsed,
       // -1 = Deep Research (many)
       sourceUrls: allSourceUrls,
-      rawSnippets: [researchText.slice(0, 3e3)]
+      rawSnippets: [researchText.slice(0, 1e4)]
     };
   } catch (error) {
     console.error("SectorResearch: JSON extraction failed:", error);
@@ -593,7 +597,7 @@ KURALLAR:
       searchQueries: allSearchQueries,
       sourcesUsed,
       sourceUrls: allSourceUrls,
-      rawSnippets: [researchText.slice(0, 3e3)]
+      rawSnippets: [researchText.slice(0, 1e4)]
     };
   }
 }
@@ -935,15 +939,15 @@ ${challengerOutput.blindSpots.map((b) => `  - ${b}`).join("\n")}`;
 - Rakipler: ${competitorNames || "Bilgi yok"}
 - Pazar Buyuklugu: ${marketInfo.marketSize}
 - Buyume Hizi: ${marketInfo.growthRate}
-- Tuketici Trendleri: ${marketInfo.consumerTrends.slice(0, 3).join("; ") || "Bilgi yok"}
+- Tuketici Trendleri: ${marketInfo.consumerTrends.join("; ") || "Bilgi yok"}
 - Hedef Kitle Demografisi: ${audience.demographics}
 - Hedef Kitle Ihtiyaclari: ${audience.painPoints.join("; ") || "Bilgi yok"}
-- Firsatlar: ${researchFindings.opportunities.slice(0, 3).join("; ") || "Bilgi yok"}
-- Tehditler: ${researchFindings.threats.slice(0, 3).join("; ") || "Bilgi yok"}
-- Sektor Standartlari: ${researchFindings.sectorBenchmarks.slice(0, 3).join("; ") || "Bilgi yok"}
+- Firsatlar: ${researchFindings.opportunities.join("; ") || "Bilgi yok"}
+- Tehditler: ${researchFindings.threats.join("; ") || "Bilgi yok"}
+- Sektor Standartlari: ${researchFindings.sectorBenchmarks.join("; ") || "Bilgi yok"}
 - Kullanilan Kaynak Sayisi: ${researchFindings.sourcesUsed}`;
     if (researchFindings.sourceUrls && researchFindings.sourceUrls.length > 0) {
-      sourceUrlsList = researchFindings.sourceUrls.slice(0, 10).map((s) => `  - ${s.title}: ${s.url}`).join("\n");
+      sourceUrlsList = researchFindings.sourceUrls.slice(0, 20).map((s) => `  - ${s.title}: ${s.url}`).join("\n");
     }
   }
   const debateInstruction = challengerOutput ? "Iki farkli uzmanin goruslerini inceleyip en iyi stratejiyi sentezlemen gerekiyor. Strateji uzmaninin onerisiyle seytan avukatinin elestirisini dengeleyerek, en guclu ve tutarli sonucu olustur." : "Strateji uzmaninin onerisini inceleyip, rafine ederek nihai stratejiyi olusturman gerekiyor. Karsi-analiz mevcut olmadigindan, kendi elestirel gozunle stratejiyi guclendirerek sentezle.";

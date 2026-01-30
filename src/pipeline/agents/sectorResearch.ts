@@ -66,9 +66,12 @@ SONUCLARI DETAYLI OLARAK TURKCE YAZ. Her bilginin kaynagini belirt.`;
 
 // --- Grounding-based fallback (3 parallel searches) ---
 async function runGroundingFallback(businessName: string, sector: string) {
-  const competitorPrompt = `Sen bir sektor arastirmacisisin. ${sector} sektorunde Turkiye'de faaliyet gosteren ve "${businessName}" ile ayni segmentte rekabet eden markalari arastir. Her rakip icin gercek marka adi, web sitesi, konumlandirma, guclu/zayif yanlar, tahmini olcek bul. EN AZ 3, EN FAZLA 7 rakip. Turkce yaz.`;
-  const marketPrompt = `Sen bir pazar arastirmacisisin. ${sector} sektoru icin Turkiye pazar buyuklugu, buyume hizi, tuketici profili, satin alma davranislari, dijital trendler arastir. Somut rakamlar ver. Turkce yaz.`;
-  const trendPrompt = `${sector} sektoru ${businessName} icin firsatlar, tehditler, sektor standartlari, benchmark metrikler arastir. Turkce yaz.`;
+  const today = new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+  const dateRule = `\n\nONEMLI: Bugun ${today} tarihidir. SADECE 2025-2026 yilina ait GUNCEL verileri ara. 2024 ve oncesi veriler YETERSIZDIR — daha guncel kaynak bul. Resmi kurum raporlari (TUIK, TMO, sanayi birlikleri, ihracatci birlikleri) ONCELIKLI kaynaktir.`;
+
+  const competitorPrompt = `Sen bir sektor arastirmacisisin. ${sector} sektorunde Turkiye'de faaliyet gosteren ve "${businessName}" ile ayni segmentte rekabet eden markalari arastir. Her rakip icin gercek marka adi, web sitesi, konumlandirma, guclu/zayif yanlar, tahmini olcek bul. EN AZ 3, EN FAZLA 7 rakip. Turkce yaz.${dateRule}`;
+  const marketPrompt = `Sen bir pazar arastirmacisisin. ${sector} sektoru icin Turkiye pazar buyuklugu, buyume hizi, tuketici profili, satin alma davranislari, dijital trendler arastir. Somut rakamlar ver. Turkce yaz.${dateRule}`;
+  const trendPrompt = `${sector} sektoru ${businessName} icin firsatlar, tehditler, sektor standartlari, benchmark metrikler arastir. Turkce yaz.${dateRule}`;
 
   const [competitorRes, marketRes, trendRes] = await Promise.all([
     generateGroundedText(competitorPrompt, 'SectorResearch-Competitors', { maxOutputTokens: 8192 }),
@@ -120,7 +123,7 @@ export async function runSectorResearch(input: PipelineInput): Promise<ResearchF
     console.log('SectorResearch: Starting Deep Research...');
     const drResult = await runDeepResearch(
       buildDeepResearchPrompt(businessName, sector),
-      140_000, // 140s budget
+      120_000, // 120s budget (reduced from 140s to leave room for Pro extraction)
     );
 
     if (drResult.status === 'completed' && drResult.text.length > 200) {
@@ -209,8 +212,8 @@ KURALLAR:
 
   try {
     type ResearchJSON = Omit<ResearchFindings, 'searchQueries' | 'sourcesUsed' | 'sourceUrls' | 'rawSnippets'>;
-    const parsed = await generateJSON<ResearchJSON>('flash', extractionPrompt, 'SectorResearch-Extract', {
-      temperature: 0.3,
+    const parsed = await generateJSON<ResearchJSON>('pro', extractionPrompt, 'SectorResearch-Extract', {
+      temperature: 0.5,
       maxOutputTokens: 8192,
     });
 
@@ -244,7 +247,7 @@ KURALLAR:
       searchQueries: allSearchQueries,
       sourcesUsed: researchMethod === 'deep-research' ? -1 : sourcesUsed, // -1 = Deep Research (many)
       sourceUrls: allSourceUrls,
-      rawSnippets: [researchText.slice(0, 3000)],
+      rawSnippets: [researchText.slice(0, 10000)],
     };
   } catch (error) {
     console.error('SectorResearch: JSON extraction failed:', error);
@@ -253,7 +256,7 @@ KURALLAR:
       searchQueries: allSearchQueries,
       sourcesUsed,
       sourceUrls: allSourceUrls,
-      rawSnippets: [researchText.slice(0, 3000)],
+      rawSnippets: [researchText.slice(0, 10000)],
     };
   }
 }
