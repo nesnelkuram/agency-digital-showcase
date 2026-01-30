@@ -336,6 +336,10 @@ export interface BrandLead {
   // Tanımlayıcılar
   submissionId: string; // BS-{timestamp}
 
+  // Rapor paylaşımı
+  shareToken?: string;
+  reportSharedAt?: Timestamp;
+
   // Zaman damgaları
   createdAt: Timestamp;
   updatedAt: Timestamp;

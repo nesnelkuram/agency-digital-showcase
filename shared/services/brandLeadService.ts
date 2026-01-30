@@ -4,6 +4,7 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
+  deleteField,
   getDoc,
   getDocs,
   query,
@@ -440,6 +441,76 @@ export async function convertLeadToClient(
     clientId,
     projectId,
     timeline: [...lead.timeline, convertEvent],
+    updatedAt: serverTimestamp(),
+  });
+}
+
+// ============================================
+// RAPOR PAYLAŞIMI
+// ============================================
+
+function generateShareToken(): string {
+  return crypto.randomUUID().replace(/-/g, '').slice(0, 12);
+}
+
+/**
+ * Lead için rapor paylaşım token'ı oluştur
+ */
+export async function generateReportShareToken(leadId: string): Promise<string> {
+  if (!db) throw new Error('Firebase not initialized');
+
+  const lead = await getBrandLead(leadId);
+  if (!lead) throw new Error('Lead not found');
+  if (!lead.aiAnalysis) throw new Error('Lead has no AI analysis to share');
+
+  // Mevcut token varsa onu döndür
+  if (lead.shareToken) return lead.shareToken;
+
+  const token = generateShareToken();
+  const docRef = doc(db, COLLECTION_NAME, leadId);
+  await updateDoc(docRef, {
+    shareToken: token,
+    reportSharedAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+
+  return token;
+}
+
+/**
+ * Share token ile lead getir (public erişim)
+ */
+export async function getBrandLeadByShareToken(token: string): Promise<BrandLead | null> {
+  if (!db) throw new Error('Firebase not initialized');
+  if (!token || token.length < 8) return null;
+
+  const q = query(
+    collection(db, COLLECTION_NAME),
+    where('shareToken', '==', token),
+    limit(1)
+  );
+  const snapshot = await getDocs(q);
+  if (snapshot.empty) return null;
+
+  const docSnap = snapshot.docs[0];
+  const lead = { id: docSnap.id, ...docSnap.data() } as BrandLead;
+
+  // Analizi olmayan lead paylaşılamaz
+  if (!lead.aiAnalysis) return null;
+
+  return lead;
+}
+
+/**
+ * Rapor paylaşımını iptal et
+ */
+export async function revokeReportShare(leadId: string): Promise<void> {
+  if (!db) throw new Error('Firebase not initialized');
+
+  const docRef = doc(db, COLLECTION_NAME, leadId);
+  await updateDoc(docRef, {
+    shareToken: deleteField(),
+    reportSharedAt: deleteField(),
     updatedAt: serverTimestamp(),
   });
 }

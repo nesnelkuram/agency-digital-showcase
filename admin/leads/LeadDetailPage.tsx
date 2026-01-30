@@ -26,10 +26,13 @@ import {
   RefreshCw,
   Database,
   Zap,
+  Link,
+  Copy,
+  Unlink,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermission } from '@/shared/hooks/usePermission';
-import { getBrandLead, updateBrandLead, addNoteToLead } from '@/shared/services/brandLeadService';
+import { getBrandLead, updateBrandLead, addNoteToLead, generateReportShareToken, revokeReportShare } from '@/shared/services/brandLeadService';
 import {
   BrandLead,
   LeadStatus,
@@ -376,6 +379,9 @@ const LeadDetailPage: React.FC = () => {
                 </motion.button>
               )}
             </>
+          )}
+          {lead.aiAnalysis && (
+            <ReportShareButton lead={lead} onLeadUpdate={setLead} />
           )}
           {can(PERMISSIONS.LEADS_CONVERT) && lead.status !== 'won' && (
             <motion.button
@@ -1053,5 +1059,114 @@ const LeadDetailPage: React.FC = () => {
     </div>
   );
 };
+
+// ─── Report Share Button ─────────────────────────────
+
+function ReportShareButton({ lead, onLeadUpdate }: { lead: BrandLead; onLeadUpdate: (fn: (prev: BrandLead | null) => BrandLead | null) => void }) {
+  const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [showRevoke, setShowRevoke] = useState(false);
+
+  const getReportUrl = (token: string) => `${window.location.origin}/rapor/${token}`;
+
+  const handleShare = async () => {
+    setBusy(true);
+    try {
+      const token = await generateReportShareToken(lead.id);
+      const url = getReportUrl(token);
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+      // Update local lead state
+      onLeadUpdate((prev) => prev ? { ...prev, shareToken: token } : null);
+    } catch (err) {
+      console.error('Share error:', err);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleCopy = async () => {
+    if (!lead.shareToken) return;
+    await navigator.clipboard.writeText(getReportUrl(lead.shareToken));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
+
+  const handleRevoke = async () => {
+    setBusy(true);
+    try {
+      await revokeReportShare(lead.id);
+      onLeadUpdate((prev) => {
+        if (!prev) return null;
+        const { shareToken, reportSharedAt, ...rest } = prev as any;
+        return rest as BrandLead;
+      });
+      setShowRevoke(false);
+    } catch (err) {
+      console.error('Revoke error:', err);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (lead.shareToken) {
+    return (
+      <div className="relative flex gap-1">
+        <motion.button
+          onClick={handleCopy}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-full font-grotesk text-sm font-medium hover:bg-indigo-100 transition-colors"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          {copied ? <CheckCircle2 className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+          {copied ? 'Kopyalandi!' : 'Rapor Linki'}
+        </motion.button>
+        <motion.button
+          onClick={() => setShowRevoke(!showRevoke)}
+          className="inline-flex items-center p-2 text-neutral-400 hover:text-red-500 rounded-full hover:bg-red-50 transition-colors"
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          title="Linki iptal et"
+        >
+          <Unlink className="w-4 h-4" />
+        </motion.button>
+        {showRevoke && (
+          <div className="absolute top-full right-0 mt-2 bg-white border border-red-200 rounded-xl shadow-lg p-3 z-50 w-52">
+            <p className="font-grotesk text-xs text-neutral-600 mb-2">Rapor linki iptal edilsin mi?</p>
+            <div className="flex gap-2">
+              <button
+                onClick={handleRevoke}
+                disabled={busy}
+                className="flex-1 px-3 py-1.5 bg-red-500 text-white rounded-lg text-xs font-medium hover:bg-red-600 disabled:opacity-50"
+              >
+                {busy ? 'Siliniyor...' : 'Iptal Et'}
+              </button>
+              <button
+                onClick={() => setShowRevoke(false)}
+                className="flex-1 px-3 py-1.5 bg-neutral-100 text-neutral-600 rounded-lg text-xs font-medium hover:bg-neutral-200"
+              >
+                Vazgec
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <motion.button
+      onClick={handleShare}
+      disabled={busy}
+      className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-full font-grotesk text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50"
+      whileHover={!busy ? { scale: 1.02 } : {}}
+      whileTap={!busy ? { scale: 0.98 } : {}}
+    >
+      {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link className="w-4 h-4" />}
+      {busy ? 'Olusturuluyor...' : 'Rapor Linki Olustur'}
+    </motion.button>
+  );
+}
 
 export default LeadDetailPage;

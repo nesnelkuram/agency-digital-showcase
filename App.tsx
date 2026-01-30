@@ -22,6 +22,7 @@ const LandingPage = lazy(() => import('./components/LandingPage'));
 const AdminApp = lazy(() => import('./admin/AdminApp'));
 const LoginPage = lazy(() => import('./admin/auth/LoginPage'));
 const FeedbackSharePage = lazy(() => import('./components/FeedbackSharePage'));
+const AnalysisReportPage = lazy(() => import('./components/AnalysisReportPage'));
 
 const HomePage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -293,6 +294,16 @@ const App: React.FC = () => {
           element={
             <Suspense fallback={<div className="min-h-screen" style={{ backgroundColor: '#0a0a0a' }} />}>
               <FeedbackSharePage />
+            </Suspense>
+          }
+        />
+
+        {/* AI Analysis Report - Public share page */}
+        <Route
+          path="/rapor/:shareToken"
+          element={
+            <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
+              <AnalysisReportPage />
             </Suspense>
           }
         />
