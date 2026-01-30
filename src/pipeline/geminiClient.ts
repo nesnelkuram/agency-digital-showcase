@@ -4,7 +4,7 @@ export type ModelTier = 'flash' | 'pro';
 
 const MODEL_IDS: Record<ModelTier, string> = {
   flash: 'gemini-2.0-flash',
-  pro: 'gemini-3-pro-preview',
+  pro: 'gemini-2.5-flash',
 };
 
 let _client: GoogleGenAI | null = null;
@@ -33,6 +33,7 @@ export async function generateJSON<T>(
       topP: 0.9,
       maxOutputTokens: config?.maxOutputTokens ?? 4096,
       responseMimeType: 'application/json',
+      thinkingConfig: { thinkingBudget: 0 },
     },
   });
   const text = result.text ?? '';
