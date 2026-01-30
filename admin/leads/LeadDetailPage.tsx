@@ -613,6 +613,21 @@ const LeadDetailPage: React.FC = () => {
                             Web Arastirmasi
                           </span>
                         )}
+                        {lead.aiAnalysis.pipelineMetadata.researchMethod && (
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-grotesk text-xs ${
+                            lead.aiAnalysis.pipelineMetadata.researchMethod === 'deep-research'
+                              ? 'bg-blue-100 text-blue-700'
+                              : lead.aiAnalysis.pipelineMetadata.researchMethod === 'grounding'
+                                ? 'bg-cyan-100 text-cyan-700'
+                                : 'bg-red-100 text-red-700'
+                          }`}>
+                            {lead.aiAnalysis.pipelineMetadata.researchMethod === 'deep-research'
+                              ? 'Deep Research'
+                              : lead.aiAnalysis.pipelineMetadata.researchMethod === 'grounding'
+                                ? 'Grounding'
+                                : 'Arastirma Yok'}
+                          </span>
+                        )}
                         {lead.aiAnalysis.pipelineMetadata.fallbackUsed && (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-100 text-amber-700 rounded-full font-grotesk text-xs">
                             Fallback

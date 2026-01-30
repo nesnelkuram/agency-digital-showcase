@@ -279,6 +279,7 @@ export interface AIAnalysis {
     totalDuration: number; // ms
     agentDurations: Record<string, number>;
     researchAvailable: boolean;
+    researchMethod?: 'deep-research' | 'grounding' | 'none';
     fallbackUsed: boolean;
   };
 
