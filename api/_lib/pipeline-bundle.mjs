@@ -64,25 +64,28 @@ async function generateGroundedText(prompt, agentName, config) {
 }
 var DEEP_RESEARCH_AGENT = "deep-research-pro-preview-12-2025";
 var POLL_INTERVAL_MS = 1e4;
-async function runDeepResearch(prompt, timeoutMs = 14e4) {
+async function startDeepResearch(prompt) {
   const client = getClient();
-  let interactionId;
   try {
     const interaction = await client.interactions.create({
       agent: DEEP_RESEARCH_AGENT,
       input: prompt,
       background: true
     });
-    interactionId = interaction.id;
-    if (!interactionId) {
+    const id = interaction.id;
+    if (!id) {
       console.log("DeepResearch: No interaction ID returned");
-      return { text: "", status: "failed" };
+      return null;
     }
-    console.log(`DeepResearch: Interaction created \u2014 ${interactionId}`);
+    console.log(`DeepResearch: Interaction created \u2014 ${id}`);
+    return id;
   } catch (createError) {
     console.error(`DeepResearch: create() failed \u2014 ${createError.message}`);
-    return { text: "", status: "failed" };
+    return null;
   }
+}
+async function pollDeepResearch(interactionId, timeoutMs = 24e4) {
+  const client = getClient();
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
@@ -112,6 +115,13 @@ async function runDeepResearch(prompt, timeoutMs = 14e4) {
   } catch {
   }
   return { text: "", status: "timeout" };
+}
+async function runDeepResearch(prompt, timeoutMs = 12e4) {
+  const interactionId = await startDeepResearch(prompt);
+  if (!interactionId) {
+    return { text: "", status: "failed" };
+  }
+  return pollDeepResearch(interactionId, timeoutMs);
 }
 function safeParseJSON(text, agentName) {
   try {
@@ -460,27 +470,39 @@ ${trendRes.text}`;
   });
   return { allGroundedText, allSourceUrls, allSearchQueries, sourcesUsed };
 }
-async function runSectorResearch(input) {
+async function runSectorResearch(input, options) {
   const { contact, sector } = input;
   const businessName = contact.businessName;
+  const drTimeout = options?.drTimeout ?? 24e4;
   let researchText = "";
   let allSourceUrls = [];
   let allSearchQueries = [];
   let sourcesUsed = 0;
   let researchMethod = "none";
   try {
-    console.log("SectorResearch: Starting Deep Research...");
-    const drResult = await runDeepResearch(
-      buildDeepResearchPrompt(businessName, sector),
-      12e4
-      // 120s budget (reduced from 140s to leave room for Pro extraction)
-    );
-    if (drResult.status === "completed" && drResult.text.length > 200) {
-      researchText = drResult.text;
-      researchMethod = "deep-research";
-      console.log(`SectorResearch: Deep Research completed (${researchText.length} chars)`);
+    if (options?.drInteractionId) {
+      console.log(`SectorResearch: Polling pre-started DR (${options.drInteractionId}), timeout=${drTimeout}ms`);
+      const drResult = await pollDeepResearch(options.drInteractionId, drTimeout);
+      if (drResult.status === "completed" && drResult.text.length > 200) {
+        researchText = drResult.text;
+        researchMethod = "deep-research";
+        console.log(`SectorResearch: Deep Research completed (${researchText.length} chars)`);
+      } else {
+        console.log(`SectorResearch: Deep Research ${drResult.status}, falling back to grounding...`);
+      }
     } else {
-      console.log(`SectorResearch: Deep Research ${drResult.status}, falling back to grounding...`);
+      console.log("SectorResearch: Starting Deep Research...");
+      const drResult = await runDeepResearch(
+        buildDeepResearchPrompt(businessName, sector),
+        drTimeout
+      );
+      if (drResult.status === "completed" && drResult.text.length > 200) {
+        researchText = drResult.text;
+        researchMethod = "deep-research";
+        console.log(`SectorResearch: Deep Research completed (${researchText.length} chars)`);
+      } else {
+        console.log(`SectorResearch: Deep Research ${drResult.status}, falling back to grounding...`);
+      }
     }
   } catch (error) {
     console.error("SectorResearch: Deep Research failed:", error);
@@ -1320,5 +1342,12 @@ async function runPipeline(input) {
   return state;
 }
 export {
-  runPipeline
+  buildDeepResearchPrompt,
+  runBrandChallenger,
+  runBrandStrategist,
+  runDataNormalizer,
+  runPipeline,
+  runSectorResearch,
+  runStrategySynthesizer,
+  startDeepResearch
 };

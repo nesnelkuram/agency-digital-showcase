@@ -60,62 +60,109 @@ const LeadDetailPage: React.FC = () => {
   const [newNote, setNewNote] = useState('');
   const [activeTab, setActiveTab] = useState<'overview' | 'wizard' | 'timeline' | 'ai'>('overview');
   const [analyzing, setAnalyzing] = useState(false);
+  const [analysisPhase, setAnalysisPhase] = useState<'normalizing' | 'researching' | 'analyzing' | 'completed'>('normalizing');
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
 
-  // AI Analysis — Multi-Agent Pipeline
+  // AI Analysis — Multi-Agent Async Pipeline
   const handleAnalyzeWithAI = async (mode: 'full' | 'lite' = 'full') => {
     if (!lead || !user || analyzing) return;
 
     setAnalyzing(true);
     setAnalyzeError(null);
+    setAnalysisPhase('normalizing');
 
     try {
-      const response = await fetch('/api/analyze-brand-multi', {
+      // Lite mode: use legacy sync endpoint
+      if (mode === 'lite') {
+        const response = await fetch('/api/analyze-brand-multi', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contact: lead.contact, sector: lead.sector,
+            wizard: lead.wizard, requestedServices: lead.requestedServices,
+            leadId: lead.id, mode: 'lite',
+          }),
+        });
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error(err.error || `Sunucu hatasi (${response.status})`);
+        }
+        const data = await response.json();
+        const aiAnalysis = { ...data.analysis, analyzedAt: new Date() };
+        await updateBrandLead(lead.id, { aiAnalysis }, user.uid, user.displayName || 'Unknown');
+        const updatedLead = await getBrandLead(lead.id);
+        setLead(updatedLead);
+        setActiveTab('ai');
+        return;
+      }
+
+      // Full mode: async 2-phase pipeline
+      // Phase 1: Start — dataNormalizer + DR interaction
+      setAnalysisPhase('normalizing');
+      const startRes = await fetch('/api/analyze-start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contact: lead.contact,
-          sector: lead.sector,
-          wizard: lead.wizard,
-          requestedServices: lead.requestedServices,
+          contact: lead.contact, sector: lead.sector,
+          wizard: lead.wizard, requestedServices: lead.requestedServices,
           leadId: lead.id,
-          mode,
         }),
       });
+      if (!startRes.ok) {
+        const err = await startRes.json().catch(() => ({}));
+        throw new Error(err.error || `Baslatma hatasi (${startRes.status})`);
+      }
+      const startData = await startRes.json();
+      setAnalysisPhase('researching');
 
-      if (!response.ok) {
-        let errorMessage = `Sunucu hatasi (${response.status})`;
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.error || errorMessage;
-        } catch {
-          // Response body was not JSON
+      // Phase 2: Continue loop — DR poll + pipeline
+      let result = startData;
+      let researchFindings = null;
+      let attempts = 0;
+      const MAX_ATTEMPTS = 5; // safety: max 5 continue calls
+
+      while (result.status !== 'completed' && result.status !== 'failed' && attempts < MAX_ATTEMPTS) {
+        attempts++;
+        const continueRes = await fetch('/api/analyze-continue', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            drInteractionId: startData.drInteractionId,
+            normalizedData: startData.normalizedData,
+            researchFindings,
+            input: {
+              contact: { name: lead.contact.name, businessName: lead.contact.businessName, email: lead.contact.email },
+              sector: lead.sector,
+              wizard: { answers: lead.wizard.answers, scores: lead.wizard.scores, stageResults: lead.wizard.stageResults },
+              requestedServices: lead.requestedServices,
+              leadId: lead.id,
+              mode: 'full',
+            },
+          }),
+        });
+
+        if (!continueRes.ok) {
+          const err = await continueRes.json().catch(() => ({}));
+          throw new Error(err.error || `Pipeline hatasi (${continueRes.status})`);
         }
-        throw new Error(errorMessage);
+
+        result = await continueRes.json();
+
+        if (result.researchFindings) {
+          researchFindings = result.researchFindings;
+          setAnalysisPhase('analyzing');
+        }
       }
 
-      let data;
-      try {
-        data = await response.json();
-      } catch {
-        throw new Error('Sunucu gecerli bir yanit dondurmedi. Lutfen tekrar deneyin.');
+      if (result.status === 'completed' && result.analysis) {
+        const aiAnalysis = { ...result.analysis, analyzedAt: new Date() };
+        await updateBrandLead(lead.id, { aiAnalysis }, user.uid, user.displayName || 'Unknown');
+        const updatedLead = await getBrandLead(lead.id);
+        setLead(updatedLead);
+        setActiveTab('ai');
+      } else {
+        throw new Error(result.error || 'Pipeline tamamlanamadi');
       }
-
-      const aiAnalysis = {
-        ...data.analysis,
-        analyzedAt: new Date(),
-      };
-
-      await updateBrandLead(
-        lead.id,
-        { aiAnalysis },
-        user.uid,
-        user.displayName || 'Unknown'
-      );
-
-      const updatedLead = await getBrandLead(lead.id);
-      setLead(updatedLead);
-      setActiveTab('ai');
     } catch (error: any) {
       console.error('AI analysis error:', error);
       setAnalyzeError(error.message || 'Bir hata olustu');
@@ -590,7 +637,7 @@ const LeadDetailPage: React.FC = () => {
             {activeTab === 'ai' && (
               <div>
                 {analyzing ? (
-                  <AnalysisProgressIndicator />
+                  <AnalysisProgressIndicator phase={analysisPhase} />
                 ) : lead.aiAnalysis ? (
                   <div className="space-y-8">
                     {/* Pipeline Metadata Badge */}

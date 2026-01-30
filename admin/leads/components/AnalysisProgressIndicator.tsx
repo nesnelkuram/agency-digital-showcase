@@ -1,28 +1,40 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Loader2, CheckCircle2, Database, Search, Compass, Swords, Layers } from 'lucide-react';
+
+export type AnalysisPhase = 'normalizing' | 'researching' | 'analyzing' | 'completed';
 
 interface ProgressStep {
   id: string;
   label: string;
   icon: React.ReactNode;
-  estimatedDuration: number; // seconds
+  phase: AnalysisPhase; // which phase activates this step
 }
 
 const STEPS: ProgressStep[] = [
-  { id: 'dataNormalizer', label: 'Veri Normalizasyonu', icon: <Database className="w-4 h-4" />, estimatedDuration: 5 },
-  { id: 'sectorResearch', label: 'Sektor Arastirmasi', icon: <Search className="w-4 h-4" />, estimatedDuration: 12 },
-  { id: 'brandStrategist', label: 'Marka Stratejisi', icon: <Compass className="w-4 h-4" />, estimatedDuration: 12 },
-  { id: 'brandChallenger', label: 'Strateji Tartismasi', icon: <Swords className="w-4 h-4" />, estimatedDuration: 12 },
-  { id: 'strategySynthesizer', label: 'Sentez & Rapor', icon: <Layers className="w-4 h-4" />, estimatedDuration: 14 },
+  { id: 'dataNormalizer', label: 'Veri Normalizasyonu', icon: <Database className="w-4 h-4" />, phase: 'normalizing' },
+  { id: 'sectorResearch', label: 'Derin Web Arastirmasi', icon: <Search className="w-4 h-4" />, phase: 'researching' },
+  { id: 'brandStrategist', label: 'Marka Stratejisi', icon: <Compass className="w-4 h-4" />, phase: 'analyzing' },
+  { id: 'brandChallenger', label: 'Strateji Tartismasi', icon: <Swords className="w-4 h-4" />, phase: 'analyzing' },
+  { id: 'strategySynthesizer', label: 'Sentez & Rapor', icon: <Layers className="w-4 h-4" />, phase: 'analyzing' },
 ];
 
+// Map phase to the step index that is "active"
+const PHASE_TO_STEP: Record<AnalysisPhase, number> = {
+  normalizing: 0,
+  researching: 1,
+  analyzing: 2, // steps 2-4 animate with elapsed time
+  completed: 5,
+};
+
 interface Props {
+  phase?: AnalysisPhase;
   isLite?: boolean;
 }
 
-const AnalysisProgressIndicator: React.FC<Props> = ({ isLite = false }) => {
+const AnalysisProgressIndicator: React.FC<Props> = ({ phase = 'normalizing', isLite = false }) => {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [phaseStartTime, setPhaseStartTime] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -31,27 +43,42 @@ const AnalysisProgressIndicator: React.FC<Props> = ({ isLite = false }) => {
     return () => clearInterval(interval);
   }, []);
 
-  // Filter steps for lite mode
+  // Track when phase changes to calculate per-phase elapsed time
+  useEffect(() => {
+    setPhaseStartTime(elapsedSeconds);
+  }, [phase]);
+
   const activeSteps = isLite
     ? STEPS.filter((s) => s.id !== 'sectorResearch' && s.id !== 'brandChallenger')
     : STEPS;
 
-  // Calculate which step is "active" based on elapsed time
-  let cumulativeTime = 0;
-  let activeStepIndex = 0;
-  for (let i = 0; i < activeSteps.length; i++) {
-    cumulativeTime += activeSteps[i].estimatedDuration;
-    if (elapsedSeconds < cumulativeTime) {
-      activeStepIndex = i;
-      break;
-    }
-    if (i === activeSteps.length - 1) {
-      activeStepIndex = i;
-    }
+  // Calculate active step based on phase
+  const baseStepIndex = PHASE_TO_STEP[phase] ?? 0;
+
+  // For 'analyzing' phase, advance through steps 2-4 based on elapsed time
+  let activeStepIndex = baseStepIndex;
+  if (phase === 'analyzing') {
+    const phaseElapsed = elapsedSeconds - phaseStartTime;
+    // Strategist: 0-50s, Challenger: 50-77s, Synthesizer: 77s+
+    if (phaseElapsed > 77) activeStepIndex = 4;
+    else if (phaseElapsed > 50) activeStepIndex = 3;
+    else activeStepIndex = 2;
   }
 
-  const totalEstimated = activeSteps.reduce((sum, s) => sum + s.estimatedDuration, 0);
-  const progress = Math.min((elapsedSeconds / totalEstimated) * 100, 95);
+  // Clamp to valid range
+  activeStepIndex = Math.min(activeStepIndex, activeSteps.length - 1);
+
+  // Progress calculation
+  const progress = phase === 'completed'
+    ? 100
+    : Math.min(((activeStepIndex + 0.5) / activeSteps.length) * 100, 95);
+
+  const phaseMessages: Record<AnalysisPhase, string> = {
+    normalizing: 'Veriler hazirlaniyor...',
+    researching: 'Derin web arastirmasi devam ediyor. Bu islem 2-5 dakika surebilir.',
+    analyzing: '5 uzman agent marka stratejinizi olusturuyor.',
+    completed: 'Analiz tamamlandi!',
+  };
 
   return (
     <div className="text-center py-12">
@@ -60,7 +87,7 @@ const AnalysisProgressIndicator: React.FC<Props> = ({ isLite = false }) => {
         Multi-Agent Analiz Yapiliyor...
       </h3>
       <p className="font-grotesk text-sm text-neutral-500 mb-8">
-        5 uzman agent marka stratejinizi olusturuyor. Bu islem 30-50 saniye surebilir.
+        {phaseMessages[phase]}
       </p>
 
       {/* Progress bar */}
@@ -74,7 +101,7 @@ const AnalysisProgressIndicator: React.FC<Props> = ({ isLite = false }) => {
           />
         </div>
         <p className="font-grotesk text-xs text-neutral-400 mt-2">
-          {Math.round(progress)}% • {elapsedSeconds}s
+          {Math.round(progress)}% &bull; {elapsedSeconds}s
         </p>
       </div>
 
@@ -83,7 +110,6 @@ const AnalysisProgressIndicator: React.FC<Props> = ({ isLite = false }) => {
         {activeSteps.map((step, i) => {
           const isCompleted = i < activeStepIndex;
           const isActive = i === activeStepIndex;
-          const isPending = i > activeStepIndex;
 
           return (
             <motion.div
@@ -115,9 +141,9 @@ const AnalysisProgressIndicator: React.FC<Props> = ({ isLite = false }) => {
               }`}>
                 {step.label}
               </span>
-              {isActive && (
+              {isActive && step.id === 'sectorResearch' && (
                 <span className="ml-auto font-grotesk text-xs text-purple-400">
-                  ~{step.estimatedDuration}s
+                  {elapsedSeconds - phaseStartTime}s
                 </span>
               )}
             </motion.div>

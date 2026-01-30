@@ -5,6 +5,17 @@ import { runBrandStrategist } from './agents/brandStrategist';
 import { runBrandChallenger } from './agents/brandChallenger';
 import { runStrategySynthesizer } from './agents/strategySynthesizer';
 
+// Re-exports for async pipeline endpoints
+export { runDataNormalizer } from './agents/dataNormalizer';
+export { runSectorResearch } from './agents/sectorResearch';
+export type { SectorResearchOptions } from './agents/sectorResearch';
+export { runBrandStrategist } from './agents/brandStrategist';
+export { runBrandChallenger } from './agents/brandChallenger';
+export { runStrategySynthesizer } from './agents/strategySynthesizer';
+export { startDeepResearch } from './geminiClient';
+export { buildDeepResearchPrompt } from './agents/sectorResearch';
+export type { PipelineInput, NormalizedData, ResearchFindings, StrategistOutput, ChallengerOutput, SynthesizedAnalysis } from './types';
+
 const TIMEOUT_BUDGET = 290_000; // 290s (10s safety margin from 300s Vercel limit)
 
 async function runAgent<T>(

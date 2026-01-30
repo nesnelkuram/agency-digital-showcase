@@ -99,34 +99,36 @@ export interface DeepResearchResult {
 const DEEP_RESEARCH_AGENT = 'deep-research-pro-preview-12-2025';
 const POLL_INTERVAL_MS = 10_000; // 10s between polls
 
-export async function runDeepResearch(
-  prompt: string,
-  timeoutMs: number = 140_000,
-): Promise<DeepResearchResult> {
+// --- Start DR interaction (no polling) ---
+export async function startDeepResearch(prompt: string): Promise<string | null> {
   const client = getClient();
-
-  // Start background research (fail fast if API unavailable)
-  let interactionId: string;
   try {
     const interaction = await client.interactions.create({
       agent: DEEP_RESEARCH_AGENT,
       input: prompt,
       background: true,
     });
-    interactionId = interaction.id;
-    if (!interactionId) {
+    const id = interaction.id;
+    if (!id) {
       console.log('DeepResearch: No interaction ID returned');
-      return { text: '', status: 'failed' };
+      return null;
     }
-    console.log(`DeepResearch: Interaction created — ${interactionId}`);
+    console.log(`DeepResearch: Interaction created — ${id}`);
+    return id;
   } catch (createError: any) {
     console.error(`DeepResearch: create() failed — ${createError.message}`);
-    return { text: '', status: 'failed' };
+    return null;
   }
+}
 
+// --- Poll an existing DR interaction ---
+export async function pollDeepResearch(
+  interactionId: string,
+  timeoutMs: number = 240_000,
+): Promise<DeepResearchResult> {
+  const client = getClient();
   const deadline = Date.now() + timeoutMs;
 
-  // Poll for completion
   while (Date.now() < deadline) {
     await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS));
 
@@ -136,7 +138,6 @@ export async function runDeepResearch(
       console.log(`DeepResearch: poll status=${status}`);
 
       if (status === 'completed') {
-        // Extract text from outputs (TextContent objects have { type: 'text', text: '...' })
         const outputs: any[] = result.outputs || [];
         const textParts = outputs
           .filter((o: any) => o.type === 'text' && o.text)
@@ -150,19 +151,29 @@ export async function runDeepResearch(
         console.log(`DeepResearch: ended with status=${status}`);
         return { text: '', status: 'failed' };
       }
-      // status === 'in_progress' or 'requires_action' → keep polling
     } catch (pollError: any) {
       console.error(`DeepResearch: poll error — ${pollError.message}`);
       return { text: '', status: 'failed' };
     }
   }
 
-  // Timeout — try to cancel the background interaction
   console.log(`DeepResearch: timeout after ${timeoutMs}ms`);
   try {
     await client.interactions.cancel(interactionId);
   } catch { /* ignore cancel errors */ }
   return { text: '', status: 'timeout' };
+}
+
+// --- Combined: start + poll (for backward compat / sync pipeline) ---
+export async function runDeepResearch(
+  prompt: string,
+  timeoutMs: number = 120_000,
+): Promise<DeepResearchResult> {
+  const interactionId = await startDeepResearch(prompt);
+  if (!interactionId) {
+    return { text: '', status: 'failed' };
+  }
+  return pollDeepResearch(interactionId, timeoutMs);
 }
 
 export function safeParseJSON<T>(text: string, agentName: string): T {

@@ -1,5 +1,10 @@
-import { runDeepResearch, generateGroundedText, generateJSON } from '../geminiClient';
+import { runDeepResearch, pollDeepResearch, startDeepResearch, generateGroundedText, generateJSON } from '../geminiClient';
 import type { PipelineInput, ResearchFindings } from '../types';
+
+export interface SectorResearchOptions {
+  drInteractionId?: string;  // pre-started DR interaction to poll
+  drTimeout?: number;        // DR poll timeout (default 240s)
+}
 
 const EMPTY_RESEARCH: ResearchFindings = {
   competitors: [],
@@ -26,7 +31,7 @@ const EMPTY_RESEARCH: ResearchFindings = {
 };
 
 // --- Deep Research prompt: product-level investigation ---
-function buildDeepResearchPrompt(businessName: string, sector: string): string {
+export function buildDeepResearchPrompt(businessName: string, sector: string): string {
   return `Sen bir sektor arastirmacisisin. Asagidaki marka hakkinda KAPSAMLI ve URUN BAZLI bir arastirma yap.
 
 Marka: ${businessName}
@@ -108,9 +113,13 @@ async function runGroundingFallback(businessName: string, sector: string) {
 }
 
 // --- Main research function ---
-export async function runSectorResearch(input: PipelineInput): Promise<ResearchFindings> {
+export async function runSectorResearch(
+  input: PipelineInput,
+  options?: SectorResearchOptions,
+): Promise<ResearchFindings> {
   const { contact, sector } = input;
   const businessName = contact.businessName;
+  const drTimeout = options?.drTimeout ?? 240_000;
 
   let researchText = '';
   let allSourceUrls: Array<{ title: string; url: string }> = [];
@@ -120,18 +129,33 @@ export async function runSectorResearch(input: PipelineInput): Promise<ResearchF
 
   // Primary: Deep Research
   try {
-    console.log('SectorResearch: Starting Deep Research...');
-    const drResult = await runDeepResearch(
-      buildDeepResearchPrompt(businessName, sector),
-      120_000, // 120s budget (reduced from 140s to leave room for Pro extraction)
-    );
+    if (options?.drInteractionId) {
+      // Pre-started DR — just poll
+      console.log(`SectorResearch: Polling pre-started DR (${options.drInteractionId}), timeout=${drTimeout}ms`);
+      const drResult = await pollDeepResearch(options.drInteractionId, drTimeout);
 
-    if (drResult.status === 'completed' && drResult.text.length > 200) {
-      researchText = drResult.text;
-      researchMethod = 'deep-research';
-      console.log(`SectorResearch: Deep Research completed (${researchText.length} chars)`);
+      if (drResult.status === 'completed' && drResult.text.length > 200) {
+        researchText = drResult.text;
+        researchMethod = 'deep-research';
+        console.log(`SectorResearch: Deep Research completed (${researchText.length} chars)`);
+      } else {
+        console.log(`SectorResearch: Deep Research ${drResult.status}, falling back to grounding...`);
+      }
     } else {
-      console.log(`SectorResearch: Deep Research ${drResult.status}, falling back to grounding...`);
+      // Start + poll DR (sync pipeline path)
+      console.log('SectorResearch: Starting Deep Research...');
+      const drResult = await runDeepResearch(
+        buildDeepResearchPrompt(businessName, sector),
+        drTimeout,
+      );
+
+      if (drResult.status === 'completed' && drResult.text.length > 200) {
+        researchText = drResult.text;
+        researchMethod = 'deep-research';
+        console.log(`SectorResearch: Deep Research completed (${researchText.length} chars)`);
+      } else {
+        console.log(`SectorResearch: Deep Research ${drResult.status}, falling back to grounding...`);
+      }
     }
   } catch (error) {
     console.error('SectorResearch: Deep Research failed:', error);
