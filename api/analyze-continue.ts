@@ -48,13 +48,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (!researchFindings) {
       const researchStart = Date.now();
-      const drTimeout = Math.min(240_000, remaining() - 50_000); // leave 50s for extraction
+      const drTimeout = Math.min(180_000, remaining() - 80_000); // leave 80s for grounding fallback + extraction
 
       try {
         console.log(`analyze-continue: Running sectorResearch (drInteractionId=${drInteractionId || 'none'}, timeout=${drTimeout}ms)`);
         researchFindings = await runSectorResearch(input, {
           drInteractionId: drInteractionId || undefined,
           drTimeout: Math.max(drTimeout, 30_000), // at least 30s
+          startTimeMs: startTime,
+          budgetMs: BUDGET_MS,
         });
         timings.sectorResearch = Date.now() - researchStart;
         agentsRun.push('sectorResearch');

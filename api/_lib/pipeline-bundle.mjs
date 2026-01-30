@@ -88,7 +88,10 @@ async function pollDeepResearch(interactionId, timeoutMs = 24e4) {
   const client = getClient();
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
-    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+    const waitMs = Math.min(POLL_INTERVAL_MS, deadline - Date.now());
+    if (waitMs <= 0) break;
+    await new Promise((resolve) => setTimeout(resolve, waitMs));
+    if (Date.now() >= deadline) break;
     try {
       const result = await client.interactions.get(interactionId);
       const status = result.status;
@@ -508,6 +511,11 @@ async function runSectorResearch(input, options) {
     console.error("SectorResearch: Deep Research failed:", error);
   }
   if (!researchText) {
+    const callerRemaining = options?.startTimeMs && options?.budgetMs ? options.budgetMs - (Date.now() - options.startTimeMs) : Infinity;
+    if (callerRemaining < 7e4) {
+      console.log(`SectorResearch: Skipping grounding fallback \u2014 only ${Math.round(callerRemaining / 1e3)}s remaining (need 70s)`);
+      return { ...EMPTY_RESEARCH, searchQueries: [`${businessName} ${sector} Turkiye`], sourcesUsed: 0 };
+    }
     try {
       console.log("SectorResearch: Running grounding fallback...");
       const fb = await runGroundingFallback(businessName, sector);

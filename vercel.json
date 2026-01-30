@@ -2,6 +2,15 @@
   "functions": {
     "api/analyze-brand-multi.ts": {
       "includeFiles": "src/pipeline/**"
+    },
+    "api/analyze-start.ts": {
+      "maxDuration": 60
+    },
+    "api/analyze-continue.ts": {
+      "maxDuration": 300
+    },
+    "api/transcribe-video.ts": {
+      "maxDuration": 120
     }
   },
   "headers": [

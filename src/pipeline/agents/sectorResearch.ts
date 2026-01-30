@@ -4,6 +4,8 @@ import type { PipelineInput, ResearchFindings } from '../types';
 export interface SectorResearchOptions {
   drInteractionId?: string;  // pre-started DR interaction to poll
   drTimeout?: number;        // DR poll timeout (default 240s)
+  startTimeMs?: number;      // caller start time for budget tracking
+  budgetMs?: number;         // total caller budget (e.g. 290_000)
 }
 
 const EMPTY_RESEARCH: ResearchFindings = {
@@ -163,6 +165,16 @@ export async function runSectorResearch(
 
   // Fallback: Grounding (if Deep Research didn't work)
   if (!researchText) {
+    // Check if we have enough time for grounding (needs ~40s) + extraction (~30s)
+    const callerRemaining = options?.startTimeMs && options?.budgetMs
+      ? options.budgetMs - (Date.now() - options.startTimeMs)
+      : Infinity;
+
+    if (callerRemaining < 70_000) {
+      console.log(`SectorResearch: Skipping grounding fallback — only ${Math.round(callerRemaining / 1000)}s remaining (need 70s)`);
+      return { ...EMPTY_RESEARCH, searchQueries: [`${businessName} ${sector} Turkiye`], sourcesUsed: 0 };
+    }
+
     try {
       console.log('SectorResearch: Running grounding fallback...');
       const fb = await runGroundingFallback(businessName, sector);

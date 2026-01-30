@@ -130,7 +130,12 @@ export async function pollDeepResearch(
   const deadline = Date.now() + timeoutMs;
 
   while (Date.now() < deadline) {
-    await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS));
+    // Wait, but check deadline before and after to prevent overshoot
+    const waitMs = Math.min(POLL_INTERVAL_MS, deadline - Date.now());
+    if (waitMs <= 0) break;
+    await new Promise(resolve => setTimeout(resolve, waitMs));
+
+    if (Date.now() >= deadline) break;
 
     try {
       const result = await client.interactions.get(interactionId);
