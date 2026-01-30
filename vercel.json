@@ -1,4 +1,9 @@
 {
+  "functions": {
+    "api/analyze-brand-multi.ts": {
+      "includeFiles": "src/pipeline/**"
+    }
+  },
   "headers": [
     {
       "source": "/fonts/(.*)",

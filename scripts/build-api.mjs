@@ -1,18 +1,20 @@
 import { build } from 'esbuild';
+import { mkdirSync } from 'fs';
+
+mkdirSync('api/_lib', { recursive: true });
 
 await build({
-  entryPoints: ['src/pipeline/endpoint.ts'],
+  entryPoints: ['src/pipeline/pipeline.ts'],
   bundle: true,
   platform: 'node',
   target: 'node18',
   format: 'esm',
-  outfile: 'api/analyze-brand-multi.js',
+  outfile: 'api/_lib/pipeline-bundle.mjs',
   external: ['@vercel/node', '@google/genai'],
-  banner: { js: '// @vercel-bundled' },
   minify: false,
   sourcemap: false,
   mainFields: ['module', 'main'],
   conditions: ['import', 'module', 'default'],
 });
 
-console.log('Built api/analyze-brand-multi.js');
+console.log('Built api/_lib/pipeline-bundle.mjs');

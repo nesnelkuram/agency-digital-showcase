@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { runPipeline } from '../src/pipeline/pipeline';
-import type { PipelineInput } from '../src/pipeline/types';
+// @ts-ignore — pre-bundled by esbuild during vercel-build
+import { runPipeline } from './_lib/pipeline-bundle.mjs';
 
 export const config = {
   maxDuration: 60,
@@ -24,7 +24,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Missing required fields: contact, sector, wizard' });
     }
 
-    const input: PipelineInput = {
+    const input = {
       contact: {
         name: contact.name || '',
         businessName: contact.businessName || '',
