@@ -2,6 +2,14 @@ import { GoogleGenAI } from '@google/genai';
 
 export type ModelTier = 'flash' | 'pro';
 
+export interface GroundedResponse {
+  text: string;
+  groundingMetadata: {
+    webSearchQueries: string[];
+    groundingChunks: Array<{ web?: { uri?: string; title?: string } }>;
+  } | null;
+}
+
 const MODEL_IDS: Record<ModelTier, string> = {
   flash: 'gemini-2.0-flash',
   pro: 'gemini-3-pro-preview',
@@ -42,6 +50,43 @@ export async function generateJSON<T>(
     throw new Error(`Agent "${agentName}" returned empty response from Gemini API`);
   }
   return safeParseJSON<T>(text, agentName);
+}
+
+export async function generateGroundedText(
+  prompt: string,
+  agentName: string,
+  config?: { temperature?: number; maxOutputTokens?: number }
+): Promise<GroundedResponse> {
+  const client = getClient();
+  const result = await client.models.generateContent({
+    model: MODEL_IDS.flash,
+    contents: prompt,
+    config: {
+      temperature: config?.temperature ?? 0.4,
+      topP: 0.9,
+      maxOutputTokens: config?.maxOutputTokens ?? 8192,
+      thinkingConfig: { thinkingBudget: 0 },
+      tools: [{ googleSearch: {} }],
+    },
+  });
+
+  const text = result.text ?? '';
+  if (!text) {
+    throw new Error(`Agent "${agentName}" returned empty grounded response`);
+  }
+
+  const candidate = (result as any).candidates?.[0];
+  const gm = candidate?.groundingMetadata ?? null;
+
+  return {
+    text,
+    groundingMetadata: gm ? {
+      webSearchQueries: gm.webSearchQueries ?? [],
+      groundingChunks: (gm.groundingChunks ?? []).map((chunk: any) => ({
+        web: chunk.web ? { uri: chunk.web.uri, title: chunk.web.title } : undefined,
+      })),
+    } : null,
+  };
 }
 
 export function safeParseJSON<T>(text: string, agentName: string): T {

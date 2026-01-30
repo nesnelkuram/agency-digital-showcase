@@ -185,8 +185,10 @@ export interface AIAnalysis {
   positioning?: {
     statement: string;
     targetAudience: string;
+    targetPersonas?: Array<{ name: string; profile: string; keyNeed: string }>;
     differentiator: string;
     competitiveAdvantage: string;
+    competitiveLandscape?: string;
     alternativePositions?: string[];
   };
 
@@ -194,14 +196,47 @@ export interface AIAnalysis {
   sectorResearch?: {
     competitors: Array<{
       name: string;
+      website?: string;
       positioning: string;
       strengths: string[];
       weaknesses: string[];
+      estimatedScale?: string;
+      socialPresence?: string;
+      sourceSnippet?: string;
     }>;
+    marketData?: {
+      marketSize: string;
+      growthRate: string;
+      keyPlayers: string[];
+      consumerTrends: string[];
+      regulatoryFactors: string[];
+    };
+    targetAudienceInsights?: {
+      demographics: string;
+      psychographics: string;
+      painPoints: string[];
+      purchaseBehavior: string;
+    };
     marketTrends: string[];
     sectorBenchmarks: string[];
     searchQueries: string[];
     sourcesUsed: number;
+    sourceUrls?: Array<{ title: string; url: string }>;
+  };
+
+  // 90 günlük eylem planı (multi-agent v2)
+  actionPlan?: {
+    immediate: Array<{ action: string; owner: string; metric: string; estimatedImpact: string }>;
+    shortTerm: Array<{ action: string; owner: string; metric: string; estimatedImpact: string }>;
+    mediumTerm: Array<{ action: string; owner: string; metric: string; estimatedImpact: string }>;
+  };
+
+  // Kanıt özeti (multi-agent v2)
+  evidenceSummary?: {
+    sourcesConsulted: number;
+    keySourceUrls: Array<{ title: string; url: string }>;
+    dataFreshness: string;
+    confidenceLevel: string;
   };
 
   // Strateji tartışma kaydı (multi-agent)

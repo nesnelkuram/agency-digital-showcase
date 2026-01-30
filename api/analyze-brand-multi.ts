@@ -54,12 +54,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       sectorResearch: state.researchFindings
         ? {
             competitors: state.researchFindings.competitors,
-            marketTrends: state.researchFindings.marketTrends,
+            marketData: state.researchFindings.marketData,
+            targetAudienceInsights: state.researchFindings.targetAudienceInsights,
+            marketTrends: state.researchFindings.marketData?.consumerTrends || [],
             sectorBenchmarks: state.researchFindings.sectorBenchmarks,
             searchQueries: state.researchFindings.searchQueries,
             sourcesUsed: state.researchFindings.sourcesUsed,
+            sourceUrls: state.researchFindings.sourceUrls,
           }
         : undefined,
+
+      actionPlan: synthesized.actionPlan,
+      evidenceSummary: synthesized.evidenceSummary,
 
       debate: state.strategistOutput
         ? {
@@ -83,7 +89,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         : undefined,
 
       pipelineMetadata: {
-        version: '1.0.0',
+        version: '2.0.0',
         agentsRun: Object.keys(state.timings).filter((k) => k !== 'total'),
         totalDuration: state.timings.total || 0,
         agentDurations: Object.fromEntries(

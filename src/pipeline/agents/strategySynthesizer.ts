@@ -8,6 +8,12 @@ export async function runStrategySynthesizer(
   challengerOutput: ChallengerOutput | null
 ): Promise<SynthesizedAnalysis> {
 
+  // Format target audience from strategist
+  const taPersona = strategistOutput.targetAudience;
+  const targetAudienceSummary = typeof taPersona === 'string'
+    ? taPersona
+    : `Birincil: ${taPersona.primaryPersona?.name || 'N/A'} (${taPersona.primaryPersona?.demographics || ''})\nIkincil: ${taPersona.secondaryPersona?.name || 'N/A'} (${taPersona.secondaryPersona?.demographics || ''})`;
+
   // Build strategist summary
   const strategistSummary = `
 ### Strateji Uzmani Onerisi
@@ -17,9 +23,18 @@ export async function runStrategySynthesizer(
 - Iletisim Tonu: ${strategistOutput.tone}
 - Marka Sesi: ${strategistOutput.voice}
 - Konumlandirma: ${strategistOutput.positioningStatement}
-- Hedef Kitle: ${strategistOutput.targetAudience}
+- Hedef Kitle: ${targetAudienceSummary}
 - Farklilik: ${strategistOutput.differentiator}
 - Rekabet Avantaji: ${strategistOutput.competitiveAdvantage}`;
+
+  // Build competitive map summary
+  let competitiveMapSummary = '';
+  if (strategistOutput.competitiveMap && strategistOutput.competitiveMap.length > 0) {
+    competitiveMapSummary = `\n\n### Rekabet Haritasi\n` +
+      strategistOutput.competitiveMap.map((cm) =>
+        `- vs ${cm.competitorName}: Avantajimiz: ${cm.ourAdvantage} | Dezavantajimiz: ${cm.ourWeakness}`
+      ).join('\n');
+  }
 
   // Build challenger summary (if available)
   let challengerSummary = '';
@@ -39,23 +54,42 @@ ${challengerOutput.alternativePositionings.map((p) => `  - ${p}`).join('\n')}
 ${challengerOutput.blindSpots.map((b) => `  - ${b}`).join('\n')}`;
   }
 
-  // Build research context (if available)
+  // Build rich research context (if available)
   let researchContext = '';
-  if (researchFindings && researchFindings.sourcesUsed > 0) {
-    const competitorNames = researchFindings.competitors.map((c) => c.name).join(', ');
+  let sourceUrlsList = '';
+  const hasResearch = researchFindings && researchFindings.sourcesUsed > 0;
+  if (hasResearch) {
+    const competitorNames = researchFindings.competitors.map((c) => `${c.name}${c.website ? ` (${c.website})` : ''}`).join(', ');
+    const marketInfo = researchFindings.marketData;
+    const audience = researchFindings.targetAudienceInsights;
+
     researchContext = `
 
-## Sektor Arastirmasi Ozeti
+## Sektor Arastirmasi Verileri (Gercek Web Kaynaklari)
 - Rakipler: ${competitorNames || 'Bilgi yok'}
-- Pazar Trendleri: ${researchFindings.marketTrends.slice(0, 3).join('; ') || 'Bilgi yok'}
+- Pazar Buyuklugu: ${marketInfo.marketSize}
+- Buyume Hizi: ${marketInfo.growthRate}
+- Tuketici Trendleri: ${marketInfo.consumerTrends.slice(0, 3).join('; ') || 'Bilgi yok'}
+- Hedef Kitle Demografisi: ${audience.demographics}
+- Hedef Kitle Ihtiyaclari: ${audience.painPoints.join('; ') || 'Bilgi yok'}
 - Firsatlar: ${researchFindings.opportunities.slice(0, 3).join('; ') || 'Bilgi yok'}
 - Tehditler: ${researchFindings.threats.slice(0, 3).join('; ') || 'Bilgi yok'}
-- Sektor Standartlari: ${researchFindings.sectorBenchmarks.slice(0, 3).join('; ') || 'Bilgi yok'}`;
+- Sektor Standartlari: ${researchFindings.sectorBenchmarks.slice(0, 3).join('; ') || 'Bilgi yok'}
+- Kullanilan Kaynak Sayisi: ${researchFindings.sourcesUsed}`;
+
+    if (researchFindings.sourceUrls && researchFindings.sourceUrls.length > 0) {
+      sourceUrlsList = researchFindings.sourceUrls
+        .slice(0, 10)
+        .map((s) => `  - ${s.title}: ${s.url}`)
+        .join('\n');
+    }
   }
 
   const debateInstruction = challengerOutput
     ? 'Iki farkli uzmanin goruslerini inceleyip en iyi stratejiyi sentezlemen gerekiyor. Strateji uzmaninin onerisiyle seytan avukatinin elestirisini dengeleyerek, en guclu ve tutarli sonucu olustur.'
     : 'Strateji uzmaninin onerisini inceleyip, rafine ederek nihai stratejiyi olusturman gerekiyor. Karsi-analiz mevcut olmadigindan, kendi elestirel gozunle stratejiyi guclendirerek sentezle.';
+
+  const sourceCount = researchFindings?.sourcesUsed || 0;
 
   const prompt = `Sen bir marka stratejisi basparlak direktorsun (CSO). ${debateInstruction}
 
@@ -68,8 +102,11 @@ ${challengerOutput.blindSpots.map((b) => `  - ${b}`).join('\n')}`;
 
 ## Uzman Gorusleri
 ${strategistSummary}
+${competitiveMapSummary}
 ${challengerSummary}
 ${researchContext}
+
+${sourceUrlsList ? `## Arastirma Kaynaklari\n${sourceUrlsList}` : ''}
 
 ---
 
@@ -77,53 +114,113 @@ Tum verileri sentezleyerek asagidaki JSON yapisinda NIHAI marka stratejisi rapor
 
 {
   "brandPersonality": {
-    "archetype": "Nihai Jung arktipi secimi (Turkce). Strateji uzmani ve seytan avukatinin goruslerini degerlendirerek en uygun arktipi sec.",
-    "traits": ["Markanin 3-5 temel kisilik ozelligi. Her biri somut ve sektore ozgu olmali."],
-    "tone": "Markanin nihai iletisim tonu",
-    "voice": "Markanin nihai sesi"
+    "archetype": "Nihai Jung arktipi secimi (Turkce).",
+    "traits": ["Markanin 3-5 temel kisilik ozelligi. SEKTORE OZGU, somut ozellikler."],
+    "tone": "Markanin nihai iletisim tonu — ORNEK CUMLE ile",
+    "voice": "Markanin nihai sesi — ORNEK CUMLE ile"
   },
   "positioning": {
-    "statement": "Nihai konumlandirma cumlesi. Net, akilda kalici ve farklilik yaratan bir ifade. (1-2 cumle)",
-    "targetAudience": "Hedef kitle tanimi. Demografik ve psikografik ozellikleri icerir. (2-3 cumle)",
-    "differentiator": "Markayi rakiplerinden ayiran temel fark. (1-2 cumle)",
-    "competitiveAdvantage": "Markanin rekabet avantaji. (1-2 cumle)",
-    "alternativePositions": ["2-3 adet alternatif konumlandirma onerisi. Ana konumlandirma basarisiz olursa B ve C plani olarak kullanilabilir."]
+    "statement": "Nihai konumlandirma cumlesi. SOMUT, akilda kalici, OLCULEBILIR. (1-2 cumle)",
+    "targetAudience": "Hedef kitle ozet tanimi. (2-3 cumle)",
+    "targetPersonas": [
+      { "name": "Persona ismi (yas, sehir)", "profile": "3-4 cumlelik detayli profil", "keyNeed": "Bu kisinin en acil ihtiyaci" },
+      { "name": "Ikinci persona", "profile": "...", "keyNeed": "..." }
+    ],
+    "differentiator": "Temel fark. (1-2 cumle)",
+    "competitiveAdvantage": "Rekabet avantaji. (1-2 cumle)",
+    "competitiveLandscape": "Pazarin genel haritasi: Premium segmentte kimler var, orta segmentte kimler var, ${normalizedData.businessName} nereye konumlanmali ve NEDEN. (2-3 cumle)",
+    "alternativePositions": ["2-3 alternatif konumlandirma — B ve C plani"]
   },
   "visualWorld": {
-    "moodKeywords": ["5-7 adet gorsel dunya anahtar kelimesi. Markanin gorsel kimligini tanimlayan kavramlar."],
+    "moodKeywords": ["5-7 gorsel dunya anahtar kelimesi"],
     "colorPalette": [
-      { "hex": "#hexkod", "name": "Renk adi (Turkce)", "usage": "Kullanim alani (primary/secondary/accent/neutral)" },
+      { "hex": "#hexkod", "name": "Renk adi (Turkce)", "usage": "primary" },
       { "hex": "#hexkod", "name": "Renk adi", "usage": "secondary" },
       { "hex": "#hexkod", "name": "Renk adi", "usage": "accent" },
       { "hex": "#hexkod", "name": "Renk adi", "usage": "neutral" }
     ],
-    "typographyStyle": "Tipografi stili onerisi. Hangi font aileleri ve stilleri kullanilmali? (1-2 cumle)",
-    "imageryStyle": "Fotograf ve gorsel icerik stili. Nasil gorseller kullanilmali? (1-2 cumle)"
+    "typographyStyle": "Tipografi stili onerisi. (1-2 cumle)",
+    "imageryStyle": "Gorsel icerik stili. (1-2 cumle)"
   },
   "contentStrategy": {
-    "pillars": ["4-6 adet icerik sutunu. Her biri markanin farkli bir yonunu one cikaran tematik alan."],
-    "toneGuidelines": ["3-4 adet ton rehberi kurali. Markanin iletisiminde uyulmasi gereken kurallar."],
-    "keyMessages": ["3-5 adet anahtar mesaj. Markanin surekli iletmesi gereken temel mesajlar."],
-    "hashtags": ["5-8 adet hashtag onerisi. # isareti ile baslayan, Turkce veya sektore uygun etiketler."]
+    "pillars": ["4-6 icerik sutunu"],
+    "toneGuidelines": ["3-4 ton rehberi kurali"],
+    "keyMessages": ["3-5 anahtar mesaj"],
+    "hashtags": ["5-8 hashtag onerisi"]
   },
   "analysis": {
-    "strengths": ["3-4 adet markanin guclu yanlari"],
-    "opportunities": ["3-4 adet markanin degerlendirmesi gereken firsatlar"],
-    "challenges": ["2-3 adet markanin karsilasabilecegi zorluklar"],
-    "recommendations": ["4-6 adet stratejik oneri. Her biri somut, uygulanabilir ve onceliklendirilebilir olmali."]
+    "strengths": ["3-4 guclu yan — SOMUT kanitlarla"],
+    "opportunities": ["3-4 firsat — HANGI rakibin HANGI acigini kullanarak"],
+    "challenges": ["2-3 zorluk — SOMUT pazar kosullari ile"],
+    "recommendations": [
+      "ONERI 1: UYGULANABILIR aksiyon. Ornek: 'Instagram'da haftada 4 post + 2 Reel yayinlanarak organik erisim %30 arttirilabilir. Rakip X bu stratejiyle 6 ayda 50K takipci kazanmis.'",
+      "ONERI 2: ...",
+      "ONERI 3: ...",
+      "ONERI 4: ..."
+    ]
   },
-  "synthesisRationale": "Bu sentezin neden bu sekilde yapildiginin aciklamasi. Strateji uzmani ve seytan avukatinin hangi gorisleri benimsendi, hangileri reddedildi ve neden? Nihai kararlarin arkasindaki mantik. (3-5 cumle)"
+  "actionPlan": {
+    "immediate": [
+      {
+        "action": "Ilk 30 gun icinde yapilacak SOMUT adim. Ornek: 'Instagram isletme hesabi acilmasi, profil optimizasyonu ve ilk 15 icerik planlama'",
+        "owner": "Bu isi yapacak ekip/kisi. Ornek: 'Sosyal medya yoneticisi'",
+        "metric": "Basari olcutu. Ornek: 'Hesap acildi, 15 icerik taslagi hazir, bio optimize edildi'",
+        "estimatedImpact": "Beklenen etki. Ornek: 'Dijital varlik olusturma — temel adim'"
+      },
+      { "action": "...", "owner": "...", "metric": "...", "estimatedImpact": "..." }
+    ],
+    "shortTerm": [
+      {
+        "action": "30-60 gun arasi yapilacak adim",
+        "owner": "...",
+        "metric": "...",
+        "estimatedImpact": "..."
+      }
+    ],
+    "mediumTerm": [
+      {
+        "action": "60-90 gun arasi yapilacak adim",
+        "owner": "...",
+        "metric": "...",
+        "estimatedImpact": "..."
+      }
+    ]
+  },
+  "evidenceSummary": {
+    "sourcesConsulted": ${sourceCount},
+    "keySourceUrls": [${researchFindings?.sourceUrls?.slice(0, 5).map((s) => `{"title": "${s.title.replace(/"/g, '\\"')}", "url": "${s.url}"}`).join(', ') || ''}],
+    "dataFreshness": "Ocak 2025 web arama verileri",
+    "confidenceLevel": "${sourceCount > 5 ? 'Yuksek' : sourceCount > 0 ? 'Orta' : 'Dusuk'} — ${sourceCount} kaynak kullanildi"
+  },
+  "synthesisRationale": "Bu sentezin NEDEN bu sekilde yapildiginin aciklamasi. Hangi uzman gorusleri benimsendi, hangileri reddedildi ve NEDEN? SOMUT referanslarla. (3-5 cumle)"
 }
 
-ONEMLI KURALLAR:
-1. "brandPersonality.archetype" seciminde her iki uzmanin da goruslerini dikkate al. Eger seytan avukatinin alternatif arktipi daha guclu kanit sunuyorsa onu sec, yoksa strateji uzmaninin onerisiyle devam et.
-2. "positioning.alternativePositions" hem strateji uzmaninin hem seytan avukatinin alternatif onerilerini icermeli.
-3. "visualWorld.colorPalette" tam olarak 4 renk icermeli: primary, secondary, accent ve neutral. Renk hex kodlari gercekci ve sektore uygun olmali. Ornegin: FMCG icin dogal tonlar, tech icin modern renkler, saglik icin guven veren tonlar.
-4. "visualWorld.moodKeywords" 5-7 adet olmali. Bu kelimeler markanin gorsel dunysinin rehberi olacak.
-5. "contentStrategy.pillars" 4-6 adet olmali. Her bir sutun farkli bir icerik kategorisini temsil etmeli.
-6. "contentStrategy.hashtags" 5-8 adet olmali ve # isaretiyle baslamali.
-7. "analysis.recommendations" 4-6 adet olmali. Onerilerin oncelik sirasina gore siralanmasi tercih edilir.
-8. "synthesisRationale" sentez kararlarinin arkasindaki mantigi acik ve net bir sekilde ortaya koymali. ${challengerOutput ? 'Her iki uzmanin goruslerini referans gostermeli.' : 'Strateji uzmaninin onerisini nasil rafine ettigini aciklamali.'}
+KRITIK KURALLAR — BU KURALLARA UYMAYAN RAPOR BASARISIZ SAYILIR:
+
+1. ANTI-JARGON: Asagidaki ifadeleri KULLANMA:
+   - "Dijital varlik guclendirilmeli" → YERINE: "Instagram'da haftada 4 post + 2 Reel ile organik erisim %30 arttirilabilir"
+   - "Sinerji olusturulmali" → YERINE: "[Rakip X]'in zayif kaldigi [alan]'da farklilasmak icin [somut adim]"
+   - "Paradigma degisimi", "butunsel yaklasim", "dinamik strateji" → TAMAMEN YASAK
+   - "Kaliteli ve guvenilir" → YERINE: "${normalizedData.businessName}'in [somut ozelligi] sayesinde musteriler [somut fayda] elde eder"
+
+2. UYGULANABILIRLIK: "recommendations" ve "actionPlan" HER maddesi bir proje yoneticisinin HEMEN BASLAYABILECEGI kadar net olmali.
+   - "Marka kimlik calismasi yapilmali" → YERINE: "Logo, renk paleti ve tipografi rehberi iceren marka kimlik kilavuzu hazirlanmali. Icermesi gerekenler: logo varyasyonlari, renk kodlari (CMYK/RGB/HEX), tipografi hiyerarsisi, kullanim kurallari."
+
+3. KANIT ZORUNLULUGU: "analysis" bolumundeki HER madde icin destekleyici veri goster.
+   - "strengths" — hangi wizard cevabi veya veri bunu destekliyor?
+   - "opportunities" — hangi rakibin hangi acigi, hangi pazar trendi?
+   - "challenges" — hangi pazar kosulu, hangi rakip tehdidi?
+
+4. "positioning.competitiveLandscape" ISIMLI RAKIPLERLE pazar haritasi cikaracak.
+
+5. "actionPlan" her fazda EN AZ 2, EN FAZLA 4 aksiyon icermeli. Her aksiyonun "metric" alani OLCULEBILIR olmali.
+
+6. "brandPersonality.archetype" seciminde her iki uzmanin da goruslerini dikkate al.
+
+7. "visualWorld.colorPalette" tam olarak 4 renk icermeli: primary, secondary, accent ve neutral.
+
+8. ${challengerOutput ? 'Her iki uzmanin goruslerini referans goster.' : 'Strateji uzmaninin onerisini nasil rafine ettigini acikla.'}
+
 9. Tum metinler TURKCE olmali.
 10. Sadece JSON don, baska bir sey yazma.`;
 
@@ -133,6 +230,8 @@ ONEMLI KURALLAR:
   });
 
   // Deep validation with fallbacks for all required nested fields
+  const emptyActionItem = { action: '', owner: '', metric: '', estimatedImpact: '' };
+
   return {
     brandPersonality: {
       archetype: parsed.brandPersonality?.archetype || strategistOutput.archetype,
@@ -144,9 +243,15 @@ ONEMLI KURALLAR:
     },
     positioning: {
       statement: parsed.positioning?.statement || strategistOutput.positioningStatement,
-      targetAudience: parsed.positioning?.targetAudience || strategistOutput.targetAudience,
+      targetAudience: parsed.positioning?.targetAudience || (typeof strategistOutput.targetAudience === 'string'
+        ? strategistOutput.targetAudience
+        : `${strategistOutput.targetAudience.primaryPersona?.name || ''} ve benzeri profiller`),
+      targetPersonas: Array.isArray(parsed.positioning?.targetPersonas) && parsed.positioning.targetPersonas.length > 0
+        ? parsed.positioning.targetPersonas
+        : [],
       differentiator: parsed.positioning?.differentiator || strategistOutput.differentiator,
       competitiveAdvantage: parsed.positioning?.competitiveAdvantage || strategistOutput.competitiveAdvantage,
+      competitiveLandscape: parsed.positioning?.competitiveLandscape || '',
       alternativePositions: Array.isArray(parsed.positioning?.alternativePositions) && parsed.positioning.alternativePositions.length > 0
         ? parsed.positioning.alternativePositions
         : (challengerOutput?.alternativePositionings || ['Alternatif konumlandirma belirtilmemistir']),
@@ -172,7 +277,7 @@ ONEMLI KURALLAR:
         : ['Marka Hikayesi', 'Sektor Uzmanligi', 'Musteri Deneyimleri', 'Yenilik ve Trendler'],
       toneGuidelines: Array.isArray(parsed.contentStrategy?.toneGuidelines) && parsed.contentStrategy.toneGuidelines.length >= 3
         ? parsed.contentStrategy.toneGuidelines
-        : ['Samimi ama profesyonel ol', 'Uzman bilgisini anlasilir sekilde paylas', 'Mozusteri odakli mesajlar kullan'],
+        : ['Samimi ama profesyonel ol', 'Uzman bilgisini anlasilir sekilde paylas', 'Musteri odakli mesajlar kullan'],
       keyMessages: Array.isArray(parsed.contentStrategy?.keyMessages) && parsed.contentStrategy.keyMessages.length >= 3
         ? parsed.contentStrategy.keyMessages
         : ['Kalite ve guven odakli mesajlar', 'Fark yaratan ozellikler', 'Musteri basari hikayeleri'],
@@ -194,9 +299,28 @@ ONEMLI KURALLAR:
         ? parsed.analysis.recommendations
         : ['Dijital varlik guclendirilmeli', 'Icerik stratejisi uygulanmali', 'Marka kimlik rehberi olusturulmali', 'Hedef kitle arastirmasi derinlestirilmeli'],
     },
+    actionPlan: {
+      immediate: Array.isArray(parsed.actionPlan?.immediate) && parsed.actionPlan.immediate.length > 0
+        ? parsed.actionPlan.immediate.map((item) => ({ ...emptyActionItem, ...item }))
+        : [],
+      shortTerm: Array.isArray(parsed.actionPlan?.shortTerm) && parsed.actionPlan.shortTerm.length > 0
+        ? parsed.actionPlan.shortTerm.map((item) => ({ ...emptyActionItem, ...item }))
+        : [],
+      mediumTerm: Array.isArray(parsed.actionPlan?.mediumTerm) && parsed.actionPlan.mediumTerm.length > 0
+        ? parsed.actionPlan.mediumTerm.map((item) => ({ ...emptyActionItem, ...item }))
+        : [],
+    },
+    evidenceSummary: {
+      sourcesConsulted: parsed.evidenceSummary?.sourcesConsulted ?? sourceCount,
+      keySourceUrls: Array.isArray(parsed.evidenceSummary?.keySourceUrls)
+        ? parsed.evidenceSummary.keySourceUrls
+        : (researchFindings?.sourceUrls?.slice(0, 5) || []),
+      dataFreshness: parsed.evidenceSummary?.dataFreshness || 'Veri guncellik bilgisi mevcut degil',
+      confidenceLevel: parsed.evidenceSummary?.confidenceLevel || `${sourceCount > 0 ? 'Orta' : 'Dusuk'} — ${sourceCount} kaynak`,
+    },
     synthesisRationale: parsed.synthesisRationale || (challengerOutput
-      ? `Strateji uzmaninin ${strategistOutput.archetype} arketip onerisi ile seytan avukatinin ${challengerOutput.alternativeArchetype} alternatifi degerlendirilmistir. Nihai strateji, her iki bakis acisinin guclu yanlarini birlestirerek olusturulmustur.`
-      : `Strateji uzmaninin ${strategistOutput.archetype} arketip onerisi rafine edilerek nihai strateji olusturulmustur. Karsi-analiz mevcut olmadigindan, mevcut veriler ve sektor bilgisi ile strateji guclendirilmistir.`
+      ? `Strateji uzmaninin ${strategistOutput.archetype} arketip onerisi ile seytan avukatinin ${challengerOutput.alternativeArchetype} alternatifi degerlendirilmistir.`
+      : `Strateji uzmaninin ${strategistOutput.archetype} arketip onerisi rafine edilerek nihai strateji olusturulmustur.`
     ),
   };
 }

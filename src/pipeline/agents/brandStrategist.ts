@@ -16,30 +16,54 @@ export async function runBrandStrategist(
     })
     .join('\n\n');
 
-  // Build research context (if available)
+  // Build rich research context (if available)
   let researchContext = '';
-  if (researchFindings && researchFindings.sourcesUsed > 0) {
+  const hasResearch = researchFindings && researchFindings.sourcesUsed > 0;
+  if (hasResearch) {
     const competitorSummary = researchFindings.competitors
-      .map((c) => `  - ${c.name}: ${c.positioning} | Guclu: ${c.strengths.join(', ')} | Zayif: ${c.weaknesses.join(', ')}`)
+      .map((c) => `  - ${c.name}${c.website ? ` (${c.website})` : ''}: ${c.positioning}
+    Olcek: ${c.estimatedScale || 'Bilinmiyor'} | Sosyal: ${c.socialPresence || 'Bilinmiyor'}
+    Guclu: ${c.strengths.join(', ')} | Zayif: ${c.weaknesses.join(', ')}`)
       .join('\n');
 
+    const marketInfo = researchFindings.marketData;
+    const audience = researchFindings.targetAudienceInsights;
+
     researchContext = `
-## Sektor Arastirmasi Bulgulari
+## Sektor Arastirmasi Bulgulari (Gercek Web Verileri)
+
 ### Rakipler
 ${competitorSummary || 'Rakip bilgisi bulunamadi'}
 
-### Pazar Trendleri
-${researchFindings.marketTrends.map((t) => `- ${t}`).join('\n') || 'Trend bilgisi bulunamadi'}
+### Pazar Verileri
+- Pazar Buyuklugu: ${marketInfo.marketSize}
+- Buyume Hizi: ${marketInfo.growthRate}
+- Anahtar Oyuncular: ${marketInfo.keyPlayers.join(', ') || 'Bilinmiyor'}
+- Tuketici Trendleri: ${marketInfo.consumerTrends.join('; ') || 'Bilinmiyor'}
+
+### Hedef Kitle Insight'lari (Arastirma Verisi)
+- Demografi: ${audience.demographics}
+- Psikografi: ${audience.psychographics}
+- Acil Ihtiyaclar: ${audience.painPoints.join('; ') || 'Bilinmiyor'}
+- Satin Alma Davranisi: ${audience.purchaseBehavior}
 
 ### Firsatlar
-${researchFindings.opportunities.map((o) => `- ${o}`).join('\n') || 'Firsat bilgisi bulunamadi'}
+${researchFindings.opportunities.map((o) => `- ${o}`).join('\n') || 'Bilgi yok'}
 
 ### Tehditler
-${researchFindings.threats.map((t) => `- ${t}`).join('\n') || 'Tehdit bilgisi bulunamadi'}
+${researchFindings.threats.map((t) => `- ${t}`).join('\n') || 'Bilgi yok'}
 `;
   }
 
-  const prompt = `Sen deneyimli bir marka stratejistisin. Asagidaki veriyi analiz ederek markanin konumlandirilmasi icin detayli bir strateji olustur.
+  // Build competitive map JSON schema based on actual competitors
+  const competitorNames = hasResearch
+    ? researchFindings.competitors.map((c) => c.name)
+    : [];
+  const competitiveMapSchema = competitorNames.length > 0
+    ? competitorNames.map((name) => `    { "competitorName": "${name}", "theirPosition": "...", "ourAdvantage": "...", "ourWeakness": "..." }`).join(',\n')
+    : `    { "competitorName": "Rakip Adi", "theirPosition": "...", "ourAdvantage": "...", "ourWeakness": "..." }`;
+
+  const prompt = `Sen deneyimli bir marka stratejistisin. Asagidaki veriyi analiz ederek markanin konumlandirilmasi icin detayli ve KANIT TABANLI bir strateji olustur.
 
 ## Isletme Profili
 - Isletme: ${normalizedData.businessName}
@@ -63,24 +87,45 @@ Yukaridaki tum verileri analiz ederek asagidaki JSON yapisinda bir marka stratej
 
 {
   "archetype": "Jung arketiplerinden en uygun olan (Turkce: Bakim Veren, Yaratici, Bilge, Kahraman, Asi, Sihirbaz, Asik, Soytari, Masum, Kasif, Kral, Siradan Adam)",
-  "archetypeRationale": "Bu arketype neden secildiginin detayli aciklamasi. Cevaplardan hangi veriler bu secimi destekliyor? (3-4 cumle)",
-  "traits": ["Markanin 3-5 temel kisilik ozelligi"],
-  "tone": "Markanin iletisim tonu (ornegin: Sicak ve samimi, Uzman ve guvenilir, Cesur ve yenilikci)",
-  "voice": "Markanin sesi (ornegin: Bilgili ama ukala olmayan, Gelenege bagli ama yenilikciye acik)",
-  "positioningStatement": "Markanin konumlandirma cumlesi. '[Hedef kitle] icin [fark yaratan ozellik] sunan [marka/isletme] dir' formatinda olmali. (1-2 cumle)",
-  "targetAudience": "Hedef kitle tanimi. Demografik ve psikografik ozellikleri icerir. (2-3 cumle)",
-  "differentiator": "Markayi rakiplerinden ayiran temel fark. Somut ve olculebilir olmali. (1-2 cumle)",
-  "competitiveAdvantage": "Markanin rekabet avantaji. Neden musteriler bu markayi tercih etmeli? (1-2 cumle)"
+  "archetypeRationale": "Bu arketype neden secildiginin KANITLARLA aciklamasi. Hangi wizard cevaplari, hangi sektor verileri, hangi rakip konumlandirmalari bu secimi destekliyor? (3-5 cumle, somut referanslarla)",
+  "traits": ["Markanin 3-5 temel kisilik ozelligi. Her biri SEKTORE OZGU ve OLCULEBILIR olmali. 'Yenilikci' gibi genel sifatlar YASAK."],
+  "tone": "Markanin iletisim tonu. ORNEK CUMLE ile goster: 'Sicak ve samimi — ornegin: Hosgeldiniz! Sizin icin en iyisini bulmaya haziriz.'",
+  "voice": "Markanin sesi. ORNEK CUMLE ile goster: 'Bilgili ama ukala olmayan — ornegin: Bu konuda sunu bilmeniz faydali olur...'",
+  "positioningStatement": "Markanin konumlandirma cumlesi. FORMAT: '[Hedef kitle] icin [fark yaratan ozellik] sunan [marka] dir.' — SOMUT ve OLCULEBILIR olacak. (1-2 cumle)",
+  "targetAudience": {
+    "primaryPersona": {
+      "name": "Turkce bir isim, yas ve sehir. Ornek: 'Ayse, 32, Istanbul Kadikoy'",
+      "demographics": "Yas, cinsiyet, gelir duzeyi, egitim, meslek, lokasyon — SOMUT rakamlarla",
+      "psychographics": "Degerleri, yasam tarzi, motivasyonlari — sektore ozgu detaylarla",
+      "painPoints": ["Bu kisinin en buyuk 2-3 sikayeti/ihtiyaci — sektore ozgu, gercekci"],
+      "mediaHabits": "Hangi sosyal medya platformlarini, ne siklikla, ne icin kullaniyor",
+      "decisionDrivers": ["Satin alma kararini etkileyen 2-3 faktor — fiyat, kalite, kolaylik vb."]
+    },
+    "secondaryPersona": {
+      "name": "Farkli bir profil — ornek: 'Mehmet, 45, Ankara Cankaya'",
+      "demographics": "...",
+      "psychographics": "...",
+      "painPoints": ["..."],
+      "mediaHabits": "...",
+      "decisionDrivers": ["..."]
+    },
+    "marketSizeEstimate": "Bu hedef kitlenin Turkiye'deki tahmini buyuklugu (kisi sayisi veya hanehalki)"
+  },
+  "differentiator": "Markayi rakiplerinden ayiran temel fark. SOMUT ve OLCULEBILIR: 'X rakibinin sunmadigi Y hizmetini sunuyoruz' gibi. (1-2 cumle)",
+  "competitiveAdvantage": "Markanin rekabet avantaji. Neden musteriler X, Y, Z yerine bu markayi secmeli? SOMUT kanit ile. (1-2 cumle)",
+  "competitiveMap": [
+${competitiveMapSchema}
+  ]
 }
 
-ONEMLI KURALLAR:
-1. Arketip seciminde wizard cevaplarini ve skor dagilimini dikkate al. Ozellikle "Kayip Duygusu", "Iletisim Tonu", "Ikna Yontemi" ve "Kriz Tepkisi" cevaplari arketip belirleme icin kritik.
-2. "archetypeRationale" alaninda neden bu arktipi sectigini somut verilerle acikla. Hangi cevaplar ve oruntular bu secimi destekliyor?
-3. "traits" listesinde sektore ozgu kisilik ozellikleri belirt. Genel kaliplardan kacin.
-4. "positioningStatement" somut, net ve akilda kalici olmali.
-5. "targetAudience" hem demografik (yas, gelir, lokasyon) hem psikografik (degerler, yasam tarzi, motivasyonlar) bilgileri icermeli.
-6. "differentiator" ve "competitiveAdvantage" birbirini tamamlamali ama tekrarlamamali.
-7. ${researchFindings && researchFindings.sourcesUsed > 0 ? 'Sektor arastirmasi bulgularini konumlandirma ve rekabet avantajinda kullan.' : 'Sektor arastirmasi mevcut degil, wizard verilerinden yola cikarak en iyi stratejiyi olustur.'}
+KRITIK KURALLAR:
+1. KANIT ZORUNLULUGU: Her iddia icin kaynak goster. "Premium" diyorsan wizard cevabi veya sektor verisinden NEDEN premium oldugunu acikla. Kanitlanmayan iddia = BASARISIZ rapor.
+2. BOS LAF YASAK: "Yenilikci ve dinamik", "kaliteli ve guvenilir", "musteri odakli" gibi HER MARKAYA soylenebilecek sifatlar YASAK. "${normalizedData.businessName}'in [somut ozelliginden] kaynaklanan [somut avantaj]" gibi SPESIFIK ol.
+3. PERSONA SOMUTLUGU: "Genc profesyoneller" veya "orta-ust gelir grubu" gibi GENEL ifadeler YASAK. Isim, yas, sehir, gelir rakamı, somut aliskanlik — bir insan gibi tanimla.
+4. "competitiveMap" alaninda arastirmada bulunan HER rakip icin somut avantaj/dezavantaj belirt. Yoksa en az 2 rakip tanimla.
+5. "archetypeRationale" alaninda hangi wizard cevaplari (soru ID veya icerik) ve hangi sektor verileri bu secimi destekledigini ACIKCA belirt.
+6. "tone" ve "voice" alanlarinda ORNEK CUMLE ver — soyut tanimlama yerine gercek bir cumle yaz.
+7. ${hasResearch ? 'Sektor arastirmasi bulgularini TUM alanlarda referans olarak kullan. Rakip isimlerini DOGRUDAN kullan.' : 'Sektor arastirmasi mevcut degil, wizard verilerinden yola cikarak en somut stratejiyi olustur. Genel sifatlardan kacin.'}
 8. Tum metinler TURKCE olmali.
 9. Sadece JSON don, baska bir sey yazma.`;
 
@@ -90,15 +135,35 @@ ONEMLI KURALLAR:
   });
 
   // Validate and provide fallbacks for required fields
+  const defaultPersona = {
+    name: 'Belirtilmedi',
+    demographics: 'Belirtilmedi',
+    psychographics: 'Belirtilmedi',
+    painPoints: ['Belirtilmedi'],
+    mediaHabits: 'Belirtilmedi',
+    decisionDrivers: ['Belirtilmedi'],
+  };
+
   return {
     archetype: parsed.archetype || 'Yaratici',
     archetypeRationale: parsed.archetypeRationale || 'Arketip secimi mevcut verilerle belirlenmistir.',
-    traits: Array.isArray(parsed.traits) && parsed.traits.length > 0 ? parsed.traits : ['Yenilikci', 'Guvenilir', 'Samimi'],
+    traits: Array.isArray(parsed.traits) && parsed.traits.length > 0 ? parsed.traits : ['Sektore ozgu ozellik belirlenemedi'],
     tone: parsed.tone || 'Profesyonel ve samimi',
     voice: parsed.voice || 'Bilgili ve ulasılabilir',
     positioningStatement: parsed.positioningStatement || `${normalizedData.businessName}, ${normalizedData.sector} sektorunde fark yaratan bir markadir.`,
-    targetAudience: parsed.targetAudience || 'Hedef kitle bilgisi belirlenememistir.',
+    targetAudience: {
+      primaryPersona: parsed.targetAudience?.primaryPersona
+        ? { ...defaultPersona, ...parsed.targetAudience.primaryPersona }
+        : defaultPersona,
+      secondaryPersona: parsed.targetAudience?.secondaryPersona
+        ? { ...defaultPersona, ...parsed.targetAudience.secondaryPersona }
+        : defaultPersona,
+      marketSizeEstimate: parsed.targetAudience?.marketSizeEstimate || 'Tahmin mevcut degil',
+    },
     differentiator: parsed.differentiator || 'Farklilik bilgisi belirlenememistir.',
     competitiveAdvantage: parsed.competitiveAdvantage || 'Rekabet avantaji bilgisi belirlenememistir.',
+    competitiveMap: Array.isArray(parsed.competitiveMap) && parsed.competitiveMap.length > 0
+      ? parsed.competitiveMap
+      : [],
   };
 }

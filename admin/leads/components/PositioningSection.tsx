@@ -1,5 +1,5 @@
 import React from 'react';
-import { Compass, Users, Gem, Trophy, Route } from 'lucide-react';
+import { Compass, Users, Gem, Trophy, Route, Globe } from 'lucide-react';
 import type { AIAnalysis } from '@/shared/types/brandLead';
 
 interface Props {
@@ -66,6 +66,42 @@ const PositioningSection: React.FC<Props> = ({ positioning }) => {
             {positioning.competitiveAdvantage}
           </p>
         </div>
+
+        {/* Competitive Landscape */}
+        {positioning.competitiveLandscape && (
+          <div className="bg-orange-50 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Globe className="w-4 h-4 text-orange-600" />
+              <p className="font-grotesk text-xs text-orange-600 uppercase tracking-wider font-medium">
+                Rekabet Haritasi
+              </p>
+            </div>
+            <p className="font-grotesk text-sm text-neutral-700 leading-relaxed">
+              {positioning.competitiveLandscape}
+            </p>
+          </div>
+        )}
+
+        {/* Target Personas */}
+        {positioning.targetPersonas && positioning.targetPersonas.length > 0 && (
+          <div className="bg-pink-50 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Users className="w-4 h-4 text-pink-600" />
+              <p className="font-grotesk text-xs text-pink-600 uppercase tracking-wider font-medium">
+                Hedef Kitle Personalari
+              </p>
+            </div>
+            <div className="space-y-2">
+              {positioning.targetPersonas.map((persona, i) => (
+                <div key={i} className="bg-white rounded-lg p-3 border border-pink-200">
+                  <p className="font-grotesk text-sm font-semibold text-[#171717] mb-1">{persona.name}</p>
+                  <p className="font-grotesk text-xs text-neutral-600 mb-1">{persona.profile}</p>
+                  <p className="font-grotesk text-xs text-pink-600 font-medium">Temel Ihtiyac: {persona.keyNeed}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Alternative Positions */}
         {positioning.alternativePositions && positioning.alternativePositions.length > 0 && (

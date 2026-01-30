@@ -39,20 +39,46 @@ export interface NormalizedData {
 export interface ResearchFindings {
   competitors: Array<{
     name: string;
+    website: string;
     positioning: string;
     strengths: string[];
     weaknesses: string[];
+    estimatedScale: string;
+    socialPresence: string;
+    sourceSnippet: string;
   }>;
-  marketTrends: string[];
-  sectorBenchmarks: string[];
+  marketData: {
+    marketSize: string;
+    growthRate: string;
+    keyPlayers: string[];
+    consumerTrends: string[];
+    regulatoryFactors: string[];
+  };
+  targetAudienceInsights: {
+    demographics: string;
+    psychographics: string;
+    painPoints: string[];
+    purchaseBehavior: string;
+  };
   opportunities: string[];
   threats: string[];
+  sectorBenchmarks: string[];
   searchQueries: string[];
   sourcesUsed: number;
+  sourceUrls: Array<{ title: string; url: string }>;
   rawSnippets: string[];
 }
 
 // Agent 3 Output
+export interface TargetPersona {
+  name: string;
+  demographics: string;
+  psychographics: string;
+  painPoints: string[];
+  mediaHabits: string;
+  decisionDrivers: string[];
+}
+
 export interface StrategistOutput {
   archetype: string;
   archetypeRationale: string;
@@ -60,9 +86,19 @@ export interface StrategistOutput {
   tone: string;
   voice: string;
   positioningStatement: string;
-  targetAudience: string;
+  targetAudience: {
+    primaryPersona: TargetPersona;
+    secondaryPersona: TargetPersona;
+    marketSizeEstimate: string;
+  };
   differentiator: string;
   competitiveAdvantage: string;
+  competitiveMap: Array<{
+    competitorName: string;
+    theirPosition: string;
+    ourAdvantage: string;
+    ourWeakness: string;
+  }>;
 }
 
 // Agent 4 Output
@@ -76,6 +112,14 @@ export interface ChallengerOutput {
   blindSpots: string[];
 }
 
+// Action plan item for 90-day roadmap
+export interface ActionItem {
+  action: string;
+  owner: string;
+  metric: string;
+  estimatedImpact: string;
+}
+
 // Agent 5 Output
 export interface SynthesizedAnalysis {
   brandPersonality: {
@@ -87,8 +131,10 @@ export interface SynthesizedAnalysis {
   positioning: {
     statement: string;
     targetAudience: string;
+    targetPersonas: Array<{ name: string; profile: string; keyNeed: string }>;
     differentiator: string;
     competitiveAdvantage: string;
+    competitiveLandscape: string;
     alternativePositions: string[];
   };
   visualWorld: {
@@ -109,6 +155,17 @@ export interface SynthesizedAnalysis {
     challenges: string[];
     recommendations: string[];
   };
+  actionPlan: {
+    immediate: ActionItem[];
+    shortTerm: ActionItem[];
+    mediumTerm: ActionItem[];
+  };
+  evidenceSummary: {
+    sourcesConsulted: number;
+    keySourceUrls: Array<{ title: string; url: string }>;
+    dataFreshness: string;
+    confidenceLevel: string;
+  };
   synthesisRationale: string;
 }
 
@@ -124,9 +181,3 @@ export interface PipelineState {
   timings: Record<string, number>;
 }
 
-// Search result from Google Custom Search
-export interface SearchResult {
-  title: string;
-  snippet: string;
-  link: string;
-}

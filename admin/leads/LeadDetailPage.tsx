@@ -45,6 +45,8 @@ import AnalysisProgressIndicator from './components/AnalysisProgressIndicator';
 import ResearchFindings from './components/ResearchFindings';
 import DebateView from './components/DebateView';
 import PositioningSection from './components/PositioningSection';
+import ActionPlanSection from './components/ActionPlanSection';
+import EvidenceSummary from './components/EvidenceSummary';
 
 const LeadDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -913,6 +915,16 @@ const LeadDetailPage: React.FC = () => {
                           )}
                         </div>
                       </div>
+                    )}
+
+                    {/* Action Plan (Multi-Agent v2) */}
+                    {lead.aiAnalysis.actionPlan && (
+                      <ActionPlanSection actionPlan={lead.aiAnalysis.actionPlan} />
+                    )}
+
+                    {/* Evidence Summary (Multi-Agent v2) */}
+                    {lead.aiAnalysis.evidenceSummary && (
+                      <EvidenceSummary evidenceSummary={lead.aiAnalysis.evidenceSummary} />
                     )}
 
                     {/* Meta Info */}

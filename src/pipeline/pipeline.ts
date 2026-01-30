@@ -115,6 +115,10 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineState> 
   } else {
     // Fallback: map strategist output directly to SynthesizedAnalysis shape
     console.log('Using strategist output as fallback (synthesizer skipped or failed)');
+    const taObj = strategistOutput.targetAudience;
+    const taSummary = typeof taObj === 'string'
+      ? taObj
+      : `${taObj.primaryPersona?.name || ''} ve benzeri profiller`;
     state.synthesizedAnalysis = {
       brandPersonality: {
         archetype: strategistOutput.archetype,
@@ -124,9 +128,11 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineState> 
       },
       positioning: {
         statement: strategistOutput.positioningStatement,
-        targetAudience: strategistOutput.targetAudience,
+        targetAudience: taSummary,
+        targetPersonas: [],
         differentiator: strategistOutput.differentiator,
         competitiveAdvantage: strategistOutput.competitiveAdvantage,
+        competitiveLandscape: '',
         alternativePositions: [],
       },
       visualWorld: {
@@ -146,6 +152,17 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineState> 
         opportunities: [],
         challenges: [],
         recommendations: [],
+      },
+      actionPlan: {
+        immediate: [],
+        shortTerm: [],
+        mediumTerm: [],
+      },
+      evidenceSummary: {
+        sourcesConsulted: 0,
+        keySourceUrls: [],
+        dataFreshness: 'Veri mevcut degil',
+        confidenceLevel: 'Dusuk — Sentez asamasi atlanmistir',
       },
       synthesisRationale: 'Sentez asamasi atlanmistir, stratejist ciktisi dogrudan kullanilmistir.',
     };

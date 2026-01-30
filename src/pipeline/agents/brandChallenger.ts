@@ -7,27 +7,53 @@ export async function runBrandChallenger(
   strategistOutput: StrategistOutput
 ): Promise<ChallengerOutput> {
 
-  // Build research context (if available)
+  // Build rich research context (if available)
   let researchContext = '';
-  if (researchFindings && researchFindings.sourcesUsed > 0) {
+  const hasResearch = researchFindings && researchFindings.sourcesUsed > 0;
+  if (hasResearch) {
     const competitorSummary = researchFindings.competitors
-      .map((c) => `- ${c.name}: ${c.positioning}`)
+      .map((c) => `- ${c.name}${c.website ? ` (${c.website})` : ''}: ${c.positioning}
+    Olcek: ${c.estimatedScale || 'Bilinmiyor'} | Sosyal: ${c.socialPresence || 'Bilinmiyor'}
+    Guclu: ${c.strengths.join(', ')} | Zayif: ${c.weaknesses.join(', ')}`)
       .join('\n');
 
+    const marketInfo = researchFindings.marketData;
+    const audience = researchFindings.targetAudienceInsights;
+
     researchContext = `
-## Sektor Arastirmasi Ozeti
-### Rakipler
+## Sektor Arastirmasi Verileri
+
+### Rakipler (Dogrulanmis)
 ${competitorSummary || 'Bilgi yok'}
 
-### Pazar Trendleri
-${researchFindings.marketTrends.map((t) => `- ${t}`).join('\n') || 'Bilgi yok'}
+### Pazar Verileri
+- Pazar Buyuklugu: ${marketInfo.marketSize}
+- Buyume Hizi: ${marketInfo.growthRate}
+- Tuketici Trendleri: ${marketInfo.consumerTrends.join('; ') || 'Bilgi yok'}
+
+### Hedef Kitle Verileri
+- Demografi: ${audience.demographics}
+- Acil Ihtiyaclar: ${audience.painPoints.join('; ') || 'Bilgi yok'}
+- Satin Alma: ${audience.purchaseBehavior}
+
+### Firsatlar
+${researchFindings.opportunities.map((o) => `- ${o}`).join('\n') || 'Bilgi yok'}
 
 ### Tehditler
 ${researchFindings.threats.map((t) => `- ${t}`).join('\n') || 'Bilgi yok'}
+
+### Sektor Standartlari
+${researchFindings.sectorBenchmarks.map((b) => `- ${b}`).join('\n') || 'Bilgi yok'}
 `;
   }
 
-  const prompt = `Sen deneyimli bir marka danismanisin ve seytan avukati olarak gorev yapiyorsun. Bir baska strateji uzmani asagidaki marka konumlandirmasini onerdi. Senin gorevin bu stratejiyi elestirel gozle incelemek ve alternatif bakis acilari sunmak.
+  // Format strategist's target audience for context
+  const taPersona = strategistOutput.targetAudience;
+  const targetAudienceSummary = typeof taPersona === 'string'
+    ? taPersona
+    : `Birincil Persona: ${taPersona.primaryPersona?.name || 'Belirtilmedi'} — ${taPersona.primaryPersona?.demographics || ''}\nIkincil Persona: ${taPersona.secondaryPersona?.name || 'Belirtilmedi'} — ${taPersona.secondaryPersona?.demographics || ''}`;
+
+  const prompt = `Sen deneyimli bir marka danismanisin ve SEYTAN AVUKATI olarak gorev yapiyorsun. Bir baska strateji uzmani asagidaki marka konumlandirmasini onerdi. Senin gorevin bu stratejiyi ELESTIREL ve KANIT TABANLI gozle incelemek.
 
 ## Isletme Bilgileri
 - Isletme: ${normalizedData.businessName}
@@ -41,7 +67,7 @@ ${researchFindings.threats.map((t) => `- ${t}`).join('\n') || 'Bilgi yok'}
 - Iletisim Tonu: ${strategistOutput.tone}
 - Marka Sesi: ${strategistOutput.voice}
 - Konumlandirma: ${strategistOutput.positioningStatement}
-- Hedef Kitle: ${strategistOutput.targetAudience}
+- Hedef Kitle: ${targetAudienceSummary}
 - Farklilik: ${strategistOutput.differentiator}
 - Rekabet Avantaji: ${strategistOutput.competitiveAdvantage}
 
@@ -59,36 +85,35 @@ ${researchContext}
 Yukaridaki stratejiyi elestirel gozle inceleyerek asagidaki JSON yapisinda bir karsi-analiz olustur:
 
 {
-  "counterPosition": "Onerilen stratejiye karsi genel bir karsi-pozisyon. Stratejinin temel zayifligini veya gozden kacirilan noktayi acikla. (2-3 cumle)",
+  "counterPosition": "Onerilen stratejiye SOMUT VE KANITLI karsi-pozisyon. Hangi SEKTOR VERISI veya RAKIP BILGISI stratejinin zayif noktasini gosteriyor? (2-3 cumle, referanslarla)",
   "alternativeArchetype": "Alternatif bir Jung arktipi onerisi (Turkce)",
-  "alternativeArchetypeRationale": "Neden bu alternatif arktipin de dusunulmesi gerektiginin aciklamasi. Hangi veriler bu alternatifi destekliyor? (2-3 cumle)",
+  "alternativeArchetypeRationale": "Neden bu alternatif arktipin DAHA UYGUN olabileceginin KANITLI aciklamasi. Hangi wizard cevaplari veya pazar verileri bu alternatifi destekliyor? (2-3 cumle)",
   "challengePoints": [
-    "Stratejideki potansiyel sorun veya zayif nokta 1",
-    "Stratejideki potansiyel sorun veya zayif nokta 2",
-    "Stratejideki potansiyel sorun veya zayif nokta 3"
+    "ELESTIRI 1: Somut sorun + KANIT. Ornek: 'Stratejist premium konumlanma oneriyor, ancak sektor arastirmasina gore [rakip X] zaten premium segmentte %40 pazar payina sahip. Yeni giris icin bu segment riskli.'",
+    "ELESTIRI 2: Farkli bir alana odaklanan somut sorun + kanit.",
+    "ELESTIRI 3: Uygulama riskleri veya gozden kacirilan faktor + kanit."
   ],
   "alternativePositionings": [
-    "Alternatif konumlandirma onerisi 1 (1-2 cumle)",
-    "Alternatif konumlandirma onerisi 2 (1-2 cumle)"
+    "ALTERNATIF 1: Hangi rakibin hangi acigini kullanarak ne tarz bir konumlandirma yapilabilir? Somut cumle. (1-2 cumle)",
+    "ALTERNATIF 2: Farkli bir hedef kitleye veya segmente yonelik alternatif. (1-2 cumle)"
   ],
-  "riskAssessment": "Onerilen stratejinin uygulanmasi halinde ortaya cikabilecek risklerin genel degerlendirmesi. (2-3 cumle)",
+  "riskAssessment": "Onerilen stratejinin uygulanmasi halinde ortaya cikabilecek SOMUT riskler. Hangi pazar kosulları, hangi rakip hamleleri, hangi tuketici davranisi degisikligi bu stratejiyi tehlikeye atabilir? (2-3 cumle)",
   "blindSpots": [
-    "Stratejistin gozden kacirdigi veya yeterince dikkate almadigi nokta 1",
-    "Stratejistin gozden kacirdigi veya yeterince dikkate almadigi nokta 2"
+    "KOR NOKTA 1: Arastirma verilerinde gozuken ama stratejistin GORMEZDEN GELDIGI trend veya tehdit. Ornek: 'Arastirma [trend X]'i gosteriyor, stratejist bunu hic ele almamis.'",
+    "KOR NOKTA 2: Eksik birakilmis onemli bir faktor."
   ]
 }
 
-ONEMLI KURALLAR:
-1. Elestiriler yapici olmali, yikici degil. Amac stratejiyi gelistirmek, cokertmek degil.
-2. "counterPosition" genel bir karsi gorus sunmali, ama tamamen karsi cikmayin. Eksik kalan yonlere odaklanin.
-3. "alternativeArchetype" farkli bir perspektif sunmali. Onerilen arketiple tamamen celismek zorunda degil ama farkli bir aci getirmeli.
-4. "challengePoints" 3-5 adet somut sorun veya zayif nokta icermeli. Her biri farkli bir alana (pazar, hedef kitle, rekabet, uygulama, iletisim) odaklanmali.
-5. "alternativePositionings" 2-3 adet alternatif konumlandirma cumlesi icermeli.
-6. "riskAssessment" stratejinin uygulanmasinda ortaya cikabilecek operasyonel, pazarlama ve algi risklerini degerlendirmeli.
-7. "blindSpots" 2-3 adet gozden kacirilan veya hafife alinan noktayi belirtmeli.
-8. ${researchFindings && researchFindings.sourcesUsed > 0 ? 'Sektor arastirmasi bulgularini elestirinizde referans olarak kullanin.' : 'Sektor arastirmasi mevcut degil, genel sektor bilginizi kullanin.'}
-9. Tum metinler TURKCE olmali.
-10. Sadece JSON don, baska bir sey yazma.`;
+KRITIK KURALLAR:
+1. Elestiriler YAPICI olmali — amac stratejiyi GELISTIRMEK, cokertmek degil.
+2. HER elestiri KANIT icermeli: sektor verisi, rakip ornegi, tuketici trendi veya wizard cevabi referans gosterilmeli. KANIITSIZ elestiri = BASARISIZ rapor.
+3. "challengePoints" 3-5 adet olmali. Her biri FARKLI bir alana odaklanmali: pazar, hedef kitle, rekabet, uygulama, iletisim.
+4. "alternativePositionings" 2-3 adet olmali. Her biri SOMUT bir rakibin SOMUT bir acigini kullanmali.
+5. "blindSpots" icin arastirma verisinde gordugun ama stratejistin kullanmadigi bilgileri isaret et.
+6. BOS LAF YASAK: "Hedef kitle daha da daraltilabilir" gibi GENEL ifadeler YASAK. "Arastirmaya gore [segment X] %Y buyume gosteriyor, stratejist bunu dahil etmemis" gibi SPESIFIK ol.
+7. ${hasResearch ? 'Sektor arastirmasi bulgularini DOGRUDAN referans goster. Rakip isimlerini kullan.' : 'Sektor arastirmasi mevcut degil, genel sektor bilgini kullanarak somut elestiriler sun.'}
+8. Tum metinler TURKCE olmali.
+9. Sadece JSON don, baska bir sey yazma.`;
 
   const parsed = await generateJSON<ChallengerOutput>('pro', prompt, 'BrandChallenger', {
     temperature: 0.8,
