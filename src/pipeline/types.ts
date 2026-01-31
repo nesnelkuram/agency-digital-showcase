@@ -1,5 +1,16 @@
 // Multi-Agent Brand Analysis Pipeline Types
 
+export interface BusinessContextInput {
+  businessDescription?: string;
+  competitors?: string;
+  geoScope?: string;
+  digitalPresence?: string[];
+  instagramFollowers?: string;
+  monthlyBudget?: string;
+  businessStage?: string;
+  triggerReason?: string;
+}
+
 export interface PipelineInput {
   contact: { name: string; businessName: string; email: string };
   sector: string;
@@ -11,6 +22,8 @@ export interface PipelineInput {
   requestedServices: { id: string; title: string }[];
   leadId: string;
   mode?: 'full' | 'lite';
+  adminNotes?: string;
+  businessContext?: BusinessContextInput;
 }
 
 // Agent 1 Output

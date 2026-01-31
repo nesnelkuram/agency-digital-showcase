@@ -4,6 +4,7 @@ export type QuestionType =
   | 'selection_card'    // Kart seçimi (arketip vb.)
   | 'selection_multi'   // Çoklu seçim
   | 'selection_list'    // Tekli seçim
+  | 'text_area'         // Serbest metin girişi (işletme bağlamı)
   | 'educational'       // Eğitim sayfaları
   | 'stage_result'      // Aşama sonuç ekranı
   | 'outro';
@@ -115,12 +116,32 @@ export interface StageConfig {
   resultMatrix: ResultMatrix[];
 }
 
+// ============================================================================
+// İŞLETME BAĞLAM SORULARI
+// ============================================================================
+
+export interface BusinessContextQuestion {
+  type: 'text_area' | 'selection_list' | 'selection_multi';
+  key: string;          // businessDescription, competitors, geoScope, vb.
+  script: string;
+  text: string;
+  required: boolean;
+  options?: SelectionOption[];
+  placeholder?: string;
+}
+
+export interface BusinessContextConfig {
+  intro: { script: string; text: string };
+  questions: BusinessContextQuestion[];
+}
+
 export interface SectorQuestionConfig {
   sectorId: string;
   intro: {
     script: string;
     text: string;
   };
+  businessContext?: BusinessContextConfig;
   stages: [StageConfig, StageConfig, StageConfig, StageConfig, StageConfig];
   outro?: {
     script?: string;

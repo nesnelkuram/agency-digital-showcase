@@ -298,6 +298,25 @@ async function runDataNormalizer(input) {
   const resolvedQA = resolveAnswers(sector, wizard.answers, wizard.scores);
   const stageResultsSummary = (wizard.stageResults || []).map((s) => `- ${s.title || "Asama"}: ${s.description || ""} (Skor: ${s.score ?? "N/A"})`).join("\n");
   const servicesList = (requestedServices || []).map((s) => s.title).join(", ");
+  const adminNotesSection = input.adminNotes?.trim() ? `
+## Admin Notlari (Uzman Degerlendirmesi)
+Bu isletme hakkinda uzman tarafindan eklenen ek bilgiler:
+${input.adminNotes.trim()}
+
+Bu notlari analiz sirasinda dikkate al ve genel profili buna gore sekillendir.
+` : "";
+  const bc = input.businessContext;
+  const businessContextSection = bc ? `
+## Isletme Baglam Bilgileri (Dogrudan Musteri Beyan\u0131)
+- Isletme Tanimi: ${bc.businessDescription || "Belirtilmedi"}
+- Bilinen Rakipler: ${bc.competitors || "Belirtilmedi"}
+- Cografi Kapsam: ${bc.geoScope || "Belirtilmedi"}
+- Dijital Platformlar: ${bc.digitalPresence?.join(", ") || "Belirtilmedi"}
+- Instagram Takipci: ${bc.instagramFollowers || "Belirtilmedi"}
+- Aylik Butce: ${bc.monthlyBudget || "Belirtilmedi"}
+- Isletme Asamasi: ${bc.businessStage || "Belirtilmedi"}
+- Basvuru Nedeni: ${bc.triggerReason || "Belirtilmedi"}
+` : "";
   const prompt = `Sen bir veri normalizasyon uzmanisisin. Asagidaki ham marka degerlendirme wizard verisini yapilandirilmis ve normalize edilmis bir formata donustur.
 
 ## Isletme Bilgileri
@@ -310,7 +329,7 @@ ${stageResultsSummary || "Asama sonucu bulunamadi"}
 
 ## Detayli Soru-Cevaplar
 ${resolvedQA || "Cevap bulunamadi"}
-
+${businessContextSection}${adminNotesSection}
 ---
 
 Yukaridaki ham verileri analiz ederek asagidaki JSON yapisinda bir cikti uret:
@@ -346,7 +365,7 @@ ONEMLI KURALLAR:
 3. "contradictions" alaninda birbirleriyle celisen cevaplari tespit et. Celisi yoksa bos dizi don.
 4. "dataQualityScore" 0 ile 1 arasinda bir deger olmali. Tum sorular cevaplanmissa 1.0'a yakin, eksik cevaplar varsa daha dusuk.
 5. "missingAreas" alaninda cevaplanmamis veya yetersiz kalan alanlari listele. Hepsi tamamsa bos dizi don.
-6. "overallProfile" alaninda isletmenin genel marka profilini dogal bir dille ozetle. Bu metin sonraki asamalarda diger ajanlar tarafindan kullanilacak.
+6. "overallProfile" alaninda isletmenin genel marka profilini dogal bir dille ozetle. Isletme baglam bilgileri (isletme tanimi, cografi kapsam, isletme asamasi, dijital varlik durumu) varsa bunlari profilde kullan. Bu metin sonraki asamalarda diger ajanlar tarafindan kullanilacak.
 7. Tum metinler TURKCE olmali.
 8. Sadece JSON don, baska bir sey yazma.`;
   const parsed = await generateJSON("flash", prompt, "DataNormalizer", {
@@ -389,22 +408,30 @@ var EMPTY_RESEARCH = {
   sourceUrls: [],
   rawSnippets: []
 };
-function buildDeepResearchPrompt(businessName, sector) {
+function buildDeepResearchPrompt(businessName, sector, businessContext) {
+  const descLine = businessContext?.businessDescription ? `
+Isletme Tanimi (Musteri Beyani): ${businessContext.businessDescription}` : "";
+  const competitorLine = businessContext?.competitors ? `
+Musterinin Bildirdigi Rakipler: ${businessContext.competitors}` : "";
+  const geoLine = businessContext?.geoScope ? `
+Hedef Pazar: ${businessContext.geoScope}` : "";
   return `Sen bir sektor arastirmacisisin. Asagidaki marka hakkinda KAPSAMLI ve URUN BAZLI bir arastirma yap.
 
 Marka: ${businessName}
-Sektor: ${sector}
+Sektor: ${sector}${descLine}${competitorLine}${geoLine}
 
 ARASTIRMA ADIMLARI (sirayla uygula):
 
 ADIM 1 \u2014 MARKANIN KENDISI:
-- "${businessName}" web sitesini bul ve ziyaret et.
+- "${businessName}" web sitesini bul ve ziyaret et.${businessContext?.businessDescription ? `
+- Musterinin kendi tanimi: "${businessContext.businessDescription}" \u2014 bu bilgiyi arastirmani yonlendirmek icin kullan.` : ""}
 - Hangi URUN ve HIZMETLERI sunuyor? Her birini listele.
 - Fiyat araliklari nedir? (mumkunse gercek fiyatlar)
 - Kendini nasil konumlandiriyor? (ucuz/orta/premium)
 - Alt markalari varsa her birini ayri ayri incele.
 
-ADIM 2 \u2014 URUN BAZLI RAKIP ANALIZI:
+ADIM 2 \u2014 URUN BAZLI RAKIP ANALIZI:${businessContext?.competitors ? `
+- Musterinin bildirdigi rakipler: ${businessContext.competitors} \u2014 BUNLARI ONCELIKLI olarak arastir.` : ""}
 - Adim 1'de buldugun HER urun/hizmet kategorisi icin dogrudan rakipleri arastir.
 - Ornek: Eger marka "findik kremasi" satiyorsa \u2192 "findik kremasi markalari Turkiye" ara.
 - Her rakibin web sitesini ziyaret et.
@@ -413,7 +440,8 @@ ADIM 2 \u2014 URUN BAZLI RAKIP ANALIZI:
 - EN AZ 4, EN FAZLA 8 rakip bul.
 
 ADIM 3 \u2014 PAZAR VERILERI:
-- Bu URUN KATEGORISININ (genel sektor degil, spesifik urun!) Turkiye'deki pazar buyuklugu.
+- Bu URUN KATEGORISININ (genel sektor degil, spesifik urun!) Turkiye'deki pazar buyuklugu.${businessContext?.geoScope ? `
+- Musteri hedef pazari: ${businessContext.geoScope} \u2014 pazar verilerini BU COGRAFYAYA odakla.` : ""}
 - Yillik buyume orani veya trend yonu.
 - Tuketici davranislari: Kim aliyor, nasil aliyor, ne siklikla aliyor.
 - Fiyat hassasiyeti: Tuketiciler fiyat icin marka degistirir mi?
@@ -640,7 +668,7 @@ KURALLAR:
 }
 
 // src/pipeline/agents/brandStrategist.ts
-async function runBrandStrategist(normalizedData, researchFindings) {
+async function runBrandStrategist(normalizedData, researchFindings, businessContext) {
   const answersSummary = normalizedData.structuredAnswers.map((stage) => {
     const questions = stage.questions.map((q) => `  - ${q.question}: ${q.answerLabel}${q.score !== void 0 ? ` (Skor: ${q.score})` : ""}`).join("\n");
     return `### ${stage.stage}. ${stage.stageName}
@@ -681,13 +709,29 @@ ${researchFindings.threats.map((t) => `- ${t}`).join("\n") || "Bilgi yok"}
   }
   const competitorNames = hasResearch ? researchFindings.competitors.map((c) => c.name) : [];
   const competitiveMapSchema = competitorNames.length > 0 ? competitorNames.map((name) => `    { "competitorName": "${name}", "theirPosition": "...", "ourAdvantage": "...", "ourWeakness": "..." }`).join(",\n") : `    { "competitorName": "Rakip Adi", "theirPosition": "...", "ourAdvantage": "...", "ourWeakness": "..." }`;
+  const bc = businessContext;
+  const businessContextSection = bc ? `
+## Isletme Baglam Bilgileri (Dogrudan Musteri Beyani)
+- Isletme Tanimi: ${bc.businessDescription || "Belirtilmedi"}
+- Bilinen Rakipler: ${bc.competitors || "Belirtilmedi"}
+- Cografi Kapsam: ${bc.geoScope || "Belirtilmedi"}
+- Dijital Platformlar: ${bc.digitalPresence?.join(", ") || "Belirtilmedi"}
+- Instagram Takipci: ${bc.instagramFollowers || "Belirtilmedi"}
+- Aylik Butce: ${bc.monthlyBudget || "Belirtilmedi"}
+- Isletme Asamasi: ${bc.businessStage || "Belirtilmedi"}
+- Basvuru Nedeni: ${bc.triggerReason || "Belirtilmedi"}
+` : "";
+  const budgetInstruction = bc?.monthlyBudget ? `
+12. BUTCE UYUMU: Musterinin aylik butcesi "${bc.monthlyBudget}" olarak belirtilmis. valuePropositionReasoning.pricePositioning alaninda bu butceyi dikkate al. Isletmenin olcegine uygun fiyat konumlandirmasi yap.` : "";
+  const stageInstruction = bc?.businessStage ? `
+13. ISLETME ASAMASI: Isletme "${bc.businessStage}" asamasinda. Buna gore strateji onerileri kalibre et \u2014 yeni isletme icin marka bilinirligine, yerlesik isletme icin pazar payi buyutmeye odaklan.` : "";
   const prompt = `Sen deneyimli bir marka stratejistisin. Asagidaki veriyi analiz ederek markanin konumlandirilmasi icin detayli ve KANIT TABANLI bir strateji olustur.
 
 ## Isletme Profili
 - Isletme: ${normalizedData.businessName}
 - Sektor: ${normalizedData.sector}
 - Genel Profil: ${normalizedData.overallProfile}
-
+${businessContextSection}
 ## Yapilandirilmis Cevaplar
 ${answersSummary || "Cevap bilgisi mevcut degil"}
 
@@ -754,7 +798,7 @@ KRITIK KURALLAR:
 6. "tone" ve "voice" alanlarinda ORNEK CUMLE ver \u2014 soyut tanimlama yerine gercek bir cumle yaz.
 7. ${hasResearch ? "Sektor arastirmasi bulgularini TUM alanlarda referans olarak kullan. Rakip isimlerini DOGRUDAN kullan." : "Sektor arastirmasi mevcut degil, wizard verilerinden yola cikarak en somut stratejiyi olustur. Genel sifatlardan kacin."}
 8. Tum metinler TURKCE olmali.
-9. Sadece JSON don, baska bir sey yazma.`;
+9. Sadece JSON don, baska bir sey yazma.${budgetInstruction}${stageInstruction}`;
   const parsed = await generateJSON("pro", prompt, "BrandStrategist", {
     temperature: 0.7,
     maxOutputTokens: 8192
@@ -917,7 +961,7 @@ KRITIK KURALLAR:
 
 // src/pipeline/data/blogKnowledgeBase.ts
 var BLOG_AUTHOR_META = {
-  name: "Engin Tezcan",
+  name: "Stratejik Danismanin",
   site: "engintezcan.com",
   totalArticles: 432,
   mainThemes: ["\xD6zel makaleler", "Gayrinizami Markalama", "Gayrinizami Notlar", "\u0130lham kayna\u011F\u0131", "LimitedPost", "K\u0131l\xE7\u0131ks\u0131z Markalama", "Gayrinizami Pazarlama", "Marka hikayeleri", "Pazar yaz\u0131lar\u0131", "Yeni marka yaratmak", "12ilke", "Marka konumland\u0131rma", "Yasak Elmalar", "\xD6zel makale"]
@@ -1111,10 +1155,10 @@ async function runBlogStrategyAdvisor(normalizedData, researchFindings, strategi
   const principlesSummary = BLOG_PRINCIPLES.slice(0, 60).map((p) => `- [${p.tags.join(", ")}] "${p.title}": ${p.excerpt}${p.coreContent ? ` \u2014 ${p.coreContent.slice(0, 300)}` : ""}`).join("\n");
   const topicsSummary = BLOG_TOPIC_INDEX.slice(0, 12).map((t) => `- ${t.tag} (${t.count} yazi): ${t.topArticles.slice(0, 3).join(", ")}`).join("\n");
   const quotesSummary = BLOG_QUOTES.slice(0, 30).map((q) => `- "${q}"`).join("\n");
-  const prompt = `Sen ${BLOG_AUTHOR_META.name}'in stratejik felsefesini temsil eden bir marka danismanisin. ${BLOG_AUTHOR_META.name}, ${BLOG_AUTHOR_META.site} adresinde ${BLOG_AUTHOR_META.totalArticles} blog yazisi yayinlamis, Turkiye'nin taninan marka stratejistlerinden biridir. "Gayrinizami Markalama" felsefesiyle bilinir \u2014 geleneksel pazarlama dogmalarini sorgular, sira disi ve cesur yaklasimlar savunur.
+  const prompt = `Sen stratejik danismanin blog felsefesini temsil eden bir marka danismanisin. ${BLOG_AUTHOR_META.site} adresinde ${BLOG_AUTHOR_META.totalArticles} blog yazisi yayinlanmis, "Gayrinizami Markalama" felsefesiyle bilinen stratejik yaklasimlar icermektedir \u2014 geleneksel pazarlama dogmalarini sorgular, sira disi ve cesur yaklasimlar savunur.
 
 Gorevlerin:
-1. Onerilen marka stratejisini Engin Tezcan'in felsefi cercevesinden degerlendir
+1. Onerilen marka stratejisini stratejik danismanin felsefi cercevesinden degerlendir
 2. Blog yazilarindaki stratejik prensipleri bu markaya SOMUT OLARAK uygula
 3. Icerik stratejisini yazarin tarzi, sesi ve konularina gore sekillendirerek UYGULANABILIR oneriler sun
 
@@ -1147,12 +1191,12 @@ ${quotesSummary}
 ${researchContext}
 ---
 
-Yukaridaki stratejiyi Engin Tezcan'in blog yazilarindaki felsefe ve yaklasimlarla karsilastirarak asagidaki JSON yapisinda bir degerlendirme olustur:
+Yukaridaki stratejiyi stratejik danismanin blog yazilarindaki felsefe ve yaklasimlarla karsilastirarak asagidaki JSON yapisinda bir degerlendirme olustur:
 
 {
   "philosophicalAlignment": {
     "score": 7,
-    "rationale": "Onerilen stratejinin Engin Tezcan'in felsefesiyle ne kadar uyumlu oldugu. Somut blog referanslariyla acikla. (2-3 cumle)",
+    "rationale": "Onerilen stratejinin stratejik danismanin felsefesiyle ne kadar uyumlu oldugu. Somut blog referanslariyla acikla. (2-3 cumle)",
     "alignedPrinciples": [
       "UYUMLU PRENSIP 1: Blog yazilarindan hangi prensip bu stratejiyi destekliyor? Blog basligini ve icerigini referans goster.",
       "UYUMLU PRENSIP 2: ..."
@@ -1180,7 +1224,7 @@ Yukaridaki stratejiyi Engin Tezcan'in blog yazilarindaki felsefe ve yaklasimlarl
     }
   ],
   "contentStrategyInsights": {
-    "toneAlignment": "Bu markanin iletisim tonunun Engin Tezcan'in yazim tarziyla nasil iliskilendirilecegi. (1-2 cumle)",
+    "toneAlignment": "Bu markanin iletisim tonunun stratejik danismanin yazim tarziyla nasil iliskilendirilecegi. (1-2 cumle)",
     "contentPillars": [
       "ICERIK SUTUNU 1: Blog temalarindan esinlenerek bu markaya ozgu bir icerik sutunu",
       "ICERIK SUTUNU 2: ...",
@@ -1195,7 +1239,7 @@ Yukaridaki stratejiyi Engin Tezcan'in blog yazilarindaki felsefe ve yaklasimlarl
       "KONU 5: ..."
     ]
   },
-  "authorPerspective": "Engin Tezcan bu markayi incelese ne derdi? Onun uslubunda, onun bakis acisiyla 3-5 cumlelik bir degerlendirme yaz. Gayrinizami, cesur, dogrudan.",
+  "authorPerspective": "Stratejik danismanin bu markayi incelese ne derdi? Gayrinizami Markalama uslubunda, cesur bakis acisiyla 3-5 cumlelik bir degerlendirme yaz. Cesur, dogrudan.",
   "unconventionalInsights": [
     "GAYRINIZAMI ICGORU 1: Blog felsefesinden esinlenen, geleneksel pazarlama yaklasimlarindan farkli, cesur bir oneri. (1-2 cumle)",
     "GAYRINIZAMI ICGORU 2: Sira disi bir bakis acisi veya strateji onerisi. (1-2 cumle)"
@@ -1204,11 +1248,11 @@ Yukaridaki stratejiyi Engin Tezcan'in blog yazilarindaki felsefe ve yaklasimlarl
 
 KRITIK KURALLAR:
 1. Her oneri ve degerlendirme SOMUT bir blog yazisina referans vermeli. Genel laflar YASAK.
-2. "authorPerspective" alaninda GERCEKTEN Engin Tezcan gibi yaz \u2014 provoke edici, hikayeli, dogmalara meydan okuyan.
+2. "authorPerspective" alaninda Gayrinizami Markalama uslubunda yaz \u2014 provoke edici, hikayeli, dogmalara meydan okuyan.
 3. "contentPillars" 3-5 adet olmali, HER biri blog temalarindan esinlenmeli ama BU MARKAYA OZEL olmali.
 4. "topicSuggestions" 5-7 adet olmali, HER biri blog yazilarinin yaklasimini bu markaya uygulayan somut konular.
 5. "strategicRecommendations" 3-5 adet, her biri FARKLI bir alana odaklanmali: positioning, differentiation, content, audience, competition.
-6. "unconventionalInsights" 2-3 adet, GELENEKSEL pazarlama mantigi DISINDA dusun \u2014 tam da Engin Tezcan'in yapacagi gibi.
+6. "unconventionalInsights" 2-3 adet, GELENEKSEL pazarlama mantigi DISINDA dusun \u2014 tam da stratejik danismanin yapacagi gibi.
 7. score degeri DUNUK (3-4) ise stratejinin neden SIRADAN ve CESARET EKSIK oldugunu acikla. YUKSEK (8-9) ise neden GAYRINIZAMI ve CESUR oldugunu belirt.
 8. Tum metinler TURKCE olmali.
 9. Sadece JSON don, baska bir sey yazma.`;
@@ -1240,7 +1284,7 @@ KRITIK KURALLAR:
 }
 
 // src/pipeline/agents/strategySynthesizer.ts
-async function runStrategySynthesizer(normalizedData, researchFindings, strategistOutput, challengerOutput, blogAdvisorOutput = null) {
+async function runStrategySynthesizer(normalizedData, researchFindings, strategistOutput, challengerOutput, blogAdvisorOutput = null, businessContext) {
   const taSegments = strategistOutput.targetAudience;
   const targetAudienceSummary = typeof taSegments === "string" ? taSegments : `Birincil Segment: ${taSegments.primarySegment?.demographics || "N/A"} \u2014 ${taSegments.primarySegment?.behavioralProfile || ""}
 Ikincil Segment: ${taSegments.secondarySegment?.demographics || "N/A"} \u2014 ${taSegments.secondarySegment?.behavioralProfile || ""}`;
@@ -1291,7 +1335,7 @@ ${challengerOutput.blindSpots.map((b) => `  - ${b}`).join("\n")}`;
   if (blogAdvisorOutput) {
     blogAdvisorSummary = `
 
-### Blog Strateji Danismani Degerlendirmesi (Engin Tezcan Perspektifi)
+### Blog Strateji Danismani Degerlendirmesi (Stratejik Blog Danismani Perspektifi)
 - Felsefi Uyum Skoru: ${blogAdvisorOutput.philosophicalAlignment.score}/10
 - Gerekce: ${blogAdvisorOutput.philosophicalAlignment.rationale}
 - Uyumlu Prensipler: ${blogAdvisorOutput.philosophicalAlignment.alignedPrinciples.join("; ") || "Yok"}
@@ -1331,8 +1375,28 @@ ${blogAdvisorOutput.unconventionalInsights.map((i) => `  - ${i}`).join("\n")}`;
     }
   }
   const expertCount = 1 + (challengerOutput ? 1 : 0) + (blogAdvisorOutput ? 1 : 0);
-  const debateInstruction = expertCount === 3 ? "Uc farkli uzmanin goruslerini sentezlemen gerekiyor: Strateji uzmani, seytan avukati ve blog strateji danismani (Engin Tezcan perspektifi). Her ucunun en guclu argumanlarin birlestirerek, cesur ama temelli nihai stratejiyi olustur." : challengerOutput ? "Iki farkli uzmanin goruslerini inceleyip en iyi stratejiyi sentezlemen gerekiyor. Strateji uzmaninin onerisiyle seytan avukatinin elestirisini dengeleyerek, en guclu ve tutarli sonucu olustur." : blogAdvisorOutput ? "Strateji uzmaninin onerisi ve blog strateji danismaninin (Engin Tezcan perspektifi) degerlendirmesini sentezleyerek nihai stratejiyi olustur." : "Strateji uzmaninin onerisini inceleyip, rafine ederek nihai stratejiyi olusturman gerekiyor. Karsi-analiz mevcut olmadigindan, kendi elestirel gozunle stratejiyi guclendirerek sentezle.";
+  const debateInstruction = expertCount === 3 ? "Uc farkli uzmanin goruslerini sentezlemen gerekiyor: Strateji uzmani, seytan avukati ve blog strateji danismani (stratejik blog danismani perspektifi). Her ucunun en guclu argumanlarin birlestirerek, cesur ama temelli nihai stratejiyi olustur." : challengerOutput ? "Iki farkli uzmanin goruslerini inceleyip en iyi stratejiyi sentezlemen gerekiyor. Strateji uzmaninin onerisiyle seytan avukatinin elestirisini dengeleyerek, en guclu ve tutarli sonucu olustur." : blogAdvisorOutput ? "Strateji uzmaninin onerisi ve blog strateji danismaninin (stratejik blog danismani perspektifi) degerlendirmesini sentezleyerek nihai stratejiyi olustur." : "Strateji uzmaninin onerisini inceleyip, rafine ederek nihai stratejiyi olusturman gerekiyor. Karsi-analiz mevcut olmadigindan, kendi elestirel gozunle stratejiyi guclendirerek sentezle.";
   const sourceCount = researchFindings?.sourcesUsed || 0;
+  const bc = businessContext;
+  const businessContextSection = bc ? `
+## Isletme Baglam Bilgileri (Dogrudan Musteri Beyani)
+- Isletme Tanimi: ${bc.businessDescription || "Belirtilmedi"}
+- Bilinen Rakipler: ${bc.competitors || "Belirtilmedi"}
+- Cografi Kapsam: ${bc.geoScope || "Belirtilmedi"}
+- Dijital Platformlar: ${bc.digitalPresence?.join(", ") || "Belirtilmedi"}
+- Instagram Takipci: ${bc.instagramFollowers || "Belirtilmedi"}
+- Aylik Butce: ${bc.monthlyBudget || "Belirtilmedi"}
+- Isletme Asamasi: ${bc.businessStage || "Belirtilmedi"}
+- Basvuru Nedeni: ${bc.triggerReason || "Belirtilmedi"}
+` : "";
+  const budgetCalibration = bc?.monthlyBudget ? `
+12. BUTCE KALIBRASYONU: Musterinin aylik butcesi "${bc.monthlyBudget}" olarak belirtilmis. actionPlan'daki TUM onerileri bu butceye uygun olacak sekilde kalibre et. Butceyi asan oneriler YAPMA. Ornegin: "starter" (0-5K TL) butce icin "profesyonel video produksiyon" ONERME, bunun yerine "smartphone ile cekilen UGC icerik" gibi butce-uyumlu alternatifler sun.` : "";
+  const stageCalibration = bc?.businessStage ? `
+13. ISLETME ASAMASI KALIBRASYONU: Isletme "${bc.businessStage}" asamasinda. actionPlan'daki "owner" alanlarini buna gore ayarla \u2014 yeni/"idea" asamasindaki isletmeler icin "Isletme sahibi" veya "Freelancer" yaz, buyuyen/yerlesik isletmeler icin "Sosyal medya yoneticisi", "Icerik ekibi" gibi pozisyonlar kullanabilirsin. Ayrica strateji onerileri isletmenin olgunluk seviyesine uygun olmali.` : "";
+  const digitalCalibration = bc?.digitalPresence ? `
+14. DIJITAL VARLIK KALIBRASYONU: Musterinin aktif oldugu platformlar: ${bc.digitalPresence.join(", ")}. ${bc.digitalPresence.includes("none") ? "Musteri HICBIR platformda aktif DEGIL \u2014 actionPlan sifirdan dijital varlik olusturmaya odaklanmali." : `Mevcut platformlari OPTIMIZE etme onerileri on planda olmali, yeni platform onerileri ikincil kalmali.`}` : "";
+  const triggerCalibration = bc?.triggerReason ? `
+15. TETIKLEYICI NEDEN ONCELIKLENDIRMESI: Musterinin basvuru nedeni "${bc.triggerReason}". actionPlan'in "immediate" fazini bu nedene dogrudan cevap verecek sekilde onceliklendir. Ornegin: "sales_drop" \u2192 satis artirici aksiyonlar once, "launch" \u2192 marka bilinirlik aksiyonlari once, "rebrand" \u2192 kimlik yenileme aksiyonlari once.` : "";
   const prompt = `Sen bir marka stratejisi basparlak direktorsun (CSO). ${debateInstruction}
 
 ## Isletme Profili
@@ -1341,7 +1405,7 @@ ${blogAdvisorOutput.unconventionalInsights.map((i) => `  - ${i}`).join("\n")}`;
 - Genel Profil: ${normalizedData.overallProfile}
 - Veri Kalitesi: ${normalizedData.dataQualityScore}
 - Tespit Edilen Oruntular: ${normalizedData.detectedPatterns.join("; ") || "Yok"}
-
+${businessContextSection}
 ## Uzman Gorusleri
 ${strategistSummary}
 ${competitiveMapSummary}
@@ -1474,9 +1538,15 @@ KRITIK KURALLAR \u2014 BU KURALLARA UYMAYAN RAPOR BASARISIZ SAYILIR:
    - "Marka kimlik calismasi yapilmali" \u2192 YERINE: "Logo, renk paleti ve tipografi rehberi iceren marka kimlik kilavuzu hazirlanmali. Icermesi gerekenler: logo varyasyonlari, renk kodlari (CMYK/RGB/HEX), tipografi hiyerarsisi, kullanim kurallari."
 
 3. KANIT ZORUNLULUGU: "analysis" bolumundeki HER madde icin destekleyici veri goster.
-   - "strengths" \u2014 hangi wizard cevabi veya veri bunu destekliyor?
+   - "strengths" \u2014 hangi anket cevabi veya veri bunu destekliyor?
    - "opportunities" \u2014 hangi rakibin hangi acigi, hangi pazar trendi?
    - "challenges" \u2014 hangi pazar kosulu, hangi rakip tehdidi?
+
+11. DAHILI JARGON YASAK \u2014 Bu rapor MUSTERIYE gosterilecek. Asagidaki terimleri KESINLIKLE KULLANMA:
+   - "wizard", "wizard-anketi", "wizard-anketindeki", "score", "score1", "score2", "score3" \u2192 YERINE: "Ankete verdiginiz yanita gore..." veya "Degerlendirilme formundaki yanitlariniza gore..."
+   - "agent", "pipeline", "multi-agent", "dataNormalizer", "brandStrategist", "brandChallenger", "blogAdvisor", "synthesizer" \u2192 HICBIRINI KULLANMA
+   - "prompt", "LLM", "Gemini", "AI modeli" \u2192 KULLANMA
+   - Dahili teknik referanslar yerine DOGAL bir dil kullan: "Analizimiz sonucunda...", "Degerlendirmemize gore..."
 
 4. "positioning.competitiveLandscape" ISIMLI RAKIPLERLE pazar haritasi cikaracak.
 
@@ -1489,7 +1559,7 @@ KRITIK KURALLAR \u2014 BU KURALLARA UYMAYAN RAPOR BASARISIZ SAYILIR:
 8. ${challengerOutput ? "Her iki uzmanin goruslerini referans goster." : "Strateji uzmaninin onerisini nasil rafine ettigini acikla."}
 
 9. Tum metinler TURKCE olmali.
-10. Sadece JSON don, baska bir sey yazma.`;
+10. Sadece JSON don, baska bir sey yazma.${budgetCalibration}${stageCalibration}${digitalCalibration}${triggerCalibration}`;
   const parsed = await generateJSON("pro", prompt, "StrategySynthesizer", {
     temperature: 0.6,
     maxOutputTokens: 8192
@@ -1598,7 +1668,7 @@ async function runPipeline(input) {
   }
   const strategistOutput = await runAgent(
     "brandStrategist",
-    () => runBrandStrategist(normalizedData, researchFindings),
+    () => runBrandStrategist(normalizedData, researchFindings, input.businessContext),
     state,
     true
   );
@@ -1639,7 +1709,7 @@ async function runPipeline(input) {
   if (remainingTime(startTime) > 8e3) {
     synthesizedAnalysis = await runAgent(
       "strategySynthesizer",
-      () => runStrategySynthesizer(normalizedData, researchFindings, strategistOutput, challengerOutput, blogAdvisorOutput),
+      () => runStrategySynthesizer(normalizedData, researchFindings, strategistOutput, challengerOutput, blogAdvisorOutput, input.businessContext),
       state,
       false
     );

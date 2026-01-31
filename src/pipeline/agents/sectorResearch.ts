@@ -1,5 +1,5 @@
 import { runDeepResearch, pollDeepResearch, startDeepResearch, generateGroundedText, generateJSON } from '../geminiClient';
-import type { PipelineInput, ResearchFindings } from '../types';
+import type { PipelineInput, ResearchFindings, BusinessContextInput } from '../types';
 
 export interface SectorResearchOptions {
   drInteractionId?: string;  // pre-started DR interaction to poll
@@ -33,22 +33,33 @@ const EMPTY_RESEARCH: ResearchFindings = {
 };
 
 // --- Deep Research prompt: product-level investigation ---
-export function buildDeepResearchPrompt(businessName: string, sector: string): string {
+export function buildDeepResearchPrompt(businessName: string, sector: string, businessContext?: BusinessContextInput): string {
+  // Enrich prompt with business context when available
+  const descLine = businessContext?.businessDescription
+    ? `\nIsletme Tanimi (Musteri Beyani): ${businessContext.businessDescription}`
+    : '';
+  const competitorLine = businessContext?.competitors
+    ? `\nMusterinin Bildirdigi Rakipler: ${businessContext.competitors}`
+    : '';
+  const geoLine = businessContext?.geoScope
+    ? `\nHedef Pazar: ${businessContext.geoScope}`
+    : '';
+
   return `Sen bir sektor arastirmacisisin. Asagidaki marka hakkinda KAPSAMLI ve URUN BAZLI bir arastirma yap.
 
 Marka: ${businessName}
-Sektor: ${sector}
+Sektor: ${sector}${descLine}${competitorLine}${geoLine}
 
 ARASTIRMA ADIMLARI (sirayla uygula):
 
 ADIM 1 — MARKANIN KENDISI:
-- "${businessName}" web sitesini bul ve ziyaret et.
+- "${businessName}" web sitesini bul ve ziyaret et.${businessContext?.businessDescription ? `\n- Musterinin kendi tanimi: "${businessContext.businessDescription}" — bu bilgiyi arastirmani yonlendirmek icin kullan.` : ''}
 - Hangi URUN ve HIZMETLERI sunuyor? Her birini listele.
 - Fiyat araliklari nedir? (mumkunse gercek fiyatlar)
 - Kendini nasil konumlandiriyor? (ucuz/orta/premium)
 - Alt markalari varsa her birini ayri ayri incele.
 
-ADIM 2 — URUN BAZLI RAKIP ANALIZI:
+ADIM 2 — URUN BAZLI RAKIP ANALIZI:${businessContext?.competitors ? `\n- Musterinin bildirdigi rakipler: ${businessContext.competitors} — BUNLARI ONCELIKLI olarak arastir.` : ''}
 - Adim 1'de buldugun HER urun/hizmet kategorisi icin dogrudan rakipleri arastir.
 - Ornek: Eger marka "findik kremasi" satiyorsa → "findik kremasi markalari Turkiye" ara.
 - Her rakibin web sitesini ziyaret et.
@@ -57,7 +68,7 @@ ADIM 2 — URUN BAZLI RAKIP ANALIZI:
 - EN AZ 4, EN FAZLA 8 rakip bul.
 
 ADIM 3 — PAZAR VERILERI:
-- Bu URUN KATEGORISININ (genel sektor degil, spesifik urun!) Turkiye'deki pazar buyuklugu.
+- Bu URUN KATEGORISININ (genel sektor degil, spesifik urun!) Turkiye'deki pazar buyuklugu.${businessContext?.geoScope ? `\n- Musteri hedef pazari: ${businessContext.geoScope} — pazar verilerini BU COGRAFYAYA odakla.` : ''}
 - Yillik buyume orani veya trend yonu.
 - Tuketici davranislari: Kim aliyor, nasil aliyor, ne siklikla aliyor.
 - Fiyat hassasiyeti: Tuketiciler fiyat icin marka degistirir mi?

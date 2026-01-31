@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Send, Loader2 } from 'lucide-react';
 import { Question, ResultMatrix } from '../../types';
-import { Sector } from '@/shared/types/brandLead';
+import { Sector, BusinessContext } from '@/shared/types/brandLead';
 import { createBrandLeadFromWebsite } from '@/shared/services/brandLeadService';
 import { isFirebaseConfigured } from '@/lib/firebase/config';
 
@@ -14,6 +14,7 @@ interface OutroQuestionProps {
   stageResults: Record<number, ResultMatrix>;
   sector: Sector;
   completionTime: number;
+  businessContext?: BusinessContext;
   onSubmit: (data: any) => void;
 }
 
@@ -25,6 +26,7 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
   stageResults,
   sector,
   completionTime,
+  businessContext,
   onSubmit,
 }) => {
   const [name, setName] = useState('');
@@ -190,8 +192,9 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
               answers,
               scores,
               stageResults: stageResultsArray,
-              wizardVersion: '1.0',
+              wizardVersion: '2.0',
               completionTime,
+              businessContext: businessContext || undefined,
             },
             requestedServices: requestedServicesArray,
             source: 'website_wizard',

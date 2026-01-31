@@ -1,9 +1,9 @@
 import React, { Component, useState, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, RefreshCw } from 'lucide-react';
+import { ArrowLeft, RefreshCw, SkipForward } from 'lucide-react';
 import { getQuestionsForSector } from './questions';
 import { Question, ResultMatrix } from './types';
-import { Sector } from '@/shared/types/brandLead';
+import { Sector, BusinessContext } from '@/shared/types/brandLead';
 import ProgressIndicator from './components/ProgressIndicator';
 import SectorSelection from './components/SectorSelection';
 import {
@@ -12,6 +12,7 @@ import {
   SelectionMultiQuestion,
   SelectionListQuestion,
   SelectionScoredQuestion,
+  TextAreaQuestion,
   EducationalQuestion,
   StageResultQuestion,
   OutroQuestion,
@@ -40,6 +41,7 @@ const BrandStrategyWizard: React.FC = () => {
   const [answers, setAnswers] = useState<Record<number, string | string[]>>({});
   const [scores, setScores] = useState<Record<number, number>>({});
   const [stageResults, setStageResults] = useState<Record<number, ResultMatrix>>({});
+  const [businessContext, setBusinessContext] = useState<BusinessContext>({});
 
   const handleSectorSelect = useCallback((sector: Sector) => {
     setSelectedSector(sector);
@@ -48,6 +50,7 @@ const BrandStrategyWizard: React.FC = () => {
     setAnswers({});
     setScores({});
     setStageResults({});
+    setBusinessContext({});
     startTime.current = Date.now();
     // Update URL without reload
     const url = new URL(window.location.href);
@@ -81,6 +84,31 @@ const BrandStrategyWizard: React.FC = () => {
   const handleScoredAnswer = (questionId: number, value: string, score: number) => {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
     setScores((prev) => ({ ...prev, [questionId]: score }));
+  };
+
+  // --- Business context helpers ---
+  const isBusinessContextQuestion = (q: Question): boolean => {
+    return typeof q.action === 'string' && q.action.startsWith('ctx:');
+  };
+
+  const getContextKey = (q: Question): string | null => {
+    if (!q.action?.startsWith('ctx:')) return null;
+    return q.action.split(':')[1];
+  };
+
+  const isContextRequired = (q: Question): boolean => {
+    if (!q.action?.startsWith('ctx:')) return false;
+    return q.action.endsWith(':required');
+  };
+
+  const handleBusinessContextUpdate = (key: string, value: string | string[]) => {
+    setBusinessContext((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleSkipContextQuestion = () => {
+    if (currentStep < questions.length - 1) {
+      setCurrentStep((prev) => prev + 1);
+    }
   };
 
   // Calculate stage result based on scores
@@ -117,6 +145,27 @@ const BrandStrategyWizard: React.FC = () => {
 
   // Check if the current question is answered
   const isCurrentAnswered = (): boolean => {
+    // Business context questions use businessContext state
+    if (isBusinessContextQuestion(currentQuestion)) {
+      const key = getContextKey(currentQuestion);
+      if (!key) return true;
+      const required = isContextRequired(currentQuestion);
+
+      if (currentQuestion.type === 'text_area') {
+        const val = (businessContext as any)[key] as string | undefined;
+        return required ? (typeof val === 'string' && val.trim().length >= 3) : true;
+      }
+      if (currentQuestion.type === 'selection_list') {
+        const val = (businessContext as any)[key] as string | undefined;
+        return required ? (typeof val === 'string' && val.length > 0) : true;
+      }
+      if (currentQuestion.type === 'selection_multi') {
+        const val = (businessContext as any)[key] as string[] | undefined;
+        return required ? (Array.isArray(val) && val.length > 0) : true;
+      }
+      return true;
+    }
+
     const answer = answers[currentQuestion.id];
 
     switch (currentQuestion.type) {
@@ -183,7 +232,26 @@ const BrandStrategyWizard: React.FC = () => {
           />
         );
 
-      case 'selection_multi':
+      case 'selection_multi': {
+        // Business context multi-select uses businessContext state
+        const ctxKey = getContextKey(currentQuestion);
+        if (ctxKey) {
+          const ctxVal = (businessContext as any)[ctxKey] as string[] || [];
+          return (
+            <SelectionMultiQuestion
+              question={currentQuestion}
+              selectedIds={ctxVal}
+              onToggle={(optionId) => {
+                const current = ctxVal;
+                if (current.includes(optionId)) {
+                  handleBusinessContextUpdate(ctxKey, current.filter((i) => i !== optionId));
+                } else {
+                  handleBusinessContextUpdate(ctxKey, [...current, optionId]);
+                }
+              }}
+            />
+          );
+        }
         return (
           <SelectionMultiQuestion
             question={currentQuestion}
@@ -198,8 +266,20 @@ const BrandStrategyWizard: React.FC = () => {
             }}
           />
         );
+      }
 
-      case 'selection_list':
+      case 'selection_list': {
+        // Business context selection uses businessContext state
+        const ctxKeyList = getContextKey(currentQuestion);
+        if (ctxKeyList) {
+          return (
+            <SelectionListQuestion
+              question={currentQuestion}
+              selectedId={((businessContext as any)[ctxKeyList] as string) || null}
+              onSelect={(value) => handleBusinessContextUpdate(ctxKeyList, value)}
+            />
+          );
+        }
         return (
           <SelectionListQuestion
             question={currentQuestion}
@@ -207,6 +287,21 @@ const BrandStrategyWizard: React.FC = () => {
             onSelect={(value) => handleAnswer(id, value)}
           />
         );
+      }
+
+      case 'text_area': {
+        const ctxKeyText = getContextKey(currentQuestion);
+        if (ctxKeyText) {
+          return (
+            <TextAreaQuestion
+              question={currentQuestion}
+              value={((businessContext as any)[ctxKeyText] as string) || ''}
+              onChange={(value) => handleBusinessContextUpdate(ctxKeyText, value)}
+            />
+          );
+        }
+        return null;
+      }
 
       case 'educational':
         return (
@@ -239,6 +334,7 @@ const BrandStrategyWizard: React.FC = () => {
             stageResults={stageResults}
             sector={selectedSector}
             completionTime={Date.now() - startTime.current}
+            businessContext={businessContext}
             onSubmit={(data) => {
               console.log('Final submission:', data);
             }}
@@ -299,7 +395,7 @@ const BrandStrategyWizard: React.FC = () => {
        currentQuestion.type !== 'educational' &&
        currentQuestion.type !== 'stage_result' &&
        currentQuestion.type !== 'outro' && (
-        <footer className="p-4 md:p-6 flex justify-center w-full max-w-full">
+        <footer className="p-4 md:p-6 flex flex-col items-center gap-3 w-full max-w-full">
           <motion.button
             onClick={handleNext}
             disabled={!isCurrentAnswered()}
@@ -319,6 +415,20 @@ const BrandStrategyWizard: React.FC = () => {
           >
             Devam Et
           </motion.button>
+          {/* Skip button for optional business context questions */}
+          {isBusinessContextQuestion(currentQuestion) && !isContextRequired(currentQuestion) && (
+            <motion.button
+              onClick={handleSkipContextQuestion}
+              className="flex items-center gap-1.5 px-4 py-2 font-grotesk text-sm transition-opacity hover:opacity-70"
+              style={{ color: '#a3a3a3' }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+            >
+              <SkipForward className="w-3.5 h-3.5" />
+              Atla
+            </motion.button>
+          )}
         </footer>
       )}
     </div>

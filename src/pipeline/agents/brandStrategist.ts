@@ -1,9 +1,10 @@
 import { generateJSON } from '../geminiClient';
-import type { NormalizedData, ResearchFindings, StrategistOutput } from '../types';
+import type { NormalizedData, ResearchFindings, StrategistOutput, BusinessContextInput } from '../types';
 
 export async function runBrandStrategist(
   normalizedData: NormalizedData,
-  researchFindings: ResearchFindings | null
+  researchFindings: ResearchFindings | null,
+  businessContext?: BusinessContextInput
 ): Promise<StrategistOutput> {
 
   // Build structured answers summary
@@ -63,13 +64,39 @@ ${researchFindings.threats.map((t) => `- ${t}`).join('\n') || 'Bilgi yok'}
     ? competitorNames.map((name) => `    { "competitorName": "${name}", "theirPosition": "...", "ourAdvantage": "...", "ourWeakness": "..." }`).join(',\n')
     : `    { "competitorName": "Rakip Adi", "theirPosition": "...", "ourAdvantage": "...", "ourWeakness": "..." }`;
 
+  // Build business context section
+  const bc = businessContext;
+  const businessContextSection = bc
+    ? `
+## Isletme Baglam Bilgileri (Dogrudan Musteri Beyani)
+- Isletme Tanimi: ${bc.businessDescription || 'Belirtilmedi'}
+- Bilinen Rakipler: ${bc.competitors || 'Belirtilmedi'}
+- Cografi Kapsam: ${bc.geoScope || 'Belirtilmedi'}
+- Dijital Platformlar: ${bc.digitalPresence?.join(', ') || 'Belirtilmedi'}
+- Instagram Takipci: ${bc.instagramFollowers || 'Belirtilmedi'}
+- Aylik Butce: ${bc.monthlyBudget || 'Belirtilmedi'}
+- Isletme Asamasi: ${bc.businessStage || 'Belirtilmedi'}
+- Basvuru Nedeni: ${bc.triggerReason || 'Belirtilmedi'}
+`
+    : '';
+
+  // Budget-aware pricing instruction
+  const budgetInstruction = bc?.monthlyBudget
+    ? `\n12. BUTCE UYUMU: Musterinin aylik butcesi "${bc.monthlyBudget}" olarak belirtilmis. valuePropositionReasoning.pricePositioning alaninda bu butceyi dikkate al. Isletmenin olcegine uygun fiyat konumlandirmasi yap.`
+    : '';
+
+  // Stage-aware instruction
+  const stageInstruction = bc?.businessStage
+    ? `\n13. ISLETME ASAMASI: Isletme "${bc.businessStage}" asamasinda. Buna gore strateji onerileri kalibre et — yeni isletme icin marka bilinirligine, yerlesik isletme icin pazar payi buyutmeye odaklan.`
+    : '';
+
   const prompt = `Sen deneyimli bir marka stratejistisin. Asagidaki veriyi analiz ederek markanin konumlandirilmasi icin detayli ve KANIT TABANLI bir strateji olustur.
 
 ## Isletme Profili
 - Isletme: ${normalizedData.businessName}
 - Sektor: ${normalizedData.sector}
 - Genel Profil: ${normalizedData.overallProfile}
-
+${businessContextSection}
 ## Yapilandirilmis Cevaplar
 ${answersSummary || 'Cevap bilgisi mevcut degil'}
 
@@ -136,7 +163,7 @@ KRITIK KURALLAR:
 6. "tone" ve "voice" alanlarinda ORNEK CUMLE ver — soyut tanimlama yerine gercek bir cumle yaz.
 7. ${hasResearch ? 'Sektor arastirmasi bulgularini TUM alanlarda referans olarak kullan. Rakip isimlerini DOGRUDAN kullan.' : 'Sektor arastirmasi mevcut degil, wizard verilerinden yola cikarak en somut stratejiyi olustur. Genel sifatlardan kacin.'}
 8. Tum metinler TURKCE olmali.
-9. Sadece JSON don, baska bir sey yazma.`;
+9. Sadece JSON don, baska bir sey yazma.${budgetInstruction}${stageInstruction}`;
 
   const parsed = await generateJSON<StrategistOutput>('pro', prompt, 'BrandStrategist', {
     temperature: 0.7,

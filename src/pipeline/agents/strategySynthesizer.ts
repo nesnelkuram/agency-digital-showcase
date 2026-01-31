@@ -1,12 +1,13 @@
 import { generateJSON } from '../geminiClient';
-import type { NormalizedData, ResearchFindings, StrategistOutput, ChallengerOutput, BlogAdvisorOutput, SynthesizedAnalysis } from '../types';
+import type { NormalizedData, ResearchFindings, StrategistOutput, ChallengerOutput, BlogAdvisorOutput, SynthesizedAnalysis, BusinessContextInput } from '../types';
 
 export async function runStrategySynthesizer(
   normalizedData: NormalizedData,
   researchFindings: ResearchFindings | null,
   strategistOutput: StrategistOutput,
   challengerOutput: ChallengerOutput | null,
-  blogAdvisorOutput: BlogAdvisorOutput | null = null
+  blogAdvisorOutput: BlogAdvisorOutput | null = null,
+  businessContext?: BusinessContextInput
 ): Promise<SynthesizedAnalysis> {
 
   // Format target audience from strategist (segments, not personas)
@@ -66,7 +67,7 @@ ${challengerOutput.blindSpots.map((b) => `  - ${b}`).join('\n')}`;
   if (blogAdvisorOutput) {
     blogAdvisorSummary = `
 
-### Blog Strateji Danismani Degerlendirmesi (Engin Tezcan Perspektifi)
+### Blog Strateji Danismani Degerlendirmesi (Stratejik Blog Danismani Perspektifi)
 - Felsefi Uyum Skoru: ${blogAdvisorOutput.philosophicalAlignment.score}/10
 - Gerekce: ${blogAdvisorOutput.philosophicalAlignment.rationale}
 - Uyumlu Prensipler: ${blogAdvisorOutput.philosophicalAlignment.alignedPrinciples.join('; ') || 'Yok'}
@@ -115,14 +116,50 @@ ${blogAdvisorOutput.unconventionalInsights.map((i) => `  - ${i}`).join('\n')}`;
 
   const expertCount = 1 + (challengerOutput ? 1 : 0) + (blogAdvisorOutput ? 1 : 0);
   const debateInstruction = expertCount === 3
-    ? 'Uc farkli uzmanin goruslerini sentezlemen gerekiyor: Strateji uzmani, seytan avukati ve blog strateji danismani (Engin Tezcan perspektifi). Her ucunun en guclu argumanlarin birlestirerek, cesur ama temelli nihai stratejiyi olustur.'
+    ? 'Uc farkli uzmanin goruslerini sentezlemen gerekiyor: Strateji uzmani, seytan avukati ve blog strateji danismani (stratejik blog danismani perspektifi). Her ucunun en guclu argumanlarin birlestirerek, cesur ama temelli nihai stratejiyi olustur.'
     : challengerOutput
     ? 'Iki farkli uzmanin goruslerini inceleyip en iyi stratejiyi sentezlemen gerekiyor. Strateji uzmaninin onerisiyle seytan avukatinin elestirisini dengeleyerek, en guclu ve tutarli sonucu olustur.'
     : blogAdvisorOutput
-    ? 'Strateji uzmaninin onerisi ve blog strateji danismaninin (Engin Tezcan perspektifi) degerlendirmesini sentezleyerek nihai stratejiyi olustur.'
+    ? 'Strateji uzmaninin onerisi ve blog strateji danismaninin (stratejik blog danismani perspektifi) degerlendirmesini sentezleyerek nihai stratejiyi olustur.'
     : 'Strateji uzmaninin onerisini inceleyip, rafine ederek nihai stratejiyi olusturman gerekiyor. Karsi-analiz mevcut olmadigindan, kendi elestirel gozunle stratejiyi guclendirerek sentezle.';
 
   const sourceCount = researchFindings?.sourcesUsed || 0;
+
+  // Build business context section for synthesizer
+  const bc = businessContext;
+  const businessContextSection = bc
+    ? `
+## Isletme Baglam Bilgileri (Dogrudan Musteri Beyani)
+- Isletme Tanimi: ${bc.businessDescription || 'Belirtilmedi'}
+- Bilinen Rakipler: ${bc.competitors || 'Belirtilmedi'}
+- Cografi Kapsam: ${bc.geoScope || 'Belirtilmedi'}
+- Dijital Platformlar: ${bc.digitalPresence?.join(', ') || 'Belirtilmedi'}
+- Instagram Takipci: ${bc.instagramFollowers || 'Belirtilmedi'}
+- Aylik Butce: ${bc.monthlyBudget || 'Belirtilmedi'}
+- Isletme Asamasi: ${bc.businessStage || 'Belirtilmedi'}
+- Basvuru Nedeni: ${bc.triggerReason || 'Belirtilmedi'}
+`
+    : '';
+
+  // Budget-calibrated action plan instructions
+  const budgetCalibration = bc?.monthlyBudget
+    ? `\n12. BUTCE KALIBRASYONU: Musterinin aylik butcesi "${bc.monthlyBudget}" olarak belirtilmis. actionPlan'daki TUM onerileri bu butceye uygun olacak sekilde kalibre et. Butceyi asan oneriler YAPMA. Ornegin: "starter" (0-5K TL) butce icin "profesyonel video produksiyon" ONERME, bunun yerine "smartphone ile cekilen UGC icerik" gibi butce-uyumlu alternatifler sun.`
+    : '';
+
+  // Stage-calibrated owner instructions
+  const stageCalibration = bc?.businessStage
+    ? `\n13. ISLETME ASAMASI KALIBRASYONU: Isletme "${bc.businessStage}" asamasinda. actionPlan'daki "owner" alanlarini buna gore ayarla — yeni/"idea" asamasindaki isletmeler icin "Isletme sahibi" veya "Freelancer" yaz, buyuyen/yerlesik isletmeler icin "Sosyal medya yoneticisi", "Icerik ekibi" gibi pozisyonlar kullanabilirsin. Ayrica strateji onerileri isletmenin olgunluk seviyesine uygun olmali.`
+    : '';
+
+  // Digital presence calibration
+  const digitalCalibration = bc?.digitalPresence
+    ? `\n14. DIJITAL VARLIK KALIBRASYONU: Musterinin aktif oldugu platformlar: ${bc.digitalPresence.join(', ')}. ${bc.digitalPresence.includes('none') ? 'Musteri HICBIR platformda aktif DEGIL — actionPlan sifirdan dijital varlik olusturmaya odaklanmali.' : `Mevcut platformlari OPTIMIZE etme onerileri on planda olmali, yeni platform onerileri ikincil kalmali.`}`
+    : '';
+
+  // Trigger-based prioritization
+  const triggerCalibration = bc?.triggerReason
+    ? `\n15. TETIKLEYICI NEDEN ONCELIKLENDIRMESI: Musterinin basvuru nedeni "${bc.triggerReason}". actionPlan'in "immediate" fazini bu nedene dogrudan cevap verecek sekilde onceliklendir. Ornegin: "sales_drop" → satis artirici aksiyonlar once, "launch" → marka bilinirlik aksiyonlari once, "rebrand" → kimlik yenileme aksiyonlari once.`
+    : '';
 
   const prompt = `Sen bir marka stratejisi basparlak direktorsun (CSO). ${debateInstruction}
 
@@ -132,7 +169,7 @@ ${blogAdvisorOutput.unconventionalInsights.map((i) => `  - ${i}`).join('\n')}`;
 - Genel Profil: ${normalizedData.overallProfile}
 - Veri Kalitesi: ${normalizedData.dataQualityScore}
 - Tespit Edilen Oruntular: ${normalizedData.detectedPatterns.join('; ') || 'Yok'}
-
+${businessContextSection}
 ## Uzman Gorusleri
 ${strategistSummary}
 ${competitiveMapSummary}
@@ -264,9 +301,15 @@ KRITIK KURALLAR — BU KURALLARA UYMAYAN RAPOR BASARISIZ SAYILIR:
    - "Marka kimlik calismasi yapilmali" → YERINE: "Logo, renk paleti ve tipografi rehberi iceren marka kimlik kilavuzu hazirlanmali. Icermesi gerekenler: logo varyasyonlari, renk kodlari (CMYK/RGB/HEX), tipografi hiyerarsisi, kullanim kurallari."
 
 3. KANIT ZORUNLULUGU: "analysis" bolumundeki HER madde icin destekleyici veri goster.
-   - "strengths" — hangi wizard cevabi veya veri bunu destekliyor?
+   - "strengths" — hangi anket cevabi veya veri bunu destekliyor?
    - "opportunities" — hangi rakibin hangi acigi, hangi pazar trendi?
    - "challenges" — hangi pazar kosulu, hangi rakip tehdidi?
+
+11. DAHILI JARGON YASAK — Bu rapor MUSTERIYE gosterilecek. Asagidaki terimleri KESINLIKLE KULLANMA:
+   - "wizard", "wizard-anketi", "wizard-anketindeki", "score", "score1", "score2", "score3" → YERINE: "Ankete verdiginiz yanita gore..." veya "Degerlendirilme formundaki yanitlariniza gore..."
+   - "agent", "pipeline", "multi-agent", "dataNormalizer", "brandStrategist", "brandChallenger", "blogAdvisor", "synthesizer" → HICBIRINI KULLANMA
+   - "prompt", "LLM", "Gemini", "AI modeli" → KULLANMA
+   - Dahili teknik referanslar yerine DOGAL bir dil kullan: "Analizimiz sonucunda...", "Degerlendirmemize gore..."
 
 4. "positioning.competitiveLandscape" ISIMLI RAKIPLERLE pazar haritasi cikaracak.
 
@@ -279,7 +322,7 @@ KRITIK KURALLAR — BU KURALLARA UYMAYAN RAPOR BASARISIZ SAYILIR:
 8. ${challengerOutput ? 'Her iki uzmanin goruslerini referans goster.' : 'Strateji uzmaninin onerisini nasil rafine ettigini acikla.'}
 
 9. Tum metinler TURKCE olmali.
-10. Sadece JSON don, baska bir sey yazma.`;
+10. Sadece JSON don, baska bir sey yazma.${budgetCalibration}${stageCalibration}${digitalCalibration}${triggerCalibration}`;
 
   const parsed = await generateJSON<SynthesizedAnalysis>('pro', prompt, 'StrategySynthesizer', {
     temperature: 0.6,

@@ -137,7 +137,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const stratStart = Date.now();
       try {
         console.log('analyze-continue: Running brandStrategist...');
-        strategistOutput = await runBrandStrategist(normalizedData, researchFindings);
+        strategistOutput = await runBrandStrategist(normalizedData, researchFindings, input.businessContext);
         timings.brandStrategist = Date.now() - stratStart;
         agentsRun.push('brandStrategist');
         console.log(`analyze-continue: brandStrategist done in ${timings.brandStrategist}ms — archetype=${strategistOutput?.archetype}`);
@@ -213,7 +213,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const synthStart = Date.now();
       try {
         console.log('analyze-continue: Running strategySynthesizer...');
-        synthesizedAnalysis = await runStrategySynthesizer(normalizedData, researchFindings, strategistOutput, challengerOutput, blogAdvisorOutput);
+        synthesizedAnalysis = await runStrategySynthesizer(normalizedData, researchFindings, strategistOutput, challengerOutput, blogAdvisorOutput, input.businessContext);
         timings.strategySynthesizer = Date.now() - synthStart;
         agentsRun.push('strategySynthesizer');
         console.log(`analyze-continue: strategySynthesizer done in ${timings.strategySynthesizer}ms`);

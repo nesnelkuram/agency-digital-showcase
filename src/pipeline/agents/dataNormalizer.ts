@@ -15,6 +15,26 @@ export async function runDataNormalizer(input: PipelineInput): Promise<Normalize
     .map((s) => s.title)
     .join(', ');
 
+  // Admin notes (optional expert context)
+  const adminNotesSection = input.adminNotes?.trim()
+    ? `\n## Admin Notlari (Uzman Degerlendirmesi)\nBu isletme hakkinda uzman tarafindan eklenen ek bilgiler:\n${input.adminNotes.trim()}\n\nBu notlari analiz sirasinda dikkate al ve genel profili buna gore sekillendir.\n`
+    : '';
+
+  // Business context (v2.0 wizard data)
+  const bc = input.businessContext;
+  const businessContextSection = bc
+    ? `\n## Isletme Baglam Bilgileri (Dogrudan Musteri Beyanı)
+- Isletme Tanimi: ${bc.businessDescription || 'Belirtilmedi'}
+- Bilinen Rakipler: ${bc.competitors || 'Belirtilmedi'}
+- Cografi Kapsam: ${bc.geoScope || 'Belirtilmedi'}
+- Dijital Platformlar: ${bc.digitalPresence?.join(', ') || 'Belirtilmedi'}
+- Instagram Takipci: ${bc.instagramFollowers || 'Belirtilmedi'}
+- Aylik Butce: ${bc.monthlyBudget || 'Belirtilmedi'}
+- Isletme Asamasi: ${bc.businessStage || 'Belirtilmedi'}
+- Basvuru Nedeni: ${bc.triggerReason || 'Belirtilmedi'}
+`
+    : '';
+
   const prompt = `Sen bir veri normalizasyon uzmanisisin. Asagidaki ham marka degerlendirme wizard verisini yapilandirilmis ve normalize edilmis bir formata donustur.
 
 ## Isletme Bilgileri
@@ -27,7 +47,7 @@ ${stageResultsSummary || 'Asama sonucu bulunamadi'}
 
 ## Detayli Soru-Cevaplar
 ${resolvedQA || 'Cevap bulunamadi'}
-
+${businessContextSection}${adminNotesSection}
 ---
 
 Yukaridaki ham verileri analiz ederek asagidaki JSON yapisinda bir cikti uret:
@@ -63,7 +83,7 @@ ONEMLI KURALLAR:
 3. "contradictions" alaninda birbirleriyle celisen cevaplari tespit et. Celisi yoksa bos dizi don.
 4. "dataQualityScore" 0 ile 1 arasinda bir deger olmali. Tum sorular cevaplanmissa 1.0'a yakin, eksik cevaplar varsa daha dusuk.
 5. "missingAreas" alaninda cevaplanmamis veya yetersiz kalan alanlari listele. Hepsi tamamsa bos dizi don.
-6. "overallProfile" alaninda isletmenin genel marka profilini dogal bir dille ozetle. Bu metin sonraki asamalarda diger ajanlar tarafindan kullanilacak.
+6. "overallProfile" alaninda isletmenin genel marka profilini dogal bir dille ozetle. Isletme baglam bilgileri (isletme tanimi, cografi kapsam, isletme asamasi, dijital varlik durumu) varsa bunlari profilde kullan. Bu metin sonraki asamalarda diger ajanlar tarafindan kullanilacak.
 7. Tum metinler TURKCE olmali.
 8. Sadece JSON don, baska bir sey yazma.`;
 

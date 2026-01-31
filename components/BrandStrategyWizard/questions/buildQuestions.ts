@@ -1,4 +1,5 @@
 import { Question, SectorQuestionConfig } from '../types';
+import { businessContextConfig } from './businessContext';
 
 const STAGE_META = [
   { stage: 0, title: "Operasyonel Gerçeklik", description: "Brand Readiness Gate" },
@@ -27,6 +28,32 @@ export function buildQuestions(config: SectorQuestionConfig): Question[] {
     script: config.intro.script,
     text: config.intro.text,
     action: "Başlayalım"
+  });
+
+  // Business context questions (after intro, before stages)
+  // These use a separate state (businessContext) and don't affect stage question IDs.
+  const ctxConfig = config.businessContext || businessContextConfig;
+  // Context intro
+  questions.push({
+    id: id++,
+    type: 'intro',
+    script: ctxConfig.intro.script,
+    text: ctxConfig.intro.text,
+    action: "Devam",
+    stageDescription: "Bu bilgiler AI analizinizin kalitesini doğrudan artırır.",
+  });
+  // Context questions - use negative IDs to keep them separate from stage question IDs
+  ctxConfig.questions.forEach((q) => {
+    questions.push({
+      id: id++,
+      type: q.type as Question['type'],
+      script: q.script,
+      text: q.text,
+      options: q.options || null,
+      placeholder: q.placeholder,
+      // Store the context key in the action field for identification
+      action: `ctx:${q.key}:${q.required ? 'required' : 'optional'}`,
+    });
   });
 
   // 5 stages

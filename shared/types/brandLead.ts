@@ -84,6 +84,17 @@ export interface RequestedService {
   description?: string;
 }
 
+export interface BusinessContext {
+  businessDescription?: string;   // İşletmenin sunduğu ürün/hizmet (zorunlu)
+  competitors?: string;           // Bilinen rakipler
+  geoScope?: string;              // Coğrafi kapsam
+  digitalPresence?: string[];     // Aktif dijital platformlar
+  instagramFollowers?: string;    // Instagram takipçi aralığı
+  monthlyBudget?: string;         // Aylık bütçe aralığı
+  businessStage?: string;         // İşletme aşaması
+  triggerReason?: string;         // Başvuru tetikleyicisi
+}
+
 export interface WizardData {
   // Tüm cevaplar (soru ID → cevap)
   answers: Record<number, string | string[]>;
@@ -95,6 +106,8 @@ export interface WizardData {
   wizardVersion: string;
   // Tamamlanma süresi (ms)
   completionTime?: number;
+  // İşletme bağlam bilgileri (v2.0+)
+  businessContext?: BusinessContext;
 }
 
 // ============================================

@@ -18,11 +18,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { contact, sector, wizard, requestedServices, leadId } = req.body;
+    const { contact, sector, wizard, requestedServices, leadId, adminNotes } = req.body;
 
     if (!contact || !sector || !wizard) {
       return res.status(400).json({ error: 'Missing required fields: contact, sector, wizard' });
     }
+
+    // Extract business context from wizard data (v2.0+)
+    const businessContext = wizard.businessContext || undefined;
 
     const input = {
       contact: {
@@ -39,6 +42,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       requestedServices: requestedServices || [],
       leadId: leadId || 'unknown',
       mode: 'full',
+      adminNotes: adminNotes || undefined,
+      businessContext,
     };
 
     // Phase 1: Run data normalizer
@@ -47,7 +52,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.log(`analyze-start: dataNormalizer complete`);
 
     // Phase 2: Start Deep Research (no polling — returns immediately)
-    const prompt = buildDeepResearchPrompt(contact.businessName || '', sector);
+    const prompt = buildDeepResearchPrompt(contact.businessName || '', sector, businessContext);
     console.log('analyze-start: Starting Deep Research interaction...');
     const drInteractionId = await startDeepResearch(prompt);
     console.log(`analyze-start: DR interaction=${drInteractionId || 'FAILED'}`);

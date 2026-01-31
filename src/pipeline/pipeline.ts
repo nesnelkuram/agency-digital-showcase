@@ -83,7 +83,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineState> 
 
   const strategistOutput = await runAgent<StrategistOutput>(
     'brandStrategist',
-    () => runBrandStrategist(normalizedData, researchFindings),
+    () => runBrandStrategist(normalizedData, researchFindings, input.businessContext),
     state,
     true
   );
@@ -130,7 +130,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineState> 
   if (remainingTime(startTime) > 8_000) {
     synthesizedAnalysis = await runAgent<SynthesizedAnalysis>(
       'strategySynthesizer',
-      () => runStrategySynthesizer(normalizedData, researchFindings, strategistOutput, challengerOutput, blogAdvisorOutput),
+      () => runStrategySynthesizer(normalizedData, researchFindings, strategistOutput, challengerOutput, blogAdvisorOutput, input.businessContext),
       state,
       false
     );

@@ -29,10 +29,11 @@ import {
   Link,
   Copy,
   Unlink,
+  Briefcase,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermission } from '@/shared/hooks/usePermission';
-import { getBrandLead, updateBrandLead, addNoteToLead, generateReportShareToken, revokeReportShare } from '@/shared/services/brandLeadService';
+import { getBrandLead, updateBrandLead, addNoteToLead, generateReportShareToken, revokeReportShare, deleteAIAnalysis } from '@/shared/services/brandLeadService';
 import {
   BrandLead,
   LeadStatus,
@@ -65,6 +66,7 @@ const LeadDetailPage: React.FC = () => {
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisPhase, setAnalysisPhase] = useState<'normalizing' | 'researching' | 'analyzing' | 'completed'>('normalizing');
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
+  const [analysisNotes, setAnalysisNotes] = useState('');
 
   // AI Analysis — Multi-Agent Async Pipeline
   const handleAnalyzeWithAI = async (mode: 'full' | 'lite' = 'full') => {
@@ -84,6 +86,7 @@ const LeadDetailPage: React.FC = () => {
             contact: lead.contact, sector: lead.sector,
             wizard: lead.wizard, requestedServices: lead.requestedServices,
             leadId: lead.id, mode: 'lite',
+            adminNotes: analysisNotes || undefined,
           }),
         });
         if (!response.ok) {
@@ -110,6 +113,7 @@ const LeadDetailPage: React.FC = () => {
           contact: lead.contact, sector: lead.sector,
           wizard: lead.wizard, requestedServices: lead.requestedServices,
           leadId: lead.id,
+          adminNotes: analysisNotes || undefined,
         }),
       });
       if (!startRes.ok) {
@@ -143,6 +147,8 @@ const LeadDetailPage: React.FC = () => {
               requestedServices: lead.requestedServices,
               leadId: lead.id,
               mode: 'full',
+              adminNotes: analysisNotes || undefined,
+              businessContext: lead.wizard.businessContext,
             },
           }),
         });
@@ -592,6 +598,85 @@ const LeadDetailPage: React.FC = () => {
                     ))}
                   </div>
                 </div>
+
+                {/* Business Context (v2.0+) */}
+                {lead.wizard.businessContext && Object.values(lead.wizard.businessContext).some(Boolean) && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Briefcase className="w-4 h-4 text-neutral-500" />
+                      <h4 className="font-grotesk font-medium text-[#171717]">Isletme Baglami</h4>
+                      <span className="px-2 py-0.5 bg-blue-100 text-blue-600 rounded-full font-grotesk text-[10px] font-medium">v2.0</span>
+                    </div>
+                    <div className="space-y-2">
+                      {lead.wizard.businessContext.businessDescription && (
+                        <div className="p-3 bg-blue-50 rounded-lg">
+                          <p className="font-grotesk text-xs text-blue-500 mb-1">Isletme Tanimi</p>
+                          <p className="font-grotesk text-sm text-neutral-700">{lead.wizard.businessContext.businessDescription}</p>
+                        </div>
+                      )}
+                      {lead.wizard.businessContext.competitors && (
+                        <div className="p-3 bg-neutral-50 rounded-lg">
+                          <p className="font-grotesk text-xs text-neutral-500 mb-1">Bilinen Rakipler</p>
+                          <p className="font-grotesk text-sm text-neutral-700">{lead.wizard.businessContext.competitors}</p>
+                        </div>
+                      )}
+                      <div className="grid grid-cols-2 gap-2">
+                        {lead.wizard.businessContext.geoScope && (
+                          <div className="p-3 bg-neutral-50 rounded-lg">
+                            <p className="font-grotesk text-xs text-neutral-500 mb-1">Cografi Kapsam</p>
+                            <p className="font-grotesk text-sm text-neutral-700">
+                              {{ local: 'Tek mahalle/semt', city: 'Tek sehir', multi_city: 'Birden fazla sehir', national: 'Turkiye geneli', international: 'Uluslararasi' }[lead.wizard.businessContext.geoScope] || lead.wizard.businessContext.geoScope}
+                            </p>
+                          </div>
+                        )}
+                        {lead.wizard.businessContext.businessStage && (
+                          <div className="p-3 bg-neutral-50 rounded-lg">
+                            <p className="font-grotesk text-xs text-neutral-500 mb-1">Isletme Asamasi</p>
+                            <p className="font-grotesk text-sm text-neutral-700">
+                              {{ idea: 'Fikir asamasi', new: '0-1 yil', growing: '1-3 yil', established: '3+ yil' }[lead.wizard.businessContext.businessStage] || lead.wizard.businessContext.businessStage}
+                            </p>
+                          </div>
+                        )}
+                        {lead.wizard.businessContext.monthlyBudget && (
+                          <div className="p-3 bg-neutral-50 rounded-lg">
+                            <p className="font-grotesk text-xs text-neutral-500 mb-1">Aylik Butce</p>
+                            <p className="font-grotesk text-sm text-neutral-700">
+                              {{ starter: '0-5.000 TL', growth: '5.000-15.000 TL', scale: '15.000-50.000 TL', enterprise: '50.000 TL+' }[lead.wizard.businessContext.monthlyBudget] || lead.wizard.businessContext.monthlyBudget}
+                            </p>
+                          </div>
+                        )}
+                        {lead.wizard.businessContext.instagramFollowers && (
+                          <div className="p-3 bg-neutral-50 rounded-lg">
+                            <p className="font-grotesk text-xs text-neutral-500 mb-1">Instagram Takipci</p>
+                            <p className="font-grotesk text-sm text-neutral-700">
+                              {{ no_account: 'Hesap yok', '0_1k': '0-1.000', '1k_10k': '1.000-10.000', '10k_50k': '10.000-50.000', '50k_plus': '50.000+' }[lead.wizard.businessContext.instagramFollowers] || lead.wizard.businessContext.instagramFollowers}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                      {lead.wizard.businessContext.digitalPresence && lead.wizard.businessContext.digitalPresence.length > 0 && (
+                        <div className="p-3 bg-neutral-50 rounded-lg">
+                          <p className="font-grotesk text-xs text-neutral-500 mb-1.5">Dijital Platformlar</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {lead.wizard.businessContext.digitalPresence.map((p) => (
+                              <span key={p} className="px-2 py-0.5 bg-white rounded font-grotesk text-xs text-neutral-600 border border-neutral-200">
+                                {{ instagram: 'Instagram', website: 'Web Sitesi', google_business: 'Google Business', tiktok: 'TikTok', youtube: 'YouTube', none: 'Hicbiri' }[p] || p}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {lead.wizard.businessContext.triggerReason && (
+                        <div className="p-3 bg-neutral-50 rounded-lg">
+                          <p className="font-grotesk text-xs text-neutral-500 mb-1">Basvuru Nedeni</p>
+                          <p className="font-grotesk text-sm text-neutral-700">
+                            {{ launch: 'Yeni acilis / lansman', sales_drop: 'Satislar dususyor', competition: 'Rakipler one gecti', rebrand: 'Rebranding / yenilenme', first_digital: 'Dijitale ilk adim', curious: 'Merak ettim' }[lead.wizard.businessContext.triggerReason] || lead.wizard.businessContext.triggerReason}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1005,13 +1090,22 @@ const LeadDetailPage: React.FC = () => {
                       <EvidenceSummary evidenceSummary={lead.aiAnalysis.evidenceSummary} />
                     )}
 
-                    {/* Meta Info */}
-                    <div className="pt-4 border-t border-neutral-100">
+                    {/* Meta Info + Delete */}
+                    <div className="pt-4 border-t border-neutral-100 flex items-center justify-between">
                       <p className="font-grotesk text-xs text-neutral-400">
                         Analiz: {lead.aiAnalysis.analyzedBy === 'gemini-multi-agent' ? 'Multi-Agent Pipeline' : (lead.aiAnalysis.modelVersion || 'Gemini')} •{' '}
                         {lead.aiAnalysis.analyzedAt ? formatDate(lead.aiAnalysis.analyzedAt) : '-'}
                         {lead.aiAnalysis.confidence != null && ` • Guven: %${Math.round(lead.aiAnalysis.confidence * 100)}`}
                       </p>
+                      {can(PERMISSIONS.LEADS_AI_ANALYZE) && (
+                        <DeleteAnalysisButton leadId={lead.id} onDeleted={() => {
+                          setLead((prev) => {
+                            if (!prev) return null;
+                            const { aiAnalysis, ...rest } = prev as any;
+                            return rest as BrandLead;
+                          });
+                        }} />
+                      )}
                     </div>
                   </div>
                 ) : (
@@ -1023,6 +1117,24 @@ const LeadDetailPage: React.FC = () => {
                     <p className="font-grotesk text-neutral-500 mb-4">
                       5 uzman agent ile detayli marka stratejisi olusturmak icin analizi baslatin.
                     </p>
+
+                    {/* Admin Notes Textarea */}
+                    <div className="max-w-lg mx-auto mb-6 text-left">
+                      <label className="block font-grotesk text-sm font-medium text-neutral-600 mb-1.5">
+                        Analiz Notu (Opsiyonel)
+                      </label>
+                      <textarea
+                        value={analysisNotes}
+                        onChange={(e) => setAnalysisNotes(e.target.value)}
+                        placeholder="Analiz oncesi eklemek istediginiz bilgi veya yorum... Ornegin: Bu musteri X sektorunde Y yildir faaliyet gosteriyor, Z konusunda ozellikle guclu."
+                        rows={3}
+                        className="w-full px-4 py-3 rounded-xl border border-neutral-200 bg-neutral-50 font-grotesk text-sm text-neutral-700 placeholder:text-neutral-400 focus:outline-none focus:border-purple-300 focus:ring-1 focus:ring-purple-200 resize-none"
+                      />
+                      <p className="font-grotesk text-xs text-neutral-400 mt-1">
+                        Bu notlar analiz sirasinda tum ajanlara iletilir ve stratejiyi yonlendirir.
+                      </p>
+                    </div>
+
                     {analyzeError && (
                       <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg inline-flex items-center gap-2">
                         <AlertCircle className="w-4 h-4 text-red-500" />
@@ -1059,6 +1171,82 @@ const LeadDetailPage: React.FC = () => {
     </div>
   );
 };
+
+// ─── Delete Analysis Button (two-step confirm) ──────
+
+function DeleteAnalysisButton({ leadId, onDeleted }: { leadId: string; onDeleted: () => void }) {
+  const [step, setStep] = useState<'idle' | 'confirm1' | 'confirm2' | 'deleting'>('idle');
+
+  const handleDelete = async () => {
+    setStep('deleting');
+    try {
+      await deleteAIAnalysis(leadId);
+      onDeleted();
+      setStep('idle');
+    } catch (err) {
+      console.error('Delete analysis error:', err);
+      setStep('idle');
+    }
+  };
+
+  if (step === 'idle') {
+    return (
+      <button
+        onClick={() => setStep('confirm1')}
+        className="font-grotesk text-xs text-neutral-400 hover:text-red-500 transition-colors"
+      >
+        Analizi Sil
+      </button>
+    );
+  }
+
+  if (step === 'confirm1') {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="font-grotesk text-xs text-red-500">Emin misiniz?</span>
+        <button
+          onClick={() => setStep('confirm2')}
+          className="px-2.5 py-1 bg-red-100 text-red-600 rounded-lg font-grotesk text-xs font-medium hover:bg-red-200 transition-colors"
+        >
+          Evet, silmek istiyorum
+        </button>
+        <button
+          onClick={() => setStep('idle')}
+          className="px-2.5 py-1 bg-neutral-100 text-neutral-500 rounded-lg font-grotesk text-xs hover:bg-neutral-200 transition-colors"
+        >
+          Vazgec
+        </button>
+      </div>
+    );
+  }
+
+  if (step === 'confirm2') {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="font-grotesk text-xs text-red-600 font-medium">Bu islem geri alinamaz!</span>
+        <button
+          onClick={handleDelete}
+          className="px-2.5 py-1 bg-red-500 text-white rounded-lg font-grotesk text-xs font-medium hover:bg-red-600 transition-colors"
+        >
+          Kesinlikle Sil
+        </button>
+        <button
+          onClick={() => setStep('idle')}
+          className="px-2.5 py-1 bg-neutral-100 text-neutral-500 rounded-lg font-grotesk text-xs hover:bg-neutral-200 transition-colors"
+        >
+          Vazgec
+        </button>
+      </div>
+    );
+  }
+
+  // deleting
+  return (
+    <span className="font-grotesk text-xs text-neutral-400 flex items-center gap-1">
+      <Loader2 className="w-3 h-3 animate-spin" /> Siliniyor...
+    </span>
+  );
+}
 
 // ─── Report Share Button ─────────────────────────────
 
