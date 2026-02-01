@@ -8,6 +8,7 @@ import {
   getPlatformAccounts,
   savePlatformAccount,
   disconnectPlatformAccount,
+  syncCampaignsFromMeta,
 } from '@/shared/services/marketingService';
 import { useProjectScope } from '@/shared/hooks/useProjectScope';
 import ProjectBreadcrumb from '@/admin/projects/components/ProjectBreadcrumb';
@@ -105,6 +106,9 @@ const PlatformsPage: React.FC = () => {
   const [pickerData, setPickerData] = useState<AccountPickerData | null>(null);
   const [pickerSaving, setPickerSaving] = useState(false);
 
+  // Sync state
+  const [syncStatus, setSyncStatus] = useState<string | null>(null);
+
   const fetchAccounts = useCallback(async () => {
     setLoading(true);
     try {
@@ -136,6 +140,16 @@ const PlatformsPage: React.FC = () => {
           ...(resolvedProjectId ? { projectId: resolvedProjectId } : {}),
         });
         await fetchAccounts();
+        // Trigger campaign sync in background
+        if (resolvedProjectId) {
+          setSyncStatus('Kampanyalar senkronize ediliyor...');
+          syncCampaignsFromMeta(resolvedProjectId, accountData.platform || 'meta')
+            .then((result) => {
+              setSyncStatus(result.error || `${result.synced} kampanya senkronize edildi`);
+              setTimeout(() => setSyncStatus(null), 5000);
+            })
+            .catch(() => setSyncStatus(null));
+        }
       } catch (err) {
         console.error('Failed to save connected account:', err);
       } finally {
@@ -220,6 +234,16 @@ const PlatformsPage: React.FC = () => {
       });
       setPickerData(null);
       await fetchAccounts();
+      // Trigger campaign sync in background
+      if (resolvedProjectId) {
+        setSyncStatus('Kampanyalar senkronize ediliyor...');
+        syncCampaignsFromMeta(resolvedProjectId, pickerData.platform)
+          .then((result) => {
+            setSyncStatus(result.error || `${result.synced} kampanya senkronize edildi`);
+            setTimeout(() => setSyncStatus(null), 5000);
+          })
+          .catch(() => setSyncStatus(null));
+      }
     } catch (err) {
       console.error('Failed to save selected account:', err);
     } finally {
@@ -251,6 +275,13 @@ const PlatformsPage: React.FC = () => {
           >
             Kapat
           </button>
+        </div>
+      )}
+
+      {syncStatus && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center gap-2">
+          <RefreshCw className="w-4 h-4 text-blue-500 flex-shrink-0 animate-spin" />
+          <p className="text-sm font-commons text-blue-700">{syncStatus}</p>
         </div>
       )}
 

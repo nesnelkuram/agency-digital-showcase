@@ -780,6 +780,125 @@ export async function getMarketingStats(projectId?: string): Promise<MarketingDa
 // KAMPANYA NOT EKLEME
 // ============================================
 
+// ============================================
+// META KAMPANYA SYNC
+// ============================================
+
+/**
+ * Syncs campaigns from Meta API → Firestore.
+ * Calls the sync-campaigns API, then upserts results to Firestore.
+ */
+export async function syncCampaignsFromMeta(
+  projectId: string,
+  platform: AdPlatform = 'meta'
+): Promise<{ synced: number; error?: string }> {
+  if (!db) throw new Error('Firebase not initialized');
+
+  // 1. Get platform account (accessToken + adAccountId)
+  const account = await getPlatformAccount(platform, projectId);
+  if (!account || !account.metadata?.accessToken || !account.metadata?.adAccountId) {
+    return { synced: 0, error: 'Platform hesabi bulunamadi veya token eksik' };
+  }
+
+  // 2. Call sync API
+  const res = await fetch('/api/marketing/sync-campaigns', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      accessToken: account.metadata.accessToken,
+      adAccountId: account.metadata.adAccountId,
+    }),
+  });
+
+  const data = await res.json();
+  if (!data.success) {
+    return { synced: 0, error: data.error || 'Sync basarisiz' };
+  }
+
+  // 3. Upsert each campaign to Firestore
+  let synced = 0;
+  for (const camp of data.campaigns) {
+    await upsertCampaignByPlatformId(platform, camp.metaCampaignId, {
+      projectId,
+      name: camp.name,
+      objective: camp.objective,
+      platforms: camp.platforms,
+      status: camp.status,
+      budget: camp.budget,
+      schedule: camp.schedule,
+      performance: camp.performance ? {
+        ...camp.performance,
+        lastUpdated: Timestamp.now(),
+      } : undefined,
+      platformCampaignIds: { [platform]: camp.metaCampaignId },
+    });
+    synced++;
+  }
+
+  return { synced };
+}
+
+/**
+ * Upsert a campaign by its platform campaign ID.
+ * If a campaign with the same platformCampaignIds[platform] exists, update it.
+ * Otherwise create a new one.
+ */
+export async function upsertCampaignByPlatformId(
+  platform: AdPlatform,
+  platformCampaignId: string,
+  data: Partial<MarketingCampaign>
+): Promise<string> {
+  if (!db) throw new Error('Firebase not initialized');
+
+  // Check if campaign already exists with this platform ID
+  const q = query(
+    collection(db, CAMPAIGNS_COLLECTION),
+    where(`platformCampaignIds.${platform}`, '==', platformCampaignId),
+    limit(1)
+  );
+
+  const snapshot = await getDocs(q);
+
+  if (!snapshot.empty) {
+    // Update existing
+    const existingDoc = snapshot.docs[0];
+    await updateDoc(doc(db, CAMPAIGNS_COLLECTION, existingDoc.id), {
+      ...stripUndefined(data),
+      updatedAt: serverTimestamp(),
+    });
+    return existingDoc.id;
+  }
+
+  // Create new campaign
+  const newCampaign = {
+    ...stripUndefined(data),
+    description: data.description || '',
+    targeting: data.targeting || {},
+    adSets: data.adSets || [],
+    approvalHistory: [],
+    timeline: [{
+      id: `evt-${Date.now()}`,
+      type: 'created',
+      title: 'Meta\'dan senkronize edildi',
+      description: `Kampanya Meta Ads hesabindan otomatik olarak iceri aktarildi`,
+      createdAt: Timestamp.now(),
+      createdBy: 'system',
+      createdByName: 'Meta Sync',
+    }],
+    tags: ['meta-sync'],
+    platformCampaignIds: { [platform]: platformCampaignId },
+    createdAt: Timestamp.now(),
+    updatedAt: Timestamp.now(),
+  };
+
+  const docRef = await addDoc(collection(db, CAMPAIGNS_COLLECTION), newCampaign);
+  return docRef.id;
+}
+
+// ============================================
+// KAMPANYA NOT EKLEME
+// ============================================
+
 export async function addNoteToCampaign(
   campaignId: string,
   note: string,

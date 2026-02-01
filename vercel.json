@@ -21,6 +21,9 @@
     "api/marketing/execute-campaign.ts": {
       "maxDuration": 120
     },
+    "api/marketing/sync-campaigns.ts": {
+      "maxDuration": 120
+    },
     "api/marketing/sync-performance.ts": {
       "maxDuration": 120
     },

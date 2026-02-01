@@ -15,6 +15,9 @@ import {
 import {
   getCampaigns,
   getMarketingStats,
+  syncCampaignsFromMeta,
+  getPlatformAccounts,
+  savePerformanceSnapshot,
 } from '@/shared/services/marketingService';
 import { useProjectScope } from '@/shared/hooks/useProjectScope';
 import ProjectBreadcrumb from '@/admin/projects/components/ProjectBreadcrumb';
@@ -25,6 +28,8 @@ const PerformancePage: React.FC = () => {
   const [campaigns, setCampaigns] = useState<CampaignSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [optimizing, setOptimizing] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -65,6 +70,62 @@ const PerformancePage: React.FC = () => {
     }
   };
 
+  const triggerSync = async () => {
+    if (!projectId) return;
+    setSyncing(true);
+    setSyncMessage('Kampanyalar senkronize ediliyor...');
+    try {
+      // 1. Sync campaigns from Meta (includes aggregated performance)
+      const campResult = await syncCampaignsFromMeta(projectId);
+      if (campResult.error) {
+        setSyncMessage(`Hata: ${campResult.error}`);
+        return;
+      }
+
+      setSyncMessage(`${campResult.synced} kampanya senkronize edildi. Gunluk veriler aliniyor...`);
+
+      // 2. Sync daily performance snapshots
+      const accounts = await getPlatformAccounts(projectId);
+      const metaAccount = accounts.find(a => a.platform === 'meta' && a.status === 'connected');
+      if (metaAccount?.metadata?.accessToken) {
+        // Get campaigns that have Meta IDs
+        const { campaigns: allCamps } = await getCampaigns({ projectId });
+        const metaCampaigns = allCamps.filter(c => c.platforms.includes('meta'));
+
+        if (metaCampaigns.length > 0) {
+          const perfRes = await fetch('/api/marketing/sync-performance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              accessToken: metaAccount.metadata.accessToken,
+              campaigns: metaCampaigns.map(c => ({
+                id: c.id,
+                metaCampaignId: (c as any).platformCampaignIds?.meta || c.id,
+              })),
+            }),
+          });
+
+          const perfData = await perfRes.json();
+          if (perfData.success && perfData.snapshots) {
+            for (const snap of perfData.snapshots) {
+              await savePerformanceSnapshot(snap);
+            }
+            setSyncMessage(`Tamamlandi! ${campResult.synced} kampanya, ${perfData.snapshotsCount} gunluk veri`);
+          }
+        }
+      }
+
+      // Reload dashboard data
+      await loadData();
+      setTimeout(() => setSyncMessage(null), 4000);
+    } catch (err: any) {
+      console.error('Sync failed:', err);
+      setSyncMessage(`Senkronizasyon hatasi: ${err.message}`);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -86,6 +147,14 @@ const PerformancePage: React.FC = () => {
         </div>
         <div className="flex items-center gap-3">
           <button
+            onClick={triggerSync}
+            disabled={syncing || !projectId}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-neutral-200 text-neutral-700 rounded-lg hover:bg-neutral-50 transition-colors font-commons text-sm disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Senkronize Ediliyor...' : 'Verileri Guncelle'}
+          </button>
+          <button
             onClick={triggerOptimize}
             disabled={optimizing}
             className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-commons text-sm disabled:opacity-50"
@@ -95,6 +164,16 @@ const PerformancePage: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Sync status message */}
+      {syncMessage && (
+        <div className={`rounded-lg px-4 py-3 text-sm font-commons flex items-center gap-2 ${
+          syncMessage.startsWith('Hata') ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-blue-50 text-blue-700 border border-blue-200'
+        }`}>
+          {syncing && <RefreshCw className="w-4 h-4 animate-spin flex-shrink-0" />}
+          {syncMessage}
+        </div>
+      )}
 
       {/* Main KPIs */}
       {stats && (
