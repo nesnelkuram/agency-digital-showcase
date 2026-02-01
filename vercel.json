@@ -26,6 +26,13 @@
     },
     "api/marketing/optimize.ts": {
       "maxDuration": 300
+    },
+    "api/marketing/platforms/connect.ts": {
+      "includeFiles": "src/platforms/**"
+    },
+    "api/marketing/platforms/callback.ts": {
+      "maxDuration": 30,
+      "includeFiles": "src/platforms/**"
     }
   },
   "headers": [
