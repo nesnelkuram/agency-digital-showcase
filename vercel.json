@@ -28,11 +28,10 @@
       "maxDuration": 300
     },
     "api/marketing/platforms/connect.ts": {
-      "includeFiles": "src/platforms/**"
+      "maxDuration": 10
     },
     "api/marketing/platforms/callback.ts": {
-      "maxDuration": 30,
-      "includeFiles": "src/platforms/**"
+      "maxDuration": 30
     }
   },
   "headers": [

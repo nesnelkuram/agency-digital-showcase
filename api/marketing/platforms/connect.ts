@@ -4,6 +4,8 @@ export const config = {
   maxDuration: 10,
 };
 
+const META_API_VERSION = 'v21.0';
+
 /**
  * GET /api/marketing/platforms/connect
  *
@@ -26,22 +28,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Missing platform parameter' });
     }
 
-    const { getAdapter } = await import('../../../src/platforms/registry');
-    const adapter = getAdapter(String(platform) as any);
-
-    if (!adapter) {
-      return res.status(400).json({ error: `Unsupported platform: ${platform}` });
-    }
-
     // Build callback URI
     const protocol = req.headers['x-forwarded-proto'] || 'https';
     const host = req.headers['x-forwarded-host'] || req.headers.host;
     const callbackUri = `${protocol}://${host}/api/marketing/platforms/callback`;
 
-    // Get the platform's OAuth URL
-    const authUrl = adapter.getAuthUrl(callbackUri);
+    let authUrl: string;
 
-    // Append our state parameter to the auth URL
+    switch (String(platform)) {
+      case 'meta': {
+        const appId = process.env.META_APP_ID;
+        if (!appId) {
+          return res.status(500).json({ error: 'META_APP_ID not configured' });
+        }
+        const scopes = [
+          'ads_management',
+          'ads_read',
+          'business_management',
+          'pages_read_engagement',
+        ].join(',');
+        authUrl = `https://www.facebook.com/${META_API_VERSION}/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(callbackUri)}&scope=${scopes}&response_type=code`;
+        break;
+      }
+      default:
+        return res.status(400).json({ error: `Unsupported platform: ${platform}` });
+    }
+
+    // Append state parameter
     const separator = authUrl.includes('?') ? '&' : '?';
     const fullAuthUrl = `${authUrl}${separator}state=${encodeURIComponent(String(state || '{}'))}`;
 

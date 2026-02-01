@@ -14,8 +14,8 @@ const META_API_BASE = `https://graph.facebook.com/${META_API_VERSION}`;
  * After the user authorizes on the platform (Meta, Google, etc.),
  * they are redirected here with an authorization code.
  *
- * For Meta: fetches all ad accounts from Business Manager and redirects
- * to account picker if multiple accounts exist.
+ * For Meta: exchanges code for long-lived token, fetches all ad accounts
+ * from Business Manager, and redirects to account picker if multiple exist.
  *
  * Query params:
  *  - code: authorization code from OAuth provider
@@ -51,106 +51,114 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.redirect('/admin/marketing/platforms?error=invalid_state');
     }
 
-    const { platform, redirectPath, projectId } = stateData;
+    const { platform, redirectPath } = stateData;
     const fallbackPath = redirectPath || '/admin/marketing/platforms';
 
-    console.log(`[platform-callback] Processing callback for platform=${platform}${projectId ? ` projectId=${projectId}` : ''}`);
-
-    // Dynamic import adapter
-    const { getAdapter } = await import('../../../src/platforms/registry');
-    const adapter = getAdapter(platform as any);
-
-    if (!adapter) {
-      return res.redirect(
-        `${fallbackPath}?error=${encodeURIComponent(`Unsupported platform: ${platform}`)}`
-      );
-    }
+    console.log(`[platform-callback] Processing callback for platform=${platform}`);
 
     // Construct redirect URI (must match what was used for auth initiation)
     const protocol = req.headers['x-forwarded-proto'] || 'https';
     const host = req.headers['x-forwarded-host'] || req.headers.host;
     const redirectUri = `${protocol}://${host}/api/marketing/platforms/callback`;
 
-    // Exchange code for tokens
-    const accountData = await adapter.handleCallback(String(code), redirectUri);
-
-    console.log(`[platform-callback] Successfully connected ${platform} account: ${accountData.accountName}`);
-
-    // ── Meta: Fetch all ad accounts from Business Manager ──
-    if (platform === 'meta' && accountData.metadata?.accessToken) {
-      const accessToken = accountData.metadata.accessToken;
-
-      try {
-        const adAccountsRes = await fetch(
-          `${META_API_BASE}/me/adaccounts?access_token=${accessToken}&fields=name,account_id,account_status&limit=100`
+    // ── Meta OAuth token exchange (inlined) ──
+    if (platform === 'meta') {
+      const appId = process.env.META_APP_ID;
+      const appSecret = process.env.META_APP_SECRET;
+      if (!appId || !appSecret) {
+        return res.redirect(
+          `${fallbackPath}?error=${encodeURIComponent('META_APP_ID or META_APP_SECRET not configured')}`
         );
-        const adAccountsData = await adAccountsRes.json();
-        const adAccounts: Array<{ id: string; name: string; account_id: string; account_status: number }> =
-          adAccountsData.data || [];
+      }
 
-        console.log(`[platform-callback] Found ${adAccounts.length} Meta ad account(s)`);
+      // 1. Exchange code for short-lived token
+      const tokenUrl = `${META_API_BASE}/oauth/access_token?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&client_secret=${appSecret}&code=${code}`;
+      const tokenRes = await fetch(tokenUrl);
+      const tokenData = await tokenRes.json();
 
-        if (adAccounts.length === 0) {
-          return res.redirect(
-            `${fallbackPath}?error=${encodeURIComponent('Bu hesapta reklam hesabi bulunamadi. Business Manager\'da reklam hesabi olusturun.')}`
-          );
-        }
+      if (tokenData.error) {
+        throw new Error(`Meta OAuth error: ${tokenData.error.message}`);
+      }
 
-        if (adAccounts.length === 1) {
-          // Single account — auto-select and save directly
-          const singleAccount = adAccounts[0];
-          const encodedAccount = encodeURIComponent(JSON.stringify({
-            platform: accountData.platform,
-            accountId: singleAccount.account_id,
-            accountName: singleAccount.name || accountData.accountName,
-            status: accountData.status,
-            permissions: accountData.permissions,
-            metadata: {
-              accessToken,
-              adAccountId: singleAccount.account_id,
-              userId: accountData.accountId,
-              userName: accountData.accountName,
-            },
-          }));
+      // 2. Exchange for long-lived token (60 days)
+      const longLivedUrl = `${META_API_BASE}/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${tokenData.access_token}`;
+      const llRes = await fetch(longLivedUrl);
+      const llData = await llRes.json();
 
-          return res.redirect(`${fallbackPath}?connected=${encodedAccount}`);
-        }
+      if (llData.error) {
+        throw new Error(`Meta long-lived token error: ${llData.error.message}`);
+      }
 
-        // Multiple accounts — redirect to picker
-        const pickerData = encodeURIComponent(JSON.stringify({
+      const accessToken = llData.access_token;
+      const expiresInMs = (llData.expires_in || 5184000) * 1000; // default 60 days
+
+      // 3. Get user info
+      const meRes = await fetch(`${META_API_BASE}/me?access_token=${accessToken}&fields=name,id`);
+      const meData = await meRes.json();
+      const userName = meData.name || 'Meta Business Account';
+      const userId = meData.id || '';
+
+      console.log(`[platform-callback] Successfully connected Meta account: ${userName}`);
+
+      // 4. Fetch all ad accounts from Business Manager
+      const adAccountsRes = await fetch(
+        `${META_API_BASE}/me/adaccounts?access_token=${accessToken}&fields=name,account_id,account_status&limit=100`
+      );
+      const adAccountsData = await adAccountsRes.json();
+      const adAccounts: Array<{ id: string; name: string; account_id: string; account_status: number }> =
+        adAccountsData.data || [];
+
+      console.log(`[platform-callback] Found ${adAccounts.length} Meta ad account(s)`);
+
+      if (adAccounts.length === 0) {
+        return res.redirect(
+          `${fallbackPath}?error=${encodeURIComponent('Bu hesapta reklam hesabi bulunamadi. Business Manager\'da reklam hesabi olusturun.')}`
+        );
+      }
+
+      if (adAccounts.length === 1) {
+        // Single account — auto-select
+        const singleAccount = adAccounts[0];
+        const encodedAccount = encodeURIComponent(JSON.stringify({
           platform: 'meta',
-          accessToken,
-          tokenExpiresAt: accountData.tokenExpiresAt?.toMillis() || Date.now() + 5184000000,
-          userName: accountData.accountName,
-          userId: accountData.accountId,
-          permissions: accountData.permissions,
-          accounts: adAccounts.map(acc => ({
-            id: acc.account_id,
-            name: acc.name || acc.account_id,
-            status: acc.account_status,
-          })),
+          accountId: singleAccount.account_id,
+          accountName: singleAccount.name || userName,
+          status: 'connected',
+          permissions: ['ads_management', 'ads_read', 'business_management'],
+          metadata: {
+            accessToken,
+            adAccountId: singleAccount.account_id,
+            userId,
+            userName,
+          },
         }));
 
-        console.log(`[platform-callback] Redirecting to account picker with ${adAccounts.length} accounts`);
-        return res.redirect(`${fallbackPath}?selectAccount=${pickerData}`);
-
-      } catch (adAccountError: any) {
-        console.error('[platform-callback] Error fetching ad accounts:', adAccountError.message);
-        // Fallback: continue with basic account data (no ad account selected)
+        return res.redirect(`${fallbackPath}?connected=${encodedAccount}`);
       }
+
+      // Multiple accounts — redirect to picker
+      const pickerData = encodeURIComponent(JSON.stringify({
+        platform: 'meta',
+        accessToken,
+        tokenExpiresAt: Date.now() + expiresInMs,
+        userName,
+        userId,
+        permissions: ['ads_management', 'ads_read', 'business_management'],
+        accounts: adAccounts.map(acc => ({
+          id: acc.account_id,
+          name: acc.name || acc.account_id,
+          status: acc.account_status,
+        })),
+      }));
+
+      console.log(`[platform-callback] Redirecting to account picker with ${adAccounts.length} accounts`);
+      return res.redirect(`${fallbackPath}?selectAccount=${pickerData}`);
     }
 
-    // ── Non-Meta or fallback: return single account data ──
-    const encodedAccount = encodeURIComponent(JSON.stringify({
-      platform: accountData.platform,
-      accountId: accountData.accountId,
-      accountName: accountData.accountName,
-      status: accountData.status,
-      permissions: accountData.permissions,
-      metadata: accountData.metadata,
-    }));
-
-    return res.redirect(`${fallbackPath}?connected=${encodedAccount}`);
+    // ── Non-Meta platforms (future) ──
+    return res.redirect(
+      `${fallbackPath}?error=${encodeURIComponent(`Unsupported platform: ${platform}`)}`
+    );
 
   } catch (error: any) {
     console.error('[platform-callback] Error:', error.message);
