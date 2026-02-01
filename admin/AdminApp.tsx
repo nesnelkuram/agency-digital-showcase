@@ -7,7 +7,6 @@ import DashboardPage from './dashboard/DashboardPage';
 // Lazy load other pages
 const LeadsPage = React.lazy(() => import('./leads/LeadsPage'));
 const LeadDetailPage = React.lazy(() => import('./leads/LeadDetailPage'));
-const ProjectsPage = React.lazy(() => import('./projects/ProjectListPage'));
 const ApprovalsPage = React.lazy(() => import('./approvals/ApprovalsPage'));
 const AssetsPage = React.lazy(() => import('./assets/AssetLibraryPage'));
 const TrainingPage = React.lazy(() => import('./training/TrainingPage'));
@@ -39,6 +38,26 @@ const ProjectionsPage = React.lazy(() => import('./pricing/projections/Projectio
 const FeedbackPage = React.lazy(() => import('./feedback/FeedbackPage'));
 const FeedbackDetailPage = React.lazy(() => import('./feedback/FeedbackDetailPage'));
 
+// Project Pages
+const ProjectListPage = React.lazy(() => import('./projects/ProjectListPage'));
+const ProjectDetailPage = React.lazy(() => import('./projects/ProjectDetailPage'));
+const CreateProjectPage = React.lazy(() => import('./projects/CreateProjectPage'));
+
+// Marketing Pages
+const MarketingDashboard = React.lazy(() => import('./marketing/MarketingDashboard'));
+const CampaignsPage = React.lazy(() => import('./marketing/CampaignsPage'));
+const CampaignDetailPage = React.lazy(() => import('./marketing/CampaignDetailPage'));
+const ProposalsPage = React.lazy(() => import('./marketing/ProposalsPage'));
+const ProposalReviewPage = React.lazy(() => import('./marketing/ProposalReviewPage'));
+const PlatformsPage = React.lazy(() => import('./marketing/PlatformsPage'));
+const PerformancePage = React.lazy(() => import('./marketing/PerformancePage'));
+const BudgetPage = React.lazy(() => import('./marketing/BudgetPage'));
+
+// Social Media Pages
+const SocialMediaDashboard = React.lazy(() => import('./social-media/SocialMediaDashboard'));
+const SocialMediaCalendar = React.lazy(() => import('./social-media/SocialMediaCalendar'));
+const CreatePostPage = React.lazy(() => import('./social-media/CreatePostPage'));
+
 const AdminApp: React.FC = () => {
   return (
     <AuthGuard>
@@ -61,11 +80,118 @@ const AdminApp: React.FC = () => {
               </React.Suspense>
             }
           />
+          {/* Project Routes */}
           <Route
-            path="projects/*"
+            path="projects"
             element={
               <React.Suspense fallback={<PageLoader />}>
-                <ProjectsPage />
+                <ProjectListPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="projects/new"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <CreateProjectPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="projects/:id"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <ProjectDetailPage />
+              </React.Suspense>
+            }
+          />
+          {/* Project-scoped Marketing Routes */}
+          <Route
+            path="projects/:projectId/marketing"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <MarketingDashboard />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="projects/:projectId/marketing/campaigns"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <CampaignsPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="projects/:projectId/marketing/campaigns/:id"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <CampaignDetailPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="projects/:projectId/marketing/proposals"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <ProposalsPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="projects/:projectId/marketing/proposals/:id"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <ProposalReviewPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="projects/:projectId/marketing/platforms"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <PlatformsPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="projects/:projectId/marketing/performance"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <PerformancePage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="projects/:projectId/marketing/budget"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <BudgetPage />
+              </React.Suspense>
+            }
+          />
+          {/* Project-scoped Social Media Routes */}
+          <Route
+            path="projects/:projectId/social-media"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <SocialMediaDashboard />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="projects/:projectId/social-media/calendar"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <SocialMediaCalendar />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="projects/:projectId/social-media/new"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <CreatePostPage />
               </React.Suspense>
             }
           />
@@ -234,6 +360,71 @@ const AdminApp: React.FC = () => {
             element={
               <React.Suspense fallback={<PageLoader />}>
                 <FeedbackDetailPage />
+              </React.Suspense>
+            }
+          />
+          {/* Marketing Routes */}
+          <Route
+            path="marketing"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <MarketingDashboard />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="marketing/campaigns"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <CampaignsPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="marketing/proposals"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <ProposalsPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="marketing/campaigns/:id"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <CampaignDetailPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="marketing/proposals/:id"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <ProposalReviewPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="marketing/platforms"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <PlatformsPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="marketing/performance"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <PerformancePage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="marketing/budget"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <BudgetPage />
               </React.Suspense>
             }
           />

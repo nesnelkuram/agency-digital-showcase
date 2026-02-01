@@ -24,12 +24,10 @@ interface RecordFeedbackModalProps {
 }
 
 // Steps where modal is shown (recording uses floating bar instead)
-type ModalStep = 'select' | 'preview' | 'details';
+type ModalStep = 'select' | 'preview';
 
 const RecordFeedbackModal: React.FC<RecordFeedbackModalProps> = ({ onClose, onComplete }) => {
   const [step, setStep] = useState<ModalStep>('select');
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
   const previewVideoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -88,18 +86,14 @@ const RecordFeedbackModal: React.FC<RecordFeedbackModalProps> = ({ onClose, onCo
     setStep('select');
   };
 
-  const handleProceed = () => {
-    setStep('details');
-  };
-
-  const handleSave = async () => {
-    if (!activeBlob || !title.trim()) return;
+  const handleProceed = async () => {
+    if (!activeBlob || uploader.uploading) return;
 
     const video = await uploader.uploadRecording(
       activeBlob,
-      title.trim(),
       activeMode,
-      activeDuration
+      activeDuration,
+      recorder.recordedAudioBlob // Pass audio blob for fast AI transcription
     );
 
     if (video) {
@@ -251,72 +245,11 @@ const RecordFeedbackModal: React.FC<RecordFeedbackModalProps> = ({ onClose, onCo
               />
             </div>
 
-            <div className="flex items-center justify-between">
-              <button
-                onClick={handleRetake}
-                className="px-4 py-2.5 rounded-full border border-neutral-200 font-commons text-sm text-neutral-600 hover:bg-neutral-50 transition-colors"
-              >
-                Tekrar Kaydet
-              </button>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleProceed}
-                className="px-6 py-2.5 bg-[#171717] text-white rounded-full font-commons text-sm font-medium hover:bg-[#171717]/90 transition-colors"
-              >
-                Devam Et
-              </motion.button>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Step 3: Details */}
-        {step === 'details' && (
-          <motion.div
-            key="details"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="space-y-5"
-          >
-            <h2 className="text-lg font-ramillas font-bold text-[#171717] text-center">
-              Video Detaylari
-            </h2>
-
             {(uploader.error || recorder.error) && (
               <div className="bg-red-50 text-red-700 text-sm font-commons px-4 py-3 rounded-xl">
                 {uploader.error || recorder.error}
               </div>
             )}
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-commons font-medium text-neutral-700 mb-1.5">
-                  Baslik *
-                </label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Ornegin: Homepage tasarim incelemesi"
-                  className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 font-commons text-sm focus:outline-none focus:border-indigo-400 transition-colors"
-                  autoFocus
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-commons font-medium text-neutral-700 mb-1.5">
-                  Aciklama (opsiyonel)
-                </label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Kisaca ne hakkinda oldugunu yazin..."
-                  rows={3}
-                  className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 font-commons text-sm focus:outline-none focus:border-indigo-400 transition-colors resize-none"
-                />
-              </div>
-            </div>
 
             {/* Upload progress */}
             {uploader.uploading && (
@@ -333,22 +266,25 @@ const RecordFeedbackModal: React.FC<RecordFeedbackModalProps> = ({ onClose, onCo
                     transition={{ duration: 0.3 }}
                   />
                 </div>
+                <p className="text-xs font-commons text-neutral-400 text-center">
+                  AI baslik ve aciklama otomatik olusturulacak
+                </p>
               </div>
             )}
 
-            <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center justify-between">
               <button
-                onClick={() => setStep('preview')}
+                onClick={handleRetake}
                 disabled={uploader.uploading}
                 className="px-4 py-2.5 rounded-full border border-neutral-200 font-commons text-sm text-neutral-600 hover:bg-neutral-50 transition-colors disabled:opacity-50"
               >
-                Geri
+                Tekrar Kaydet
               </button>
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={handleSave}
-                disabled={!title.trim() || !activeBlob || uploader.uploading}
+                onClick={handleProceed}
+                disabled={!activeBlob || uploader.uploading}
                 className="flex items-center gap-2 px-6 py-2.5 bg-[#171717] text-white rounded-full font-commons text-sm font-medium hover:bg-[#171717]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {uploader.uploading ? (
@@ -359,7 +295,7 @@ const RecordFeedbackModal: React.FC<RecordFeedbackModalProps> = ({ onClose, onCo
                 ) : (
                   <>
                     <Upload className="w-4 h-4" />
-                    Kaydet
+                    Yukle
                   </>
                 )}
               </motion.button>

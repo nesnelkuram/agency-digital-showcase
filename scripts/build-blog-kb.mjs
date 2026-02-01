@@ -144,7 +144,7 @@ export interface BlogArticleSummary {
   excerpt: string;
   coreContent: string;
 }
-export const BLOG_AUTHOR_META = { name: 'Engin Tezcan', site: 'engintezcan.com', totalArticles: 0, mainThemes: [] as string[] };
+export const BLOG_AUTHOR_META = { name: 'Stratejik Danismanin', site: 'engintezcan.com', totalArticles: 0, mainThemes: [] as string[] };
 export const BLOG_PRINCIPLES: BlogArticleSummary[] = [];
 export const BLOG_TOPIC_INDEX: { tag: string; count: number; topArticles: string[] }[] = [];
 export const BLOG_QUOTES: string[] = [];
@@ -169,7 +169,7 @@ export interface BlogArticleSummary {
 }
 
 export const BLOG_AUTHOR_META = {
-  name: 'Engin Tezcan',
+  name: 'Stratejik Danismanin',
   site: 'engintezcan.com',
   totalArticles: ${totalArticles},
   mainThemes: [${mainThemes.map(t => `'${escapeTS(t)}'`).join(', ')}],

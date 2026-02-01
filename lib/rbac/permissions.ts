@@ -71,6 +71,22 @@ export const PERMISSIONS = {
   FEEDBACK_COMMENT: 'feedback:comment',
   FEEDBACK_DELETE: 'feedback:delete',
   FEEDBACK_MANAGE: 'feedback:manage',
+
+  // Marketing (Digital Marketing AI Agent Team)
+  MARKETING_VIEW: 'marketing:view',
+  MARKETING_CREATE: 'marketing:create',
+  MARKETING_APPROVE: 'marketing:approve',
+  MARKETING_EXECUTE: 'marketing:execute',
+  MARKETING_BUDGET: 'marketing:budget',
+  MARKETING_DELETE: 'marketing:delete',
+  PLATFORMS_MANAGE: 'platforms:manage',
+
+  // Social Media (Sosyal Medya Yonetimi)
+  SOCIAL_MEDIA_VIEW: 'social_media:view',
+  SOCIAL_MEDIA_CREATE: 'social_media:create',
+  SOCIAL_MEDIA_EDIT: 'social_media:edit',
+  SOCIAL_MEDIA_APPROVE: 'social_media:approve',
+  SOCIAL_MEDIA_DELETE: 'social_media:delete',
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

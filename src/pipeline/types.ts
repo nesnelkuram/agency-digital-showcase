@@ -215,6 +215,7 @@ export interface SynthesizedAnalysis {
     dataFreshness: string;
     confidenceLevel: string;
   };
+  consultantIntro: string;
   synthesisRationale: string;
   blogAdvisorInsights?: {
     philosophicalAlignmentScore: number;

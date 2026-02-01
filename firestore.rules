@@ -5,8 +5,52 @@ service cloud.firestore {
     match /brand_leads/{leadId} {
       // Anyone can create a new lead (website form)
       allow create: if true;
-      // Only authenticated users can read, update, delete (admin panel)
-      allow read, update, delete: if request.auth != null;
+      // Authenticated users (admin) can read any lead
+      // Unauthenticated users can only read leads with a shareToken (public report links)
+      allow read: if request.auth != null || resource.data.shareToken != null;
+      // Only authenticated users can update/delete
+      allow update, delete: if request.auth != null;
+    }
+
+    // Marketing campaigns: authenticated users only
+    match /marketing_campaigns/{campaignId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Campaign proposals: authenticated users only
+    match /campaign_proposals/{proposalId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Platform accounts: authenticated users only (sensitive tokens)
+    match /platform_accounts/{accountId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Performance snapshots: authenticated read, API-only write
+    match /performance_snapshots/{snapshotId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
+    // Optimization suggestions: authenticated users only
+    match /optimization_suggestions/{suggestionId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Marketing budgets: authenticated users only
+    match /marketing_budgets/{budgetId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Projects: authenticated users only
+    match /projects/{projectId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Social media posts: authenticated users only
+    match /social_media_posts/{postId} {
+      allow read, write: if request.auth != null;
     }
 
     // All other collections: authenticated users only

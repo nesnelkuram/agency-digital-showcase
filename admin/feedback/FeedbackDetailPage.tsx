@@ -16,6 +16,7 @@ import {
   Globe,
   Lock,
   Smile,
+  Loader2,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermission } from '@/shared/hooks/usePermission';
@@ -39,6 +40,7 @@ import type {
 import {
   formatDuration,
   RECORDING_MODE_LABELS,
+  FEEDBACK_STATUS_LABELS,
 } from '@/shared/types/feedback';
 import VideoPlayer from './components/VideoPlayer';
 
@@ -102,6 +104,22 @@ const FeedbackDetailPage: React.FC = () => {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Poll for transcribing status updates
+  useEffect(() => {
+    if (!id || !video || video.status !== 'transcribing') return;
+    const interval = setInterval(async () => {
+      try {
+        const updated = await getFeedbackVideo(id);
+        if (updated && updated.status !== 'transcribing') {
+          setVideo(updated);
+        }
+      } catch {
+        // ignore polling errors
+      }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [id, video?.status]);
 
   const handleAddComment = async () => {
     if (!commentText.trim() || !user || !id) return;
@@ -280,6 +298,16 @@ const FeedbackDetailPage: React.FC = () => {
             onTimeUpdate={setCurrentTime}
             onCommentClick={handleCommentClick}
           />
+
+          {/* AI transcribing indicator */}
+          {video.status === 'transcribing' && (
+            <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-center gap-3">
+              <Loader2 className="w-4 h-4 text-blue-600 animate-spin flex-shrink-0" />
+              <p className="text-sm font-commons text-blue-700">
+                AI baslik ve aciklama olusturuyor... Tamamlandiginda otomatik guncellenecek.
+              </p>
+            </div>
+          )}
 
           {/* Video info */}
           <div className="bg-white rounded-2xl p-5 shadow-sm border border-neutral-100 space-y-4">

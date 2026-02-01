@@ -72,6 +72,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           }
         : undefined,
 
+      consultantIntro: synthesized.consultantIntro || undefined,
+
       // Debate record (multi-agent)
       debate: state.strategistOutput
         ? {

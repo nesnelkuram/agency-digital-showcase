@@ -84,6 +84,20 @@ const navItems: NavItem[] = [
     permission: PERMISSIONS.TRAINING_VIEW,
   },
   {
+    label: 'Pazarlama',
+    path: '/admin/marketing',
+    icon: Megaphone,
+    permission: PERMISSIONS.MARKETING_VIEW,
+    children: [
+      { label: 'Dashboard', path: '/admin/marketing', icon: LayoutDashboard },
+      { label: 'Kampanyalar', path: '/admin/marketing/campaigns', icon: FolderKanban },
+      { label: 'AI Onerileri', path: '/admin/marketing/proposals', icon: Cpu },
+      { label: 'Platformlar', path: '/admin/marketing/platforms', icon: Monitor },
+      { label: 'Performans', path: '/admin/marketing/performance', icon: TrendingUp },
+      { label: 'Butce', path: '/admin/marketing/budget', icon: Wallet },
+    ],
+  },
+  {
     label: 'Hizmet Katalogu',
     path: '/admin/pricing/catalog',
     icon: BookOpen,

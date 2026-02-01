@@ -23,8 +23,8 @@ export const businessContextConfig: BusinessContextConfig = {
       key: 'competitors',
       script: "Kendinize en yakın gördüğünüz 2-3 rakip veya referans marka var mı?",
       text: "Rakipleriniz",
-      required: false,
-      placeholder: "Marka isimlerini virgülle ayırın. Bilmiyorsanız boş bırakabilirsiniz.",
+      required: true,
+      placeholder: "Marka isimlerini virgülle ayırın.",
     },
 
     // 3. Coğrafi Kapsam
@@ -33,7 +33,7 @@ export const businessContextConfig: BusinessContextConfig = {
       key: 'geoScope',
       script: "Hedef pazarınız nerede?",
       text: "Coğrafi Kapsam",
-      required: false,
+      required: true,
       options: [
         { id: 'local', title: "Tek mahalle / semt", desc: "Yürüme mesafesindeki müşteriler" },
         { id: 'city', title: "Tek şehir", desc: "İstanbul, Ankara, İzmir vb." },
@@ -49,7 +49,7 @@ export const businessContextConfig: BusinessContextConfig = {
       key: 'digitalPresence',
       script: "Şu an hangi dijital platformlarda aktifsiniz?",
       text: "Dijital Varlığınız",
-      required: false,
+      required: true,
       options: [
         { id: 'instagram', title: "Instagram" },
         { id: 'website', title: "Web Sitesi" },
@@ -66,7 +66,7 @@ export const businessContextConfig: BusinessContextConfig = {
       key: 'instagramFollowers',
       script: "Instagram hesabınızın takipçi aralığı nedir?",
       text: "Instagram Takipçi",
-      required: false,
+      required: true,
       options: [
         { id: 'no_account', title: "Hesabımız yok" },
         { id: '0_1k', title: "0 - 1.000" },
@@ -82,7 +82,7 @@ export const businessContextConfig: BusinessContextConfig = {
       key: 'monthlyBudget',
       script: "Dijital pazarlama ve içerik üretimi için aylık ayırabileceğiniz bütçe aralığı?",
       text: "Aylık Bütçe",
-      required: false,
+      required: true,
       options: [
         { id: 'starter', title: "0 - 5.000 TL", desc: "Başlangıç" },
         { id: 'growth', title: "5.000 - 15.000 TL", desc: "Büyüme" },
@@ -97,7 +97,7 @@ export const businessContextConfig: BusinessContextConfig = {
       key: 'businessStage',
       script: "İşletmeniz ne aşamada?",
       text: "İşletme Aşaması",
-      required: false,
+      required: true,
       options: [
         { id: 'idea', title: "Henüz başlamadım", desc: "Fikir aşaması" },
         { id: 'new', title: "0-1 yıl", desc: "Yeni kuruldu" },
@@ -112,7 +112,7 @@ export const businessContextConfig: BusinessContextConfig = {
       key: 'triggerReason',
       script: "Bu başvuruyu yapmaya sizi ne yönlendirdi?",
       text: "Neden Şimdi?",
-      required: false,
+      required: true,
       options: [
         { id: 'launch', title: "Yeni açılış / lansman", desc: "Yeni bir işletme veya ürün başlatıyorum" },
         { id: 'sales_drop', title: "Satışlar düşüyor", desc: "Mevcut performans yeterli değil" },

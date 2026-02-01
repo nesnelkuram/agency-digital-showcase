@@ -1,4 +1,4 @@
-export type FeedbackVideoStatus = 'processing' | 'ready' | 'failed';
+export type FeedbackVideoStatus = 'processing' | 'transcribing' | 'ready' | 'failed';
 export type RecordingMode = 'screen' | 'camera' | 'screen_camera';
 
 export interface FeedbackVideoMetadata {
@@ -70,6 +70,7 @@ export interface CreateFeedbackVideoData {
   projectId?: string;
   tags?: string[];
   isPublic?: boolean;
+  status?: FeedbackVideoStatus;
   metadata: FeedbackVideoMetadata;
 }
 
@@ -120,12 +121,14 @@ export interface FeedbackReaction {
 
 export const FEEDBACK_STATUS_LABELS: Record<FeedbackVideoStatus, string> = {
   processing: 'Isleniyor',
+  transcribing: 'AI Analiz Ediliyor',
   ready: 'Hazir',
   failed: 'Basarisiz',
 };
 
 export const FEEDBACK_STATUS_COLORS: Record<FeedbackVideoStatus, string> = {
   processing: 'bg-yellow-100 text-yellow-700',
+  transcribing: 'bg-blue-100 text-blue-700',
   ready: 'bg-green-100 text-green-700',
   failed: 'bg-red-100 text-red-700',
 };

@@ -14,6 +14,7 @@ import {
   Camera,
   MonitorSmartphone,
   Filter,
+  Loader2,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermission } from '@/shared/hooks/usePermission';
@@ -263,7 +264,10 @@ const FeedbackPage: React.FC = () => {
 
                   {/* Status badge */}
                   {video.status !== 'ready' && (
-                    <div className={`absolute top-2 right-2 text-xs font-commons px-2 py-1 rounded-lg ${FEEDBACK_STATUS_COLORS[video.status]}`}>
+                    <div className={`absolute top-2 right-2 text-xs font-commons px-2 py-1 rounded-lg flex items-center gap-1 ${FEEDBACK_STATUS_COLORS[video.status]}`}>
+                      {video.status === 'transcribing' && (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      )}
                       {FEEDBACK_STATUS_LABELS[video.status]}
                     </div>
                   )}

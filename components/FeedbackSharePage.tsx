@@ -13,6 +13,7 @@ import {
   Maximize,
   SkipBack,
   SkipForward,
+  Loader2,
 } from 'lucide-react';
 import {
   getFeedbackVideoByShareToken,
@@ -222,11 +223,16 @@ const FeedbackSharePage: React.FC = () => {
               })}
             </span>
           </div>
-          {video.description && (
+          {video.status === 'transcribing' ? (
+            <div className="mt-3 flex items-center gap-2 text-sm font-commons text-blue-400">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              Icerik hazirlaniyor...
+            </div>
+          ) : video.description ? (
             <p className="mt-3 text-sm font-commons text-neutral-300">
               {video.description}
             </p>
-          )}
+          ) : null}
         </div>
 
         {/* Comments (read-only for public) */}

@@ -1,14 +1,40 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import {
-  Compass, Users, Gem, Trophy, Lightbulb, Palette, Type, Image,
+  Compass, Users, Lightbulb, Palette, Building2,
   MessageSquare, Hash, Target, TrendingUp, BarChart3, Shield,
-  Swords, BookOpen, ExternalLink, ChevronRight, Sparkles, Globe,
+  ExternalLink, ChevronRight, Sparkles,
   CheckCircle2, AlertTriangle, Zap, ArrowRight, Clock,
 } from 'lucide-react';
 import { getBrandLeadByShareToken } from '@/shared/services/brandLeadService';
 import { SECTOR_LABELS } from '@/shared/types/brandLead';
-import type { BrandLead, AIAnalysis } from '@/shared/types/brandLead';
+import type { BrandLead, AIAnalysis, BusinessContext } from '@/shared/types/brandLead';
+
+// ─── BusinessContext Label Maps ──────────────────────────
+
+const GEO_SCOPE_LABELS: Record<string, string> = {
+  local: 'Yerel (Mahalle/Semt)',
+  city: 'Tek Sehir',
+  multi_city: 'Birden Fazla Sehir',
+  national: 'Turkiye Geneli',
+  international: 'Uluslararasi',
+};
+
+const BUSINESS_STAGE_LABELS: Record<string, string> = {
+  idea: 'Fikir Asamasi',
+  new: 'Yeni Kuruldu (0-1 yil)',
+  growing: 'Buyume Asamasi (1-3 yil)',
+  established: 'Yerlesik (3+ yil)',
+};
+
+const DIGITAL_PLATFORM_LABELS: Record<string, string> = {
+  instagram: 'Instagram',
+  website: 'Web Sitesi',
+  google_business: 'Google Business',
+  tiktok: 'TikTok',
+  youtube: 'YouTube',
+  none: 'Aktif Platform Yok',
+};
 
 // ─── Helpers ───────────────────────────────────────────
 
@@ -112,6 +138,7 @@ const AnalysisReportPage: React.FC = () => {
   const a = lead.aiAnalysis;
   const businessName = lead.contact.businessName;
   const sector = SECTOR_LABELS[lead.sector] || lead.sector;
+  const bc = lead.wizard?.businessContext;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -131,26 +158,36 @@ const AnalysisReportPage: React.FC = () => {
           <p className="font-commons text-sm text-gray-500">
             {formatDate(a.analyzedAt)}
           </p>
-
-          {/* Executive summary badges */}
-          <div className="flex flex-wrap gap-2 mt-6">
-            {a.brandPersonality?.archetype && (
-              <Badge color="purple">{a.brandPersonality.archetype}</Badge>
-            )}
-            {a.confidence != null && (
-              <Badge color="emerald">Guven: %{Math.round(a.confidence * 100)}</Badge>
-            )}
-            {a.sectorResearch?.sourcesUsed != null && a.sectorResearch.sourcesUsed > 0 && (
-              <Badge color="blue">{a.sectorResearch.sourcesUsed} kaynak</Badge>
-            )}
-          </div>
         </SectionCard>
+
+        {/* ─── CONSULTANT INTRO (danışman giriş yorumu) ─── */}
+        {a.consultantIntro && (
+          <SectionCard className="border-l-4 border-l-indigo-400">
+            <p className="font-commons text-sm sm:text-base text-gray-700 leading-relaxed italic">
+              {a.consultantIntro}
+            </p>
+          </SectionCard>
+        )}
+
+        {/* ─── BUSINESS PROFILE (from v2.0 wizard context) ─── */}
+        {bc && <BusinessProfileSection bc={bc} />}
+
+        {/* ─── UNIFIED STRATEGY (synthesisRationale from debate) ─── */}
+        {a.debate?.synthesisRationale && (
+          <SectionCard>
+            <SectionTitle icon={Sparkles} title="Strateji Ozeti" color="indigo" />
+            <p className="font-commons text-sm text-gray-700 leading-relaxed">{a.debate.synthesisRationale}</p>
+          </SectionCard>
+        )}
+
+        {/* ─── BRAND PERSONALITY (isletmenin kendi analizi — rakiplerden once) ─── */}
+        {a.brandPersonality && <BrandPersonalityReport bp={a.brandPersonality} />}
 
         {/* ─── POSITIONING ─── */}
         {a.positioning && <PositioningReport positioning={a.positioning} />}
 
-        {/* ─── BRAND PERSONALITY ─── */}
-        {a.brandPersonality && <BrandPersonalityReport bp={a.brandPersonality} />}
+        {/* ─── SWOT (isletme analizi — rakiplerden once) ─── */}
+        {a.analysis && <SwotReport analysis={a.analysis} />}
 
         {/* ─── COMPETITOR ANALYSIS ─── */}
         {a.sectorResearch?.competitors && a.sectorResearch.competitors.length > 0 && (
@@ -160,26 +197,17 @@ const AnalysisReportPage: React.FC = () => {
         {/* ─── MARKET DATA ─── */}
         {a.sectorResearch?.marketData && <MarketDataReport md={a.sectorResearch.marketData} />}
 
-        {/* ─── SWOT ─── */}
-        {a.analysis && <SwotReport analysis={a.analysis} />}
-
         {/* ─── VISUAL WORLD ─── */}
         {a.visualWorld && <VisualWorldReport vw={a.visualWorld} />}
 
-        {/* ─── CONTENT STRATEGY ─── */}
-        {a.contentStrategy && <ContentStrategyReport cs={a.contentStrategy} />}
+        {/* ─── CONTENT STRATEGY (blog advisor insights merged) ─── */}
+        {a.contentStrategy && <ContentStrategyReport cs={a.contentStrategy} blogInsights={(a as any).blogAdvisorInsights} />}
 
         {/* ─── ACTION PLAN ─── */}
         {a.actionPlan && <ActionPlanReport ap={a.actionPlan} />}
 
-        {/* ─── DEBATE ─── */}
-        {a.debate && <DebateReport debate={a.debate} />}
-
-        {/* ─── BLOG ADVISOR ─── */}
-        {(a as any).blogAdvisorInsights && <BlogAdvisorReport insights={(a as any).blogAdvisorInsights} />}
-
-        {/* ─── EVIDENCE ─── */}
-        {a.evidenceSummary && <EvidenceReport ev={a.evidenceSummary} />}
+        {/* ─── CTA: Intiba ile Nasil Calisabilirsiniz ─── */}
+        <CTASection requestedServices={lead.requestedServices} businessName={businessName} />
       </main>
 
       {/* ─── FOOTER ─── */}
@@ -187,7 +215,7 @@ const AnalysisReportPage: React.FC = () => {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <img src="/images/intibalogo.svg" alt="intiba" className="h-5 invert" />
-            <p className="font-commons text-xs text-gray-400">Bu rapor AI destekli multi-agent analiz sistemi ile olusturulmustur.</p>
+            <p className="font-commons text-xs text-gray-400">Bu rapor intiba marka strateji analiz sistemi ile olusturulmustur.</p>
           </div>
           <a href="https://intiba.co.uk" target="_blank" rel="noopener noreferrer" className="font-commons text-xs text-indigo-500 hover:text-indigo-600">
             intiba.co.uk
@@ -277,6 +305,40 @@ function PositioningReport({ positioning }: { positioning: NonNullable<AIAnalysi
           </div>
         </div>
       )}
+    </SectionCard>
+  );
+}
+
+function BusinessProfileSection({ bc }: { bc: BusinessContext }) {
+  const hasContent = bc.businessDescription || bc.geoScope || bc.businessStage ||
+    (bc.digitalPresence && bc.digitalPresence.length > 0 && !bc.digitalPresence.includes('none'));
+  if (!hasContent) return null;
+
+  return (
+    <SectionCard>
+      <SectionTitle icon={Building2} title="Isletme Profili" color="slate" />
+
+      {bc.businessDescription && (
+        <p className="font-commons text-sm text-gray-700 leading-relaxed mb-4">{bc.businessDescription}</p>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {bc.geoScope && (
+          <InfoBlock label="Cografi Kapsam" color="slate">
+            {GEO_SCOPE_LABELS[bc.geoScope] || bc.geoScope}
+          </InfoBlock>
+        )}
+        {bc.businessStage && (
+          <InfoBlock label="Isletme Asamasi" color="slate">
+            {BUSINESS_STAGE_LABELS[bc.businessStage] || bc.businessStage}
+          </InfoBlock>
+        )}
+        {bc.digitalPresence && bc.digitalPresence.length > 0 && !bc.digitalPresence.includes('none') && (
+          <InfoBlock label="Dijital Varlik" color="slate">
+            {bc.digitalPresence.map(p => DIGITAL_PLATFORM_LABELS[p] || p).join(', ')}
+          </InfoBlock>
+        )}
+      </div>
     </SectionCard>
   );
 }
@@ -455,7 +517,7 @@ function VisualWorldReport({ vw }: { vw: NonNullable<AIAnalysis['visualWorld']> 
   );
 }
 
-function ContentStrategyReport({ cs }: { cs: NonNullable<AIAnalysis['contentStrategy']> }) {
+function ContentStrategyReport({ cs, blogInsights }: { cs: NonNullable<AIAnalysis['contentStrategy']>; blogInsights?: any }) {
   return (
     <SectionCard>
       <SectionTitle icon={MessageSquare} title="Icerik Stratejisi" color="indigo" />
@@ -494,12 +556,26 @@ function ContentStrategyReport({ cs }: { cs: NonNullable<AIAnalysis['contentStra
       )}
 
       {cs.hashtags?.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 mb-4">
           {cs.hashtags.map((h, i) => (
             <span key={i} className="font-commons text-xs text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">
               <Hash className="w-3 h-3 inline mr-0.5" />{h.replace(/^#/, '')}
             </span>
           ))}
+        </div>
+      )}
+
+      {/* Blog advisor strategic recommendations merged into content strategy */}
+      {blogInsights?.keyRecommendations?.length > 0 && (
+        <div className="bg-teal-50 rounded-xl p-4 mt-4">
+          <p className="font-commons text-[11px] text-teal-500 uppercase tracking-wider font-medium mb-2">Ek Stratejik Oneriler</p>
+          <ul className="space-y-1.5">
+            {blogInsights.keyRecommendations.map((r: string, i: number) => (
+              <li key={i} className="font-commons text-sm text-gray-700 flex gap-2">
+                <ArrowRight className="w-3.5 h-3.5 text-teal-500 mt-0.5 shrink-0" />{r}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </SectionCard>
@@ -569,123 +645,57 @@ function ActionPlanReport({ ap }: { ap: NonNullable<AIAnalysis['actionPlan']> })
   );
 }
 
-function DebateReport({ debate }: { debate: NonNullable<AIAnalysis['debate']> }) {
+// ─── CTA Section ────────────────────────────────────
+
+function CTASection({ requestedServices, businessName }: { requestedServices: { id: string; title: string }[]; businessName: string }) {
+  const serviceMapping: Record<string, { title: string; description: string }> = {
+    'social-media': { title: 'Sosyal Medya Yonetimi', description: 'Marka stratejinize uygun icerik planlama, uretim ve topluluk yonetimi.' },
+    'video-production': { title: 'Video Produksiyon', description: 'Profesyonel tanitim filmleri, reklam videolari ve sosyal medya icerikleri.' },
+    'digital-marketing': { title: 'Dijital Pazarlama', description: 'Performans odakli reklam kampanyalari, SEO ve dijital strateji.' },
+    'branding': { title: 'Marka Kimligi', description: 'Logo, kurumsal kimlik, marka rehberi ve gorsel dunya tasarimi.' },
+    'web-development': { title: 'Web Gelistirme', description: 'Modern, responsive ve donusum odakli web siteleri.' },
+    'content-creation': { title: 'Icerik Uretimi', description: 'Blog, fotograf, grafik tasarim ve editoryal icerik uretimi.' },
+  };
+
   return (
-    <SectionCard>
-      <SectionTitle icon={Swords} title="Strateji Tartismasi" color="orange" />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-        <InfoBlock label="Stratejist Pozisyonu" color="blue">{debate.strategistPosition}</InfoBlock>
-        <InfoBlock label="Muhalif Pozisyonu" color="orange">{debate.challengerPosition}</InfoBlock>
+    <SectionCard className="!p-8 sm:!p-10 bg-gradient-to-br from-indigo-50 to-white border-indigo-100">
+      <div className="text-center mb-6">
+        <h2 className="font-ramillas text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+          intiba ile Nasil Calisabilirsiniz?
+        </h2>
+        <p className="font-commons text-sm text-gray-500 max-w-lg mx-auto">
+          {businessName} icin hazirlanan bu strateji raporundaki onerileri hayata gecirmek icin intiba ekibi sizinle birlikte calisabilir.
+        </p>
       </div>
 
-      {debate.challengerAlternatives?.length > 0 && (
-        <div className="bg-amber-50 rounded-xl p-4 mb-4">
-          <p className="font-commons text-[11px] text-amber-500 uppercase tracking-wider font-medium mb-2">Alternatif Konumlandirmalar</p>
-          <ul className="space-y-1.5">
-            {debate.challengerAlternatives.map((alt, i) => (
-              <li key={i} className="font-commons text-sm text-gray-700 flex gap-2">
-                <span className="font-medium text-amber-500 shrink-0">Plan {String.fromCharCode(66 + i)}:</span>
-                {alt}
-              </li>
-            ))}
-          </ul>
+      {requestedServices?.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+          {requestedServices.map((svc) => {
+            const mapped = serviceMapping[svc.id];
+            return (
+              <div key={svc.id} className="bg-white rounded-xl p-4 border border-indigo-100">
+                <p className="font-commons text-sm font-semibold text-gray-900 mb-1">{mapped?.title || svc.title}</p>
+                <p className="font-commons text-xs text-gray-500">{mapped?.description || 'Profesyonel hizmet destegiyle markanizi buyutun.'}</p>
+              </div>
+            );
+          })}
         </div>
       )}
 
-      {debate.synthesisRationale && (
-        <InfoBlock label="Sentez Gerekcelendirmesi" color="violet">{debate.synthesisRationale}</InfoBlock>
-      )}
-    </SectionCard>
-  );
-}
-
-function BlogAdvisorReport({ insights }: { insights: any }) {
-  if (!insights) return null;
-
-  return (
-    <SectionCard>
-      <SectionTitle icon={BookOpen} title="Stratejik Blog Danismani" color="teal" />
-
-      {insights.philosophicalAlignmentScore != null && (
-        <div className="bg-teal-50 rounded-xl p-5 mb-5 flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-teal-100 flex items-center justify-center shrink-0">
-            <span className="font-ramillas text-2xl font-bold text-teal-700">{insights.philosophicalAlignmentScore}</span>
-          </div>
-          <div>
-            <p className="font-commons text-[11px] text-teal-500 uppercase tracking-wider font-medium">Felsefi Uyum Skoru</p>
-            <p className="font-commons text-sm text-gray-600 mt-0.5">10 uzerinden degerlendirilmistir</p>
-          </div>
-        </div>
-      )}
-
-      {insights.authorPerspective && (
-        <div className="bg-teal-50 rounded-xl p-4 mb-4 border-l-4 border-teal-400">
-          <p className="font-commons text-[11px] text-teal-500 uppercase tracking-wider font-medium mb-2">Yazar Perspektifi</p>
-          <p className="font-commons text-sm text-gray-700 italic leading-relaxed">&ldquo;{insights.authorPerspective}&rdquo;</p>
-        </div>
-      )}
-
-      {insights.keyRecommendations?.length > 0 && (
-        <div className="bg-teal-50 rounded-xl p-4 mb-4">
-          <p className="font-commons text-[11px] text-teal-500 uppercase tracking-wider font-medium mb-2">Stratejik Oneriler</p>
-          <ul className="space-y-1.5">
-            {insights.keyRecommendations.map((r: string, i: number) => (
-              <li key={i} className="font-commons text-sm text-gray-700 flex gap-2">
-                <ArrowRight className="w-3.5 h-3.5 text-teal-500 mt-0.5 shrink-0" />{r}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {insights.unconventionalInsights?.length > 0 && (
-        <div className="bg-orange-50 rounded-xl p-4">
-          <p className="font-commons text-[11px] text-orange-500 uppercase tracking-wider font-medium mb-2">Gayrinizami Icgoruler</p>
-          <ul className="space-y-1.5">
-            {insights.unconventionalInsights.map((u: string, i: number) => (
-              <li key={i} className="font-commons text-sm text-gray-700 flex gap-2">
-                <Zap className="w-3.5 h-3.5 text-orange-500 mt-0.5 shrink-0" />{u}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </SectionCard>
-  );
-}
-
-function EvidenceReport({ ev }: { ev: NonNullable<AIAnalysis['evidenceSummary']> }) {
-  return (
-    <SectionCard>
-      <SectionTitle icon={Globe} title="Kaynaklar ve Kanitlar" color="slate" />
-      <div className="grid grid-cols-3 gap-3 mb-5">
-        <div className="bg-slate-50 rounded-xl p-4 text-center">
-          <p className="font-ramillas text-2xl font-bold text-gray-900">{ev.sourcesConsulted}</p>
-          <p className="font-commons text-[10px] text-slate-500 uppercase font-medium">Kaynak</p>
-        </div>
-        <div className="bg-slate-50 rounded-xl p-4 text-center">
-          <p className="font-commons text-sm font-semibold text-gray-900 mt-1">{ev.dataFreshness}</p>
-          <p className="font-commons text-[10px] text-slate-500 uppercase font-medium mt-1">Veri Tazeligi</p>
-        </div>
-        <div className="bg-slate-50 rounded-xl p-4 text-center">
-          <p className="font-commons text-sm font-semibold text-gray-900 mt-1">{ev.confidenceLevel}</p>
-          <p className="font-commons text-[10px] text-slate-500 uppercase font-medium mt-1">Guvenilirlik</p>
-        </div>
+      <div className="text-center">
+        <a
+          href="https://intiba.co.uk/iletisim"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-full font-commons text-sm font-medium hover:bg-gray-800 transition-colors"
+        >
+          Bizimle Iletisime Gecin
+          <ArrowRight className="w-4 h-4" />
+        </a>
+        <p className="font-commons text-xs text-gray-400 mt-3">
+          veya <a href="mailto:info@intiba.co.uk" className="text-indigo-500 hover:underline">info@intiba.co.uk</a> adresine yazin
+        </p>
       </div>
-
-      {ev.keySourceUrls?.length > 0 && (
-        <div>
-          <p className="font-commons text-[11px] text-slate-500 uppercase tracking-wider font-medium mb-2">Anahtar Kaynaklar</p>
-          <div className="space-y-1.5">
-            {ev.keySourceUrls.map((src, i) => (
-              <a key={i} href={src.url} target="_blank" rel="noopener noreferrer"
-                className="font-commons text-sm text-indigo-600 hover:text-indigo-700 flex items-center gap-1.5 hover:underline">
-                <ExternalLink className="w-3 h-3 shrink-0" />{src.title}
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
     </SectionCard>
   );
 }

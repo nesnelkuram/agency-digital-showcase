@@ -68,7 +68,7 @@ export async function createFeedbackVideo(
     allowedUsers: [],
     viewCount: 0,
     commentCount: 0,
-    status: 'ready' as const,
+    status: (data.status || 'ready') as const,
     metadata: data.metadata,
     createdBy: createdByUid,
     createdByName,

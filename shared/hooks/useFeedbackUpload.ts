@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase/config';
 import { useAuth } from '@/contexts/AuthContext';
-import { createFeedbackVideo } from '@/shared/services/feedbackService';
+import { createFeedbackVideo, updateFeedbackVideo } from '@/shared/services/feedbackService';
 import type { FeedbackVideo, RecordingMode } from '@/shared/types/feedback';
 
 interface UseFeedbackUploadReturn {
@@ -10,18 +10,27 @@ interface UseFeedbackUploadReturn {
   uploadProgress: number;
   uploadRecording: (
     blob: Blob,
-    title: string,
     mode: RecordingMode,
     duration: number,
+    audioBlob?: Blob | null,
     projectId?: string
   ) => Promise<FeedbackVideo | null>;
   uploadVideoFile: (
     file: File,
-    title: string,
     duration: number,
     projectId?: string
   ) => Promise<FeedbackVideo | null>;
   error: string | null;
+}
+
+function generatePlaceholderTitle(): string {
+  return `Kayit - ${new Date().toLocaleDateString('tr-TR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })}`;
 }
 
 function generateThumbnail(videoBlob: Blob): Promise<Blob | null> {
@@ -30,7 +39,7 @@ function generateThumbnail(videoBlob: Blob): Promise<Blob | null> {
     const url = URL.createObjectURL(videoBlob);
     video.src = url;
     video.muted = true;
-    video.currentTime = 1; // 1. saniyeyi yakala
+    video.currentTime = 1;
 
     video.onloadeddata = () => {
       video.currentTime = 1;
@@ -67,12 +76,69 @@ function generateThumbnail(videoBlob: Blob): Promise<Blob | null> {
       resolve(null);
     };
 
-    // Timeout fallback
     setTimeout(() => {
       URL.revokeObjectURL(url);
       resolve(null);
     }, 5000);
   });
+}
+
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      // Strip data URL prefix (e.g., "data:audio/webm;base64,")
+      resolve(result.split(',')[1]);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function callTranscriptionAPI(
+  audioBlob: Blob | null | undefined,
+  videoUrl: string | null,
+  mimeType: string,
+  duration: number,
+  recordingMode: RecordingMode
+): Promise<{ title: string; description: string } | null> {
+  try {
+    let body: Record<string, unknown>;
+
+    if (audioBlob && audioBlob.size > 0) {
+      // FAST PATH: Send audio inline as base64
+      const audioData = await blobToBase64(audioBlob);
+      body = {
+        audioData,
+        audioMimeType: audioBlob.type || 'audio/webm',
+        duration,
+        recordingMode,
+      };
+    } else if (videoUrl) {
+      // SLOW PATH: Send video URL for File API processing
+      body = { videoUrl, mimeType, duration, recordingMode };
+    } else {
+      return null;
+    }
+
+    const response = await fetch('/api/transcribe-video', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    if (data.success && data.title) {
+      return { title: data.title, description: data.description || '' };
+    }
+    return null;
+  } catch (error) {
+    console.error('[FeedbackUpload] AI transcription failed:', error);
+    return null;
+  }
 }
 
 export function useFeedbackUpload(): UseFeedbackUploadReturn {
@@ -84,10 +150,10 @@ export function useFeedbackUpload(): UseFeedbackUploadReturn {
   const uploadToStorage = useCallback(
     async (
       blob: Blob,
-      title: string,
       mode: RecordingMode,
       duration: number,
       mimeType: string,
+      audioBlob?: Blob | null,
       projectId?: string
     ): Promise<FeedbackVideo | null> => {
       if (!db || !storage || !user) {
@@ -101,25 +167,26 @@ export function useFeedbackUpload(): UseFeedbackUploadReturn {
 
       try {
         const timestamp = Date.now();
-        const safeTitle = title.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const placeholderTitle = generatePlaceholderTitle();
+        const safeTitle = `recording_${timestamp}`;
         const ext = mimeType.includes('webm') ? 'webm' : 'mp4';
 
-        // Upload video with resumable upload (handles large files + retries)
+        // ── PARALLEL: Video upload + AI transcription + Thumbnail ──
+
+        // 1. Start video upload to Firebase Storage
         const videoPath = `feedback/${user.uid}/${timestamp}_${safeTitle}.${ext}`;
         const videoRef = ref(storage, videoPath);
         setUploadProgress(5);
 
-        const videoUrl = await new Promise<string>((resolve, reject) => {
+        const videoUploadPromise = new Promise<string>((resolve, reject) => {
           const uploadTask = uploadBytesResumable(videoRef, blob, {
             contentType: mimeType,
           });
-
           uploadTask.on(
             'state_changed',
             (snapshot) => {
-              // Video upload = 0-65% of total progress
-              const pct = (snapshot.bytesTransferred / snapshot.totalBytes) * 65;
-              setUploadProgress(Math.round(pct));
+              const pct = (snapshot.bytesTransferred / snapshot.totalBytes) * 70;
+              setUploadProgress(Math.round(5 + pct));
             },
             (err) => reject(err),
             async () => {
@@ -128,15 +195,29 @@ export function useFeedbackUpload(): UseFeedbackUploadReturn {
             }
           );
         });
-        setUploadProgress(65);
 
-        // Generate and upload thumbnail
+        // 2. Start AI transcription in parallel (fast path with audio blob)
+        const aiPromise = audioBlob
+          ? callTranscriptionAPI(audioBlob, null, mimeType, duration, mode)
+          : Promise.resolve(null);
+
+        // 3. Start thumbnail generation in parallel
+        const thumbnailPromise = generateThumbnail(blob);
+
+        // Wait for all three in parallel
+        const [videoUrl, aiResult, thumbnailBlob] = await Promise.all([
+          videoUploadPromise,
+          aiPromise,
+          thumbnailPromise,
+        ]);
+
+        setUploadProgress(80);
+
+        // Upload thumbnail if generated
         let thumbnailUrl: string | undefined;
-        const thumbnailBlob = await generateThumbnail(blob);
         if (thumbnailBlob) {
           const thumbPath = `feedback/${user.uid}/${timestamp}_${safeTitle}_thumb.jpg`;
           const thumbRef = ref(storage, thumbPath);
-          // Thumbnail is small, resumable not needed but consistent
           const thumbTask = uploadBytesResumable(thumbRef, thumbnailBlob, {
             contentType: 'image/jpeg',
           });
@@ -147,17 +228,24 @@ export function useFeedbackUpload(): UseFeedbackUploadReturn {
             });
           });
         }
-        setUploadProgress(80);
+        setUploadProgress(90);
+
+        // Determine title/description: AI result or placeholder
+        const title = aiResult?.title || placeholderTitle;
+        const description = aiResult?.description || '';
+        const status = aiResult ? 'ready' as const : (audioBlob ? 'ready' as const : 'transcribing' as const);
 
         // Create Firestore record
         const videoId = await createFeedbackVideo(
           {
             title,
+            description,
             videoUrl,
             thumbnailUrl,
             duration,
             recordingMode: mode,
             projectId,
+            status,
             metadata: {
               size: blob.size,
               mimeType,
@@ -168,22 +256,39 @@ export function useFeedbackUpload(): UseFeedbackUploadReturn {
         );
         setUploadProgress(100);
 
-        // Return the created video object
+        // For file uploads without audio: fire async video-based transcription
+        if (!audioBlob && !aiResult) {
+          callTranscriptionAPI(null, videoUrl, mimeType, duration, mode).then(
+            async (result) => {
+              if (result) {
+                await updateFeedbackVideo(videoId, {
+                  title: result.title,
+                  description: result.description,
+                  status: 'ready',
+                });
+              } else {
+                await updateFeedbackVideo(videoId, { status: 'ready' });
+              }
+            }
+          );
+        }
+
         const video: FeedbackVideo = {
           id: videoId,
           title,
+          description,
           videoUrl,
           thumbnailUrl,
           duration,
           recordingMode: mode,
           projectId,
           tags: [],
-          shareToken: '', // will be set by service
+          shareToken: '',
           isPublic: true,
           allowedUsers: [],
           viewCount: 0,
           commentCount: 0,
-          status: 'ready',
+          status,
           metadata: { size: blob.size, mimeType },
           createdBy: user.uid,
           createdByName: user.displayName || user.email || 'Unknown',
@@ -207,12 +312,12 @@ export function useFeedbackUpload(): UseFeedbackUploadReturn {
   const uploadRecording = useCallback(
     async (
       blob: Blob,
-      title: string,
       mode: RecordingMode,
       duration: number,
+      audioBlob?: Blob | null,
       projectId?: string
     ): Promise<FeedbackVideo | null> => {
-      return uploadToStorage(blob, title, mode, duration, blob.type || 'video/webm', projectId);
+      return uploadToStorage(blob, mode, duration, blob.type || 'video/webm', audioBlob, projectId);
     },
     [uploadToStorage]
   );
@@ -220,11 +325,11 @@ export function useFeedbackUpload(): UseFeedbackUploadReturn {
   const uploadVideoFile = useCallback(
     async (
       file: File,
-      title: string,
       duration: number,
       projectId?: string
     ): Promise<FeedbackVideo | null> => {
-      return uploadToStorage(file, title, 'camera', duration, file.type, projectId);
+      // File uploads don't have separate audio - use slow path
+      return uploadToStorage(file, 'camera', duration, file.type, null, projectId);
     },
     [uploadToStorage]
   );

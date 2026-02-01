@@ -258,6 +258,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       actionPlan: synthesized.actionPlan,
       evidenceSummary: synthesized.evidenceSummary,
+      consultantIntro: synthesized.consultantIntro || undefined,
 
       debate: strategistOutput
         ? {
@@ -373,6 +374,7 @@ function buildFallbackSynthesis(strategistOutput: any) {
       dataFreshness: 'Veri mevcut degil',
       confidenceLevel: 'Dusuk — Sentez asamasi atlanmistir',
     },
+    consultantIntro: '',
     synthesisRationale: 'Sentez asamasi atlanmistir, stratejist ciktisi dogrudan kullanilmistir.',
   };
 }

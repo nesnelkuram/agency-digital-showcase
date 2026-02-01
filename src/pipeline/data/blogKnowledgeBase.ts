@@ -10,7 +10,7 @@ export interface BlogArticleSummary {
 }
 
 export const BLOG_AUTHOR_META = {
-  name: 'Engin Tezcan',
+  name: 'Stratejik Danismanin',
   site: 'engintezcan.com',
   totalArticles: 432,
   mainThemes: ['Özel makaleler', 'Gayrinizami Markalama', 'Gayrinizami Notlar', 'İlham kaynağı', 'LimitedPost', 'Kılçıksız Markalama', 'Gayrinizami Pazarlama', 'Marka hikayeleri', 'Pazar yazıları', 'Yeni marka yaratmak', '12ilke', 'Marka konumlandırma', 'Yasak Elmalar', 'Özel makale'],

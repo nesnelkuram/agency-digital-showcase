@@ -286,6 +286,7 @@ Tum verileri sentezleyerek asagidaki JSON yapisinda NIHAI marka stratejisi rapor
     "dataFreshness": "Ocak 2025 web arama verileri",
     "confidenceLevel": "${sourceCount > 5 ? 'Yuksek' : sourceCount > 0 ? 'Orta' : 'Dusuk'} — ${sourceCount} kaynak kullanildi"
   },
+  "consultantIntro": "BU ALAN KRITIK — Raporun en basinda, isletme sahibine hitaben yazilmis, deneyimli bir marka danismaninin agzindan kisa bir giris metni. Sanki isletme sahibiyle ilk toplantida yuz yuze konusuyormus gibi yaz. Isletmenin icerisinde bulundugu pazarin gercekliginden bahset, rekabetin veya pazarin durumunu kisa ve net bir sekilde ciz, 'herkesin yaptigi seyleri yaparak fark yaratmak zor' benzeri bir farkindalik olustur. Her isletmenin durumu farkli olabilir — bazilari yogun rekabetle karsi karsiya, bazilari yeni bir pazara giriyor, bazilari dijitale ilk adimini atiyor. Tonu: Samimi ama otoriter, blog yazarligi yapan bir stratejistin dogal konusma uslubunda. Dogrudan isletme sahibine 'siz' diye hitap et. 3-5 cumle olmali. Klise ve jargon YASAK.",
   "synthesisRationale": "Bu sentezin NEDEN bu sekilde yapildiginin aciklamasi. Hangi uzman gorusleri benimsendi, hangileri reddedildi ve NEDEN? SOMUT referanslarla. (3-5 cumle)"
 }
 
@@ -322,7 +323,9 @@ KRITIK KURALLAR — BU KURALLARA UYMAYAN RAPOR BASARISIZ SAYILIR:
 8. ${challengerOutput ? 'Her iki uzmanin goruslerini referans goster.' : 'Strateji uzmaninin onerisini nasil rafine ettigini acikla.'}
 
 9. Tum metinler TURKCE olmali.
-10. Sadece JSON don, baska bir sey yazma.${budgetCalibration}${stageCalibration}${digitalCalibration}${triggerCalibration}`;
+10. Sadece JSON don, baska bir sey yazma.
+
+16. DANISMA GIRIS METNI (consultantIntro): Bu metin raporun en basinda gosterilecek, isletme sahibinin ilk okuyacagi sey. Sanki tecrubeli bir strateji danismani olarak karsisinda oturuyorsun ve ona isinin gercekligini anlatiyorsun. Sektordeki durumu, onundeki firsatlari veya zorluklari kisa ve vurucu bir sekilde ozetle. Blog yazar uslubunda — samimi, dusunduren, bazen hafif provoke eden — ama ASLA klise degil. Her cumle bu SPESIFIK isletme icin yazilmis olmali, genel gecerligir laflar olmasin. "Siz" diye hitap et.${budgetCalibration}${stageCalibration}${digitalCalibration}${triggerCalibration}`;
 
   const parsed = await generateJSON<SynthesizedAnalysis>('pro', prompt, 'StrategySynthesizer', {
     temperature: 0.6,
@@ -421,6 +424,7 @@ KRITIK KURALLAR — BU KURALLARA UYMAYAN RAPOR BASARISIZ SAYILIR:
       dataFreshness: parsed.evidenceSummary?.dataFreshness || 'Veri guncellik bilgisi mevcut degil',
       confidenceLevel: parsed.evidenceSummary?.confidenceLevel || `${sourceCount > 0 ? 'Orta' : 'Dusuk'} — ${sourceCount} kaynak`,
     },
+    consultantIntro: parsed.consultantIntro || '',
     synthesisRationale: parsed.synthesisRationale || (challengerOutput
       ? `Strateji uzmaninin ${strategistOutput.archetype} arketip onerisi ile seytan avukatinin ${challengerOutput.alternativeArchetype} alternatifi degerlendirilmistir.`
       : `Strateji uzmaninin ${strategistOutput.archetype} arketip onerisi rafine edilerek nihai strateji olusturulmustur.`

@@ -514,3 +514,18 @@ export async function revokeReportShare(leadId: string): Promise<void> {
     updatedAt: serverTimestamp(),
   });
 }
+
+/**
+ * AI analizini sil
+ */
+export async function deleteAIAnalysis(leadId: string): Promise<void> {
+  if (!db) throw new Error('Firebase not initialized');
+
+  const docRef = doc(db, COLLECTION_NAME, leadId);
+  await updateDoc(docRef, {
+    aiAnalysis: deleteField(),
+    analyzedAt: deleteField(),
+    analyzedBy: deleteField(),
+    updatedAt: serverTimestamp(),
+  });
+}

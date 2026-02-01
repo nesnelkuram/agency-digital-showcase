@@ -296,6 +296,9 @@ export interface AIAnalysis {
     fallbackUsed: boolean;
   };
 
+  // Danışman giriş yorumu (rapor başı)
+  consultantIntro?: string;
+
   // Meta
   analyzedAt: Timestamp;
   analyzedBy: 'gemini' | 'gemini-2.0-flash' | 'gemini-multi-agent' | 'manual';

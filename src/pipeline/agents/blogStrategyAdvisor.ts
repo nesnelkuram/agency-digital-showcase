@@ -49,10 +49,10 @@ export async function runBlogStrategyAdvisor(
     .map((q) => `- "${q}"`)
     .join('\n');
 
-  const prompt = `Sen ${BLOG_AUTHOR_META.name}'in stratejik felsefesini temsil eden bir marka danismanisin. ${BLOG_AUTHOR_META.name}, ${BLOG_AUTHOR_META.site} adresinde ${BLOG_AUTHOR_META.totalArticles} blog yazisi yayinlamis, Turkiye'nin taninan marka stratejistlerinden biridir. "Gayrinizami Markalama" felsefesiyle bilinir — geleneksel pazarlama dogmalarini sorgular, sira disi ve cesur yaklasimlar savunur.
+  const prompt = `Sen stratejik danismanin blog felsefesini temsil eden bir marka danismanisin. ${BLOG_AUTHOR_META.site} adresinde ${BLOG_AUTHOR_META.totalArticles} blog yazisi yayinlanmis, "Gayrinizami Markalama" felsefesiyle bilinen stratejik yaklasimlar icermektedir — geleneksel pazarlama dogmalarini sorgular, sira disi ve cesur yaklasimlar savunur.
 
 Gorevlerin:
-1. Onerilen marka stratejisini Engin Tezcan'in felsefi cercevesinden degerlendir
+1. Onerilen marka stratejisini stratejik danismanin felsefi cercevesinden degerlendir
 2. Blog yazilarindaki stratejik prensipleri bu markaya SOMUT OLARAK uygula
 3. Icerik stratejisini yazarin tarzi, sesi ve konularina gore sekillendirerek UYGULANABILIR oneriler sun
 
@@ -85,12 +85,12 @@ ${quotesSummary}
 ${researchContext}
 ---
 
-Yukaridaki stratejiyi Engin Tezcan'in blog yazilarindaki felsefe ve yaklasimlarla karsilastirarak asagidaki JSON yapisinda bir degerlendirme olustur:
+Yukaridaki stratejiyi stratejik danismanin blog yazilarindaki felsefe ve yaklasimlarla karsilastirarak asagidaki JSON yapisinda bir degerlendirme olustur:
 
 {
   "philosophicalAlignment": {
     "score": 7,
-    "rationale": "Onerilen stratejinin Engin Tezcan'in felsefesiyle ne kadar uyumlu oldugu. Somut blog referanslariyla acikla. (2-3 cumle)",
+    "rationale": "Onerilen stratejinin stratejik danismanin felsefesiyle ne kadar uyumlu oldugu. Somut blog referanslariyla acikla. (2-3 cumle)",
     "alignedPrinciples": [
       "UYUMLU PRENSIP 1: Blog yazilarindan hangi prensip bu stratejiyi destekliyor? Blog basligini ve icerigini referans goster.",
       "UYUMLU PRENSIP 2: ..."
@@ -118,7 +118,7 @@ Yukaridaki stratejiyi Engin Tezcan'in blog yazilarindaki felsefe ve yaklasimlarl
     }
   ],
   "contentStrategyInsights": {
-    "toneAlignment": "Bu markanin iletisim tonunun Engin Tezcan'in yazim tarziyla nasil iliskilendirilecegi. (1-2 cumle)",
+    "toneAlignment": "Bu markanin iletisim tonunun stratejik danismanin yazim tarziyla nasil iliskilendirilecegi. (1-2 cumle)",
     "contentPillars": [
       "ICERIK SUTUNU 1: Blog temalarindan esinlenerek bu markaya ozgu bir icerik sutunu",
       "ICERIK SUTUNU 2: ...",
@@ -133,7 +133,7 @@ Yukaridaki stratejiyi Engin Tezcan'in blog yazilarindaki felsefe ve yaklasimlarl
       "KONU 5: ..."
     ]
   },
-  "authorPerspective": "Engin Tezcan bu markayi incelese ne derdi? Onun uslubunda, onun bakis acisiyla 3-5 cumlelik bir degerlendirme yaz. Gayrinizami, cesur, dogrudan.",
+  "authorPerspective": "Stratejik danismanin bu markayi incelese ne derdi? Gayrinizami Markalama uslubunda, cesur bakis acisiyla 3-5 cumlelik bir degerlendirme yaz. Cesur, dogrudan.",
   "unconventionalInsights": [
     "GAYRINIZAMI ICGORU 1: Blog felsefesinden esinlenen, geleneksel pazarlama yaklasimlarindan farkli, cesur bir oneri. (1-2 cumle)",
     "GAYRINIZAMI ICGORU 2: Sira disi bir bakis acisi veya strateji onerisi. (1-2 cumle)"
@@ -142,11 +142,11 @@ Yukaridaki stratejiyi Engin Tezcan'in blog yazilarindaki felsefe ve yaklasimlarl
 
 KRITIK KURALLAR:
 1. Her oneri ve degerlendirme SOMUT bir blog yazisina referans vermeli. Genel laflar YASAK.
-2. "authorPerspective" alaninda GERCEKTEN Engin Tezcan gibi yaz — provoke edici, hikayeli, dogmalara meydan okuyan.
+2. "authorPerspective" alaninda Gayrinizami Markalama uslubunda yaz — provoke edici, hikayeli, dogmalara meydan okuyan.
 3. "contentPillars" 3-5 adet olmali, HER biri blog temalarindan esinlenmeli ama BU MARKAYA OZEL olmali.
 4. "topicSuggestions" 5-7 adet olmali, HER biri blog yazilarinin yaklasimini bu markaya uygulayan somut konular.
 5. "strategicRecommendations" 3-5 adet, her biri FARKLI bir alana odaklanmali: positioning, differentiation, content, audience, competition.
-6. "unconventionalInsights" 2-3 adet, GELENEKSEL pazarlama mantigi DISINDA dusun — tam da Engin Tezcan'in yapacagi gibi.
+6. "unconventionalInsights" 2-3 adet, GELENEKSEL pazarlama mantigi DISINDA dusun — tam da stratejik danismanin yapacagi gibi.
 7. score degeri DUNUK (3-4) ise stratejinin neden SIRADAN ve CESARET EKSIK oldugunu acikla. YUKSEK (8-9) ise neden GAYRINIZAMI ve CESUR oldugunu belirt.
 8. Tum metinler TURKCE olmali.
 9. Sadece JSON don, baska bir sey yazma.`;

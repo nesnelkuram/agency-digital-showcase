@@ -11,6 +11,21 @@
     },
     "api/transcribe-video.ts": {
       "maxDuration": 120
+    },
+    "api/marketing/generate-proposal.ts": {
+      "maxDuration": 300
+    },
+    "api/marketing/approve-proposal.ts": {
+      "maxDuration": 60
+    },
+    "api/marketing/execute-campaign.ts": {
+      "maxDuration": 120
+    },
+    "api/marketing/sync-performance.ts": {
+      "maxDuration": 120
+    },
+    "api/marketing/optimize.ts": {
+      "maxDuration": 300
     }
   },
   "headers": [

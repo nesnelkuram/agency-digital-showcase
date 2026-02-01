@@ -8,6 +8,7 @@ interface UseFeedbackRecorderReturn {
   duration: number;
   previewStream: MediaStream | null;
   recordedBlob: Blob | null;
+  recordedAudioBlob: Blob | null;
   startRecording: (mode: RecordingMode) => Promise<void>;
   pauseRecording: () => void;
   resumeRecording: () => void;
@@ -57,10 +58,13 @@ export function useFeedbackRecorder(): UseFeedbackRecorderReturn {
   const [duration, setDuration] = useState(0);
   const [previewStream, setPreviewStream] = useState<MediaStream | null>(null);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
+  const [recordedAudioBlob, setRecordedAudioBlob] = useState<Blob | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const screenStreamRef = useRef<MediaStream | null>(null);
   const cameraStreamRef = useRef<MediaStream | null>(null);
@@ -330,6 +334,30 @@ export function useFeedbackRecorder(): UseFeedbackRecorderReturn {
 
         mediaRecorderRef.current = recorder;
         recorder.start(1000);
+
+        // Start parallel audio-only recorder for fast AI transcription
+        const audioTracks = recordStream.getAudioTracks();
+        if (audioTracks.length > 0) {
+          try {
+            const audioStream = new MediaStream(audioTracks);
+            const audioMime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+              ? 'audio/webm;codecs=opus'
+              : 'audio/webm';
+            const audioRec = new MediaRecorder(audioStream, {
+              mimeType: audioMime,
+              audioBitsPerSecond: 32000, // 32kbps - small but clear for speech
+            });
+            audioChunksRef.current = [];
+            audioRec.ondataavailable = (e) => {
+              if (e.data.size > 0) audioChunksRef.current.push(e.data);
+            };
+            audioRecorderRef.current = audioRec;
+            audioRec.start(1000);
+          } catch {
+            // Audio recording optional - ignore errors
+          }
+        }
+
         setIsRecording(true);
         setIsPaused(false);
         setRecordingMode(mode);
@@ -350,6 +378,9 @@ export function useFeedbackRecorder(): UseFeedbackRecorderReturn {
   const pauseRecording = useCallback(() => {
     if (mediaRecorderRef.current?.state === 'recording') {
       mediaRecorderRef.current.pause();
+      if (audioRecorderRef.current?.state === 'recording') {
+        audioRecorderRef.current.pause();
+      }
       setIsPaused(true);
       stopTimer();
     }
@@ -358,6 +389,9 @@ export function useFeedbackRecorder(): UseFeedbackRecorderReturn {
   const resumeRecording = useCallback(() => {
     if (mediaRecorderRef.current?.state === 'paused') {
       mediaRecorderRef.current.resume();
+      if (audioRecorderRef.current?.state === 'paused') {
+        audioRecorderRef.current.resume();
+      }
       setIsPaused(false);
       timerRef.current = setInterval(() => {
         setDuration((prev) => prev + 1);
@@ -371,6 +405,17 @@ export function useFeedbackRecorder(): UseFeedbackRecorderReturn {
       if (!recorder || recorder.state === 'inactive') {
         reject(new Error('Kayit aktif degil'));
         return;
+      }
+
+      // Stop audio recorder first (non-blocking)
+      const audioRec = audioRecorderRef.current;
+      if (audioRec && audioRec.state !== 'inactive') {
+        audioRec.onstop = () => {
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          setRecordedAudioBlob(audioBlob);
+          audioRecorderRef.current = null;
+        };
+        audioRec.stop();
       }
 
       recorder.onstop = () => {
@@ -393,15 +438,21 @@ export function useFeedbackRecorder(): UseFeedbackRecorderReturn {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
     }
+    if (audioRecorderRef.current && audioRecorderRef.current.state !== 'inactive') {
+      audioRecorderRef.current.stop();
+    }
     chunksRef.current = [];
+    audioChunksRef.current = [];
     cleanupStreams();
     stopTimer();
     setIsRecording(false);
     setIsPaused(false);
     setRecordedBlob(null);
+    setRecordedAudioBlob(null);
     setRecordingMode(null);
     setDuration(0);
     mediaRecorderRef.current = null;
+    audioRecorderRef.current = null;
   }, [cleanupStreams, stopTimer]);
 
   // Cleanup on unmount
@@ -419,6 +470,7 @@ export function useFeedbackRecorder(): UseFeedbackRecorderReturn {
     duration,
     previewStream,
     recordedBlob,
+    recordedAudioBlob,
     startRecording,
     pauseRecording,
     resumeRecording,
