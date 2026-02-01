@@ -47,20 +47,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           'business_management',
           'pages_read_engagement',
         ].join(',');
-        authUrl = `https://www.facebook.com/${META_API_VERSION}/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(callbackUri)}&scope=${scopes}&response_type=code`;
+        const url = new URL(`https://www.facebook.com/${META_API_VERSION}/dialog/oauth`);
+        url.searchParams.set('client_id', appId);
+        url.searchParams.set('redirect_uri', callbackUri);
+        url.searchParams.set('scope', scopes);
+        url.searchParams.set('response_type', 'code');
+        url.searchParams.set('state', String(state || '{}'));
+        authUrl = url.toString();
         break;
       }
       default:
         return res.status(400).json({ error: `Unsupported platform: ${platform}` });
     }
 
-    // Append state parameter
-    const separator = authUrl.includes('?') ? '&' : '?';
-    const fullAuthUrl = `${authUrl}${separator}state=${encodeURIComponent(String(state || '{}'))}`;
-
     console.log(`[platform-connect] Redirecting to ${String(platform)} OAuth`);
 
-    return res.redirect(fullAuthUrl);
+    return res.redirect(authUrl);
   } catch (error: any) {
     console.error('[platform-connect] Error:', error.message);
     return res.status(500).json({ error: error.message || 'Failed to initiate OAuth' });
