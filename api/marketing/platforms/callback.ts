@@ -63,8 +63,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // ── Meta OAuth token exchange (inlined) ──
     if (platform === 'meta') {
-      const appId = process.env.META_APP_ID;
-      const appSecret = process.env.META_APP_SECRET;
+      const appId = process.env.META_APP_ID?.trim();
+      const appSecret = process.env.META_APP_SECRET?.trim();
       if (!appId || !appSecret) {
         return res.redirect(
           `${fallbackPath}?error=${encodeURIComponent('META_APP_ID or META_APP_SECRET not configured')}`

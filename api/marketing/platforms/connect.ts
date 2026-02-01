@@ -37,7 +37,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     switch (String(platform)) {
       case 'meta': {
-        const appId = process.env.META_APP_ID;
+        const appId = process.env.META_APP_ID?.trim();
         if (!appId) {
           return res.status(500).json({ error: 'META_APP_ID not configured' });
         }
