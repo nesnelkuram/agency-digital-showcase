@@ -27,6 +27,7 @@ interface AccountPickerData {
   userName: string;
   userId: string;
   permissions: string[];
+  projectId?: string;
   accounts: AdAccountOption[];
 }
 
@@ -129,9 +130,10 @@ const PlatformsPage: React.FC = () => {
     (async () => {
       try {
         const accountData = JSON.parse(decodeURIComponent(connectedParam));
+        const resolvedProjectId = accountData.projectId || projectId;
         await savePlatformAccount({
           ...accountData,
-          ...(projectId ? { projectId } : {}),
+          ...(resolvedProjectId ? { projectId: resolvedProjectId } : {}),
         });
         await fetchAccounts();
       } catch (err) {
@@ -199,6 +201,7 @@ const PlatformsPage: React.FC = () => {
   const handlePickAccount = async (account: AdAccountOption) => {
     if (!pickerData || account.status !== 1) return;
 
+    const resolvedProjectId = pickerData.projectId || projectId;
     setPickerSaving(true);
     try {
       await savePlatformAccount({
@@ -213,7 +216,7 @@ const PlatformsPage: React.FC = () => {
           userId: pickerData.userId,
           userName: pickerData.userName,
         },
-        ...(projectId ? { projectId } : {}),
+        ...(resolvedProjectId ? { projectId: resolvedProjectId } : {}),
       });
       setPickerData(null);
       await fetchAccounts();

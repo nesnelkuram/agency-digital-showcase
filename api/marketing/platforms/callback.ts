@@ -34,8 +34,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Handle OAuth errors
     if (error) {
       console.error(`[platform-callback] OAuth error: ${error} — ${error_description}`);
+      let errorPath = '/admin/marketing/platforms';
+      try {
+        if (state) {
+          const parsed = JSON.parse(String(state));
+          if (parsed.redirectPath) errorPath = parsed.redirectPath;
+        }
+      } catch { /* use default */ }
       return res.redirect(
-        `/admin/marketing/platforms?error=${encodeURIComponent(String(error_description || error))}`
+        `${errorPath}?error=${encodeURIComponent(String(error_description || error))}`
       );
     }
 
@@ -51,7 +58,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.redirect('/admin/marketing/platforms?error=invalid_state');
     }
 
-    const { platform, redirectPath } = stateData;
+    const { platform, redirectPath, projectId } = stateData;
     const fallbackPath = redirectPath || '/admin/marketing/platforms';
 
     console.log(`[platform-callback] Processing callback for platform=${platform}`);
@@ -125,6 +132,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           accountName: singleAccount.name || userName,
           status: 'connected',
           permissions: ['ads_management', 'ads_read', 'business_management'],
+          ...(projectId ? { projectId } : {}),
           metadata: {
             accessToken,
             adAccountId: singleAccount.account_id,
@@ -144,6 +152,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         userName,
         userId,
         permissions: ['ads_management', 'ads_read', 'business_management'],
+        ...(projectId ? { projectId } : {}),
         accounts: adAccounts.map(acc => ({
           id: acc.account_id,
           name: acc.name || acc.account_id,

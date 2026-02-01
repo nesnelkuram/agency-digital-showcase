@@ -475,18 +475,36 @@ export async function getProposals(
 export async function getPlatformAccounts(projectId?: string): Promise<PlatformAccount[]> {
   if (!db) throw new Error('Firebase not initialized');
 
-  const constraints: QueryConstraint[] = [orderBy('createdAt', 'desc')];
+  const constraints: QueryConstraint[] = [];
   if (projectId) {
-    constraints.unshift(where('projectId', '==', projectId));
+    constraints.push(where('projectId', '==', projectId));
   }
+  constraints.push(orderBy('createdAt', 'desc'));
 
   const q = query(collection(db, PLATFORM_ACCOUNTS_COLLECTION), ...constraints);
-  const snapshot = await getDocs(q);
 
-  return snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as PlatformAccount[];
+  try {
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as PlatformAccount[];
+  } catch (err: any) {
+    // Composite index may not exist yet — fallback to unordered query
+    if (projectId && err?.code === 'failed-precondition') {
+      console.warn('[getPlatformAccounts] Index missing, falling back to unordered query');
+      const fallbackQ = query(
+        collection(db, PLATFORM_ACCOUNTS_COLLECTION),
+        where('projectId', '==', projectId)
+      );
+      const snapshot = await getDocs(fallbackQ);
+      return snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as PlatformAccount[];
+    }
+    throw err;
+  }
 }
 
 export async function getPlatformAccount(
@@ -520,6 +538,30 @@ export async function savePlatformAccount(
 ): Promise<string> {
   if (!db) throw new Error('Firebase not initialized');
 
+  // Upsert: check if account already exists for this platform (+projectId)
+  const constraints: QueryConstraint[] = [
+    where('platform', '==', data.platform),
+  ];
+  if (data.projectId) {
+    constraints.push(where('projectId', '==', data.projectId));
+  }
+  constraints.push(limit(1));
+
+  const existing = await getDocs(
+    query(collection(db, PLATFORM_ACCOUNTS_COLLECTION), ...constraints)
+  );
+
+  if (!existing.empty) {
+    // Update existing document
+    const existingDoc = existing.docs[0];
+    await updateDoc(doc(db, PLATFORM_ACCOUNTS_COLLECTION, existingDoc.id), {
+      ...stripUndefined(data),
+      updatedAt: serverTimestamp(),
+    });
+    return existingDoc.id;
+  }
+
+  // Create new document
   const accountData = {
     ...stripUndefined(data),
     createdAt: Timestamp.now(),
