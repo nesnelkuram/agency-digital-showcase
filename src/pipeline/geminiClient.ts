@@ -26,6 +26,17 @@ function getClient(): GoogleGenAI {
   return _client;
 }
 
+// Gemini 3 Pro: thinking tokens count against maxOutputTokens budget.
+// A low maxOutputTokens causes truncated output (MAX_TOKENS finish reason).
+// We enforce a minimum to ensure enough room for both thinking + actual output.
+const PRO_MIN_OUTPUT_TOKENS = 16_384;
+
+function resolveMaxTokens(tier: ModelTier, requested?: number, fallback: number = 4096): number {
+  const base = requested ?? fallback;
+  // For Pro tier, ensure at least PRO_MIN_OUTPUT_TOKENS so thinking doesn't eat all output budget
+  return tier === 'pro' ? Math.max(base, PRO_MIN_OUTPUT_TOKENS) : base;
+}
+
 export async function generateJSON<T>(
   tier: ModelTier,
   prompt: string,
@@ -39,7 +50,7 @@ export async function generateJSON<T>(
     config: {
       temperature: config?.temperature ?? 0.7,
       topP: 0.9,
-      maxOutputTokens: config?.maxOutputTokens ?? 4096,
+      maxOutputTokens: resolveMaxTokens(tier, config?.maxOutputTokens, 4096),
       responseMimeType: 'application/json',
       // gemini-3-pro-preview requires thinking mode; flash models don't support it
       ...(tier === 'pro' ? {} : { thinkingConfig: { thinkingBudget: 0 } }),
@@ -65,7 +76,7 @@ export async function generateText(
     config: {
       temperature: config?.temperature ?? 0.7,
       topP: 0.9,
-      maxOutputTokens: config?.maxOutputTokens ?? 2048,
+      maxOutputTokens: resolveMaxTokens(tier, config?.maxOutputTokens, 2048),
       ...(tier === 'pro' ? {} : { thinkingConfig: { thinkingBudget: 0 } }),
     },
   });
@@ -79,11 +90,11 @@ export async function generateText(
 export async function generateGroundedText(
   prompt: string,
   agentName: string,
-  config?: { temperature?: number; maxOutputTokens?: number }
+  config?: { temperature?: number; maxOutputTokens?: number; modelTier?: ModelTier }
 ): Promise<GroundedResponse> {
   const client = getClient();
   const result = await client.models.generateContent({
-    model: MODEL_IDS.flash,
+    model: MODEL_IDS[config?.modelTier ?? 'flash'],
     contents: prompt,
     config: {
       temperature: config?.temperature ?? 0.4,
@@ -200,6 +211,34 @@ export async function runDeepResearch(
     return { text: '', status: 'failed' };
   }
   return pollDeepResearch(interactionId, timeoutMs);
+}
+
+// --- Embedding generation via text-embedding-004 ---
+
+export async function generateEmbedding(text: string): Promise<number[]> {
+  const client = getClient();
+  const result = await client.models.embedContent({
+    model: 'text-embedding-004',
+    contents: text,
+  });
+  const values = result.embeddings?.[0]?.values;
+  if (!values || values.length === 0) {
+    throw new Error('Embedding API returned empty result');
+  }
+  return values;
+}
+
+export async function generateEmbeddingBatch(texts: string[]): Promise<number[][]> {
+  const client = getClient();
+  const result = await client.models.embedContent({
+    model: 'text-embedding-004',
+    contents: texts,
+  });
+  const embeddings = result.embeddings;
+  if (!embeddings || embeddings.length !== texts.length) {
+    throw new Error(`Embedding batch expected ${texts.length} results, got ${embeddings?.length ?? 0}`);
+  }
+  return embeddings.map(e => e.values ?? []);
 }
 
 export function safeParseJSON<T>(text: string, agentName: string): T {

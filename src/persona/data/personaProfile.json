@@ -1,0 +1,137 @@
+{
+  "authorName": "Bilinmeyen Yazar",
+  "thinkingPatterns": [
+    {
+      "pattern": "Hikaye anlatma (anekdot)",
+      "frequency": 4
+    },
+    {
+      "pattern": "Örneklerle destekleme ve karşılaştırma yoluyla argüman geliştirme",
+      "frequency": 2
+    },
+    {
+      "pattern": "Tezat ile açma, tanımlama, örnekleme",
+      "frequency": 1
+    },
+    {
+      "pattern": "Hikaye anlatma (tarihi bir olay üzerinden durumu açıklama)",
+      "frequency": 1
+    },
+    {
+      "pattern": "Hikaye anlatma, örnek olay incelemesi ile destekleme, güncel pazarlama yaklaşımlarıyla karşılaştırma",
+      "frequency": 1
+    },
+    {
+      "pattern": "Hikaye anlatma (zappos'un kuruluş hikayesi) ve problem çözme odaklı",
+      "frequency": 1
+    },
+    {
+      "pattern": "Hikaye anlatma, gözlem yoluyla betimleme ve alıntıları kullanarak destekleme",
+      "frequency": 1
+    },
+    {
+      "pattern": "Hikaye anlatma (bir cafe zinciri örneği üzerinden)",
+      "frequency": 1
+    },
+    {
+      "pattern": "Soruyla başlama, kişisel deneyimlere dayalı gözlemler sunma, örüntüleri ve sendromları tanımlama",
+      "frequency": 1
+    },
+    {
+      "pattern": "Problem tespitiyle başlama, mevcut durumun eleştirisi, çözüm önerisi sunma",
+      "frequency": 1
+    }
+  ],
+  "coreBeliefs": [
+    "Başarıya odaklanmak körlüğe yol açabilir.",
+    "Kısıtlamalar yaratıcılığı tetikler.",
+    "Veriye bağlı kalmak yerine sezgilere güvenmek bazen daha iyidir.",
+    "Rekabet avantajı için geleneksel yaklaşımların dışına çıkmak gerekir.",
+    "Kaliteli malzeme ürün başarısı için önemlidir.",
+    "Büyüme için bazı şartları sorgulamak gerekebilir.",
+    "Pazarlama tek belirleyici değildir.",
+    "Basit sorularla müşteri anlayışını geliştirmek mümkündür.",
+    "Hedef kitle sorunlarına odaklanılmalıdır.",
+    "Sınırlı kaynaklarla odaklanmak önemlidir.",
+    "Gerçekçi hedefler hayal kurmaktan önemlidir.",
+    "Pazarlamacılar empati kurmalıdır."
+  ],
+  "communicationStyle": {
+    "tone": "İlham verici, uyarıcı, analitik ve provokatif bir karışım",
+    "vocabulary": "Akademik ve popüler kültürü birleştiren, anlaşılır ve ilgi çekici bir dil",
+    "sentenceStructure": "Çoğunlukla kısa ve öz cümleler, zaman zaman uzun ve karmaşık yapılar",
+    "favoriteTransitions": [
+      "Örneğin",
+      "Ancak",
+      "Bu nedenle",
+      "Aslında",
+      "Öte yandan",
+      "Dolayısıyla"
+    ]
+  },
+  "antiPatterns": [
+    "Aşırı iyimserlik ve gerçek dışı vaatlerde bulunmak",
+    "Sadece teorik bilgi vermek, pratik uygulamalardan bahsetmemek",
+    "Karmaşık ve anlaşılması güç bir dil kullanmak",
+    "Sadece büyük markaların örneklerini vermek, küçük işletmeleri göz ardı etmek",
+    "Eleştirel düşünceden uzak, her şeyi kabul eden bir yaklaşım sergilemek"
+  ],
+  "rhetoricalDevices": [
+    {
+      "device": "Soru",
+      "frequency": 25
+    },
+    {
+      "device": "Hikaye",
+      "frequency": 22
+    },
+    {
+      "device": "Provokasyon ve soru",
+      "frequency": 5
+    },
+    {
+      "device": "Karşılaştırma",
+      "frequency": 5
+    },
+    {
+      "device": "Provokasyon, soru",
+      "frequency": 4
+    },
+    {
+      "device": "Provokasyon ve karşılaştırma",
+      "frequency": 3
+    },
+    {
+      "device": "Soru, provokasyon",
+      "frequency": 3
+    },
+    {
+      "device": "Provokasyon",
+      "frequency": 3
+    }
+  ],
+  "favoriteMetaphorCategories": [
+    "Savaş",
+    "Tıp",
+    "Yolculuk",
+    "Doğa"
+  ],
+  "topicExpertise": [
+    "Pazarlama stratejileri",
+    "Marka yönetimi",
+    "İnovasyon",
+    "Girişimcilik",
+    "Tüketici davranışları",
+    "Rekabet stratejileri"
+  ],
+  "worldview": "Yazar, iş dünyasının sürekli değiştiğine, geleneksel yaklaşımların yetersiz kaldığına ve yaratıcılığın, odaklanmanın ve eyleme geçmenin başarı için kritik olduğuna inanmaktadır. Başarılı markaların sadece pazarlama ile değil, bütünsel bir yaklaşımla yönetilmesi gerektiğini savunur. Ayrıca, veriye dayalı kararların yanı sıra sezgi ve vizyonun da önemli olduğunu düşünmektedir.",
+  "signaturePhrases": [
+    "Bu böyle olmaz",
+    "İşte bu dengeyi kaldırıp çöpe atmışlar.",
+    "Çoğu marka sadece işin “pazarlama” tarafında sorun yaşadığını düşünüyor.",
+    "Pazarlamaya gelene kadar, bir markanın rayına oturabilmesi için, dikkat edilmesi gereken çok başka şeyler var.",
+    "Ve örüntüler benzer. Sendromlar.",
+    "Müşterilerin markayla olan ilişkisini anlamada tek bir soru, onlarca sorudan, anketten ve araştırmadan çok daha fazla iş görüyormuş.",
+    "Eğer hedef kitleyi böyle belirlerseniz, Ali Koç’a ve Teoman’a aynı reklamı gösterirsiniz."
+  ]
+}

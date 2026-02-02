@@ -9,6 +9,8 @@ export interface BusinessContextInput {
   monthlyBudget?: string;
   businessStage?: string;
   triggerReason?: string;
+  websiteUrl?: string;
+  instagramHandle?: string;
 }
 
 export interface PipelineInput {
@@ -226,6 +228,101 @@ export interface SynthesizedAnalysis {
   };
 }
 
+// Agent 7 Output — Digital Presence Analysis
+export interface WebsiteAnalysis {
+  url: string;
+  status: 'analyzed' | 'fetch_failed' | 'not_provided';
+  overallImpression: string;
+  designQuality: number;
+  mobileOptimized: boolean;
+  loadPerformance: string;
+  products: Array<{ name: string; price?: string; category?: string }>;
+  pricingStrategy: string;
+  contentQuality: string;
+  callToActions: string[];
+  trustSignals: string[];
+  seoBasics: {
+    hasTitle: boolean;
+    hasDescription: boolean;
+    hasOGTags: boolean;
+    title?: string;
+    description?: string;
+  };
+  strengths: string[];
+  weaknesses: string[];
+  recommendations: string[];
+}
+
+export interface InstagramAnalysis {
+  handle: string;
+  status: 'analyzed' | 'limited_data' | 'not_provided';
+  followerRange?: string;
+  estimatedPostCount?: string;
+  postingFrequency?: string;
+  contentThemes: string[];
+  visualStyle: string;
+  captionStyle: string;
+  hashtagUsage: string;
+  engagementLevel: string;
+  contentMix: {
+    photoPercent?: number;
+    videoPercent?: number;
+    reelPercent?: number;
+    carouselPercent?: number;
+  };
+  strengths: string[];
+  weaknesses: string[];
+  recommendations: string[];
+}
+
+export interface PlatformPresence {
+  platform: string;
+  status: string;
+  notes: string;
+}
+
+export interface DigitalPresenceAnalysis {
+  website: WebsiteAnalysis | null;
+  instagram: InstagramAnalysis | null;
+  otherPlatforms: PlatformPresence[];
+  overallDigitalScore: number;
+  digitalMaturityLevel: string;
+  criticalGaps: string[];
+  quickWins: string[];
+}
+
+// Agent 8 Output — Competitor Discovery
+export interface EnrichedCompetitor {
+  name: string;
+  website?: string;
+  instagramHandle?: string;
+  positioning: string;
+  priceSegment: string;
+  strengths: string[];
+  weaknesses: string[];
+  estimatedScale: string;
+  digitalPresenceScore: number;
+  socialMediaSummary: string;
+  differentiators: string[];
+  source: 'declared' | 'research' | 'discovered';
+}
+
+export interface CompetitorDiscoveryOutput {
+  knownCompetitors: EnrichedCompetitor[];
+  discoveredCompetitors: EnrichedCompetitor[];
+  competitiveLandscapeSummary: string;
+  marketConcentration: string;
+  entryBarriers: string[];
+  competitiveThreats: string[];
+  competitiveOpportunities: string[];
+  digitalBenchmark: {
+    avgWebsiteQuality: number;
+    avgSocialFollowing: string;
+    avgPostingFrequency: string;
+    bestPracticeExamples: string[];
+  };
+}
+
 // Pipeline state passed through agents
 export interface PipelineState {
   input: PipelineInput;
@@ -235,6 +332,8 @@ export interface PipelineState {
   challengerOutput?: ChallengerOutput;
   blogAdvisorOutput?: BlogAdvisorOutput;
   synthesizedAnalysis?: SynthesizedAnalysis;
+  digitalPresenceAnalysis?: DigitalPresenceAnalysis;
+  competitorDiscovery?: CompetitorDiscoveryOutput;
   errors: Array<{ agent: string; error: string; timestamp: number }>;
   timings: Record<string, number>;
 }

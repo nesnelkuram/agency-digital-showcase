@@ -15,9 +15,12 @@ export { runBrandChallenger } from './agents/brandChallenger';
 export { runBlogStrategyAdvisor } from './agents/blogStrategyAdvisor';
 export { runStrategySynthesizer } from './agents/strategySynthesizer';
 export { runConsultantIntroWriter } from './agents/consultantIntroWriter';
+export { runDigitalPresenceAnalyzer } from './agents/digitalPresenceAnalyzer';
+export { runCompetitorDiscovery } from './agents/competitorDiscovery';
+export { fetchAndParseWebsite } from './utils/websiteFetcher';
 export { startDeepResearch, pollDeepResearch } from './geminiClient';
 export { buildDeepResearchPrompt } from './agents/sectorResearch';
-export type { PipelineInput, NormalizedData, ResearchFindings, StrategistOutput, ChallengerOutput, BlogAdvisorOutput, SynthesizedAnalysis } from './types';
+export type { PipelineInput, NormalizedData, ResearchFindings, StrategistOutput, ChallengerOutput, BlogAdvisorOutput, SynthesizedAnalysis, DigitalPresenceAnalysis, CompetitorDiscoveryOutput } from './types';
 
 const TIMEOUT_BUDGET = 290_000; // 290s (10s safety margin from 300s Vercel limit)
 

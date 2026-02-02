@@ -28,6 +28,8 @@ import {
   BookOpen,
   TrendingUp,
   Video,
+  FileCheck,
+  Bot,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermission } from '@/shared/hooks/usePermission';
@@ -84,6 +86,11 @@ const navItems: NavItem[] = [
     permission: PERMISSIONS.TRAINING_VIEW,
   },
   {
+    label: 'Danisman AI',
+    path: '/admin/persona-chat',
+    icon: Bot,
+  },
+  {
     label: 'Pazarlama',
     path: '/admin/marketing',
     icon: Megaphone,
@@ -101,6 +108,11 @@ const navItems: NavItem[] = [
     label: 'Hizmet Katalogu',
     path: '/admin/pricing/catalog',
     icon: BookOpen,
+  },
+  {
+    label: 'Teklif Dokumanlari',
+    path: '/admin/pricing/proposals',
+    icon: FileCheck,
   },
   {
     label: 'Finansal Yonetim',

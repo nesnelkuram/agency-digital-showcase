@@ -9,7 +9,18 @@ import {
   runBlogStrategyAdvisor,
   runStrategySynthesizer,
   runConsultantIntroWriter,
+  runDigitalPresenceAnalyzer,
+  runCompetitorDiscovery,
 } from './_lib/pipeline-bundle.mjs';
+import {
+  loadCheckpoint,
+  markAgentRunning,
+  checkpointAgent,
+  markAgentFailed,
+  markAgentSkipped,
+  completeRun,
+  failRun,
+} from './_lib/checkpointManager';
 
 export const config = {
   maxDuration: 300,
@@ -33,7 +44,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const remaining = () => BUDGET_MS - (Date.now() - startTime);
 
   try {
-    const { drInteractionId, normalizedData, researchFindings: existingFindings, input } = req.body;
+    const { drInteractionId, normalizedData, researchFindings: existingFindings, input, websiteData, runId } = req.body;
 
     if (!normalizedData || !input) {
       return res.status(400).json({ error: 'Missing required fields: normalizedData, input' });
@@ -42,13 +53,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const timings: Record<string, number> = {};
     const errors: Array<{ agent: string; error: string; timestamp: number }> = [];
     const agentsRun: string[] = [];
+    const effectiveLeadId = input.leadId || 'unknown';
 
-    console.log(`analyze-continue: START — existingFindings=${!!existingFindings}, drInteractionId=${drInteractionId || 'none'}`);
+    // Load checkpoint for resume (best-effort — null if unavailable)
+    const existingRun = runId ? await loadCheckpoint(effectiveLeadId) : null;
+    const cp = existingRun?.checkpoint;
+    const hasCheckpoint = !!cp && existingRun?.runId === runId;
+    if (hasCheckpoint) {
+      console.log(`analyze-continue: Checkpoint loaded for runId=${runId}, completed agents: ${
+        Object.entries(existingRun!.agents).filter(([, a]) => a.status === 'completed').map(([n]) => n).join(', ') || 'none'
+      }`);
+    }
+
+    console.log(`analyze-continue: START — existingFindings=${!!existingFindings}, drInteractionId=${drInteractionId || 'none'}, runId=${runId || 'none'}`);
 
     // ============================
     // PHASE A: Research (if needed)
     // ============================
-    let researchFindings = existingFindings || null;
+    // Resume: use checkpointed research if available
+    let researchFindings = (hasCheckpoint && cp?.researchFindings) || existingFindings || null;
+    if (hasCheckpoint && cp?.researchFindings) {
+      console.log('analyze-continue: Using checkpointed researchFindings (skipping research phase)');
+      agentsRun.push('sectorResearch');
+    }
 
     if (!researchFindings) {
       const researchStart = Date.now();
@@ -71,6 +98,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             agentsRun.push('sectorResearch');
             const rc = researchFindings;
             console.log(`analyze-continue: Research extraction done in ${timings.researchExtraction}ms — competitors=${rc?.competitors?.length || 0}, sourcesUsed=${rc?.sourcesUsed}, marketSize=${rc?.marketData?.marketSize?.slice?.(0, 50) || 'N/A'}`);
+            if (runId && researchFindings) {
+              await checkpointAgent(effectiveLeadId, runId, 'sectorResearch', 'researchFindings', researchFindings, Date.now() - researchStart);
+            }
           } else if (drResult.status === 'timeout') {
             // DR HALA CALISIYOR → client'a "tekrar dene" de (grounding'e DUSME)
             console.log(`analyze-continue: DR still running (poll timeout after ${timings.drPoll}ms), returning 'researching'`);
@@ -82,14 +112,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             // DR GERCEKTEN BASARISIZ (failed/cancelled) → grounding fallback
             console.log(`analyze-continue: DR failed (${drResult.status}), falling back to grounding...`);
             try {
+              if (runId) await markAgentRunning(effectiveLeadId, runId, 'sectorResearch');
               researchFindings = await runSectorResearch(input, { drTimeout: 0, startTimeMs: startTime, budgetMs: BUDGET_MS });
               timings.sectorResearch = Date.now() - researchStart;
               agentsRun.push('sectorResearch');
+              if (runId && researchFindings) await checkpointAgent(effectiveLeadId, runId, 'sectorResearch', 'researchFindings', researchFindings, timings.sectorResearch);
               const rc = researchFindings;
               console.log(`analyze-continue: Grounding fallback done in ${timings.sectorResearch}ms — competitors=${rc?.competitors?.length || 0}, sourcesUsed=${rc?.sourcesUsed}`);
             } catch (error: any) {
               timings.sectorResearch = Date.now() - researchStart;
               errors.push({ agent: 'sectorResearch', error: error.message, timestamp: Date.now() });
+              if (runId) await markAgentFailed(effectiveLeadId, runId, 'sectorResearch', error.message, timings.sectorResearch);
               console.error('analyze-continue: Grounding fallback failed:', error.message);
             }
           }
@@ -101,15 +134,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       } else {
         // --- drInteractionId yok → dogrudan grounding ---
         console.log('analyze-continue: No DR interaction, running grounding research...');
+        if (runId) await markAgentRunning(effectiveLeadId, runId, 'sectorResearch');
         try {
           researchFindings = await runSectorResearch(input, { drTimeout: 0, startTimeMs: startTime, budgetMs: BUDGET_MS });
           timings.sectorResearch = Date.now() - researchStart;
           agentsRun.push('sectorResearch');
+          if (runId && researchFindings) await checkpointAgent(effectiveLeadId, runId, 'sectorResearch', 'researchFindings', researchFindings, timings.sectorResearch);
           const rc = researchFindings;
           console.log(`analyze-continue: Grounding research done in ${timings.sectorResearch}ms — competitors=${rc?.competitors?.length || 0}, sourcesUsed=${rc?.sourcesUsed}`);
         } catch (error: any) {
           timings.sectorResearch = Date.now() - researchStart;
           errors.push({ agent: 'sectorResearch', error: error.message, timestamp: Date.now() });
+          if (runId) await markAgentFailed(effectiveLeadId, runId, 'sectorResearch', error.message, timings.sectorResearch);
           console.error('analyze-continue: Grounding research failed:', error.message);
         }
       }
@@ -132,23 +168,116 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // ============================
     console.log(`analyze-continue: PHASE B START — remaining=${remaining()}ms, hasResearch=${!!researchFindings}, sourcesUsed=${researchFindings?.sourcesUsed}`);
 
-    // Agent 3: Brand Strategist (required)
-    let strategistOutput = null;
-    if (remaining() > 10_000) {
-      const stratStart = Date.now();
-      try {
-        console.log('analyze-continue: Running brandStrategist...');
-        strategistOutput = await runBrandStrategist(normalizedData, researchFindings, input.businessContext);
-        timings.brandStrategist = Date.now() - stratStart;
-        agentsRun.push('brandStrategist');
-        console.log(`analyze-continue: brandStrategist done in ${timings.brandStrategist}ms — archetype=${strategistOutput?.archetype}`);
-      } catch (error: any) {
-        timings.brandStrategist = Date.now() - stratStart;
-        errors.push({ agent: 'brandStrategist', error: error.message, timestamp: Date.now() });
-        console.error('analyze-continue: brandStrategist failed:', error.message);
-      }
-    } else {
+    // Agent 3 + 7 + 8: Brand Strategist + Digital Presence + Competitor Discovery — PARALLEL
+    // Resume: use checkpointed outputs if available
+    let strategistOutput = (hasCheckpoint && cp?.strategistOutput) || null;
+    let digitalPresence = (hasCheckpoint && cp?.digitalPresence) || null;
+    let competitorDiscovery = (hasCheckpoint && cp?.competitorDiscovery) || null;
+
+    if (strategistOutput) {
+      console.log('analyze-continue: Using checkpointed strategistOutput');
+      agentsRun.push('brandStrategist');
+    }
+    if (digitalPresence) {
+      console.log('analyze-continue: Using checkpointed digitalPresence');
+      agentsRun.push('digitalPresenceAnalyzer');
+    }
+    if (competitorDiscovery) {
+      console.log('analyze-continue: Using checkpointed competitorDiscovery');
+      agentsRun.push('competitorDiscovery');
+    }
+
+    // Only run agents that don't have checkpointed output
+    const needsStrategist = !strategistOutput;
+    const needsDP = !digitalPresence;
+    const needsCD = !competitorDiscovery;
+
+    if ((needsStrategist || needsDP || needsCD) && remaining() > 10_000) {
+      console.log(`analyze-continue: Running parallel group 1 — strategist=${needsStrategist}, dp=${needsDP}, cd=${needsCD}`);
+      const parallelPhaseStart = Date.now();
+
+      const [stratResult, dpResult, cdResult] = await Promise.all([
+        // Agent 3: Brand Strategist (required — only if not checkpointed)
+        (async () => {
+          if (!needsStrategist) return strategistOutput;
+          if (runId) await markAgentRunning(effectiveLeadId, runId, 'brandStrategist');
+          const s = Date.now();
+          try {
+            const r = await runBrandStrategist(normalizedData, researchFindings, input.businessContext);
+            timings.brandStrategist = Date.now() - s;
+            agentsRun.push('brandStrategist');
+            if (runId) await checkpointAgent(effectiveLeadId, runId, 'brandStrategist', 'strategistOutput', r, timings.brandStrategist);
+            console.log(`analyze-continue: brandStrategist done in ${timings.brandStrategist}ms — archetype=${r?.archetype}`);
+            return r;
+          } catch (error: any) {
+            timings.brandStrategist = Date.now() - s;
+            errors.push({ agent: 'brandStrategist', error: error.message, timestamp: Date.now() });
+            if (runId) await markAgentFailed(effectiveLeadId, runId, 'brandStrategist', error.message, timings.brandStrategist);
+            console.error(`analyze-continue: brandStrategist failed in ${timings.brandStrategist}ms: ${error.message}`);
+            return null;
+          }
+        })(),
+        // Agent 7: Digital Presence Analyzer (optional — only if not checkpointed)
+        (async () => {
+          if (!needsDP) return digitalPresence;
+          if (remaining() < 20_000) {
+            if (runId) await markAgentSkipped(effectiveLeadId, runId, 'digitalPresenceAnalyzer');
+            return null;
+          }
+          if (runId) await markAgentRunning(effectiveLeadId, runId, 'digitalPresenceAnalyzer');
+          const s = Date.now();
+          try {
+            const r = await runDigitalPresenceAnalyzer(normalizedData, researchFindings, input.businessContext, websiteData);
+            timings.digitalPresenceAnalyzer = Date.now() - s;
+            agentsRun.push('digitalPresenceAnalyzer');
+            if (runId) await checkpointAgent(effectiveLeadId, runId, 'digitalPresenceAnalyzer', 'digitalPresence', r, timings.digitalPresenceAnalyzer);
+            console.log(`analyze-continue: digitalPresenceAnalyzer done in ${timings.digitalPresenceAnalyzer}ms — score=${r?.overallDigitalScore}`);
+            return r;
+          } catch (error: any) {
+            timings.digitalPresenceAnalyzer = Date.now() - s;
+            errors.push({ agent: 'digitalPresenceAnalyzer', error: error.message, timestamp: Date.now() });
+            if (runId) await markAgentFailed(effectiveLeadId, runId, 'digitalPresenceAnalyzer', error.message, timings.digitalPresenceAnalyzer);
+            console.error(`analyze-continue: digitalPresenceAnalyzer failed in ${timings.digitalPresenceAnalyzer}ms: ${error.message}`);
+            return null;
+          }
+        })(),
+        // Agent 8: Competitor Discovery (optional — only if not checkpointed)
+        (async () => {
+          if (!needsCD) return competitorDiscovery;
+          if (remaining() < 20_000) {
+            if (runId) await markAgentSkipped(effectiveLeadId, runId, 'competitorDiscovery');
+            return null;
+          }
+          if (runId) await markAgentRunning(effectiveLeadId, runId, 'competitorDiscovery');
+          const s = Date.now();
+          try {
+            const r = await runCompetitorDiscovery(normalizedData, researchFindings, input.businessContext);
+            timings.competitorDiscovery = Date.now() - s;
+            agentsRun.push('competitorDiscovery');
+            if (runId) await checkpointAgent(effectiveLeadId, runId, 'competitorDiscovery', 'competitorDiscovery', r, timings.competitorDiscovery);
+            console.log(`analyze-continue: competitorDiscovery done in ${timings.competitorDiscovery}ms — known=${r?.knownCompetitors?.length}, discovered=${r?.discoveredCompetitors?.length}`);
+            return r;
+          } catch (error: any) {
+            timings.competitorDiscovery = Date.now() - s;
+            errors.push({ agent: 'competitorDiscovery', error: error.message, timestamp: Date.now() });
+            if (runId) await markAgentFailed(effectiveLeadId, runId, 'competitorDiscovery', error.message, timings.competitorDiscovery);
+            console.error(`analyze-continue: competitorDiscovery failed in ${timings.competitorDiscovery}ms: ${error.message}`);
+            return null;
+          }
+        })(),
+      ]);
+
+      strategistOutput = stratResult;
+      digitalPresence = dpResult;
+      competitorDiscovery = cdResult;
+      console.log(`analyze-continue: parallel phase done in ${Date.now() - parallelPhaseStart}ms — strategist=${!!stratResult}, digitalPresence=${!!dpResult}, competitorDiscovery=${!!cdResult}`);
+    } else if (needsStrategist) {
       console.log(`analyze-continue: SKIPPING brandStrategist — remaining=${remaining()}ms`);
+      if (runId) {
+        await markAgentSkipped(effectiveLeadId, runId, 'brandStrategist');
+        await markAgentSkipped(effectiveLeadId, runId, 'digitalPresenceAnalyzer');
+        await markAgentSkipped(effectiveLeadId, runId, 'competitorDiscovery');
+      }
     }
 
     if (!strategistOutput) {
@@ -162,39 +291,55 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Agent 4a + 4b: Brand Challenger + Blog Strategy Advisor (PARALLEL, optional)
-    let challengerOutput = null;
-    let blogAdvisorOutput = null;
-    if (remaining() > 30_000) {
+    // Resume: use checkpointed outputs if available
+    let challengerOutput = (hasCheckpoint && cp?.challengerOutput) || null;
+    let blogAdvisorOutput = (hasCheckpoint && cp?.blogAdvisorOutput) || null;
+
+    if (challengerOutput) { console.log('analyze-continue: Using checkpointed challengerOutput'); agentsRun.push('brandChallenger'); }
+    if (blogAdvisorOutput) { console.log('analyze-continue: Using checkpointed blogAdvisorOutput'); agentsRun.push('blogStrategyAdvisor'); }
+
+    const needsChallenger = !challengerOutput;
+    const needsBlog = !blogAdvisorOutput;
+
+    if ((needsChallenger || needsBlog) && remaining() > 30_000) {
       const parallelStart = Date.now();
-      console.log('analyze-continue: Running brandChallenger + blogStrategyAdvisor in parallel...');
+      console.log(`analyze-continue: Running parallel group 2 — challenger=${needsChallenger}, blog=${needsBlog}`);
 
       const [challResult, blogResult] = await Promise.all([
         (async () => {
+          if (!needsChallenger) return challengerOutput;
+          if (runId) await markAgentRunning(effectiveLeadId, runId, 'brandChallenger');
           const s = Date.now();
           try {
             const r = await runBrandChallenger(normalizedData, researchFindings, strategistOutput);
             timings.brandChallenger = Date.now() - s;
             agentsRun.push('brandChallenger');
+            if (runId) await checkpointAgent(effectiveLeadId, runId, 'brandChallenger', 'challengerOutput', r, timings.brandChallenger);
             console.log(`analyze-continue: brandChallenger done in ${timings.brandChallenger}ms`);
             return r;
           } catch (error: any) {
             timings.brandChallenger = Date.now() - s;
             errors.push({ agent: 'brandChallenger', error: error.message, timestamp: Date.now() });
+            if (runId) await markAgentFailed(effectiveLeadId, runId, 'brandChallenger', error.message, timings.brandChallenger);
             console.error(`analyze-continue: brandChallenger failed in ${timings.brandChallenger}ms: ${error.message}`);
             return null;
           }
         })(),
         (async () => {
+          if (!needsBlog) return blogAdvisorOutput;
+          if (runId) await markAgentRunning(effectiveLeadId, runId, 'blogStrategyAdvisor');
           const s = Date.now();
           try {
             const r = await runBlogStrategyAdvisor(normalizedData, researchFindings, strategistOutput);
             timings.blogStrategyAdvisor = Date.now() - s;
             agentsRun.push('blogStrategyAdvisor');
+            if (runId) await checkpointAgent(effectiveLeadId, runId, 'blogStrategyAdvisor', 'blogAdvisorOutput', r, timings.blogStrategyAdvisor);
             console.log(`analyze-continue: blogStrategyAdvisor done in ${timings.blogStrategyAdvisor}ms`);
             return r;
           } catch (error: any) {
             timings.blogStrategyAdvisor = Date.now() - s;
             errors.push({ agent: 'blogStrategyAdvisor', error: error.message, timestamp: Date.now() });
+            if (runId) await markAgentFailed(effectiveLeadId, runId, 'blogStrategyAdvisor', error.message, timings.blogStrategyAdvisor);
             console.error(`analyze-continue: blogStrategyAdvisor failed in ${timings.blogStrategyAdvisor}ms: ${error.message}`);
             return null;
           }
@@ -204,35 +349,49 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       challengerOutput = challResult;
       blogAdvisorOutput = blogResult;
       console.log(`analyze-continue: parallel agents done in ${Date.now() - parallelStart}ms — challenger=${!!challResult}, blogAdvisor=${!!blogResult}`);
-    } else {
+    } else if (needsChallenger && needsBlog) {
       console.log(`analyze-continue: SKIPPING challenger+blogAdvisor — remaining=${remaining()}ms`);
+      if (runId) {
+        await markAgentSkipped(effectiveLeadId, runId, 'brandChallenger');
+        await markAgentSkipped(effectiveLeadId, runId, 'blogStrategyAdvisor');
+      }
     }
 
     // Agent 5: Strategy Synthesizer (optional with fallback)
-    let synthesizedAnalysis = null;
-    if (remaining() > 10_000) {
+    // Resume: use checkpointed output if available
+    let synthesizedAnalysis = (hasCheckpoint && cp?.synthesizedAnalysis) || null;
+    if (synthesizedAnalysis) { console.log('analyze-continue: Using checkpointed synthesizedAnalysis'); agentsRun.push('strategySynthesizer'); }
+
+    if (!synthesizedAnalysis && remaining() > 10_000) {
+      if (runId) await markAgentRunning(effectiveLeadId, runId, 'strategySynthesizer');
       const synthStart = Date.now();
       try {
         console.log('analyze-continue: Running strategySynthesizer...');
-        synthesizedAnalysis = await runStrategySynthesizer(normalizedData, researchFindings, strategistOutput, challengerOutput, blogAdvisorOutput, input.businessContext);
+        synthesizedAnalysis = await runStrategySynthesizer(normalizedData, researchFindings, strategistOutput, challengerOutput, blogAdvisorOutput, input.businessContext, digitalPresence, competitorDiscovery);
         timings.strategySynthesizer = Date.now() - synthStart;
         agentsRun.push('strategySynthesizer');
+        if (runId) await checkpointAgent(effectiveLeadId, runId, 'strategySynthesizer', 'synthesizedAnalysis', synthesizedAnalysis, timings.strategySynthesizer);
         console.log(`analyze-continue: strategySynthesizer done in ${timings.strategySynthesizer}ms`);
       } catch (error: any) {
         timings.strategySynthesizer = Date.now() - synthStart;
         errors.push({ agent: 'strategySynthesizer', error: error.message, timestamp: Date.now() });
+        if (runId) await markAgentFailed(effectiveLeadId, runId, 'strategySynthesizer', error.message, timings.strategySynthesizer);
         console.error(`analyze-continue: strategySynthesizer failed in ${timings.strategySynthesizer}ms: ${error.message}`);
       }
-    } else {
+    } else if (!synthesizedAnalysis) {
       console.log(`analyze-continue: SKIPPING strategySynthesizer — remaining=${remaining()}ms`);
+      if (runId) await markAgentSkipped(effectiveLeadId, runId, 'strategySynthesizer');
     }
 
     // ============================
     // Agent 6: Consultant Intro Writer (optional, dedicated creative agent)
     // ============================
-    let consultantIntroText = '';
+    let consultantIntroText = (hasCheckpoint && cp?.consultantIntro) || '';
+    if (consultantIntroText) { console.log('analyze-continue: Using checkpointed consultantIntro'); agentsRun.push('consultantIntroWriter'); }
+
     const synthesizedForIntro = synthesizedAnalysis || buildFallbackSynthesis(strategistOutput);
-    if (remaining() > 8_000) {
+    if (!consultantIntroText && remaining() > 8_000) {
+      if (runId) await markAgentRunning(effectiveLeadId, runId, 'consultantIntroWriter');
       const introStart = Date.now();
       try {
         console.log('analyze-continue: Running consultantIntroWriter...');
@@ -245,14 +404,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         );
         timings.consultantIntroWriter = Date.now() - introStart;
         agentsRun.push('consultantIntroWriter');
+        if (runId) await checkpointAgent(effectiveLeadId, runId, 'consultantIntroWriter', 'consultantIntro', consultantIntroText, timings.consultantIntroWriter);
         console.log(`analyze-continue: consultantIntroWriter done in ${timings.consultantIntroWriter}ms — ${consultantIntroText.length} chars`);
       } catch (error: any) {
         timings.consultantIntroWriter = Date.now() - introStart;
         errors.push({ agent: 'consultantIntroWriter', error: error.message, timestamp: Date.now() });
+        if (runId) await markAgentFailed(effectiveLeadId, runId, 'consultantIntroWriter', error.message, timings.consultantIntroWriter);
         console.error(`analyze-continue: consultantIntroWriter failed in ${timings.consultantIntroWriter}ms: ${error.message}`);
       }
-    } else {
+    } else if (!consultantIntroText) {
       console.log(`analyze-continue: SKIPPING consultantIntroWriter — remaining=${remaining()}ms`);
+      if (runId) await markAgentSkipped(effectiveLeadId, runId, 'consultantIntroWriter');
     }
 
     // ============================
@@ -321,6 +483,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           }
         : undefined,
 
+      digitalPresence: digitalPresence || undefined,
+      competitorDiscovery: competitorDiscovery || undefined,
+
       dataQuality: normalizedData
         ? {
             completeness: normalizedData.dataQualityScore,
@@ -331,7 +496,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         : undefined,
 
       pipelineMetadata: {
-        version: '3.3.0',
+        version: '3.4.0',
         agentsRun,
         totalDuration,
         agentDurations: Object.fromEntries(
@@ -348,6 +513,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       confidence: normalizedData?.dataQualityScore ?? 0.5,
     };
 
+    // Mark pipeline run as completed (checkpoint data cleaned up)
+    if (runId) await completeRun(effectiveLeadId, runId);
+
     return res.status(200).json({
       status: 'completed',
       analysis,
@@ -355,6 +523,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   } catch (error: any) {
     console.error('analyze-continue error:', error);
+    // Mark pipeline run as failed
+    const { runId: rid, input: inp } = req.body || {};
+    if (rid && inp?.leadId) await failRun(inp.leadId, rid, String(error?.message || 'Continue phase failed')).catch(() => {});
     try {
       return res.status(500).json({
         status: 'failed',

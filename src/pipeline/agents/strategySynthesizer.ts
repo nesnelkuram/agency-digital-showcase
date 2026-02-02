@@ -1,5 +1,5 @@
 import { generateJSON } from '../geminiClient';
-import type { NormalizedData, ResearchFindings, StrategistOutput, ChallengerOutput, BlogAdvisorOutput, SynthesizedAnalysis, BusinessContextInput } from '../types';
+import type { NormalizedData, ResearchFindings, StrategistOutput, ChallengerOutput, BlogAdvisorOutput, SynthesizedAnalysis, BusinessContextInput, DigitalPresenceAnalysis, CompetitorDiscoveryOutput } from '../types';
 
 export async function runStrategySynthesizer(
   normalizedData: NormalizedData,
@@ -7,7 +7,9 @@ export async function runStrategySynthesizer(
   strategistOutput: StrategistOutput,
   challengerOutput: ChallengerOutput | null,
   blogAdvisorOutput: BlogAdvisorOutput | null = null,
-  businessContext?: BusinessContextInput
+  businessContext?: BusinessContextInput,
+  digitalPresence?: DigitalPresenceAnalysis | null,
+  competitorDiscovery?: CompetitorDiscoveryOutput | null,
 ): Promise<SynthesizedAnalysis> {
 
   // Format target audience from strategist (segments, not personas)
@@ -114,6 +116,46 @@ ${blogAdvisorOutput.unconventionalInsights.map((i) => `  - ${i}`).join('\n')}`;
     }
   }
 
+  // Build digital presence context (if available)
+  let digitalPresenceContext = '';
+  if (digitalPresence) {
+    const parts: string[] = [];
+    if (digitalPresence.website && digitalPresence.website.status === 'analyzed') {
+      const w = digitalPresence.website;
+      parts.push(`Web Sitesi (${w.url}): Tasarim kalitesi ${w.designQuality}/10. ${w.overallImpression}`);
+      if (w.products.length > 0) parts.push(`  Urunler: ${w.products.slice(0, 5).map(p => `${p.name}${p.price ? ` (${p.price})` : ''}`).join(', ')}`);
+      if (w.strengths.length > 0) parts.push(`  Web Guclu: ${w.strengths.join('; ')}`);
+      if (w.weaknesses.length > 0) parts.push(`  Web Zayif: ${w.weaknesses.join('; ')}`);
+    }
+    if (digitalPresence.instagram && digitalPresence.instagram.status === 'analyzed') {
+      const ig = digitalPresence.instagram;
+      parts.push(`Instagram (@${ig.handle}): Etkilesim ${ig.engagementLevel}, paylasim sikligi ${ig.postingFrequency || 'bilinmiyor'}, gorsel tarzi: ${ig.visualStyle}`);
+      if (ig.contentThemes.length > 0) parts.push(`  Icerik temalari: ${ig.contentThemes.join(', ')}`);
+      if (ig.strengths.length > 0) parts.push(`  IG Guclu: ${ig.strengths.join('; ')}`);
+      if (ig.weaknesses.length > 0) parts.push(`  IG Zayif: ${ig.weaknesses.join('; ')}`);
+    }
+    parts.push(`Dijital Olgunluk: ${digitalPresence.digitalMaturityLevel} (${digitalPresence.overallDigitalScore}/10)`);
+    if (digitalPresence.criticalGaps.length > 0) parts.push(`Kritik Eksikler: ${digitalPresence.criticalGaps.join('; ')}`);
+    if (digitalPresence.quickWins.length > 0) parts.push(`Hizli Kazanimlar: ${digitalPresence.quickWins.join('; ')}`);
+    digitalPresenceContext = `\n\n## Dijital Varlik Analizi\n${parts.join('\n')}`;
+  }
+
+  // Build competitor discovery context (if available)
+  let competitorDiscoveryContext = '';
+  if (competitorDiscovery) {
+    const allCompetitors = [...competitorDiscovery.knownCompetitors, ...competitorDiscovery.discoveredCompetitors];
+    const competitorLines = allCompetitors.slice(0, 10).map(c =>
+      `- ${c.name} (${c.source}): ${c.positioning}. Fiyat: ${c.priceSegment}. Dijital: ${c.digitalPresenceScore}/10. Guclu: ${c.strengths.slice(0, 2).join(', ')}. Zayif: ${c.weaknesses.slice(0, 2).join(', ')}`
+    ).join('\n');
+    competitorDiscoveryContext = `\n\n## Genisletilmis Rakip Analizi (${allCompetitors.length} rakip)
+Rekabet Ortami: ${competitorDiscovery.competitiveLandscapeSummary}
+Pazar Yogunlugu: ${competitorDiscovery.marketConcentration}
+${competitorLines}
+Giris Engelleri: ${competitorDiscovery.entryBarriers.join('; ') || 'Bilgi yok'}
+Firsatlar: ${competitorDiscovery.competitiveOpportunities.join('; ') || 'Bilgi yok'}
+Dijital Benchmark: Web kalite ort. ${competitorDiscovery.digitalBenchmark.avgWebsiteQuality}/10, Sosyal medya ort. ${competitorDiscovery.digitalBenchmark.avgSocialFollowing}`;
+  }
+
   const expertCount = 1 + (challengerOutput ? 1 : 0) + (blogAdvisorOutput ? 1 : 0);
   const debateInstruction = expertCount === 3
     ? 'Uc farkli uzmanin goruslerini sentezlemen gerekiyor: Strateji uzmani, seytan avukati ve blog strateji danismani (stratejik blog danismani perspektifi). Her ucunun en guclu argumanlarin birlestirerek, cesur ama temelli nihai stratejiyi olustur.'
@@ -176,6 +218,8 @@ ${competitiveMapSummary}
 ${challengerSummary}
 ${blogAdvisorSummary}
 ${researchContext}
+${digitalPresenceContext}
+${competitorDiscoveryContext}
 
 ${sourceUrlsList ? `## Arastirma Kaynaklari\n${sourceUrlsList}` : ''}
 

@@ -46,6 +46,7 @@ import {
 import { isFirebaseConfigured } from '@/lib/firebase/config';
 import { PERMISSIONS } from '@/lib/rbac/permissions';
 import AnalysisProgressIndicator from './components/AnalysisProgressIndicator';
+import { useAnalysisProgress } from './hooks/useAnalysisProgress';
 import ResearchFindings from './components/ResearchFindings';
 import DebateView from './components/DebateView';
 import PositioningSection from './components/PositioningSection';
@@ -67,6 +68,9 @@ const LeadDetailPage: React.FC = () => {
   const [analysisPhase, setAnalysisPhase] = useState<'normalizing' | 'researching' | 'analyzing' | 'completed'>('normalizing');
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
   const [analysisNotes, setAnalysisNotes] = useState('');
+
+  // Real-time pipeline progress from Firestore
+  const { progress: pipelineProgress, isRunning: isPipelineRunning } = useAnalysisProgress(id);
 
   // AI Analysis — Multi-Agent Async Pipeline
   const handleAnalyzeWithAI = async (mode: 'full' | 'lite' = 'full') => {
@@ -121,12 +125,13 @@ const LeadDetailPage: React.FC = () => {
         throw new Error(err.error || `Baslatma hatasi (${startRes.status})`);
       }
       const startData = await startRes.json();
-      console.log(`[AsyncPipeline] Phase 1 done: status=${startData.status}, drInteractionId=${startData.drInteractionId || 'none'}`);
+      const pipelineRunId = startData.runId || null;
+      console.log(`[AsyncPipeline] Phase 1 done: status=${startData.status}, drInteractionId=${startData.drInteractionId || 'none'}, runId=${pipelineRunId || 'none'}`);
       setAnalysisPhase('researching');
 
       // Phase 2: Continue loop — DR poll + pipeline
       let result = startData;
-      let researchFindings = null;
+      let researchFindings = startData.researchFindings || null; // May exist if resumed from checkpoint
       let attempts = 0;
       const MAX_ATTEMPTS = 8; // DR can take 5+ min, each call polls ~250s
 
@@ -140,6 +145,8 @@ const LeadDetailPage: React.FC = () => {
             drInteractionId: startData.drInteractionId,
             normalizedData: startData.normalizedData,
             researchFindings,
+            runId: pipelineRunId,
+            websiteData: startData.websiteData,
             input: {
               contact: { name: lead.contact.name, businessName: lead.contact.businessName, email: lead.contact.email },
               sector: lead.sector,
@@ -738,7 +745,10 @@ const LeadDetailPage: React.FC = () => {
             {activeTab === 'ai' && (
               <div>
                 {analyzing ? (
-                  <AnalysisProgressIndicator phase={analysisPhase} />
+                  <AnalysisProgressIndicator
+                    agentProgress={pipelineProgress?.agents}
+                    phase={analysisPhase}
+                  />
                 ) : lead.aiAnalysis ? (
                   <div className="space-y-8">
                     {/* Pipeline Metadata Badge */}

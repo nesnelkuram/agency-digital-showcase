@@ -79,6 +79,17 @@ ADIM 4 — HEDEF KITLE PROFILI:
 - Satin alma motivasyonlari (fiyat, kalite, marka, organik/dogal icerikleri vb.).
 - Hangi kanallarda alisveris yapiyorlar (market, online, organik dukkan vb.).
 
+ADIM 5 — DIJITAL VARLIK ANALIZI:
+- "${businessName}" Instagram hesabini bul ve analiz et.${businessContext?.instagramHandle ? `\n  - Instagram kullanici adi: ${businessContext.instagramHandle}` : ''}
+  - Paylasim sikligi, icerik temalari, gorsel tarzi, takipci sayisi tahmini.
+  - Son gonderilerdeki yorumlara bak — musteriler ne diyor?
+  - Icerik karmasi: foto, video, Reel, carousel oranlarini tahmin et.
+- "${businessName}" web sitesini UX acisindan degerlendir:${businessContext?.websiteUrl ? `\n  - Web sitesi: ${businessContext.websiteUrl}` : ''}
+  - Urun cesitliligi, fiyat gosterimi, mobil uyumluluk.
+  - Hangi CTA'lar var, guveni artiran unsurlar neler?
+  - Genel tasarim kalitesi ve profesyonellik.
+- Rakiplerin Instagram ve web sitelerini de kiyasla — hangisi dijitalde daha guclu?
+
 SONUCLARI DETAYLI OLARAK TURKCE YAZ. Her bilginin kaynagini belirt.`;
 }
 

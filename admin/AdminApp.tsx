@@ -80,6 +80,9 @@ const SocialMediaDashboard = React.lazy(() => import('./social-media/SocialMedia
 const SocialMediaCalendar = React.lazy(() => import('./social-media/SocialMediaCalendar'));
 const CreatePostPage = React.lazy(() => import('./social-media/CreatePostPage'));
 
+// Persona AI Pages
+const PersonaChatPage = React.lazy(() => import('./persona/PersonaChatPage'));
+
 const AdminApp: React.FC = () => {
   return (
     <AuthGuard>
@@ -665,6 +668,15 @@ const AdminApp: React.FC = () => {
             element={
               <React.Suspense fallback={<PageLoader />}>
                 <CompetitorMonitorPage />
+              </React.Suspense>
+            }
+          />
+          {/* Persona AI Chat */}
+          <Route
+            path="persona-chat"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <PersonaChatPage />
               </React.Suspense>
             }
           />
