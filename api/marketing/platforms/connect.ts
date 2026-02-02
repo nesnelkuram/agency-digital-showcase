@@ -56,6 +56,60 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         authUrl = url.toString();
         break;
       }
+      case 'google': {
+        const clientId = process.env.GOOGLE_ADS_CLIENT_ID?.trim();
+        if (!clientId) {
+          return res.status(500).json({ error: 'GOOGLE_ADS_CLIENT_ID not configured' });
+        }
+        const scopes = [
+          'https://www.googleapis.com/auth/adwords',
+          'https://www.googleapis.com/auth/userinfo.email',
+          'https://www.googleapis.com/auth/userinfo.profile',
+        ].join(' ');
+        const url = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+        url.searchParams.set('client_id', clientId);
+        url.searchParams.set('redirect_uri', callbackUri);
+        url.searchParams.set('scope', scopes);
+        url.searchParams.set('response_type', 'code');
+        url.searchParams.set('access_type', 'offline');
+        url.searchParams.set('prompt', 'consent');
+        url.searchParams.set('state', String(state || '{}'));
+        authUrl = url.toString();
+        break;
+      }
+      case 'tiktok': {
+        const appId = process.env.TIKTOK_APP_ID?.trim();
+        if (!appId) {
+          return res.status(500).json({ error: 'TIKTOK_APP_ID not configured' });
+        }
+        const url = new URL('https://business-api.tiktok.com/portal/auth');
+        url.searchParams.set('app_id', appId);
+        url.searchParams.set('redirect_uri', callbackUri);
+        url.searchParams.set('state', String(state || '{}'));
+        authUrl = url.toString();
+        break;
+      }
+      case 'linkedin': {
+        const clientId = process.env.LINKEDIN_CLIENT_ID?.trim();
+        if (!clientId) {
+          return res.status(500).json({ error: 'LINKEDIN_CLIENT_ID not configured' });
+        }
+        const scopes = [
+          'r_ads',
+          'r_ads_reporting',
+          'rw_ads',
+          'r_basicprofile',
+          'r_organization_social',
+        ].join(' ');
+        const url = new URL('https://www.linkedin.com/oauth/v2/authorization');
+        url.searchParams.set('client_id', clientId);
+        url.searchParams.set('redirect_uri', callbackUri);
+        url.searchParams.set('scope', scopes);
+        url.searchParams.set('response_type', 'code');
+        url.searchParams.set('state', String(state || '{}'));
+        authUrl = url.toString();
+        break;
+      }
       default:
         return res.status(400).json({ error: `Unsupported platform: ${platform}` });
     }

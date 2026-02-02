@@ -34,6 +34,10 @@ const ServiceEditorPage = React.lazy(() => import('./pricing/catalog/ServiceEdit
 // Projections Page
 const ProjectionsPage = React.lazy(() => import('./pricing/projections/ProjectionsPage'));
 
+// Proposal Pages
+const ProposalListPage = React.lazy(() => import('./pricing/proposals/ProposalListPage'));
+const ProposalViewPage = React.lazy(() => import('./pricing/proposals/ProposalViewPage'));
+
 // Feedback Pages
 const FeedbackPage = React.lazy(() => import('./feedback/FeedbackPage'));
 const FeedbackDetailPage = React.lazy(() => import('./feedback/FeedbackDetailPage'));
@@ -65,6 +69,11 @@ const UTMBuilderPage = React.lazy(() => import('./marketing/UTMBuilderPage'));
 // Phase 3: Automation & Intelligence Pages
 const AutomatedRulesPage = React.lazy(() => import('./marketing/AutomatedRulesPage'));
 const CampaignCalendarPage = React.lazy(() => import('./marketing/CampaignCalendarPage'));
+
+// Phase 4: Reporting, Multi-Client & Competitor Pages
+const ReportsPage = React.lazy(() => import('./marketing/ReportsPage'));
+const MultiClientDashboard = React.lazy(() => import('./marketing/MultiClientDashboard'));
+const CompetitorMonitorPage = React.lazy(() => import('./marketing/CompetitorMonitorPage'));
 
 // Social Media Pages
 const SocialMediaDashboard = React.lazy(() => import('./social-media/SocialMediaDashboard'));
@@ -256,6 +265,30 @@ const AdminApp: React.FC = () => {
               </React.Suspense>
             }
           />
+          <Route
+            path="projects/:projectId/marketing/reports"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <ReportsPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="projects/:projectId/marketing/clients"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <MultiClientDashboard />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="projects/:projectId/marketing/competitors"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <CompetitorMonitorPage />
+              </React.Suspense>
+            }
+          />
           {/* Project-scoped Social Media Routes */}
           <Route
             path="projects/:projectId/social-media"
@@ -426,6 +459,30 @@ const AdminApp: React.FC = () => {
             }
           />
           <Route
+            path="pricing/proposals"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <ProposalListPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="pricing/proposals/new"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <ProposalViewPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="pricing/proposals/:id"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <ProposalViewPage />
+              </React.Suspense>
+            }
+          />
+          <Route
             path="pricing/projections"
             element={
               <React.Suspense fallback={<PageLoader />}>
@@ -584,6 +641,30 @@ const AdminApp: React.FC = () => {
             element={
               <React.Suspense fallback={<PageLoader />}>
                 <CampaignCalendarPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="marketing/reports"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <ReportsPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="marketing/clients"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <MultiClientDashboard />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="marketing/competitors"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <CompetitorMonitorPage />
               </React.Suspense>
             }
           />

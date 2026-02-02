@@ -164,7 +164,292 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.redirect(`${fallbackPath}?selectAccount=${pickerData}`);
     }
 
-    // ── Non-Meta platforms (future) ──
+    // ── Google Ads OAuth callback ──
+    if (platform === 'google') {
+      const clientId = process.env.GOOGLE_ADS_CLIENT_ID?.trim();
+      const clientSecret = process.env.GOOGLE_ADS_CLIENT_SECRET?.trim();
+      if (!clientId || !clientSecret) {
+        return res.redirect(
+          `${fallbackPath}?error=${encodeURIComponent('GOOGLE_ADS_CLIENT_ID or GOOGLE_ADS_CLIENT_SECRET not configured')}`
+        );
+      }
+
+      // Exchange code for tokens
+      const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          code: String(code),
+          client_id: clientId,
+          client_secret: clientSecret,
+          redirect_uri: redirectUri,
+          grant_type: 'authorization_code',
+        }),
+      });
+      const tokenData = await tokenRes.json();
+
+      if (tokenData.error) {
+        throw new Error(`Google OAuth error: ${tokenData.error_description || tokenData.error}`);
+      }
+
+      const accessToken = tokenData.access_token;
+      const refreshToken = tokenData.refresh_token;
+      const expiresIn = tokenData.expires_in || 3600;
+
+      // Get user info
+      const userRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const userData = await userRes.json();
+      const userName = userData.name || userData.email || 'Google Ads Account';
+
+      // Get accessible customer accounts via Google Ads API
+      const developerToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN?.trim();
+      let accounts: Array<{ id: string; name: string }> = [];
+
+      if (developerToken) {
+        try {
+          const customersRes = await fetch(
+            'https://googleads.googleapis.com/v17/customers:listAccessibleCustomers',
+            {
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                'developer-token': developerToken,
+              },
+            }
+          );
+          const customersData = await customersRes.json();
+          const resourceNames: string[] = customersData.resourceNames || [];
+          accounts = resourceNames.map((rn: string) => ({
+            id: rn.replace('customers/', ''),
+            name: rn.replace('customers/', ''),
+          }));
+        } catch (err: any) {
+          console.warn('[platform-callback] Failed to list Google Ads customers:', err.message);
+        }
+      }
+
+      console.log(`[platform-callback] Google Ads: ${userName}, ${accounts.length} accounts`);
+
+      if (accounts.length <= 1) {
+        const accountId = accounts[0]?.id || userData.id || '';
+        const encodedAccount = encodeURIComponent(JSON.stringify({
+          platform: 'google',
+          accountId,
+          accountName: userName,
+          status: 'connected',
+          permissions: ['adwords', 'userinfo'],
+          ...(projectId ? { projectId } : {}),
+          metadata: {
+            accessToken,
+            refreshToken,
+            developerToken: developerToken || '',
+            customerId: accountId,
+            email: userData.email,
+          },
+        }));
+        return res.redirect(`${fallbackPath}?connected=${encodedAccount}`);
+      }
+
+      // Multiple accounts — picker
+      const pickerData = encodeURIComponent(JSON.stringify({
+        platform: 'google',
+        accessToken,
+        refreshToken,
+        tokenExpiresAt: Date.now() + expiresIn * 1000,
+        userName,
+        permissions: ['adwords', 'userinfo'],
+        ...(projectId ? { projectId } : {}),
+        accounts: accounts.map(acc => ({
+          id: acc.id,
+          name: acc.name,
+          status: 1,
+        })),
+      }));
+      return res.redirect(`${fallbackPath}?selectAccount=${pickerData}`);
+    }
+
+    // ── TikTok Ads OAuth callback ──
+    if (platform === 'tiktok') {
+      const appId = process.env.TIKTOK_APP_ID?.trim();
+      const appSecret = process.env.TIKTOK_APP_SECRET?.trim();
+      if (!appId || !appSecret) {
+        return res.redirect(
+          `${fallbackPath}?error=${encodeURIComponent('TIKTOK_APP_ID or TIKTOK_APP_SECRET not configured')}`
+        );
+      }
+
+      // Exchange auth code for access token
+      const tokenRes = await fetch('https://business-api.tiktok.com/open_api/v1.3/oauth2/access_token/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          app_id: appId,
+          secret: appSecret,
+          auth_code: String(code),
+        }),
+      });
+      const tokenData = await tokenRes.json();
+
+      if (tokenData.code !== 0) {
+        throw new Error(`TikTok OAuth error: ${tokenData.message}`);
+      }
+
+      const accessToken = tokenData.data.access_token;
+      const advertiserIds: string[] = tokenData.data.advertiser_ids || [];
+
+      console.log(`[platform-callback] TikTok: ${advertiserIds.length} advertiser(s)`);
+
+      // Get advertiser info
+      let accounts: Array<{ id: string; name: string }> = [];
+      if (advertiserIds.length > 0) {
+        try {
+          const infoRes = await fetch(
+            `https://business-api.tiktok.com/open_api/v1.3/advertiser/info/?advertiser_ids=${JSON.stringify(advertiserIds)}`,
+            { headers: { 'Access-Token': accessToken } }
+          );
+          const infoData = await infoRes.json();
+          accounts = (infoData.data?.list || []).map((adv: any) => ({
+            id: String(adv.advertiser_id),
+            name: adv.advertiser_name || String(adv.advertiser_id),
+          }));
+        } catch (err: any) {
+          console.warn('[platform-callback] Failed to get TikTok advertiser info:', err.message);
+          accounts = advertiserIds.map(id => ({ id, name: id }));
+        }
+      }
+
+      if (accounts.length <= 1) {
+        const account = accounts[0] || { id: advertiserIds[0] || '', name: 'TikTok Ads' };
+        const encodedAccount = encodeURIComponent(JSON.stringify({
+          platform: 'tiktok',
+          accountId: account.id,
+          accountName: account.name,
+          status: 'connected',
+          permissions: ['ads_management', 'ads_read'],
+          ...(projectId ? { projectId } : {}),
+          metadata: {
+            accessToken,
+            advertiserId: account.id,
+          },
+        }));
+        return res.redirect(`${fallbackPath}?connected=${encodedAccount}`);
+      }
+
+      const pickerData = encodeURIComponent(JSON.stringify({
+        platform: 'tiktok',
+        accessToken,
+        userName: accounts[0]?.name || 'TikTok Business',
+        permissions: ['ads_management', 'ads_read'],
+        ...(projectId ? { projectId } : {}),
+        accounts: accounts.map(acc => ({
+          id: acc.id,
+          name: acc.name,
+          status: 1,
+        })),
+      }));
+      return res.redirect(`${fallbackPath}?selectAccount=${pickerData}`);
+    }
+
+    // ── LinkedIn Ads OAuth callback ──
+    if (platform === 'linkedin') {
+      const clientId = process.env.LINKEDIN_CLIENT_ID?.trim();
+      const clientSecret = process.env.LINKEDIN_CLIENT_SECRET?.trim();
+      if (!clientId || !clientSecret) {
+        return res.redirect(
+          `${fallbackPath}?error=${encodeURIComponent('LINKEDIN_CLIENT_ID or LINKEDIN_CLIENT_SECRET not configured')}`
+        );
+      }
+
+      // Exchange code for token
+      const tokenRes = await fetch('https://www.linkedin.com/oauth/v2/accessToken', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type: 'authorization_code',
+          code: String(code),
+          client_id: clientId,
+          client_secret: clientSecret,
+          redirect_uri: redirectUri,
+        }),
+      });
+      const tokenData = await tokenRes.json();
+
+      if (tokenData.error) {
+        throw new Error(`LinkedIn OAuth error: ${tokenData.error_description || tokenData.error}`);
+      }
+
+      const accessToken = tokenData.access_token;
+      const expiresIn = tokenData.expires_in || 5184000;
+
+      // Get user profile
+      const profileRes = await fetch('https://api.linkedin.com/v2/me', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const profileData = await profileRes.json();
+      const firstName = profileData.localizedFirstName || '';
+      const lastName = profileData.localizedLastName || '';
+      const userName = `${firstName} ${lastName}`.trim() || 'LinkedIn Ads';
+
+      // Get ad accounts
+      let accounts: Array<{ id: string; name: string }> = [];
+      try {
+        const adAccountsRes = await fetch(
+          'https://api.linkedin.com/v2/adAccountsV2?q=search&search.status.values[0]=ACTIVE',
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              'LinkedIn-Version': '202401',
+            },
+          }
+        );
+        const adAccountsData = await adAccountsRes.json();
+        accounts = (adAccountsData.elements || []).map((acc: any) => ({
+          id: String(acc.id),
+          name: acc.name || String(acc.id),
+        }));
+      } catch (err: any) {
+        console.warn('[platform-callback] Failed to list LinkedIn ad accounts:', err.message);
+      }
+
+      console.log(`[platform-callback] LinkedIn: ${userName}, ${accounts.length} ad accounts`);
+
+      if (accounts.length <= 1) {
+        const account = accounts[0] || { id: profileData.id || '', name: userName };
+        const encodedAccount = encodeURIComponent(JSON.stringify({
+          platform: 'linkedin',
+          accountId: account.id,
+          accountName: account.name || userName,
+          status: 'connected',
+          permissions: ['r_ads', 'r_ads_reporting', 'rw_ads'],
+          ...(projectId ? { projectId } : {}),
+          metadata: {
+            accessToken,
+            accountId: account.id,
+            profileId: profileData.id,
+            profileName: userName,
+          },
+        }));
+        return res.redirect(`${fallbackPath}?connected=${encodedAccount}`);
+      }
+
+      const pickerData = encodeURIComponent(JSON.stringify({
+        platform: 'linkedin',
+        accessToken,
+        tokenExpiresAt: Date.now() + expiresIn * 1000,
+        userName,
+        permissions: ['r_ads', 'r_ads_reporting', 'rw_ads'],
+        ...(projectId ? { projectId } : {}),
+        accounts: accounts.map(acc => ({
+          id: acc.id,
+          name: acc.name,
+          status: 1,
+        })),
+      }));
+      return res.redirect(`${fallbackPath}?selectAccount=${pickerData}`);
+    }
+
+    // ── Unsupported platforms ──
     return res.redirect(
       `${fallbackPath}?error=${encodeURIComponent(`Unsupported platform: ${platform}`)}`
     );

@@ -45,6 +45,21 @@
     "api/marketing/forecast-budget.ts": {
       "maxDuration": 120
     },
+    "api/marketing/sync-google.ts": {
+      "maxDuration": 120
+    },
+    "api/marketing/sync-tiktok.ts": {
+      "maxDuration": 120
+    },
+    "api/marketing/sync-linkedin.ts": {
+      "maxDuration": 120
+    },
+    "api/marketing/generate-report.ts": {
+      "maxDuration": 300
+    },
+    "api/marketing/analyze-competitor.ts": {
+      "maxDuration": 120
+    },
     "api/cron/marketing-optimize.ts": {
       "maxDuration": 300
     }
