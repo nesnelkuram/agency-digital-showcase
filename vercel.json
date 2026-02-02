@@ -30,6 +30,9 @@
     "api/marketing/optimize.ts": {
       "maxDuration": 300
     },
+    "api/marketing/generate-campaign.ts": {
+      "maxDuration": 300
+    },
     "api/marketing/platforms/connect.ts": {
       "maxDuration": 10
     },

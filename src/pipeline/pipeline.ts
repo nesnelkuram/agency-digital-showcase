@@ -14,6 +14,7 @@ export { runBrandStrategist } from './agents/brandStrategist';
 export { runBrandChallenger } from './agents/brandChallenger';
 export { runBlogStrategyAdvisor } from './agents/blogStrategyAdvisor';
 export { runStrategySynthesizer } from './agents/strategySynthesizer';
+export { runConsultantIntroWriter } from './agents/consultantIntroWriter';
 export { startDeepResearch, pollDeepResearch } from './geminiClient';
 export { buildDeepResearchPrompt } from './agents/sectorResearch';
 export type { PipelineInput, NormalizedData, ResearchFindings, StrategistOutput, ChallengerOutput, BlogAdvisorOutput, SynthesizedAnalysis } from './types';

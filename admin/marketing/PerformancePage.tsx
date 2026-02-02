@@ -7,6 +7,7 @@ import type {
   CampaignSummary,
   MarketingDashboardStats,
   AdPlatform,
+  PerformanceSnapshot,
 } from '@/shared/types/marketing';
 import {
   PLATFORM_LABELS,
@@ -18,14 +19,20 @@ import {
   syncCampaignsFromMeta,
   getPlatformAccounts,
   savePerformanceSnapshot,
+  getPerformanceSnapshots,
 } from '@/shared/services/marketingService';
 import { useProjectScope } from '@/shared/hooks/useProjectScope';
 import ProjectBreadcrumb from '@/admin/projects/components/ProjectBreadcrumb';
+import { aggregateByDate } from '@/shared/utils/performanceAggregator';
+import SpendTrendChart from './components/charts/SpendTrendChart';
+import ROASTrendChart from './components/charts/ROASTrendChart';
+import FunnelChart from './components/charts/FunnelChart';
 
 const PerformancePage: React.FC = () => {
   const { projectId, basePath, isProjectScoped } = useProjectScope();
   const [stats, setStats] = useState<MarketingDashboardStats | null>(null);
   const [campaigns, setCampaigns] = useState<CampaignSummary[]>([]);
+  const [snapshots, setSnapshots] = useState<PerformanceSnapshot[]>([]);
   const [loading, setLoading] = useState(true);
   const [optimizing, setOptimizing] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -44,6 +51,16 @@ const PerformancePage: React.FC = () => {
       ]);
       setStats(statsData);
       setCampaigns(campData.campaigns);
+
+      // Fetch snapshots for all active campaigns for charts
+      const allSnaps: PerformanceSnapshot[] = [];
+      for (const c of campData.campaigns.slice(0, 10)) {
+        try {
+          const snaps = await getPerformanceSnapshots(c.id);
+          allSnaps.push(...snaps);
+        } catch { /* ignore */ }
+      }
+      setSnapshots(allSnaps);
     } catch (err) {
       console.error('Failed to load performance data:', err);
     } finally {
@@ -210,6 +227,23 @@ const PerformancePage: React.FC = () => {
             bg={stats.averageROAS >= 2 ? 'bg-emerald-50' : 'bg-red-50'}
           />
         </div>
+      )}
+
+      {/* Charts */}
+      {snapshots.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <SpendTrendChart data={aggregateByDate(snapshots)} />
+          <ROASTrendChart data={aggregateByDate(snapshots)} />
+        </div>
+      )}
+
+      {/* Funnel */}
+      {stats && (
+        <FunnelChart
+          impressions={stats.totalImpressions}
+          clicks={stats.totalClicks}
+          conversions={stats.totalConversions}
+        />
       )}
 
       {/* Platform Comparison */}

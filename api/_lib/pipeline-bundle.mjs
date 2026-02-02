@@ -33,6 +33,24 @@ async function generateJSON(tier, prompt, agentName, config) {
   }
   return safeParseJSON(text, agentName);
 }
+async function generateText(tier, prompt, agentName, config) {
+  const client = getClient();
+  const result = await client.models.generateContent({
+    model: MODEL_IDS[tier],
+    contents: prompt,
+    config: {
+      temperature: config?.temperature ?? 0.7,
+      topP: 0.9,
+      maxOutputTokens: config?.maxOutputTokens ?? 2048,
+      ...tier === "pro" ? {} : { thinkingConfig: { thinkingBudget: 0 } }
+    }
+  });
+  const text = result.text ?? "";
+  if (!text) {
+    throw new Error(`Agent "${agentName}" returned empty text response`);
+  }
+  return text.trim();
+}
 async function generateGroundedText(prompt, agentName, config) {
   const client = getClient();
   const result = await client.models.generateContent({
@@ -1523,7 +1541,6 @@ Tum verileri sentezleyerek asagidaki JSON yapisinda NIHAI marka stratejisi rapor
     "dataFreshness": "Ocak 2025 web arama verileri",
     "confidenceLevel": "${sourceCount > 5 ? "Yuksek" : sourceCount > 0 ? "Orta" : "Dusuk"} \u2014 ${sourceCount} kaynak kullanildi"
   },
-  "consultantIntro": "BU ALAN KRITIK \u2014 Raporun en basinda, isletme sahibine hitaben yazilmis, deneyimli bir marka danismaninin agzindan kisa bir giris metni. Sanki isletme sahibiyle ilk toplantida yuz yuze konusuyormus gibi yaz. Isletmenin icerisinde bulundugu pazarin gercekliginden bahset, rekabetin veya pazarin durumunu kisa ve net bir sekilde ciz, 'herkesin yaptigi seyleri yaparak fark yaratmak zor' benzeri bir farkindalik olustur. Her isletmenin durumu farkli olabilir \u2014 bazilari yogun rekabetle karsi karsiya, bazilari yeni bir pazara giriyor, bazilari dijitale ilk adimini atiyor. Tonu: Samimi ama otoriter, blog yazarligi yapan bir stratejistin dogal konusma uslubunda. Dogrudan isletme sahibine 'siz' diye hitap et. 3-5 cumle olmali. Klise ve jargon YASAK.",
   "synthesisRationale": "Bu sentezin NEDEN bu sekilde yapildiginin aciklamasi. Hangi uzman gorusleri benimsendi, hangileri reddedildi ve NEDEN? SOMUT referanslarla. (3-5 cumle)"
 }
 
@@ -1562,7 +1579,7 @@ KRITIK KURALLAR \u2014 BU KURALLARA UYMAYAN RAPOR BASARISIZ SAYILIR:
 9. Tum metinler TURKCE olmali.
 10. Sadece JSON don, baska bir sey yazma.
 
-16. DANISMA GIRIS METNI (consultantIntro): Bu metin raporun en basinda gosterilecek, isletme sahibinin ilk okuyacagi sey. Sanki tecrubeli bir strateji danismani olarak karsisinda oturuyorsun ve ona isinin gercekligini anlatiyorsun. Sektordeki durumu, onundeki firsatlari veya zorluklari kisa ve vurucu bir sekilde ozetle. Blog yazar uslubunda \u2014 samimi, dusunduren, bazen hafif provoke eden \u2014 ama ASLA klise degil. Her cumle bu SPESIFIK isletme icin yazilmis olmali, genel gecerligir laflar olmasin. "Siz" diye hitap et.${budgetCalibration}${stageCalibration}${digitalCalibration}${triggerCalibration}`;
+${budgetCalibration}${stageCalibration}${digitalCalibration}${triggerCalibration}`;
   const parsed = await generateJSON("pro", prompt, "StrategySynthesizer", {
     temperature: 0.6,
     maxOutputTokens: 8192
@@ -1619,9 +1636,101 @@ KRITIK KURALLAR \u2014 BU KURALLARA UYMAYAN RAPOR BASARISIZ SAYILIR:
       dataFreshness: parsed.evidenceSummary?.dataFreshness || "Veri guncellik bilgisi mevcut degil",
       confidenceLevel: parsed.evidenceSummary?.confidenceLevel || `${sourceCount > 0 ? "Orta" : "Dusuk"} \u2014 ${sourceCount} kaynak`
     },
-    consultantIntro: parsed.consultantIntro || "",
+    consultantIntro: "",
     synthesisRationale: parsed.synthesisRationale || (challengerOutput ? `Strateji uzmaninin ${strategistOutput.archetype} arketip onerisi ile seytan avukatinin ${challengerOutput.alternativeArchetype} alternatifi degerlendirilmistir.` : `Strateji uzmaninin ${strategistOutput.archetype} arketip onerisi rafine edilerek nihai strateji olusturulmustur.`)
   };
+}
+
+// src/pipeline/agents/consultantIntroWriter.ts
+async function runConsultantIntroWriter(normalizedData, researchFindings, synthesized, blogAdvisorOutput, businessContext) {
+  const bName = normalizedData.businessName;
+  const researchCompetitors = (researchFindings?.competitors || []).map((c) => c.name).filter(Boolean);
+  const declaredCompetitors = (businessContext?.competitors || "").split(",").map((s) => s.trim()).filter(Boolean);
+  const allCompetitors = [.../* @__PURE__ */ new Set([...researchCompetitors, ...declaredCompetitors])];
+  const marketInfo = researchFindings?.marketData;
+  const marketContext = marketInfo ? `Pazar buyuklugu: ${marketInfo.marketSize || "Bilinmiyor"}. Buyume: ${marketInfo.growthRate || "Bilinmiyor"}. Trendler: ${marketInfo.consumerTrends?.join(", ") || "Yok"}.` : "";
+  const bc = businessContext;
+  const bcLines = [];
+  if (bc?.businessDescription) bcLines.push(`Isletme tanimi: ${bc.businessDescription}`);
+  if (bc?.geoScope) bcLines.push(`Cografi kapsam: ${bc.geoScope}`);
+  if (bc?.businessStage) bcLines.push(`Isletme asamasi: ${bc.businessStage}`);
+  if (bc?.monthlyBudget) bcLines.push(`Aylik butce: ${bc.monthlyBudget}`);
+  if (bc?.instagramFollowers) bcLines.push(`Instagram takipci: ${bc.instagramFollowers}`);
+  if (bc?.digitalPresence?.length) bcLines.push(`Dijital platformlar: ${bc.digitalPresence.join(", ")}`);
+  if (bc?.triggerReason) bcLines.push(`Basvuru nedeni: ${bc.triggerReason}`);
+  const positioning = synthesized.positioning;
+  const personality = synthesized.brandPersonality;
+  const blogPerspective = blogAdvisorOutput?.authorPerspective || "";
+  const unconventional = blogAdvisorOutput?.unconventionalInsights?.join("; ") || "";
+  const prompt = `Sen deneyimli bir marka strateji danismanisin. Asagidaki isletme hakkinda tum verileri okudun, arastirmayi yaptIn, stratejiyi olusturdun. Simdi isletme sahibiyle ILK TOPLANTIDA yuz yuze oturuyorsun. Ona 4-6 cumlelik bir ACILIS KONUSMASI yapacaksin.
+
+Bu metin bir raporun EN BASINDA gosterilecek \u2014 isletme sahibinin ILKI OKUYACAGI sey. Amac: karsi tarafin "bu kisi benim isimi GERCEKTEN ANLIYOR" demesi.
+
+---
+
+## Isletme: ${bName}
+## Sektor: ${normalizedData.sector}
+## Genel Profil: ${normalizedData.overallProfile}
+
+## Isletme Baglam Bilgileri
+${bcLines.join("\n") || "Detay belirtilmemis."}
+
+## Bilinen Rakipler
+${allCompetitors.length > 0 ? allCompetitors.join(", ") : "Belirtilmemis"}
+
+## Pazar Gercekligi
+${marketContext || "Pazar verisi mevcut degil."}
+
+## Strateji Ciktisi (senin analiz sonucun)
+- Arketip: ${personality.archetype}
+- Konumlandirma: ${positioning.statement}
+- Rekabet Haritasi: ${positioning.competitiveLandscape || "Yok"}
+- Temel Fark: ${positioning.differentiator}
+- Rekabet Avantaji: ${positioning.competitiveAdvantage}
+
+${blogPerspective ? `## Stratejik Danismanin Bakisi
+${blogPerspective}` : ""}
+${unconventional ? `## Alisilagelmis Olmayan Icgoruler
+${unconventional}` : ""}
+
+---
+
+SIMDI, yukaridaki TUM verileri kullanarak isletme sahibine 4-6 cumlelik bir ACILIS KONUSMASI yaz.
+
+ZORUNLU KURALLAR:
+
+1. RAKIP ISIMLERINI KULLAN: "${allCompetitors.slice(0, 3).join(", ")}" gibi GERCEK isimleri yaz. "Rakipler" kelimesi YASAK.
+
+2. SOMUT GERCEKLIK: Bu isletmenin SPESIFIK durumunu anlat. "${bName}" adini, kurulis hikayesini, uretim gecmisini, sektordeki konumunu, dijital varligini kullan. GENEL GECERDIR laflar YASAK.
+
+3. STRATEJIK ICGORU: Bu isletmenin ASIL savasinin ne oldugunu TEK CUMLEDE soyle. "Senin savasin X degil, Y." Mesela: "Sizin savasiniz fiyatla degil, musterinizin sofrasindaki o 'vay be' anini yaratmakla kazanilacak." \u2014 ama KLISE DEGIL, bu isletmeye OZEL.
+
+4. YONLENDIRME: Son cumlede "simdi bunu birlikte analiz edecegiz" tarzinda kapat ama SOMUT olarak neyi analiz ettigini soyle.
+
+5. "SIZ" DIYE HITAP ET. Samimi ama otoriter.
+
+6. PROVOKATIF OLABILIR: "Bu sekilde devam ederseniz 3 yil sonra ayni yerdesiniz" gibi cumleler kur. POHPOHLAMA YASAK: "Harika markaniz", "Basarili isletmeniz" YASAK.
+
+7. METAFOR KULLAN ama bu isletmeye OZEL: "Onlar market rafinda, siz kalplerde olmalisiniz" gibi \u2014 ama KLISE degil, GERCEKTEN bu isletmenin durumunu yansitan.
+
+YASAKLI KALIPLAR \u2014 BUNLARI YAZARSAN METIN RED EDILIR:
+- "Rekabetin yogun oldugu bir sektorde faaliyet gosteriyorsunuz"
+- "Markanizi farklilastirmaniz gerekiyor"
+- "Dijital dunyada gorunur olmaniz onemli"
+- "Kaliteli urunleriniz ile one cikabilirsiniz"
+- "Dogru stratejiyle buyuk basarilar elde edebilirsiniz"
+- "Hedef kitlenize dogru mesajlarla ulasmaniz gerekiyor"
+- "Sizin icin hazirlanan bu raporda..."
+- "Analiz sonuclarimiz gosteriyor ki..."
+
+LITMUS TEST: Isletme adini degistirsen cumle ANLAMSIZLASMALI. Yani bu metin SADECE ${bName} icin gecerli olmali.
+
+SADECE 4-6 cumle yaz. Baslik, giris, aciklama EKLEME. Dogrudan konusmaya basla.`;
+  const text = await generateText("pro", prompt, "ConsultantIntroWriter", {
+    temperature: 0.9,
+    maxOutputTokens: 1024
+  });
+  return text.replace(/^["'`]+|["'`]+$/g, "").replace(/^consultantIntro:\s*/i, "").trim();
 }
 
 // src/pipeline/pipeline.ts
@@ -1794,6 +1903,7 @@ export {
   runBlogStrategyAdvisor,
   runBrandChallenger,
   runBrandStrategist,
+  runConsultantIntroWriter,
   runDataNormalizer,
   runPipeline,
   runSectorResearch,

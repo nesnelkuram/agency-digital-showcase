@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
-  ArrowLeft, Play, Pause, BarChart3, Globe, Users, Palette,
+  ArrowLeft, Play, Pause, BarChart3, Globe, Users, Palette, Pencil,
   Wallet, Calendar, Clock, MessageSquare, Send, Tag, TrendingUp,
-  AlertTriangle, CheckCircle, Eye, MousePointer, Target, DollarSign,
+  AlertTriangle, CheckCircle, Eye, MousePointer, Target, DollarSign, Lightbulb,
 } from 'lucide-react';
 import type {
   MarketingCampaign,
@@ -25,6 +25,10 @@ import {
   getPerformanceSnapshots,
 } from '@/shared/services/marketingService';
 import { useProjectScope } from '@/shared/hooks/useProjectScope';
+import SpendTrendChart from './components/charts/SpendTrendChart';
+import FunnelChart from './components/charts/FunnelChart';
+import { aggregateByDate } from '@/shared/utils/performanceAggregator';
+import OptimizationPanel from './components/OptimizationPanel';
 
 const CampaignDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -35,7 +39,7 @@ const CampaignDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [noteText, setNoteText] = useState('');
   const [addingNote, setAddingNote] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'performance' | 'adsets' | 'timeline'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'performance' | 'adsets' | 'timeline' | 'optimization'>('overview');
 
   useEffect(() => {
     if (id) {
@@ -95,11 +99,19 @@ const CampaignDetailPage: React.FC = () => {
   const avgCTR = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
   const avgCPA = totalConversions > 0 ? totalSpend / totalConversions : 0;
 
+  // Aggregated metrics for charts
+  const aggregatedMetrics = {
+    impressions: totalImpressions,
+    clicks: totalClicks,
+    conversions: totalConversions,
+  };
+
   const tabs = [
     { key: 'overview', label: 'Genel Bakis' },
     { key: 'performance', label: 'Performans' },
     { key: 'adsets', label: 'Reklam Setleri' },
     { key: 'timeline', label: 'Zaman Cizelgesi' },
+    { key: 'optimization', label: 'Optimizasyon' },
   ] as const;
 
   return (
@@ -136,6 +148,13 @@ const CampaignDetailPage: React.FC = () => {
 
         {/* Action buttons */}
         <div className="flex items-center gap-2">
+          <Link
+            to={`${basePath}/campaigns/${id}/edit`}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-neutral-200 text-neutral-700 rounded-lg hover:bg-neutral-50 font-commons text-sm transition-colors"
+          >
+            <Pencil className="w-4 h-4" />
+            Duzenle
+          </Link>
           {(campaign.status === 'active' || campaign.status === 'paused') && (
             <button
               onClick={handleToggleStatus}
@@ -260,6 +279,18 @@ const CampaignDetailPage: React.FC = () => {
             </div>
           ) : (
             <>
+              {/* Performance Charts */}
+              {snapshots.length > 0 && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+                  <SpendTrendChart data={aggregateByDate(snapshots)} height={220} />
+                  <FunnelChart
+                    impressions={aggregatedMetrics.impressions}
+                    clicks={aggregatedMetrics.clicks}
+                    conversions={aggregatedMetrics.conversions}
+                  />
+                </div>
+              )}
+
               {/* Daily snapshots table */}
               <div className="bg-white rounded-xl border border-neutral-200/50 overflow-hidden">
                 <div className="overflow-x-auto">
@@ -387,6 +418,20 @@ const CampaignDetailPage: React.FC = () => {
               ))}
             </div>
           </div>
+        </div>
+      )}
+
+      {activeTab === 'optimization' && campaign && (
+        <div className="bg-white rounded-xl border border-neutral-200/50 p-6">
+          <OptimizationPanel
+            campaignId={campaign.id}
+            onOptimizationApplied={async () => {
+              if (id) {
+                const updated = await getCampaign(id);
+                setCampaign(updated);
+              }
+            }}
+          />
         </div>
       )}
     </div>

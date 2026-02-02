@@ -52,6 +52,30 @@ export async function generateJSON<T>(
   return safeParseJSON<T>(text, agentName);
 }
 
+export async function generateText(
+  tier: ModelTier,
+  prompt: string,
+  agentName: string,
+  config?: { temperature?: number; maxOutputTokens?: number }
+): Promise<string> {
+  const client = getClient();
+  const result = await client.models.generateContent({
+    model: MODEL_IDS[tier],
+    contents: prompt,
+    config: {
+      temperature: config?.temperature ?? 0.7,
+      topP: 0.9,
+      maxOutputTokens: config?.maxOutputTokens ?? 2048,
+      ...(tier === 'pro' ? {} : { thinkingConfig: { thinkingBudget: 0 } }),
+    },
+  });
+  const text = result.text ?? '';
+  if (!text) {
+    throw new Error(`Agent "${agentName}" returned empty text response`);
+  }
+  return text.trim();
+}
+
 export async function generateGroundedText(
   prompt: string,
   agentName: string,

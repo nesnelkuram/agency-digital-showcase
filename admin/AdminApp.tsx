@@ -52,6 +52,8 @@ const ProposalReviewPage = React.lazy(() => import('./marketing/ProposalReviewPa
 const PlatformsPage = React.lazy(() => import('./marketing/PlatformsPage'));
 const PerformancePage = React.lazy(() => import('./marketing/PerformancePage'));
 const BudgetPage = React.lazy(() => import('./marketing/BudgetPage'));
+const CampaignWizardPage = React.lazy(() => import('./marketing/CampaignWizardPage'));
+const CampaignEditPage = React.lazy(() => import('./marketing/CampaignEditPage'));
 
 // Social Media Pages
 const SocialMediaDashboard = React.lazy(() => import('./social-media/SocialMediaDashboard'));
@@ -119,6 +121,22 @@ const AdminApp: React.FC = () => {
             element={
               <React.Suspense fallback={<PageLoader />}>
                 <CampaignsPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="projects/:projectId/marketing/campaigns/new"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <CampaignWizardPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="projects/:projectId/marketing/campaigns/:id/edit"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <CampaignEditPage />
               </React.Suspense>
             }
           />
@@ -385,6 +403,22 @@ const AdminApp: React.FC = () => {
             element={
               <React.Suspense fallback={<PageLoader />}>
                 <ProposalsPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="marketing/campaigns/new"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <CampaignWizardPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="marketing/campaigns/:id/edit"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <CampaignEditPage />
               </React.Suspense>
             }
           />

@@ -46,7 +46,7 @@ const CampaignsPage: React.FC = () => {
           </p>
         </div>
         <Link
-          to={`${basePath}/proposals`}
+          to={`${basePath}/campaigns/new`}
           className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-commons text-sm"
         >
           <Plus className="w-4 h-4" />

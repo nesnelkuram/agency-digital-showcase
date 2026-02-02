@@ -8,6 +8,7 @@ import {
   runBrandChallenger,
   runBlogStrategyAdvisor,
   runStrategySynthesizer,
+  runConsultantIntroWriter,
 } from './_lib/pipeline-bundle.mjs';
 
 export const config = {
@@ -227,10 +228,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // ============================
+    // Agent 6: Consultant Intro Writer (optional, dedicated creative agent)
+    // ============================
+    let consultantIntroText = '';
+    const synthesizedForIntro = synthesizedAnalysis || buildFallbackSynthesis(strategistOutput);
+    if (remaining() > 8_000) {
+      const introStart = Date.now();
+      try {
+        console.log('analyze-continue: Running consultantIntroWriter...');
+        consultantIntroText = await runConsultantIntroWriter(
+          normalizedData,
+          researchFindings,
+          synthesizedForIntro,
+          blogAdvisorOutput,
+          input.businessContext,
+        );
+        timings.consultantIntroWriter = Date.now() - introStart;
+        agentsRun.push('consultantIntroWriter');
+        console.log(`analyze-continue: consultantIntroWriter done in ${timings.consultantIntroWriter}ms — ${consultantIntroText.length} chars`);
+      } catch (error: any) {
+        timings.consultantIntroWriter = Date.now() - introStart;
+        errors.push({ agent: 'consultantIntroWriter', error: error.message, timestamp: Date.now() });
+        console.error(`analyze-continue: consultantIntroWriter failed in ${timings.consultantIntroWriter}ms: ${error.message}`);
+      }
+    } else {
+      console.log(`analyze-continue: SKIPPING consultantIntroWriter — remaining=${remaining()}ms`);
+    }
+
+    // ============================
     // FORMAT ANALYSIS
     // ============================
     const usedFallback = !synthesizedAnalysis;
-    const synthesized = synthesizedAnalysis || buildFallbackSynthesis(strategistOutput);
+    const synthesized = synthesizedAnalysis || synthesizedForIntro;
     const totalDuration = Date.now() - startTime;
     timings.total = totalDuration;
 
@@ -258,7 +287,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       actionPlan: synthesized.actionPlan,
       evidenceSummary: synthesized.evidenceSummary,
-      consultantIntro: synthesized.consultantIntro || undefined,
+      consultantIntro: consultantIntroText || synthesized.consultantIntro || undefined,
 
       debate: strategistOutput
         ? {
@@ -302,7 +331,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         : undefined,
 
       pipelineMetadata: {
-        version: '3.2.0',
+        version: '3.3.0',
         agentsRun,
         totalDuration,
         agentDurations: Object.fromEntries(

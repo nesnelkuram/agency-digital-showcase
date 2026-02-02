@@ -21,6 +21,7 @@ import {
 } from '@/shared/services/marketingService';
 import { useProjectScope } from '@/shared/hooks/useProjectScope';
 import ProjectBreadcrumb from '@/admin/projects/components/ProjectBreadcrumb';
+import PlatformDonutChart from './components/charts/PlatformDonutChart';
 
 const BudgetPage: React.FC = () => {
   const { projectId, basePath, isProjectScoped } = useProjectScope();
@@ -124,6 +125,16 @@ const BudgetPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Platform Donut Chart */}
+      {stats && stats.platformBreakdown.length > 0 && (
+        <PlatformDonutChart
+          data={stats.platformBreakdown.map(pb => ({
+            platform: pb.platform,
+            spend: pb.spend,
+          }))}
+        />
+      )}
 
       {/* Platform Budget Distribution */}
       <div className="bg-white rounded-xl border border-neutral-200/50 p-6">
