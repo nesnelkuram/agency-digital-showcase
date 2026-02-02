@@ -17,8 +17,10 @@ export const PIPELINE_AGENTS = [
   'competitorDiscovery',
   'brandChallenger',
   'blogStrategyAdvisor',
+  'strategistRevision',
   'strategySynthesizer',
   'consultantIntroWriter',
+  'consumerTest',
 ] as const;
 
 export type AgentName = (typeof PIPELINE_AGENTS)[number];
@@ -54,10 +56,12 @@ export interface PipelineRunDoc {
     strategistOutput?: any;
     challengerOutput?: any;
     blogAdvisorOutput?: any;
+    revisedStrategistOutput?: any;
     digitalPresence?: any;
     competitorDiscovery?: any;
     synthesizedAnalysis?: any;
     consultantIntro?: string;
+    consumerTest?: any;
   } | null;
 
   // Input snapshot (for resume without client re-sending)
