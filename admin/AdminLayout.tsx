@@ -30,6 +30,15 @@ import {
   Video,
   FileCheck,
   Bot,
+  Palette,
+  Sparkles,
+  FileText,
+  FlaskConical,
+  Link as LinkIcon,
+  Zap,
+  CalendarDays,
+  FileBarChart,
+  Eye,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermission } from '@/shared/hooks/usePermission';
@@ -96,12 +105,26 @@ const navItems: NavItem[] = [
     icon: Megaphone,
     permission: PERMISSIONS.MARKETING_VIEW,
     children: [
+      // Core
       { label: 'Dashboard', path: '/admin/marketing', icon: LayoutDashboard },
       { label: 'Kampanyalar', path: '/admin/marketing/campaigns', icon: FolderKanban },
       { label: 'AI Onerileri', path: '/admin/marketing/proposals', icon: Cpu },
       { label: 'Platformlar', path: '/admin/marketing/platforms', icon: Monitor },
       { label: 'Performans', path: '/admin/marketing/performance', icon: TrendingUp },
       { label: 'Butce', path: '/admin/marketing/budget', icon: Wallet },
+      // Content & Creative
+      { label: 'Kreatif Kutuphane', path: '/admin/marketing/creatives', icon: Palette },
+      { label: 'AI Metin Uretici', path: '/admin/marketing/ai-copy', icon: Sparkles },
+      { label: 'Sablonlar', path: '/admin/marketing/templates', icon: FileText },
+      { label: 'A/B Testleri', path: '/admin/marketing/ab-tests', icon: FlaskConical },
+      { label: 'UTM Builder', path: '/admin/marketing/utm', icon: LinkIcon },
+      // Automation & Intelligence
+      { label: 'Otomasyon Kurallari', path: '/admin/marketing/rules', icon: Zap },
+      { label: 'Kampanya Takvimi', path: '/admin/marketing/calendar', icon: CalendarDays },
+      // Reporting & Analysis
+      { label: 'Raporlar', path: '/admin/marketing/reports', icon: FileBarChart },
+      { label: 'Musteri Dashboard', path: '/admin/marketing/clients', icon: Users2 },
+      { label: 'Rakip Izleme', path: '/admin/marketing/competitors', icon: Eye },
     ],
   },
   {

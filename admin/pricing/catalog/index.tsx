@@ -212,6 +212,82 @@ const CatalogPage: React.FC = () => {
     setQuickQuoteResult(null);
   }, []);
 
+  // QuickQuote'dan teklif olarak kaydet
+  const handleQuickQuoteSave = useCallback(async (
+    template: ServiceTemplate,
+    result: QuickQuoteResult,
+    quantity: number,
+  ) => {
+    if (!db) return;
+
+    const now = Timestamp.now();
+    const validUntilDate = new Date();
+    validUntilDate.setDate(validUntilDate.getDate() + 30);
+
+    const breakdown = result.breakdown;
+
+    const serviceLines = breakdown.components.map((comp) => ({
+      name: comp.componentName,
+      componentId: comp.componentId,
+      quantity: comp.quantity,
+      unitCost: comp.unitCost,
+      totalCost: comp.totalCost,
+      laborCost: comp.laborCost,
+      equipmentCost: comp.equipmentCost,
+      overheadCost: comp.overheadCost,
+      manualCost: comp.manualCost,
+    }));
+
+    const externalCost = breakdown.employeeLaborCost + breakdown.equipmentCost +
+      breakdown.overheadCost + breakdown.autoOverheadCost + breakdown.manualCost;
+
+    const quoteData = {
+      templateId: template.id,
+      serviceName: template.name,
+      serviceDescription: template.description,
+      serviceCategory: template.category,
+      clientName: template.name,
+      projectTitle: `${template.name} (${quantity} ${template.components.find(c => c.unitLabel)?.unitLabel || 'adet'})`,
+      items: [],
+      serviceLines,
+      totalLaborCost: breakdown.employeeLaborCost,
+      totalEquipmentCost: breakdown.equipmentCost,
+      totalFixedCostAllocation: breakdown.autoOverheadCost,
+      additionalExpenses: 0,
+      subtotal: externalCost,
+      discountAmount: 0,
+      targetMarginPercent: breakdown.margin,
+      safetyBufferPercent: 0,
+      rawCost: externalCost,
+      sellPrice: breakdown.suggestedPrice,
+      profit: breakdown.ownerLaborCost + breakdown.profit,
+      ownerLaborCost: breakdown.ownerLaborCost,
+      employeeLaborCost: breakdown.employeeLaborCost,
+      freelancerCost: breakdown.freelancerCost,
+      equipmentCost: breakdown.equipmentCost,
+      overheadCost: breakdown.overheadCost + breakdown.autoOverheadCost,
+      manualCost: breakdown.manualCost,
+      nonDeductibleCost: breakdown.nonDeductibleCost,
+      actualMarginPercent: breakdown.suggestedPrice > 0
+        ? (breakdown.ownerLaborCost + breakdown.profit) / breakdown.suggestedPrice
+        : 0,
+      totalEstimatedHours: breakdown.estimatedHours,
+      totalEstimatedDays: breakdown.estimatedDays,
+      status: 'draft' as const,
+      validUntil: Timestamp.fromDate(validUntilDate),
+      billingType: 'one_time' as const,
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+      createdBy: 'system',
+      createdByName: 'Sistem',
+    };
+
+    await addDoc(collection(db, 'quotes'), quoteData);
+    closeQuickQuote();
+    navigate('/admin/pricing/proposals');
+  }, [navigate, closeQuickQuote]);
+
   // Save as quote handler
   const handleSaveAsQuote = useCallback(async () => {
     if (!db || !saveQuoteTemplate) return;
@@ -231,12 +307,28 @@ const CatalogPage: React.FC = () => {
       // Toplam Kar = Başkan Payı + Marj Karı
       const totalProfit = costResult.ownerLaborCost + costResult.profit;
 
+      // Hizmet kalemleri - teklif dokumani olusturmak icin detayli bilesen verisi
+      const serviceLines = costResult.components.map((comp) => ({
+        name: comp.componentName,
+        componentId: comp.componentId,
+        quantity: comp.quantity,
+        unitCost: comp.unitCost,
+        totalCost: comp.totalCost,
+        laborCost: comp.laborCost,
+        equipmentCost: comp.equipmentCost,
+        overheadCost: comp.overheadCost,
+        manualCost: comp.manualCost,
+      }));
+
       const quoteData = {
         templateId: saveQuoteTemplate.id, // Yeniden hesaplama için şablon ID
         serviceName: saveQuoteTemplate.name, // Görüntüleme için
+        serviceDescription: saveQuoteTemplate.description,
+        serviceCategory: saveQuoteTemplate.category,
         clientName: saveQuoteTemplate.name,
         projectTitle: saveQuoteTemplate.shortDescription || saveQuoteTemplate.name,
         items: [],
+        serviceLines, // Detayli hizmet kalemleri
         totalLaborCost: costResult.employeeLaborCost,
         totalEquipmentCost: costResult.equipmentCost,
         totalFixedCostAllocation: costResult.autoOverheadCost,
@@ -250,13 +342,15 @@ const CatalogPage: React.FC = () => {
         profit: totalProfit,
         ownerLaborCost: costResult.ownerLaborCost, // Maliyet detayları
         employeeLaborCost: costResult.employeeLaborCost,
+        freelancerCost: costResult.freelancerCost,
         equipmentCost: costResult.equipmentCost,
         overheadCost: costResult.overheadCost + costResult.autoOverheadCost,
         manualCost: costResult.manualCost,
+        nonDeductibleCost: costResult.nonDeductibleCost,
         actualMarginPercent: costResult.suggestedPrice > 0 ? totalProfit / costResult.suggestedPrice : 0,
         totalEstimatedHours: costResult.estimatedHours,
         totalEstimatedDays: costResult.estimatedDays,
-        status: 'accepted' as const,
+        status: 'draft' as const, // Taslak - teklif dokumani olusturulunca 'sent' olacak
         validUntil: Timestamp.fromDate(validUntilDate),
         billingType: quoteBillingType,
         billingPeriodMonths: quoteBillingType === 'recurring' ? quoteBillingPeriod : undefined,
@@ -267,9 +361,10 @@ const CatalogPage: React.FC = () => {
         createdByName: 'Sistem',
       };
 
-      await addDoc(collection(db, 'quotes'), quoteData);
+      const docRef = await addDoc(collection(db, 'quotes'), quoteData);
       setSaveQuoteTemplate(null);
-      navigate('/admin/pricing/projections');
+      // Teklif Dokumanlari sayfasina yonlendir - otomatik olarak burada gorunecek
+      navigate('/admin/pricing/proposals');
     } catch (err) {
       console.error('Error saving quote:', err);
     } finally {
@@ -429,6 +524,7 @@ const CatalogPage: React.FC = () => {
           template={quickQuoteTemplate}
           quoteResult={quickQuoteResult}
           onQuantityChange={handleQuickQuoteQuantityChange}
+          onSaveAsQuote={handleQuickQuoteSave}
         />
       )}
 

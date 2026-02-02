@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Edit, Trash2, Loader2, Zap } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Loader2, Zap, FileCheck } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { db } from '@/lib/firebase/config';
 import {
@@ -10,10 +10,13 @@ import {
   collection,
   getDocs,
   deleteDoc,
+  addDoc,
+  Timestamp,
 } from 'firebase/firestore';
 import type {
   ServiceTemplate,
   ServiceCostResult,
+  QuickQuoteResult,
   StaffMember,
   Equipment,
 } from '@/shared/types/pricing';
@@ -46,6 +49,9 @@ const ServiceDetailPage: React.FC = () => {
   // Quick quote
   const [quickQuoteOpen, setQuickQuoteOpen] = useState(false);
   const [quickQuoteResult, setQuickQuoteResult] = useState<any>(null);
+
+  // Save state
+  const [savingQuote, setSavingQuote] = useState(false);
 
   // Fetch template and rates
   useEffect(() => {
@@ -163,6 +169,155 @@ const ServiceDetailPage: React.FC = () => {
     [template, ratesLoaded, engine]
   );
 
+  // Teklif olarak kaydet (detay sayfasindan)
+  const handleSaveAsQuote = useCallback(async () => {
+    if (!db || !template || !costResult) return;
+
+    setSavingQuote(true);
+    try {
+      const now = Timestamp.now();
+      const validUntilDate = new Date();
+      validUntilDate.setDate(validUntilDate.getDate() + 30);
+
+      const serviceLines = costResult.components.map((comp) => ({
+        name: comp.componentName,
+        componentId: comp.componentId,
+        quantity: comp.quantity,
+        unitCost: comp.unitCost,
+        totalCost: comp.totalCost,
+        laborCost: comp.laborCost,
+        equipmentCost: comp.equipmentCost,
+        overheadCost: comp.overheadCost,
+        manualCost: comp.manualCost,
+      }));
+
+      const externalCost = costResult.employeeLaborCost + costResult.equipmentCost +
+        costResult.overheadCost + costResult.autoOverheadCost + costResult.manualCost;
+      const totalProfit = costResult.ownerLaborCost + costResult.profit;
+
+      await addDoc(collection(db, 'quotes'), {
+        templateId: template.id,
+        serviceName: template.name,
+        serviceDescription: template.description,
+        serviceCategory: template.category,
+        clientName: template.name,
+        projectTitle: template.shortDescription || template.name,
+        items: [],
+        serviceLines,
+        totalLaborCost: costResult.employeeLaborCost,
+        totalEquipmentCost: costResult.equipmentCost,
+        totalFixedCostAllocation: costResult.autoOverheadCost,
+        additionalExpenses: 0,
+        subtotal: externalCost,
+        discountAmount: 0,
+        targetMarginPercent: costResult.margin,
+        safetyBufferPercent: 0,
+        rawCost: externalCost,
+        sellPrice: costResult.suggestedPrice,
+        profit: totalProfit,
+        ownerLaborCost: costResult.ownerLaborCost,
+        employeeLaborCost: costResult.employeeLaborCost,
+        freelancerCost: costResult.freelancerCost,
+        equipmentCost: costResult.equipmentCost,
+        overheadCost: costResult.overheadCost + costResult.autoOverheadCost,
+        manualCost: costResult.manualCost,
+        nonDeductibleCost: costResult.nonDeductibleCost,
+        actualMarginPercent: costResult.suggestedPrice > 0 ? totalProfit / costResult.suggestedPrice : 0,
+        totalEstimatedHours: costResult.estimatedHours,
+        totalEstimatedDays: costResult.estimatedDays,
+        status: 'draft',
+        validUntil: Timestamp.fromDate(validUntilDate),
+        billingType: 'one_time',
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+        createdBy: 'system',
+        createdByName: 'Sistem',
+      });
+
+      navigate('/admin/pricing/proposals');
+    } catch (err) {
+      console.error('Error saving quote:', err);
+    } finally {
+      setSavingQuote(false);
+    }
+  }, [template, costResult, navigate]);
+
+  // QuickQuote'dan teklif olarak kaydet
+  const handleQuickQuoteSave = useCallback(async (
+    tmpl: ServiceTemplate,
+    result: QuickQuoteResult,
+    quantity: number,
+  ) => {
+    if (!db) return;
+
+    const now = Timestamp.now();
+    const validUntilDate = new Date();
+    validUntilDate.setDate(validUntilDate.getDate() + 30);
+
+    const breakdown = result.breakdown;
+
+    const serviceLines = breakdown.components.map((comp) => ({
+      name: comp.componentName,
+      componentId: comp.componentId,
+      quantity: comp.quantity,
+      unitCost: comp.unitCost,
+      totalCost: comp.totalCost,
+      laborCost: comp.laborCost,
+      equipmentCost: comp.equipmentCost,
+      overheadCost: comp.overheadCost,
+      manualCost: comp.manualCost,
+    }));
+
+    const externalCost = breakdown.employeeLaborCost + breakdown.equipmentCost +
+      breakdown.overheadCost + breakdown.autoOverheadCost + breakdown.manualCost;
+
+    await addDoc(collection(db, 'quotes'), {
+      templateId: tmpl.id,
+      serviceName: tmpl.name,
+      serviceDescription: tmpl.description,
+      serviceCategory: tmpl.category,
+      clientName: tmpl.name,
+      projectTitle: `${tmpl.name} (${quantity} ${tmpl.components.find(c => c.unitLabel)?.unitLabel || 'adet'})`,
+      items: [],
+      serviceLines,
+      totalLaborCost: breakdown.employeeLaborCost,
+      totalEquipmentCost: breakdown.equipmentCost,
+      totalFixedCostAllocation: breakdown.autoOverheadCost,
+      additionalExpenses: 0,
+      subtotal: externalCost,
+      discountAmount: 0,
+      targetMarginPercent: breakdown.margin,
+      safetyBufferPercent: 0,
+      rawCost: externalCost,
+      sellPrice: breakdown.suggestedPrice,
+      profit: breakdown.ownerLaborCost + breakdown.profit,
+      ownerLaborCost: breakdown.ownerLaborCost,
+      employeeLaborCost: breakdown.employeeLaborCost,
+      freelancerCost: breakdown.freelancerCost,
+      equipmentCost: breakdown.equipmentCost,
+      overheadCost: breakdown.overheadCost + breakdown.autoOverheadCost,
+      manualCost: breakdown.manualCost,
+      nonDeductibleCost: breakdown.nonDeductibleCost,
+      actualMarginPercent: breakdown.suggestedPrice > 0
+        ? (breakdown.ownerLaborCost + breakdown.profit) / breakdown.suggestedPrice
+        : 0,
+      totalEstimatedHours: breakdown.estimatedHours,
+      totalEstimatedDays: breakdown.estimatedDays,
+      status: 'draft',
+      validUntil: Timestamp.fromDate(validUntilDate),
+      billingType: 'one_time',
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+      createdBy: 'system',
+      createdByName: 'Sistem',
+    });
+
+    setQuickQuoteOpen(false);
+    navigate('/admin/pricing/proposals');
+  }, [navigate]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -268,15 +423,31 @@ const ServiceDetailPage: React.FC = () => {
             </p>
             <p className="font-commons text-sm text-[#171717]/80">{template.description}</p>
           </div>
-          <motion.button
-            onClick={handleOpenQuickQuote}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-white text-[#171717] rounded-lg font-commons text-sm font-medium hover:bg-white/80 transition-colors shadow-sm"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <Zap className="w-4 h-4" />
-            Hizli Teklif
-          </motion.button>
+          <div className="flex items-center gap-2">
+            <motion.button
+              onClick={handleOpenQuickQuote}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white text-[#171717] rounded-lg font-commons text-sm font-medium hover:bg-white/80 transition-colors shadow-sm"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Zap className="w-4 h-4" />
+              Hizli Teklif
+            </motion.button>
+            <motion.button
+              onClick={handleSaveAsQuote}
+              disabled={savingQuote || !costResult}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-commons text-sm font-medium hover:bg-green-700 transition-colors shadow-sm disabled:opacity-50"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              {savingQuote ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <FileCheck className="w-4 h-4" />
+              )}
+              Teklif Olustur
+            </motion.button>
+          </div>
         </div>
       </div>
 
@@ -302,6 +473,7 @@ const ServiceDetailPage: React.FC = () => {
           template={template}
           quoteResult={quickQuoteResult}
           onQuantityChange={handleQuickQuoteQuantityChange}
+          onSaveAsQuote={handleQuickQuoteSave}
         />
       )}
     </div>

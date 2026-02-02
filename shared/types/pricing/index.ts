@@ -220,3 +220,28 @@ export {
   calculateProfit,
   calculateProfitPercentage,
 } from './serviceCatalog';
+
+// Proposals (Teklif Dokumanlari)
+export {
+  // Types
+  type PrepaymentPeriod,
+  type ProposalDocStatus,
+
+  // Interfaces
+  type EconomicParameters,
+  type PrepaymentTier,
+  type ProposalServiceLine,
+  type ProposalTerms,
+  type ProposalDocument,
+  type ProposalGenerationInput,
+
+  // Constants
+  DEFAULT_ECONOMIC_PARAMETERS,
+  PREPAYMENT_PERIOD_LABELS,
+  PROPOSAL_STATUS_LABELS,
+  PROPOSAL_STATUS_COLORS,
+  DEFAULT_PROPOSAL_TERMS,
+
+  // Functions
+  generateProposalNumber,
+} from './proposal';

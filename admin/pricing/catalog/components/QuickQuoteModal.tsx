@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Minus, Plus, Copy, FileText, Check } from 'lucide-react';
+import { X, Minus, Plus, Copy, FileText, Check, Loader2 } from 'lucide-react';
 import type { ServiceTemplate, QuickQuoteResult, QuantityTier } from '@/shared/types/pricing';
 import { formatCurrency, getApplicableTier, DEFAULT_QUANTITY_TIERS } from '@/shared/types/pricing';
 
@@ -10,6 +10,7 @@ interface QuickQuoteModalProps {
   template: ServiceTemplate;
   quoteResult: QuickQuoteResult | null;
   onQuantityChange: (quantity: number) => void;
+  onSaveAsQuote?: (template: ServiceTemplate, quoteResult: QuickQuoteResult, quantity: number) => Promise<void>;
 }
 
 const QuickQuoteModal: React.FC<QuickQuoteModalProps> = ({
@@ -18,11 +19,13 @@ const QuickQuoteModal: React.FC<QuickQuoteModalProps> = ({
   template,
   quoteResult,
   onQuantityChange,
+  onSaveAsQuote,
 }) => {
   // Find the tiered component for quantity input
   const tieredComponent = template.components.find((c) => c.type !== 'fixed');
   const [quantity, setQuantity] = useState(tieredComponent?.baseQuantity || 1);
   const [copied, setCopied] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const tiers = tieredComponent?.quantityTiers || DEFAULT_QUANTITY_TIERS;
   const currentTier = getApplicableTier(quantity, tiers);
@@ -210,11 +213,32 @@ ${quoteResult.pricePerUnit ? `Birim Fiyat: ${quoteResult.pricePerUnit}/${quoteRe
                   )}
                 </button>
                 <button
-                  onClick={onClose}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-indigo-500 text-white rounded-lg font-commons text-sm font-medium hover:bg-indigo-600 transition-colors"
+                  onClick={async () => {
+                    if (onSaveAsQuote && quoteResult) {
+                      setSaving(true);
+                      try {
+                        await onSaveAsQuote(template, quoteResult, quantity);
+                      } finally {
+                        setSaving(false);
+                      }
+                    } else {
+                      onClose();
+                    }
+                  }}
+                  disabled={saving}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-500 text-white rounded-lg font-commons text-sm font-medium hover:bg-green-600 transition-colors disabled:opacity-50"
                 >
-                  <FileText className="w-4 h-4" />
-                  Teklif Olustur
+                  {saving ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Kaydediliyor...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="w-4 h-4" />
+                      Teklif Olustur
+                    </>
+                  )}
                 </button>
               </div>
             </div>
