@@ -138,13 +138,23 @@ function buildConversationHistory(messages) {
 ## SOHBET GECMISI
 ${formatted}`;
 }
-function assembleFullPrompt(profile, articleResults, history, userMessage) {
-  const system = [
+function assembleFullPrompt(profile, articleResults, history, userMessage, preferences) {
+  const parts = [
     buildSystemPrompt(profile),
     buildArticleContext(articleResults),
     buildConversationHistory(history)
-  ].filter(Boolean).join("\n\n---\n\n");
+  ];
+  if (preferences && preferences.length > 0) {
+    parts.push(buildPreferencesBlock(preferences));
+  }
+  const system = parts.filter(Boolean).join("\n\n---\n\n");
   return { system, user: userMessage };
+}
+function buildPreferencesBlock(preferences) {
+  const items = preferences.map((p) => `- ${p}`).join("\n");
+  return `## KULLANICI TERCIHLERI
+Kullanici daha once su geri bildirimleri vermistir. Yanitlarini buna gore ayarla:
+${items}`;
 }
 function generateSuggestedQuestions(businessContext) {
   const generic = [
@@ -165,8 +175,8 @@ function generateSuggestedQuestions(businessContext) {
 }
 
 // src/persona/contextAssembler.ts
-function assembleContext(profile, articleResults, history, userMessage) {
-  const { system, user } = assembleFullPrompt(profile, articleResults, history, userMessage);
+function assembleContext(profile, articleResults, history, userMessage, preferences) {
+  const { system, user } = assembleFullPrompt(profile, articleResults, history, userMessage, preferences);
   const articlesUsed = articleResults.slice(0, 10).map((r) => ({
     id: r.article.id,
     title: r.article.title,
@@ -2169,7 +2179,7 @@ function startChat(businessContext) {
     suggestedQuestions: generateSuggestedQuestions(businessContext)
   };
 }
-async function chat(message, history = []) {
+async function chat(message, history = [], preferences) {
   const profile = ensureInitialized();
   const queryEmbedding = await generateEmbedding(message);
   const queryTerms = extractQueryTerms(message);
@@ -2178,7 +2188,8 @@ async function chat(message, history = []) {
     profile,
     articleResults,
     history,
-    message
+    message,
+    preferences
   );
   const fullPrompt = `${system}
 

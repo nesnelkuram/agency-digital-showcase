@@ -70,7 +70,8 @@ export function startChat(businessContext?: {
  */
 export async function chat(
   message: string,
-  history: PersonaMessage[] = []
+  history: PersonaMessage[] = [],
+  preferences?: string[]
 ): Promise<PersonaChatResponse> {
   const profile = ensureInitialized();
 
@@ -81,12 +82,13 @@ export async function chat(
   const queryTerms = extractQueryTerms(message);
   const articleResults = searchArticles(queryEmbedding, 10, queryTerms);
 
-  // 3. Assemble 3-layer prompt
+  // 3. Assemble 3-layer prompt (+ optional preferences from feedback)
   const { system, user, articlesUsed } = assembleContext(
     profile,
     articleResults,
     history,
-    message
+    message,
+    preferences
   );
 
   // 4. Call Gemini Flash

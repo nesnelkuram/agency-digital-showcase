@@ -3,6 +3,8 @@ import { Send, Loader2, Bot } from 'lucide-react';
 import PersonaMessageBubble from './PersonaMessageBubble';
 import PersonaSuggestedQuestions from './PersonaSuggestedQuestions';
 
+type FeedbackType = 'positive' | 'negative' | null;
+
 interface Message {
   role: 'user' | 'assistant';
   content: string;
@@ -22,6 +24,7 @@ const PersonaChatWidget: React.FC<Props> = ({ initialContext, leadId }) => {
   const [loading, setLoading] = useState(false);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [feedbackMap, setFeedbackMap] = useState<Record<number, FeedbackType>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -105,6 +108,33 @@ const PersonaChatWidget: React.FC<Props> = ({ initialContext, leadId }) => {
     }
   };
 
+  const sendFeedback = useCallback(async (
+    messageIndex: number,
+    feedback: 'positive' | 'negative',
+    correction?: string,
+  ) => {
+    if (!sessionId) return;
+    setFeedbackMap(prev => ({ ...prev, [messageIndex]: feedback }));
+
+    const msg = messages[messageIndex];
+    try {
+      await fetch('/api/persona/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId,
+          messageIndex,
+          feedback,
+          correction,
+          assistantMessage: msg?.content,
+          articlesUsed: msg?.articlesReferenced?.map(a => a.id) || [],
+        }),
+      });
+    } catch {
+      // Feedback is best-effort, don't block UI
+    }
+  }, [sessionId, messages]);
+
   return (
     <div className="flex flex-col h-full bg-white rounded-2xl border border-neutral-100 shadow-sm overflow-hidden">
       {/* Header */}
@@ -150,6 +180,9 @@ const PersonaChatWidget: React.FC<Props> = ({ initialContext, leadId }) => {
             role={msg.role}
             content={msg.content}
             articlesReferenced={msg.articlesReferenced}
+            messageIndex={i}
+            feedback={feedbackMap[i] ?? null}
+            onFeedback={sendFeedback}
           />
         ))}
 

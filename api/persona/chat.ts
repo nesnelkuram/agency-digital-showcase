@@ -34,8 +34,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.warn('persona/chat: Could not load session history:', err);
     }
 
+    // Load user preferences from negative feedback corrections
+    let preferences: string[] = [];
+    try {
+      const db = getAdminDb();
+      const feedbackSnap = await db
+        .collection('persona_feedback')
+        .where('sessionId', '==', sessionId)
+        .where('feedback', '==', 'negative')
+        .orderBy('timestamp', 'desc')
+        .limit(5)
+        .get();
+
+      preferences = feedbackSnap.docs
+        .map(doc => doc.data().correction)
+        .filter((c): c is string => !!c && c.trim().length > 0);
+    } catch (err) {
+      // Preferences are best-effort — don't block chat
+      console.warn('persona/chat: Could not load feedback preferences:', err);
+    }
+
     // Run persona chat
-    const result = await chat(message, history);
+    const result = await chat(message, history, preferences.length > 0 ? preferences : undefined);
 
     // Save messages to Firestore
     const userMsg = { role: 'user' as const, content: message, timestamp: Date.now() };

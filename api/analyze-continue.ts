@@ -11,6 +11,8 @@ import {
   runConsultantIntroWriter,
   runDigitalPresenceAnalyzer,
   runCompetitorDiscovery,
+  runBrandStrategistRevision,
+  runConsumerTest,
 } from './_lib/pipeline-bundle.mjs';
 import {
   loadCheckpoint,
@@ -357,6 +359,46 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
+    // NEW: Strategist Revision — give strategist a chance to defend/revise based on challenger critique
+    let effectiveStrategistOutput = strategistOutput;
+    const hasRevisionCheckpoint = hasCheckpoint && cp?.revisedStrategistOutput;
+    if (hasRevisionCheckpoint) {
+      effectiveStrategistOutput = cp.revisedStrategistOutput;
+      console.log('analyze-continue: Using checkpointed revisedStrategistOutput');
+      agentsRun.push('strategistRevision');
+    } else if (challengerOutput && remaining() > 100_000) {
+      if (runId) await markAgentRunning(effectiveLeadId, runId, 'strategistRevision');
+      const revStart = Date.now();
+      try {
+        console.log(`analyze-continue: Running strategistRevision (remaining=${remaining()}ms)...`);
+        const revisedOutput = await runBrandStrategistRevision(normalizedData, strategistOutput, challengerOutput, researchFindings);
+        timings.strategistRevision = Date.now() - revStart;
+        agentsRun.push('strategistRevision');
+        if (revisedOutput) {
+          effectiveStrategistOutput = revisedOutput;
+          if (runId) await checkpointAgent(effectiveLeadId, runId, 'strategistRevision', 'revisedStrategistOutput', revisedOutput, timings.strategistRevision);
+        }
+        console.log(`analyze-continue: strategistRevision done in ${timings.strategistRevision}ms — archetype=${revisedOutput?.archetype}`);
+      } catch (error: any) {
+        timings.strategistRevision = Date.now() - revStart;
+        errors.push({ agent: 'strategistRevision', error: error.message, timestamp: Date.now() });
+        if (runId) await markAgentFailed(effectiveLeadId, runId, 'strategistRevision', error.message, timings.strategistRevision);
+        console.error(`analyze-continue: strategistRevision failed in ${timings.strategistRevision}ms: ${error.message}`);
+        // Fall back to original strategist output (already the default)
+      }
+    } else if (challengerOutput && runId) {
+      // Not enough time for revision + synth + group3 — defer to next call via checkpoint
+      console.log(`analyze-continue: Deferring pipeline — remaining=${remaining()}ms < 100s needed for revision+synth+group3`);
+      return res.status(200).json({
+        status: 'pipeline_partial',
+        phase: 'awaiting_revision',
+        debug: { timings, errors, agentsRun, remainingMs: remaining() },
+      });
+    } else if (challengerOutput) {
+      // No runId, can't checkpoint — skip revision (legacy behavior)
+      console.log(`analyze-continue: SKIPPING strategistRevision — no runId for checkpoint deferral`);
+    }
+
     // Agent 5: Strategy Synthesizer (optional with fallback)
     // Resume: use checkpointed output if available
     let synthesizedAnalysis = (hasCheckpoint && cp?.synthesizedAnalysis) || null;
@@ -367,7 +409,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const synthStart = Date.now();
       try {
         console.log('analyze-continue: Running strategySynthesizer...');
-        synthesizedAnalysis = await runStrategySynthesizer(normalizedData, researchFindings, strategistOutput, challengerOutput, blogAdvisorOutput, input.businessContext, digitalPresence, competitorDiscovery);
+        synthesizedAnalysis = await runStrategySynthesizer(normalizedData, researchFindings, effectiveStrategistOutput, challengerOutput, blogAdvisorOutput, input.businessContext, digitalPresence, competitorDiscovery);
         timings.strategySynthesizer = Date.now() - synthStart;
         agentsRun.push('strategySynthesizer');
         if (runId) await checkpointAgent(effectiveLeadId, runId, 'strategySynthesizer', 'synthesizedAnalysis', synthesizedAnalysis, timings.strategySynthesizer);
@@ -384,37 +426,94 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // ============================
-    // Agent 6: Consultant Intro Writer (optional, dedicated creative agent)
+    // Agent 6 + 9: Consultant Intro + Consumer Test — PARALLEL
     // ============================
     let consultantIntroText = (hasCheckpoint && cp?.consultantIntro) || '';
+    let consumerTestResult = (hasCheckpoint && cp?.consumerTest) || null;
     if (consultantIntroText) { console.log('analyze-continue: Using checkpointed consultantIntro'); agentsRun.push('consultantIntroWriter'); }
+    if (consumerTestResult) { console.log('analyze-continue: Using checkpointed consumerTest'); agentsRun.push('consumerTest'); }
 
-    const synthesizedForIntro = synthesizedAnalysis || buildFallbackSynthesis(strategistOutput);
-    if (!consultantIntroText && remaining() > 8_000) {
-      if (runId) await markAgentRunning(effectiveLeadId, runId, 'consultantIntroWriter');
-      const introStart = Date.now();
-      try {
-        console.log('analyze-continue: Running consultantIntroWriter...');
-        consultantIntroText = await runConsultantIntroWriter(
-          normalizedData,
-          researchFindings,
-          synthesizedForIntro,
-          blogAdvisorOutput,
-          input.businessContext,
-        );
-        timings.consultantIntroWriter = Date.now() - introStart;
-        agentsRun.push('consultantIntroWriter');
-        if (runId) await checkpointAgent(effectiveLeadId, runId, 'consultantIntroWriter', 'consultantIntro', consultantIntroText, timings.consultantIntroWriter);
-        console.log(`analyze-continue: consultantIntroWriter done in ${timings.consultantIntroWriter}ms — ${consultantIntroText.length} chars`);
-      } catch (error: any) {
-        timings.consultantIntroWriter = Date.now() - introStart;
-        errors.push({ agent: 'consultantIntroWriter', error: error.message, timestamp: Date.now() });
-        if (runId) await markAgentFailed(effectiveLeadId, runId, 'consultantIntroWriter', error.message, timings.consultantIntroWriter);
-        console.error(`analyze-continue: consultantIntroWriter failed in ${timings.consultantIntroWriter}ms: ${error.message}`);
+    const synthesizedForIntro = synthesizedAnalysis || buildFallbackSynthesis(effectiveStrategistOutput);
+    const needsIntro = !consultantIntroText;
+    const needsConsumerTest = !consumerTestResult;
+
+    if (needsIntro || needsConsumerTest) {
+      console.log(`analyze-continue: Running parallel group 3 — intro=${needsIntro}, consumerTest=${needsConsumerTest}, remaining=${remaining()}ms`);
+      const parallelStart = Date.now();
+
+      const [introResult, ctResult] = await Promise.all([
+        // Agent 6: Consultant Intro Writer
+        (async () => {
+          if (!needsIntro) return consultantIntroText;
+          if (remaining() < 8_000) {
+            if (runId) await markAgentSkipped(effectiveLeadId, runId, 'consultantIntroWriter');
+            console.log(`analyze-continue: SKIPPING consultantIntroWriter — remaining=${remaining()}ms`);
+            return '';
+          }
+          if (runId) await markAgentRunning(effectiveLeadId, runId, 'consultantIntroWriter');
+          const s = Date.now();
+          try {
+            const r = await runConsultantIntroWriter(
+              normalizedData,
+              researchFindings,
+              synthesizedForIntro,
+              blogAdvisorOutput,
+              input.businessContext,
+            );
+            timings.consultantIntroWriter = Date.now() - s;
+            agentsRun.push('consultantIntroWriter');
+            if (runId) await checkpointAgent(effectiveLeadId, runId, 'consultantIntroWriter', 'consultantIntro', r, timings.consultantIntroWriter);
+            console.log(`analyze-continue: consultantIntroWriter done in ${timings.consultantIntroWriter}ms — ${r.length} chars`);
+            return r;
+          } catch (error: any) {
+            timings.consultantIntroWriter = Date.now() - s;
+            errors.push({ agent: 'consultantIntroWriter', error: error.message, timestamp: Date.now() });
+            if (runId) await markAgentFailed(effectiveLeadId, runId, 'consultantIntroWriter', error.message, timings.consultantIntroWriter);
+            console.error(`analyze-continue: consultantIntroWriter failed in ${timings.consultantIntroWriter}ms: ${error.message}`);
+            return '';
+          }
+        })(),
+        // Agent 9: Consumer Test (NEW — conditional)
+        (async () => {
+          if (!needsConsumerTest) return consumerTestResult;
+          if (remaining() < 25_000 || !synthesizedAnalysis) {
+            // Don't markAgentSkipped when runId exists — will be deferred via pipeline_partial
+            if (!runId) console.log(`analyze-continue: SKIPPING consumerTest — no runId for deferral`);
+            else console.log(`analyze-continue: consumerTest deferred — remaining=${remaining()}ms, hasSynthesis=${!!synthesizedAnalysis}`);
+            return null;
+          }
+          if (runId) await markAgentRunning(effectiveLeadId, runId, 'consumerTest');
+          const s = Date.now();
+          try {
+            const r = await runConsumerTest(normalizedData, synthesizedAnalysis, researchFindings, input.businessContext);
+            timings.consumerTest = Date.now() - s;
+            agentsRun.push('consumerTest');
+            if (runId) await checkpointAgent(effectiveLeadId, runId, 'consumerTest', 'consumerTest', r, timings.consumerTest);
+            console.log(`analyze-continue: consumerTest done in ${timings.consumerTest}ms — viability=${r?.overallViabilityScore}, personas=${r?.personas?.length}`);
+            return r;
+          } catch (error: any) {
+            timings.consumerTest = Date.now() - s;
+            errors.push({ agent: 'consumerTest', error: error.message, timestamp: Date.now() });
+            if (runId) await markAgentFailed(effectiveLeadId, runId, 'consumerTest', error.message, timings.consumerTest);
+            console.error(`analyze-continue: consumerTest failed in ${timings.consumerTest}ms: ${error.message}`);
+            return null;
+          }
+        })(),
+      ]);
+
+      consultantIntroText = introResult;
+      consumerTestResult = ctResult;
+      console.log(`analyze-continue: parallel group 3 done in ${Date.now() - parallelStart}ms — intro=${!!introResult}, consumerTest=${!!ctResult}`);
+
+      // If consumer test was skipped due to time (not due to missing synthesis), defer to next call
+      if (!consumerTestResult && synthesizedAnalysis && runId) {
+        console.log(`analyze-continue: ConsumerTest not completed — deferring via pipeline_partial`);
+        return res.status(200).json({
+          status: 'pipeline_partial',
+          phase: 'awaiting_consumer_test',
+          debug: { timings, errors, agentsRun, remainingMs: remaining() },
+        });
       }
-    } else if (!consultantIntroText) {
-      console.log(`analyze-continue: SKIPPING consultantIntroWriter — remaining=${remaining()}ms`);
-      if (runId) await markAgentSkipped(effectiveLeadId, runId, 'consultantIntroWriter');
     }
 
     // ============================
@@ -451,15 +550,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       evidenceSummary: synthesized.evidenceSummary,
       consultantIntro: consultantIntroText || synthesized.consultantIntro || undefined,
 
-      debate: strategistOutput
+      debate: effectiveStrategistOutput
         ? {
-            strategistPosition: `${strategistOutput.archetype}: ${strategistOutput.positioningStatement}`,
+            strategistPosition: `${effectiveStrategistOutput.archetype}: ${effectiveStrategistOutput.positioningStatement}`,
             challengerPosition: challengerOutput
               ? `${challengerOutput.alternativeArchetype}: ${challengerOutput.counterPosition}`
               : 'Muhalif degerlendirmesi yapilmadi',
             blogAdvisorPosition: blogAdvisorOutput
               ? `Felsefi uyum: ${blogAdvisorOutput.philosophicalAlignment.score}/10 — ${blogAdvisorOutput.philosophicalAlignment.rationale}`
-              : 'Blog danismani degerlendirmesi yapilmadi',
+              : 'Stratejik felsefe degerlendirmesi yapilmadi',
             challengerAlternatives: challengerOutput?.alternativePositionings || [],
             synthesisRationale: synthesized.synthesisRationale || '',
             debateCompleted: !!challengerOutput,
@@ -473,7 +572,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             alignedPrinciples: blogAdvisorOutput.philosophicalAlignment.alignedPrinciples,
             conflictingPrinciples: blogAdvisorOutput.philosophicalAlignment.conflictingPrinciples,
             keyRecommendations: blogAdvisorOutput.strategicRecommendations.map(
-              (r: any) => `[${r.area}] ${r.recommendation} (Ref: ${r.blogReference})`
+              (r: any) => `[${r.area}] ${r.recommendation}`
             ),
             contentPillars: blogAdvisorOutput.contentStrategyInsights.contentPillars,
             topicSuggestions: blogAdvisorOutput.contentStrategyInsights.topicSuggestions,
@@ -485,6 +584,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       digitalPresence: digitalPresence || undefined,
       competitorDiscovery: competitorDiscovery || undefined,
+      consumerTest: consumerTestResult || undefined,
 
       dataQuality: normalizedData
         ? {
@@ -496,7 +596,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         : undefined,
 
       pipelineMetadata: {
-        version: '3.4.0',
+        version: '3.5.0',
         agentsRun,
         totalDuration,
         agentDurations: Object.fromEntries(
@@ -505,6 +605,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         researchAvailable: !!researchFindings && (researchFindings.sourcesUsed !== 0),
         researchMethod: researchFindings?.sourcesUsed === -1 ? 'deep-research' : researchFindings?.sourcesUsed ? 'grounding' : 'none',
         fallbackUsed: usedFallback,
+        strategistRevised: effectiveStrategistOutput !== strategistOutput,
         asyncPipeline: true,
       },
 

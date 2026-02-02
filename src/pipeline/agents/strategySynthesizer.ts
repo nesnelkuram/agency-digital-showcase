@@ -69,19 +69,19 @@ ${challengerOutput.blindSpots.map((b) => `  - ${b}`).join('\n')}`;
   if (blogAdvisorOutput) {
     blogAdvisorSummary = `
 
-### Blog Strateji Danismani Degerlendirmesi (Stratejik Blog Danismani Perspektifi)
+### Stratejik Felsefe Degerlendirmesi
 - Felsefi Uyum Skoru: ${blogAdvisorOutput.philosophicalAlignment.score}/10
 - Gerekce: ${blogAdvisorOutput.philosophicalAlignment.rationale}
 - Uyumlu Prensipler: ${blogAdvisorOutput.philosophicalAlignment.alignedPrinciples.join('; ') || 'Yok'}
 - Celisen Prensipler: ${blogAdvisorOutput.philosophicalAlignment.conflictingPrinciples.join('; ') || 'Yok'}
 - Stratejik Oneriler:
-${blogAdvisorOutput.strategicRecommendations.map((r) => `  - [${r.area}] ${r.recommendation} (Kaynak: ${r.blogReference})`).join('\n')}
+${blogAdvisorOutput.strategicRecommendations.map((r) => `  - [${r.area}] ${r.recommendation}`).join('\n')}
 - Icerik Stratejisi:
   - Ton Uyumu: ${blogAdvisorOutput.contentStrategyInsights.toneAlignment}
   - Icerik Sutunlari: ${blogAdvisorOutput.contentStrategyInsights.contentPillars.join(', ')}
   - Anlati Yaklasimi: ${blogAdvisorOutput.contentStrategyInsights.narrativeApproach}
-- Yazar Perspektifi: ${blogAdvisorOutput.authorPerspective}
-- Gayrinizami Icgoruler:
+- Stratejik Perspektif: ${blogAdvisorOutput.authorPerspective}
+- Alternatif Icgoruler:
 ${blogAdvisorOutput.unconventionalInsights.map((i) => `  - ${i}`).join('\n')}`;
   }
 
@@ -158,11 +158,11 @@ Dijital Benchmark: Web kalite ort. ${competitorDiscovery.digitalBenchmark.avgWeb
 
   const expertCount = 1 + (challengerOutput ? 1 : 0) + (blogAdvisorOutput ? 1 : 0);
   const debateInstruction = expertCount === 3
-    ? 'Uc farkli uzmanin goruslerini sentezlemen gerekiyor: Strateji uzmani, seytan avukati ve blog strateji danismani (stratejik blog danismani perspektifi). Her ucunun en guclu argumanlarin birlestirerek, cesur ama temelli nihai stratejiyi olustur.'
+    ? 'Uc farkli uzmanin goruslerini sentezlemen gerekiyor: Strateji uzmani, seytan avukati ve stratejik felsefe danismani. Her ucunun en guclu argumanlarin birlestirerek, cesur ama temelli nihai stratejiyi olustur.'
     : challengerOutput
     ? 'Iki farkli uzmanin goruslerini inceleyip en iyi stratejiyi sentezlemen gerekiyor. Strateji uzmaninin onerisiyle seytan avukatinin elestirisini dengeleyerek, en guclu ve tutarli sonucu olustur.'
     : blogAdvisorOutput
-    ? 'Strateji uzmaninin onerisi ve blog strateji danismaninin (stratejik blog danismani perspektifi) degerlendirmesini sentezleyerek nihai stratejiyi olustur.'
+    ? 'Strateji uzmaninin onerisi ve stratejik felsefe danismaninin degerlendirmesini sentezleyerek nihai stratejiyi olustur.'
     : 'Strateji uzmaninin onerisini inceleyip, rafine ederek nihai stratejiyi olusturman gerekiyor. Karsi-analiz mevcut olmadigindan, kendi elestirel gozunle stratejiyi guclendirerek sentezle.';
 
   const sourceCount = researchFindings?.sourcesUsed || 0;

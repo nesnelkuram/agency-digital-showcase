@@ -150,7 +150,7 @@ export interface BlogAdvisorOutput {
   strategicRecommendations: Array<{
     area: string;
     recommendation: string;
-    blogReference: string;
+    sourceInsight: string;
   }>;
   contentStrategyInsights: {
     toneAlignment: string;
@@ -323,6 +323,29 @@ export interface CompetitorDiscoveryOutput {
   };
 }
 
+// Agent 9 Output — Synthetic Consumer Test
+export interface ConsumerTestResult {
+  personaLabel: string;
+  demographics: string;
+  psychographics: string;
+  painPoints: string[];
+  alignmentScore: number;
+  resonancePoints: string[];
+  concerns: string[];
+  purchaseLikelihood: 'yuksek' | 'orta' | 'dusuk' | 'cok_dusuk';
+  recommendedMessageAngle: string;
+}
+
+export interface ConsumerTestOutput {
+  overallViabilityScore: number;
+  personas: ConsumerTestResult[];
+  strongestFit: string;
+  weakestFit: string;
+  crossPersonaConcerns: string[];
+  strategyRefinements: string[];
+  marketReadiness: 'hazir' | 'iyilestirme_gerekli' | 'yeniden_dusunulmeli';
+}
+
 // Pipeline state passed through agents
 export interface PipelineState {
   input: PipelineInput;
@@ -334,6 +357,7 @@ export interface PipelineState {
   synthesizedAnalysis?: SynthesizedAnalysis;
   digitalPresenceAnalysis?: DigitalPresenceAnalysis;
   competitorDiscovery?: CompetitorDiscoveryOutput;
+  consumerTest?: ConsumerTestOutput;
   errors: Array<{ agent: string; error: string; timestamp: number }>;
   timings: Record<string, number>;
 }

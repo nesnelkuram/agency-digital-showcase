@@ -119,15 +119,26 @@ export function assembleFullPrompt(
   profile: PersonaProfile,
   articleResults: ArticleSearchResult[],
   history: PersonaMessage[],
-  userMessage: string
+  userMessage: string,
+  preferences?: string[]
 ): { system: string; user: string } {
-  const system = [
+  const parts = [
     buildSystemPrompt(profile),
     buildArticleContext(articleResults),
     buildConversationHistory(history),
-  ].filter(Boolean).join('\n\n---\n\n');
+  ];
 
+  if (preferences && preferences.length > 0) {
+    parts.push(buildPreferencesBlock(preferences));
+  }
+
+  const system = parts.filter(Boolean).join('\n\n---\n\n');
   return { system, user: userMessage };
+}
+
+function buildPreferencesBlock(preferences: string[]): string {
+  const items = preferences.map(p => `- ${p}`).join('\n');
+  return `## KULLANICI TERCIHLERI\nKullanici daha once su geri bildirimleri vermistir. Yanitlarini buna gore ayarla:\n${items}`;
 }
 
 // ── Suggested Questions ────────────────────────────────────────────

@@ -23,9 +23,10 @@ export function assembleContext(
   profile: PersonaProfile,
   articleResults: ArticleSearchResult[],
   history: PersonaMessage[],
-  userMessage: string
+  userMessage: string,
+  preferences?: string[]
 ): AssembledContext {
-  const { system, user } = assembleFullPrompt(profile, articleResults, history, userMessage);
+  const { system, user } = assembleFullPrompt(profile, articleResults, history, userMessage, preferences);
 
   const articlesUsed = articleResults.slice(0, 10).map(r => ({
     id: r.article.id,

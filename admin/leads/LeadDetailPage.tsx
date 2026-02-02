@@ -171,6 +171,10 @@ const LeadDetailPage: React.FC = () => {
         if (result.status === 'researching') {
           // DR still running on Gemini, keep polling
           console.log(`[AsyncPipeline] DR still running, will poll again (attempt ${attempts}/${MAX_ATTEMPTS})...`);
+        } else if (result.status === 'pipeline_partial') {
+          // Some agents completed, remaining deferred to next call via checkpoint
+          console.log(`[AsyncPipeline] Pipeline partial (phase=${result.phase}), continuing from checkpoint (attempt ${attempts}/${MAX_ATTEMPTS})...`);
+          setAnalysisPhase('analyzing');
         } else if (result.researchFindings) {
           researchFindings = result.researchFindings;
           console.log(`[AsyncPipeline] Research received: competitors=${researchFindings.competitors?.length || 0}, sourcesUsed=${researchFindings.sourcesUsed}`);
