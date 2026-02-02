@@ -55,6 +55,13 @@ const BudgetPage = React.lazy(() => import('./marketing/BudgetPage'));
 const CampaignWizardPage = React.lazy(() => import('./marketing/CampaignWizardPage'));
 const CampaignEditPage = React.lazy(() => import('./marketing/CampaignEditPage'));
 
+// Phase 2: Content & Creative Pages
+const CreativeLibraryPage = React.lazy(() => import('./marketing/CreativeLibraryPage'));
+const AICopyGeneratorPage = React.lazy(() => import('./marketing/AICopyGeneratorPage'));
+const TemplatesPage = React.lazy(() => import('./marketing/TemplatesPage'));
+const ABTestsPage = React.lazy(() => import('./marketing/ABTestsPage'));
+const UTMBuilderPage = React.lazy(() => import('./marketing/UTMBuilderPage'));
+
 // Social Media Pages
 const SocialMediaDashboard = React.lazy(() => import('./social-media/SocialMediaDashboard'));
 const SocialMediaCalendar = React.lazy(() => import('./social-media/SocialMediaCalendar'));
@@ -185,6 +192,46 @@ const AdminApp: React.FC = () => {
             element={
               <React.Suspense fallback={<PageLoader />}>
                 <BudgetPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="projects/:projectId/marketing/creatives"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <CreativeLibraryPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="projects/:projectId/marketing/ai-copy"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <AICopyGeneratorPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="projects/:projectId/marketing/templates"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <TemplatesPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="projects/:projectId/marketing/ab-tests"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <ABTestsPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="projects/:projectId/marketing/utm"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <UTMBuilderPage />
               </React.Suspense>
             }
           />
@@ -459,6 +506,46 @@ const AdminApp: React.FC = () => {
             element={
               <React.Suspense fallback={<PageLoader />}>
                 <BudgetPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="marketing/creatives"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <CreativeLibraryPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="marketing/ai-copy"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <AICopyGeneratorPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="marketing/templates"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <TemplatesPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="marketing/ab-tests"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <ABTestsPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="marketing/utm"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <UTMBuilderPage />
               </React.Suspense>
             }
           />
