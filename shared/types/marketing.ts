@@ -195,8 +195,19 @@ export interface AdSet {
   bidStrategy: 'lowest_cost' | 'cost_cap' | 'bid_cap' | 'target_cost';
   bidAmount?: number;
   platformAdSetId?: string;        // Platform tarafindaki ID
+  metaAdSetId?: string;            // Meta Graph API ad set ID
+  optimizationGoal?: string;       // LINK_CLICKS, IMPRESSIONS, etc.
+  targetingJson?: Record<string, any>; // Raw Meta targeting object
   status: 'active' | 'paused' | 'deleted';
   ads: Ad[];
+  performanceSummary?: {
+    impressions: number;
+    clicks: number;
+    spend: number;
+    ctr: number;
+    cpa: number;
+    conversions: number;
+  };
 }
 
 export interface Ad {
@@ -205,8 +216,17 @@ export interface Ad {
   type: 'image' | 'video' | 'carousel' | 'text' | 'story' | 'email_template';
   creative: AdCreative;
   platformAdId?: string;           // Platform tarafindaki ID
+  metaAdId?: string;               // Meta Graph API ad ID
+  metaCreativeId?: string;         // Meta creative ID
   status: 'active' | 'paused' | 'deleted';
   variant?: string;                // A/B test varyanti (A, B, C)
+  performanceSummary?: {
+    impressions: number;
+    clicks: number;
+    spend: number;
+    ctr: number;
+    conversions: number;
+  };
 }
 
 export interface AdCreative {
@@ -238,6 +258,11 @@ export interface AdCreative {
   emailPreviewText?: string;
   emailBody?: string;
   emailTemplateId?: string;
+
+  // Meta Creative fields
+  metaPreviewUrl?: string;         // Meta ad preview URL
+  metaImageHash?: string;          // Meta image hash for creative
+  assetFeedSpec?: Record<string, any>; // Meta asset feed spec (dynamic creative)
 
   // A/B varyantlari
   variants?: Array<{
@@ -381,6 +406,9 @@ export interface PerformanceSnapshot {
   campaignId: string;
   platform: AdPlatform;
   date: string;                    // YYYY-MM-DD
+  level?: 'campaign' | 'adset' | 'ad'; // Metric seviyesi
+  adSetId?: string;                // Ad set seviye ise
+  adId?: string;                   // Ad seviye ise
   impressions: number;
   reach: number;
   clicks: number;
@@ -496,6 +524,11 @@ export interface MarketingCampaign {
 
   // Etiketler
   tags: string[];
+
+  // Meta sync durum bilgileri
+  lastSyncAt?: Timestamp;
+  syncStatus?: 'idle' | 'syncing' | 'success' | 'error';
+  syncError?: string;
 
   createdAt: Timestamp;
   updatedAt: Timestamp;

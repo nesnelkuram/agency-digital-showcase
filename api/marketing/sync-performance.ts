@@ -17,6 +17,7 @@ const META_API_BASE = `https://graph.facebook.com/${META_API_VERSION}`;
  *  - accessToken: string
  *  - campaigns: Array<{ id: string; metaCampaignId: string }>
  *  - dateRange?: { start: string; end: string } (defaults to last 7 days)
+ *  - level?: 'campaign' | 'adset' | 'ad' (defaults to 'campaign')
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Content-Type', 'application/json');
@@ -26,7 +27,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { accessToken, campaigns, dateRange } = req.body;
+    const { accessToken, campaigns, dateRange, level } = req.body as {
+      accessToken: string;
+      campaigns: Array<{ id: string; metaCampaignId: string }>;
+      dateRange?: { start: string; end: string };
+      level?: 'campaign' | 'adset' | 'ad';
+    };
 
     if (!accessToken || !campaigns?.length) {
       return res.status(400).json({
@@ -44,7 +50,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const timeRange = JSON.stringify({ since: range.start, until: range.end });
 
-    console.log(`[sync-performance] Syncing ${campaigns.length} campaigns, range=${range.start}—${range.end}`);
+    const effectiveLevel = level || 'campaign';
+
+    console.log(`[sync-performance] Syncing ${campaigns.length} campaigns at ${effectiveLevel} level, range=${range.start}—${range.end}`);
 
     const allSnapshots: any[] = [];
     const campaignPerformance: Record<string, any> = {};
@@ -52,7 +60,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Fetch insights for each campaign
     for (const camp of campaigns) {
       try {
-        const insightsUrl = `${META_API_BASE}/${camp.metaCampaignId}/insights?access_token=${accessToken}&fields=date_start,date_stop,impressions,reach,clicks,ctr,spend,actions,cost_per_action_type,cpc,cpm,frequency&time_range=${encodeURIComponent(timeRange)}&time_increment=1`;
+        // Build fields list based on level
+        let fields = 'date_start,date_stop,impressions,reach,clicks,ctr,spend,actions,cost_per_action_type,cpc,cpm,frequency';
+        if (effectiveLevel === 'adset') {
+          fields = 'adset_id,adset_name,' + fields;
+        } else if (effectiveLevel === 'ad') {
+          fields = 'ad_id,ad_name,' + fields;
+        }
+
+        let insightsUrl = `${META_API_BASE}/${camp.metaCampaignId}/insights?access_token=${accessToken}&fields=${fields}&time_range=${encodeURIComponent(timeRange)}&time_increment=1`;
+        if (effectiveLevel !== 'campaign') {
+          insightsUrl += `&level=${effectiveLevel}`;
+        }
 
         const insightsRes = await fetch(insightsUrl);
         const insightsData = await insightsRes.json();
@@ -89,6 +108,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             campaignId: camp.id,
             platform: 'meta',
             date: row.date_start,
+            level: effectiveLevel,
+            ...(effectiveLevel === 'adset' && {
+              adSetId: row.adset_id || undefined,
+              adSetName: row.adset_name || undefined,
+            }),
+            ...(effectiveLevel === 'ad' && {
+              adId: row.ad_id || undefined,
+              adName: row.ad_name || undefined,
+            }),
             impressions,
             reach,
             clicks,

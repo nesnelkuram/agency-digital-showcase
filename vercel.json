@@ -60,6 +60,15 @@
     "api/marketing/analyze-competitor.ts": {
       "maxDuration": 120
     },
+    "api/marketing/sync-breakdowns.ts": {
+      "maxDuration": 120
+    },
+    "api/marketing/analyze-campaign.ts": {
+      "maxDuration": 120
+    },
+    "api/marketing/ai-optimize.ts": {
+      "maxDuration": 300
+    },
     "api/cron/marketing-optimize.ts": {
       "maxDuration": 300
     }

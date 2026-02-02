@@ -52,7 +52,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { accessToken, adAccountId } = req.body;
+    const { accessToken, adAccountId, deepSync = true } = req.body;
 
     if (!accessToken || !adAccountId) {
       return res.status(400).json({
@@ -110,6 +110,79 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const lifetimeBudget = mc.lifetime_budget ? parseInt(mc.lifetime_budget) / 100 : 0;
         const totalBudget = lifetimeBudget || dailyBudget * 30;
 
+        // --- Deep sync: fetch ad sets and ads for this campaign ---
+        let adSets: any[] = [];
+        if (deepSync) {
+          try {
+            console.log(`[sync-campaigns] Fetching ad sets for campaign ${mc.id}`);
+            const adSetsUrl = `${META_API_BASE}/${mc.id}/adsets?access_token=${accessToken}&fields=id,name,status,daily_budget,lifetime_budget,bid_strategy,targeting,start_time,end_time,optimization_goal&limit=100`;
+            const adSetsRes = await fetch(adSetsUrl);
+            const adSetsData = await adSetsRes.json();
+
+            if (adSetsData.error) {
+              console.warn(`[sync-campaigns] Meta API error fetching ad sets for campaign ${mc.id}: ${adSetsData.error.message}`);
+            } else {
+              const rawAdSets = adSetsData.data || [];
+
+              // For each ad set, fetch its ads (in parallel)
+              adSets = await Promise.all(
+                rawAdSets.map(async (as: any) => {
+                  let ads: any[] = [];
+                  try {
+                    console.log(`[sync-campaigns] Fetching ads for ad set ${as.id}`);
+                    const adsUrl = `${META_API_BASE}/${as.id}/ads?access_token=${accessToken}&fields=id,name,status,creative{id,name,title,body,image_url,image_hash,video_id,thumbnail_url,object_story_spec}&limit=100`;
+                    const adsRes = await fetch(adsUrl);
+                    const adsData = await adsRes.json();
+
+                    if (adsData.error) {
+                      console.warn(`[sync-campaigns] Meta API error fetching ads for ad set ${as.id}: ${adsData.error.message}`);
+                    } else {
+                      ads = adsData.data || [];
+                    }
+                  } catch (adErr: any) {
+                    console.warn(`[sync-campaigns] Failed to fetch ads for ad set ${as.id}:`, adErr.message);
+                  }
+
+                  return {
+                    metaAdSetId: as.id,
+                    name: as.name,
+                    status: mapAdSetStatus(as.status),
+                    budget: {
+                      daily: as.daily_budget ? parseInt(as.daily_budget) / 100 : 0,
+                      lifetime: as.lifetime_budget ? parseInt(as.lifetime_budget) / 100 : undefined,
+                    },
+                    bidStrategy: mapBidStrategy(as.bid_strategy),
+                    optimizationGoal: as.optimization_goal,
+                    targetingJson: as.targeting || {},
+                    schedule: {
+                      startDate: as.start_time || '',
+                      endDate: as.end_time || undefined,
+                    },
+                    ads: ads.map((ad: any) => ({
+                      metaAdId: ad.id,
+                      name: ad.name,
+                      status: mapAdSetStatus(ad.status),
+                      metaCreativeId: ad.creative?.id,
+                      creative: {
+                        headline: ad.creative?.title || '',
+                        primaryText: ad.creative?.body || '',
+                        callToAction: '',
+                        destinationUrl: '',
+                        imageUrl: ad.creative?.image_url,
+                        thumbnailUrl: ad.creative?.thumbnail_url,
+                        metaImageHash: ad.creative?.image_hash,
+                        metaPreviewUrl: undefined,
+                      },
+                    })),
+                  };
+                })
+              );
+            }
+          } catch (adSetErr: any) {
+            console.warn(`[sync-campaigns] Failed to fetch ad sets for campaign ${mc.id}:`, adSetErr.message);
+          }
+        }
+
         return {
           metaCampaignId: mc.id,
           name: mc.name,
@@ -150,6 +223,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           } : null,
           createdTime: mc.created_time,
           updatedTime: mc.updated_time,
+          ...(deepSync ? { adSets } : {}),
         };
       })
     );
@@ -190,4 +264,29 @@ function extractCPA(costPerAction: any[]): number {
     a.action_type === 'purchase'
   );
   return cpa ? parseFloat(cpa.value || '0') : 0;
+}
+
+// Map Meta ad set / ad status to internal values
+function mapAdSetStatus(metaStatus: string | undefined): string {
+  if (!metaStatus) return 'paused';
+  const map: Record<string, string> = {
+    ACTIVE: 'active',
+    PAUSED: 'paused',
+    DELETED: 'deleted',
+    ARCHIVED: 'deleted',
+    IN_PROCESS: 'paused',
+    WITH_ISSUES: 'active',
+  };
+  return map[metaStatus] || 'paused';
+}
+
+// Map Meta bid strategy to internal values
+function mapBidStrategy(metaBidStrategy: string | undefined): string {
+  if (!metaBidStrategy) return 'lowest_cost';
+  const map: Record<string, string> = {
+    LOWEST_COST_WITHOUT_CAP: 'lowest_cost',
+    LOWEST_COST_WITH_BID_CAP: 'bid_cap',
+    COST_CAP: 'cost_cap',
+  };
+  return map[metaBidStrategy] || 'lowest_cost';
 }

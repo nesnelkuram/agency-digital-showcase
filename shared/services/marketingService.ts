@@ -35,6 +35,7 @@ import type {
   MarketingDashboardStats,
   AdPlatform,
 } from '@/shared/types/marketing';
+import type { CampaignBreakdown, CampaignAIAnalysis, BreakdownType } from '@/shared/types/breakdown';
 
 // ============================================
 // KOLEKSIYON SABITLERI
@@ -45,6 +46,8 @@ const PROPOSALS_COLLECTION = 'campaign_proposals';
 const PLATFORM_ACCOUNTS_COLLECTION = 'platform_accounts';
 const PERFORMANCE_COLLECTION = 'performance_snapshots';
 const OPTIMIZATIONS_COLLECTION = 'optimization_suggestions';
+const BREAKDOWNS_COLLECTION = 'campaign_breakdowns';
+const AI_ANALYSES_COLLECTION = 'campaign_ai_analyses';
 
 // ============================================
 // YARDIMCI FONKSIYONLAR
@@ -810,6 +813,9 @@ export async function syncCampaignsFromMeta(
     }),
   });
 
+  if (!res.ok) {
+    return { synced: 0, error: `API hatasi: ${res.status} ${res.statusText}` };
+  }
   const data = await res.json();
   if (!data.success) {
     return { synced: 0, error: data.error || 'Sync basarisiz' };
@@ -831,6 +837,7 @@ export async function syncCampaignsFromMeta(
         lastUpdated: Timestamp.now(),
       } : undefined,
       platformCampaignIds: { [platform]: camp.metaCampaignId },
+      ...(camp.adSets ? { adSets: camp.adSets } : {}),
     });
     synced++;
   }
@@ -925,4 +932,317 @@ export async function addNoteToCampaign(
     timeline: [...campaign.timeline, noteEvent],
     updatedAt: serverTimestamp(),
   });
+}
+
+// ============================================
+// DEEP SYNC & BREAKDOWN OPERATIONS
+// ============================================
+
+/**
+ * Deep sync campaigns from Meta API.
+ * Like syncCampaignsFromMeta but passes deepSync: true to fetch full details.
+ */
+export async function deepSyncFromMeta(
+  projectId: string,
+  platform: AdPlatform = 'meta'
+): Promise<{ synced: number; error?: string }> {
+  if (!db) throw new Error('Firebase not initialized');
+
+  const account = await getPlatformAccount(platform, projectId);
+  if (!account || !account.metadata?.accessToken || !account.metadata?.adAccountId) {
+    return { synced: 0, error: 'Platform hesabi bulunamadi veya token eksik' };
+  }
+
+  const res = await fetch('/api/marketing/sync-campaigns', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      accessToken: account.metadata.accessToken,
+      adAccountId: account.metadata.adAccountId,
+      deepSync: true,
+    }),
+  });
+
+  if (!res.ok) {
+    return { synced: 0, error: `API hatasi: ${res.status} ${res.statusText}` };
+  }
+  const data = await res.json();
+  if (!data.success) {
+    return { synced: 0, error: data.error || 'Deep sync basarisiz' };
+  }
+
+  let synced = 0;
+  for (const camp of data.campaigns) {
+    await upsertCampaignByPlatformId(platform, camp.metaCampaignId, {
+      projectId,
+      name: camp.name,
+      objective: camp.objective,
+      platforms: camp.platforms,
+      status: camp.status,
+      budget: camp.budget,
+      schedule: camp.schedule,
+      performance: camp.performance ? {
+        ...camp.performance,
+        lastUpdated: Timestamp.now(),
+      } : undefined,
+      platformCampaignIds: { [platform]: camp.metaCampaignId },
+      adSets: camp.adSets || [],
+      lastSyncAt: Timestamp.now(),
+      syncStatus: 'success' as const,
+    });
+    synced++;
+  }
+
+  return { synced };
+}
+
+/**
+ * Sync performance data at adset or ad level for a single campaign.
+ */
+export async function syncPerformanceLevel(
+  projectId: string,
+  campaignId: string,
+  metaCampaignId: string,
+  level: 'adset' | 'ad'
+): Promise<void> {
+  if (!db) throw new Error('Firebase not initialized');
+
+  const account = await getPlatformAccount('meta', projectId);
+  if (!account || !account.metadata?.accessToken || !account.metadata?.adAccountId) {
+    throw new Error('Platform hesabi bulunamadi veya token eksik');
+  }
+
+  const res = await fetch('/api/marketing/sync-performance', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      accessToken: account.metadata.accessToken,
+      adAccountId: account.metadata.adAccountId,
+      level,
+      campaigns: [{ campaignId, metaCampaignId }],
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`API hatasi: ${res.status} ${res.statusText}`);
+  }
+  const data = await res.json();
+  if (!data.success) {
+    throw new Error(data.error || 'Performance sync basarisiz');
+  }
+
+  // Save snapshots to Firestore
+  for (const snapshot of data.snapshots || []) {
+    await addDoc(
+      collection(db, PERFORMANCE_COLLECTION),
+      stripUndefined({
+        ...snapshot,
+        campaignId,
+        level,
+        updatedAt: serverTimestamp(),
+      })
+    );
+  }
+}
+
+/**
+ * Sync breakdown data (age_gender, device, placement, region) for a campaign.
+ * Uses upsert logic: updates existing breakdown or creates new one.
+ */
+export async function syncBreakdown(
+  projectId: string,
+  campaignId: string,
+  metaCampaignId: string,
+  breakdownType: BreakdownType
+): Promise<void> {
+  if (!db) throw new Error('Firebase not initialized');
+
+  const account = await getPlatformAccount('meta', projectId);
+  if (!account || !account.metadata?.accessToken || !account.metadata?.adAccountId) {
+    throw new Error('Platform hesabi bulunamadi veya token eksik');
+  }
+
+  const res = await fetch('/api/marketing/sync-breakdowns', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      accessToken: account.metadata.accessToken,
+      adAccountId: account.metadata.adAccountId,
+      metaCampaignId,
+      breakdownType,
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`API hatasi: ${res.status} ${res.statusText}`);
+  }
+  const data = await res.json();
+  if (!data.success) {
+    throw new Error(data.error || 'Breakdown sync basarisiz');
+  }
+
+  // Upsert: query by campaignId + breakdownType
+  const q = query(
+    collection(db, BREAKDOWNS_COLLECTION),
+    where('campaignId', '==', campaignId),
+    where('breakdownType', '==', breakdownType),
+    limit(1)
+  );
+  const existing = await getDocs(q);
+
+  const breakdownData = stripUndefined({
+    campaignId,
+    metaCampaignId,
+    breakdownType,
+    dateRange: data.dateRange,
+    data: data.data,
+    fetchedAt: Timestamp.now(),
+    updatedAt: serverTimestamp(),
+  });
+
+  if (!existing.empty) {
+    const existingDoc = existing.docs[0];
+    await updateDoc(doc(db, BREAKDOWNS_COLLECTION, existingDoc.id), breakdownData);
+  } else {
+    await addDoc(collection(db, BREAKDOWNS_COLLECTION), breakdownData);
+  }
+}
+
+/**
+ * Get breakdown data for a campaign by type.
+ * Returns the latest breakdown (ordered by fetchedAt desc, limit 1).
+ */
+export async function getBreakdownData(
+  campaignId: string,
+  breakdownType: BreakdownType
+): Promise<CampaignBreakdown | null> {
+  if (!db) throw new Error('Firebase not initialized');
+
+  const q = query(
+    collection(db, BREAKDOWNS_COLLECTION),
+    where('campaignId', '==', campaignId),
+    where('breakdownType', '==', breakdownType),
+    orderBy('fetchedAt', 'desc'),
+    limit(1)
+  );
+  const snapshot = await getDocs(q);
+
+  if (snapshot.empty) return null;
+
+  return {
+    id: snapshot.docs[0].id,
+    ...snapshot.docs[0].data(),
+  } as CampaignBreakdown;
+}
+
+// ============================================
+// AI ANALYSIS OPERATIONS
+// ============================================
+
+/**
+ * Run a setup analysis for a campaign via the AI endpoint.
+ */
+export async function runSetupAnalysis(
+  campaignId: string
+): Promise<CampaignAIAnalysis> {
+  if (!db) throw new Error('Firebase not initialized');
+
+  const res = await fetch('/api/marketing/analyze-campaign', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ campaignId }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`API hatasi: ${res.status} ${res.statusText}`);
+  }
+  const data = await res.json();
+
+  return data as CampaignAIAnalysis;
+}
+
+/**
+ * Run optimization recommendations for a campaign via the AI endpoint.
+ */
+export async function runOptimizationAnalysis(
+  campaignId: string
+): Promise<CampaignAIAnalysis> {
+  if (!db) throw new Error('Firebase not initialized');
+
+  const res = await fetch('/api/marketing/ai-optimize', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ campaignId }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`API hatasi: ${res.status} ${res.statusText}`);
+  }
+  const data = await res.json();
+
+  return data as CampaignAIAnalysis;
+}
+
+/**
+ * Get the latest AI analysis for a campaign by type.
+ * Ordered by generatedAt desc, limit 1.
+ */
+export async function getLatestAIAnalysis(
+  campaignId: string,
+  type: 'setup_analysis' | 'optimization_recommendations'
+): Promise<CampaignAIAnalysis | null> {
+  if (!db) throw new Error('Firebase not initialized');
+
+  const q = query(
+    collection(db, AI_ANALYSES_COLLECTION),
+    where('campaignId', '==', campaignId),
+    where('type', '==', type),
+    orderBy('generatedAt', 'desc'),
+    limit(1)
+  );
+  const snapshot = await getDocs(q);
+
+  if (snapshot.empty) return null;
+
+  return {
+    id: snapshot.docs[0].id,
+    ...snapshot.docs[0].data(),
+  } as CampaignAIAnalysis;
+}
+
+/**
+ * Save an AI analysis result to Firestore.
+ */
+export async function saveAIAnalysis(
+  data: Omit<CampaignAIAnalysis, 'id'>
+): Promise<string> {
+  if (!db) throw new Error('Firebase not initialized');
+
+  const docRef = await addDoc(
+    collection(db, AI_ANALYSES_COLLECTION),
+    stripUndefined({
+      ...data,
+      updatedAt: serverTimestamp(),
+    })
+  );
+  return docRef.id;
+}
+
+/**
+ * Update campaign sync status (idle, syncing, success, error).
+ */
+export async function updateCampaignSyncStatus(
+  campaignId: string,
+  status: 'idle' | 'syncing' | 'success' | 'error',
+  error?: string
+): Promise<void> {
+  if (!db) throw new Error('Firebase not initialized');
+
+  const docRef = doc(db, CAMPAIGNS_COLLECTION, campaignId);
+  await updateDoc(docRef, stripUndefined({
+    syncStatus: status,
+    syncError: error || null,
+    ...(status === 'success' ? { lastSyncAt: Timestamp.now() } : {}),
+    updatedAt: serverTimestamp(),
+  }));
 }
