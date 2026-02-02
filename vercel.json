@@ -41,8 +41,20 @@
     },
     "api/marketing/platforms/callback.ts": {
       "maxDuration": 30
+    },
+    "api/marketing/forecast-budget.ts": {
+      "maxDuration": 120
+    },
+    "api/cron/marketing-optimize.ts": {
+      "maxDuration": 300
     }
   },
+  "crons": [
+    {
+      "path": "/api/cron/marketing-optimize",
+      "schedule": "0 6 * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/fonts/(.*)",

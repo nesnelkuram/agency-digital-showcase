@@ -62,6 +62,10 @@ const TemplatesPage = React.lazy(() => import('./marketing/TemplatesPage'));
 const ABTestsPage = React.lazy(() => import('./marketing/ABTestsPage'));
 const UTMBuilderPage = React.lazy(() => import('./marketing/UTMBuilderPage'));
 
+// Phase 3: Automation & Intelligence Pages
+const AutomatedRulesPage = React.lazy(() => import('./marketing/AutomatedRulesPage'));
+const CampaignCalendarPage = React.lazy(() => import('./marketing/CampaignCalendarPage'));
+
 // Social Media Pages
 const SocialMediaDashboard = React.lazy(() => import('./social-media/SocialMediaDashboard'));
 const SocialMediaCalendar = React.lazy(() => import('./social-media/SocialMediaCalendar'));
@@ -232,6 +236,23 @@ const AdminApp: React.FC = () => {
             element={
               <React.Suspense fallback={<PageLoader />}>
                 <UTMBuilderPage />
+              </React.Suspense>
+            }
+          />
+          {/* Project-scoped Phase 3: Automation & Intelligence */}
+          <Route
+            path="projects/:projectId/marketing/rules"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <AutomatedRulesPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="projects/:projectId/marketing/calendar"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <CampaignCalendarPage />
               </React.Suspense>
             }
           />
@@ -546,6 +567,23 @@ const AdminApp: React.FC = () => {
             element={
               <React.Suspense fallback={<PageLoader />}>
                 <UTMBuilderPage />
+              </React.Suspense>
+            }
+          />
+          {/* Phase 3: Automation & Intelligence */}
+          <Route
+            path="marketing/rules"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <AutomatedRulesPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="marketing/calendar"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <CampaignCalendarPage />
               </React.Suspense>
             }
           />
