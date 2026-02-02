@@ -16,6 +16,7 @@ await build({
   sourcemap: false,
   mainFields: ['module', 'main'],
   conditions: ['import', 'module', 'default'],
+  loader: { '.json': 'json' },
 });
 
 console.log('Built api/_lib/pipeline-bundle.mjs');
