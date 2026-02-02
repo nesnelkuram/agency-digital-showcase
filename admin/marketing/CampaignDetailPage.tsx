@@ -4,7 +4,18 @@ import {
   ArrowLeft, Play, Pause, BarChart3, Globe, Users, Palette, Pencil,
   Wallet, Calendar, Clock, MessageSquare, Send, Tag, TrendingUp,
   AlertTriangle, CheckCircle, Eye, MousePointer, Target, DollarSign, Lightbulb,
+  ExternalLink,
 } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
+import SyncStatusBadge from './components/SyncStatusBadge';
+import BreakdownPanel from './components/breakdown/BreakdownPanel';
+import CreativeGallery from './components/creative/CreativeGallery';
+import {
+  syncCampaignsFromMeta,
+  updateCampaignSyncStatus,
+  syncPerformanceLevel,
+} from '@/shared/services/marketingService';
+import { aggregateByAdSet, aggregateByAd } from '@/shared/utils/performanceAggregator';
 import type {
   MarketingCampaign,
   AdPlatform,
@@ -28,7 +39,7 @@ import { useProjectScope } from '@/shared/hooks/useProjectScope';
 import SpendTrendChart from './components/charts/SpendTrendChart';
 import FunnelChart from './components/charts/FunnelChart';
 import { aggregateByDate } from '@/shared/utils/performanceAggregator';
-import OptimizationPanel from './components/OptimizationPanel';
+import AIAnalysisPanel from './components/ai/AIAnalysisPanel';
 
 const CampaignDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -39,7 +50,34 @@ const CampaignDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [noteText, setNoteText] = useState('');
   const [addingNote, setAddingNote] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'performance' | 'adsets' | 'timeline' | 'optimization'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'performance' | 'adsets' | 'breakdowns' | 'creatives' | 'ai' | 'timeline'>('overview');
+  const [syncing, setSyncing] = useState(false);
+  const [performanceLevel, setPerformanceLevel] = useState<'campaign' | 'adset' | 'ad'>('campaign');
+
+  const handleSync = async () => {
+    if (!campaign?.projectId || syncing) return;
+    setSyncing(true);
+    try {
+      await updateCampaignSyncStatus(campaign.id, 'syncing');
+      const result = await syncCampaignsFromMeta(campaign.projectId);
+      if (result.error) {
+        await updateCampaignSyncStatus(campaign.id, 'error', result.error);
+      } else {
+        await updateCampaignSyncStatus(campaign.id, 'success');
+      }
+      // Reload campaign
+      const updated = await getCampaign(campaign.id);
+      setCampaign(updated);
+      if (updated) {
+        const snaps = await getPerformanceSnapshots(updated.id);
+        setSnapshots(snaps);
+      }
+    } catch (err: any) {
+      await updateCampaignSyncStatus(campaign.id, 'error', err.message);
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   useEffect(() => {
     if (id) {
@@ -110,8 +148,10 @@ const CampaignDetailPage: React.FC = () => {
     { key: 'overview', label: 'Genel Bakis' },
     { key: 'performance', label: 'Performans' },
     { key: 'adsets', label: 'Reklam Setleri' },
+    { key: 'breakdowns', label: 'Kirilimlar' },
+    { key: 'creatives', label: 'Kreatifleri' },
+    { key: 'ai', label: 'AI Analiz' },
     { key: 'timeline', label: 'Zaman Cizelgesi' },
-    { key: 'optimization', label: 'Optimizasyon' },
   ] as const;
 
   return (
@@ -135,9 +175,9 @@ const CampaignDetailPage: React.FC = () => {
           </div>
           <div className="flex items-center gap-4 mt-1 text-sm font-commons text-neutral-500">
             <span>{OBJECTIVE_LABELS[campaign.objective]}</span>
-            <span>{campaign.budget.totalBudget.toLocaleString()} TL</span>
+            <span>{(campaign.budget?.totalBudget ?? 0).toLocaleString()} TL</span>
             <div className="flex gap-1">
-              {campaign.platforms.map((p) => (
+              {(campaign.platforms || []).map((p) => (
                 <span key={p} className={`px-1.5 py-0.5 rounded text-xs ${PLATFORM_COLORS[p]}`}>
                   {p}
                 </span>
@@ -219,6 +259,28 @@ const CampaignDetailPage: React.FC = () => {
             })}
           </div>
 
+          {/* Sync Status */}
+          <div className="flex items-center justify-between bg-white rounded-xl border border-neutral-200/50 p-4">
+            <SyncStatusBadge
+              syncStatus={campaign.syncStatus}
+              lastSyncAt={campaign.lastSyncAt}
+              syncError={campaign.syncError}
+              onSync={handleSync}
+              loading={syncing}
+            />
+            {campaign.platformCampaignIds?.meta && (
+              <a
+                href={`https://business.facebook.com/adsmanager/manage/campaigns?act=${campaign.platformCampaignIds.meta}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-sm font-commons text-indigo-600 hover:text-indigo-800"
+              >
+                Meta Ads Manager'da Gor
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            )}
+          </div>
+
           {/* Schedule & Budget info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-white rounded-xl border border-neutral-200/50 p-6">
@@ -227,9 +289,9 @@ const CampaignDetailPage: React.FC = () => {
                 Zamanlama
               </h3>
               <div className="space-y-2 text-sm font-commons text-neutral-600">
-                <p>Baslangic: {campaign.schedule.startDate}</p>
-                {campaign.schedule.endDate && <p>Bitis: {campaign.schedule.endDate}</p>}
-                <p>Zaman dilimi: {campaign.schedule.timezone}</p>
+                <p>Baslangic: {campaign.schedule?.startDate || '-'}</p>
+                {campaign.schedule?.endDate && <p>Bitis: {campaign.schedule.endDate}</p>}
+                <p>Zaman dilimi: {campaign.schedule?.timezone || '-'}</p>
               </div>
             </div>
             <div className="bg-white rounded-xl border border-neutral-200/50 p-6">
@@ -238,22 +300,22 @@ const CampaignDetailPage: React.FC = () => {
                 Butce Ozeti
               </h3>
               <div className="space-y-2 text-sm font-commons text-neutral-600">
-                <p>Toplam: {campaign.budget.totalBudget.toLocaleString()} {campaign.budget.currency}</p>
-                {campaign.budget.dailyLimit && <p>Gunluk limit: {campaign.budget.dailyLimit.toLocaleString()} TL</p>}
-                <p>Harcanan: {totalSpend.toLocaleString()} TL ({campaign.budget.totalBudget > 0 ? ((totalSpend / campaign.budget.totalBudget) * 100).toFixed(1) : 0}%)</p>
+                <p>Toplam: {(campaign.budget?.totalBudget ?? 0).toLocaleString()} {campaign.budget?.currency || 'TRY'}</p>
+                {campaign.budget?.dailyLimit && <p>Gunluk limit: {campaign.budget.dailyLimit.toLocaleString()} TL</p>}
+                <p>Harcanan: {totalSpend.toLocaleString()} TL ({(campaign.budget?.totalBudget ?? 0) > 0 ? ((totalSpend / campaign.budget!.totalBudget) * 100).toFixed(1) : 0}%)</p>
               </div>
             </div>
           </div>
 
           {/* Platform Campaign IDs */}
-          {Object.keys(campaign.platformCampaignIds).length > 0 && (
+          {Object.keys(campaign.platformCampaignIds || {}).length > 0 && (
             <div className="bg-white rounded-xl border border-neutral-200/50 p-6">
               <h3 className="text-sm font-commons font-semibold text-[#171717] flex items-center gap-2 mb-3">
                 <Globe className="w-4 h-4" />
                 Platform Kampanya ID'leri
               </h3>
               <div className="space-y-2">
-                {Object.entries(campaign.platformCampaignIds).map(([platform, platformId]) => (
+                {Object.entries(campaign.platformCampaignIds || {}).map(([platform, platformId]) => (
                   <div key={platform} className="flex items-center gap-3 text-sm font-commons">
                     <span className={`px-2 py-0.5 rounded text-xs ${PLATFORM_COLORS[platform as AdPlatform]}`}>
                       {PLATFORM_LABELS[platform as AdPlatform]}
@@ -279,6 +341,24 @@ const CampaignDetailPage: React.FC = () => {
             </div>
           ) : (
             <>
+              {/* Level selector */}
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-sm font-commons text-neutral-500">Seviye:</span>
+                {(['campaign', 'adset', 'ad'] as const).map(lvl => (
+                  <button
+                    key={lvl}
+                    onClick={() => setPerformanceLevel(lvl)}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-commons transition-colors ${
+                      performanceLevel === lvl
+                        ? 'bg-indigo-100 text-indigo-700'
+                        : 'bg-neutral-50 text-neutral-600 hover:bg-neutral-100'
+                    }`}
+                  >
+                    {lvl === 'campaign' ? 'Kampanya' : lvl === 'adset' ? 'Reklam Seti' : 'Reklam'}
+                  </button>
+                ))}
+              </div>
+
               {/* Performance Charts */}
               {snapshots.length > 0 && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
@@ -333,13 +413,13 @@ const CampaignDetailPage: React.FC = () => {
 
       {activeTab === 'adsets' && (
         <div className="space-y-3">
-          {campaign.adSets.length === 0 ? (
+          {(campaign.adSets || []).length === 0 ? (
             <div className="bg-white rounded-xl border border-neutral-200/50 p-12 text-center">
               <Users className="w-12 h-12 text-neutral-300 mx-auto mb-3" />
               <p className="font-commons text-neutral-500">Henuz reklam seti yok</p>
             </div>
           ) : (
-            campaign.adSets.map((adSet, i) => (
+            (campaign.adSets || []).map((adSet, i) => (
               <div key={adSet.id || i} className="bg-white rounded-xl border border-neutral-200/50 p-5">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
@@ -354,28 +434,67 @@ const CampaignDetailPage: React.FC = () => {
                     }`}>
                       {adSet.status}
                     </span>
+                    {adSet.metaAdSetId && <code className="text-xs text-neutral-400 bg-neutral-50 px-1.5 rounded">{adSet.metaAdSetId}</code>}
+                    {adSet.optimizationGoal && <span className="text-xs font-commons text-indigo-600">{adSet.optimizationGoal}</span>}
                   </div>
                   <span className="text-sm font-commons text-neutral-500">
-                    {adSet.budget.daily} TL/gun
+                    {adSet.budget?.daily ?? 0} TL/gun
                   </span>
                 </div>
+                {/* Performance summary if available */}
+                {adSet.performanceSummary && (
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {adSet.performanceSummary.impressions != null && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-purple-50 text-xs font-commons text-purple-700">
+                        <Eye className="w-3 h-3" /> {adSet.performanceSummary.impressions.toLocaleString()}
+                      </span>
+                    )}
+                    {adSet.performanceSummary.clicks != null && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-cyan-50 text-xs font-commons text-cyan-700">
+                        <MousePointer className="w-3 h-3" /> {adSet.performanceSummary.clicks.toLocaleString()}
+                      </span>
+                    )}
+                    {adSet.performanceSummary.spend != null && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-blue-50 text-xs font-commons text-blue-700">
+                        <DollarSign className="w-3 h-3" /> {adSet.performanceSummary.spend.toFixed(0)} TL
+                      </span>
+                    )}
+                    {adSet.performanceSummary.ctr != null && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 text-xs font-commons text-amber-700">
+                        CTR {adSet.performanceSummary.ctr.toFixed(2)}%
+                      </span>
+                    )}
+                    {adSet.performanceSummary.cpa != null && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-red-50 text-xs font-commons text-red-700">
+                        CPA {adSet.performanceSummary.cpa.toFixed(0)} TL
+                      </span>
+                    )}
+                  </div>
+                )}
                 <div className="text-sm font-commons text-neutral-500 space-y-1">
-                  <p>Bid: {adSet.bidStrategy}{adSet.bidAmount ? ` (${adSet.bidAmount} TL)` : ''}</p>
-                  <p>Tarih: {adSet.schedule.startDate}{adSet.schedule.endDate ? ` - ${adSet.schedule.endDate}` : ''}</p>
+                  <p>Bid: {adSet.bidStrategy || '-'}{adSet.bidAmount ? ` (${adSet.bidAmount} TL)` : ''}</p>
+                  <p>Tarih: {adSet.schedule?.startDate || '-'}{adSet.schedule?.endDate ? ` - ${adSet.schedule.endDate}` : ''}</p>
                 </div>
                 {/* Ads under this ad set */}
-                {adSet.ads.length > 0 && (
+                {(adSet.ads || []).length > 0 && (
                   <div className="mt-3 space-y-2">
-                    {adSet.ads.map((ad, ai) => (
+                    {(adSet.ads || []).map((ad, ai) => (
                       <div key={ad.id || ai} className="bg-neutral-50 rounded-lg p-3">
                         <div className="flex items-center gap-2 mb-1">
+                          {(ad.creative?.imageUrl || ad.creative?.thumbnailUrl) && (
+                            <img
+                              src={ad.creative.imageUrl || ad.creative.thumbnailUrl}
+                              alt={ad.name}
+                              className="w-12 h-12 rounded object-cover flex-shrink-0"
+                            />
+                          )}
                           <Palette className="w-3.5 h-3.5 text-neutral-400" />
                           <span className="text-sm font-commons font-semibold">{ad.name}</span>
                           <span className="text-xs font-commons text-neutral-400">({ad.type})</span>
                           {ad.variant && <span className="text-xs font-commons bg-indigo-50 text-indigo-600 px-1.5 rounded">{ad.variant}</span>}
                         </div>
-                        <p className="text-sm font-commons text-neutral-600">{ad.creative.headline}</p>
-                        <p className="text-xs font-commons text-neutral-400">{ad.creative.primaryText}</p>
+                        <p className="text-sm font-commons text-neutral-600">{ad.creative?.headline}</p>
+                        <p className="text-xs font-commons text-neutral-400">{ad.creative?.primaryText}</p>
                       </div>
                     ))}
                   </div>
@@ -384,6 +503,22 @@ const CampaignDetailPage: React.FC = () => {
             ))
           )}
         </div>
+      )}
+
+      {activeTab === 'breakdowns' && (
+        <BreakdownPanel
+          campaignId={campaign.id}
+          metaCampaignId={campaign.platformCampaignIds?.meta}
+          projectId={campaign.projectId}
+        />
+      )}
+
+      {activeTab === 'creatives' && (
+        <CreativeGallery adSets={campaign.adSets || []} />
+      )}
+
+      {activeTab === 'ai' && campaign && (
+        <AIAnalysisPanel campaign={campaign} />
       )}
 
       {activeTab === 'timeline' && (
@@ -418,20 +553,6 @@ const CampaignDetailPage: React.FC = () => {
               ))}
             </div>
           </div>
-        </div>
-      )}
-
-      {activeTab === 'optimization' && campaign && (
-        <div className="bg-white rounded-xl border border-neutral-200/50 p-6">
-          <OptimizationPanel
-            campaignId={campaign.id}
-            onOptimizationApplied={async () => {
-              if (id) {
-                const updated = await getCampaign(id);
-                setCampaign(updated);
-              }
-            }}
-          />
         </div>
       )}
     </div>
