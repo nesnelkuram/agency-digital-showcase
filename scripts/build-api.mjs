@@ -3,6 +3,10 @@ import { mkdirSync } from 'fs';
 
 mkdirSync('api/_lib', { recursive: true });
 
+// ESM banner: create a CJS-compatible require() for dynamic require() calls
+// that esbuild can't convert to import() (e.g. cheerio's require("buffer"))
+const esmBanner = `import { createRequire } from 'module'; const require = createRequire(import.meta.url);`;
+
 // Pipeline bundle (existing)
 await build({
   entryPoints: ['src/pipeline/pipeline.ts'],
@@ -17,6 +21,7 @@ await build({
   mainFields: ['module', 'main'],
   conditions: ['import', 'module', 'default'],
   loader: { '.json': 'json' },
+  banner: { js: esmBanner },
 });
 
 console.log('Built api/_lib/pipeline-bundle.mjs');
@@ -35,6 +40,7 @@ await build({
   mainFields: ['module', 'main'],
   conditions: ['import', 'module', 'default'],
   loader: { '.json': 'json' },
+  banner: { js: esmBanner },
 });
 
 console.log('Built api/_lib/persona-bundle.mjs');
