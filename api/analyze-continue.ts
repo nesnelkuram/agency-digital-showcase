@@ -22,7 +22,7 @@ import {
   markAgentSkipped,
   completeRun,
   failRun,
-} from './_lib/checkpointManager';
+} from './_lib/checkpointManager.js';
 
 export const config = {
   maxDuration: 300,

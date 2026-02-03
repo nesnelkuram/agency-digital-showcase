@@ -1,4 +1,4 @@
-import { getAdminDb } from './firebaseAdmin';
+import { getAdminDb } from './firebaseAdmin.js';
 import { FieldValue } from 'firebase-admin/firestore';
 import type { PipelineRunDoc, AgentName, AgentProgress, PIPELINE_AGENTS } from '../../shared/types/pipelineRun';
 

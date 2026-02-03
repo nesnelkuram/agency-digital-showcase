@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 // @ts-ignore — pre-bundled by esbuild during vercel-build
 import { runDataNormalizer, startDeepResearch, buildDeepResearchPrompt, fetchAndParseWebsite } from './_lib/pipeline-bundle.mjs';
-import { initRun, markAgentRunning, checkpointAgent, checkpointDrInteractionId, markAgentFailed } from './_lib/checkpointManager';
+import { initRun, markAgentRunning, checkpointAgent, checkpointDrInteractionId, markAgentFailed } from './_lib/checkpointManager.js';
 
 export const config = {
   maxDuration: 60,
