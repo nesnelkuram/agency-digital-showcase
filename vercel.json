@@ -4,10 +4,12 @@
       "includeFiles": "src/pipeline/**"
     },
     "api/analyze-start.ts": {
-      "maxDuration": 60
+      "maxDuration": 60,
+      "includeFiles": "api/_lib/**"
     },
     "api/analyze-continue.ts": {
-      "maxDuration": 300
+      "maxDuration": 300,
+      "includeFiles": "api/_lib/**"
     },
     "api/transcribe-video.ts": {
       "maxDuration": 120

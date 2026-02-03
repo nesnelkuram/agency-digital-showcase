@@ -4,6 +4,16 @@ import type { PipelineRunDoc, AgentName, AgentProgress, PIPELINE_AGENTS } from '
 
 const LOCK_DURATION_MS = 360_000; // 6 min — beyond Vercel 300s limit
 
+/** Safe wrapper — returns null if Firebase is unavailable (missing env vars) */
+function safeGetDb() {
+  try {
+    return getAdminDb();
+  } catch (error) {
+    console.error('[checkpoint] Firebase unavailable:', error);
+    return null;
+  }
+}
+
 function generateRunId(): string {
   const rand = Math.random().toString(36).slice(2, 8);
   return `run-${Date.now()}-${rand}`;
@@ -43,7 +53,9 @@ export async function initRun(
   input: PipelineRunDoc['input'],
   drInteractionId?: string,
 ): Promise<{ runId: string; resumed: boolean; checkpoint: PipelineRunDoc['checkpoint'] }> {
-  const db = getAdminDb();
+  const db = safeGetDb();
+  if (!db) return { runId: generateRunId(), resumed: false, checkpoint: null };
+
   const docRef = db.collection('brand_leads').doc(leadId);
   const now = Date.now();
 
@@ -115,7 +127,8 @@ export async function initRun(
  * Mark an agent as running (for UI progress)
  */
 export async function markAgentRunning(leadId: string, runId: string, agentName: AgentName): Promise<void> {
-  const db = getAdminDb();
+  const db = safeGetDb();
+  if (!db) return;
   const now = Date.now();
 
   try {
@@ -139,7 +152,8 @@ export async function checkpointAgent(
   output: any,
   durationMs: number,
 ): Promise<void> {
-  const db = getAdminDb();
+  const db = safeGetDb();
+  if (!db) return;
   const now = Date.now();
 
   try {
@@ -168,7 +182,8 @@ export async function markAgentFailed(
   errorMessage: string,
   durationMs: number,
 ): Promise<void> {
-  const db = getAdminDb();
+  const db = safeGetDb();
+  if (!db) return;
   const now = Date.now();
 
   try {
@@ -191,7 +206,8 @@ export async function markAgentFailed(
  * Mark an agent as skipped
  */
 export async function markAgentSkipped(leadId: string, runId: string, agentName: AgentName): Promise<void> {
-  const db = getAdminDb();
+  const db = safeGetDb();
+  if (!db) return;
   const now = Date.now();
 
   try {
@@ -208,7 +224,8 @@ export async function markAgentSkipped(leadId: string, runId: string, agentName:
  * Load existing checkpoint for resume
  */
 export async function loadCheckpoint(leadId: string): Promise<PipelineRunDoc | null> {
-  const db = getAdminDb();
+  const db = safeGetDb();
+  if (!db) return null;
 
   try {
     const doc = await db.collection('brand_leads').doc(leadId).get();
@@ -224,7 +241,8 @@ export async function loadCheckpoint(leadId: string): Promise<PipelineRunDoc | n
  * Mark pipeline run as completed. Nulls checkpoint data, keeps agents metadata.
  */
 export async function completeRun(leadId: string, runId: string): Promise<void> {
-  const db = getAdminDb();
+  const db = safeGetDb();
+  if (!db) return;
   const now = Date.now();
 
   try {
@@ -243,7 +261,8 @@ export async function completeRun(leadId: string, runId: string): Promise<void> 
  * Mark pipeline run as failed
  */
 export async function failRun(leadId: string, runId: string, errorMessage: string): Promise<void> {
-  const db = getAdminDb();
+  const db = safeGetDb();
+  if (!db) return;
   const now = Date.now();
 
   try {
@@ -261,7 +280,8 @@ export async function failRun(leadId: string, runId: string, errorMessage: strin
  * Store drInteractionId in checkpoint
  */
 export async function checkpointDrInteractionId(leadId: string, runId: string, drInteractionId: string): Promise<void> {
-  const db = getAdminDb();
+  const db = safeGetDb();
+  if (!db) return;
 
   try {
     await db.collection('brand_leads').doc(leadId).update({
