@@ -24,6 +24,7 @@ import type {
   FeedbackVideo,
   FeedbackVideoSummary,
   CreateFeedbackVideoData,
+  CreateTextFeedbackData,
   UpdateFeedbackVideoData,
   FeedbackVideoFilters,
   FeedbackComment,
@@ -57,6 +58,8 @@ export async function createFeedbackVideo(
   const videoData = {
     title: data.title,
     description: data.description || '',
+    type: data.type || 'video',
+    textContent: data.textContent || '',
     videoUrl: data.videoUrl,
     thumbnailUrl: data.thumbnailUrl || null,
     duration: data.duration,
@@ -80,6 +83,41 @@ export async function createFeedbackVideo(
   return docRef.id;
 }
 
+export async function createTextFeedback(
+  data: CreateTextFeedbackData,
+  createdByUid: string,
+  createdByName: string
+): Promise<string> {
+  if (!db) throw new Error('Firestore baglantisi yok');
+
+  const feedbackData = {
+    title: data.title,
+    description: '',
+    type: 'text',
+    textContent: data.textContent,
+    videoUrl: '',
+    thumbnailUrl: null,
+    duration: 0,
+    recordingMode: 'camera',
+    projectId: data.projectId || null,
+    tags: data.tags || [],
+    shareToken: generateShareToken(),
+    isPublic: data.isPublic ?? true,
+    allowedUsers: [],
+    viewCount: 0,
+    commentCount: 0,
+    status: 'ready' as const,
+    metadata: { size: 0, mimeType: 'text/plain' },
+    createdBy: createdByUid,
+    createdByName,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  };
+
+  const docRef = await addDoc(collection(db, VIDEOS_COLLECTION), feedbackData);
+  return docRef.id;
+}
+
 export async function getFeedbackVideo(id: string): Promise<FeedbackVideo | null> {
   if (!db) throw new Error('Firestore baglantisi yok');
 
@@ -92,9 +130,12 @@ export async function getFeedbackVideo(id: string): Promise<FeedbackVideo | null
 export async function getFeedbackVideoByShareToken(token: string): Promise<FeedbackVideo | null> {
   if (!db) throw new Error('Firestore baglantisi yok');
 
+  // Query must include isPublic filter to satisfy Firestore security rules
+  // for unauthenticated users
   const q = query(
     collection(db, VIDEOS_COLLECTION),
     where('shareToken', '==', token),
+    where('isPublic', '==', true),
     limit(1)
   );
   const snapshot = await getDocs(q);
@@ -112,6 +153,9 @@ export async function getFeedbackVideos(
 
   const constraints: QueryConstraint[] = [];
 
+  if (filters.type) {
+    constraints.push(where('type', '==', filters.type));
+  }
   if (filters.recordingMode) {
     constraints.push(where('recordingMode', '==', filters.recordingMode));
   }
@@ -140,6 +184,8 @@ export async function getFeedbackVideos(
     return {
       id: d.id,
       title: data.title || '',
+      type: data.type || 'video',
+      textContent: data.textContent,
       thumbnailUrl: data.thumbnailUrl,
       duration: data.duration || 0,
       recordingMode: data.recordingMode,
@@ -413,6 +459,8 @@ function mapVideoDoc(docSnap: DocumentSnapshot): FeedbackVideo {
     id: docSnap.id,
     title: data.title || '',
     description: data.description || '',
+    type: data.type || 'video',
+    textContent: data.textContent || '',
     videoUrl: data.videoUrl || '',
     thumbnailUrl: data.thumbnailUrl,
     duration: data.duration || 0,
