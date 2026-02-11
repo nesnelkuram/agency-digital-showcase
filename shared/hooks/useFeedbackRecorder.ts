@@ -72,6 +72,9 @@ export function useFeedbackRecorder(): UseFeedbackRecorderReturn {
   const micStreamRef = useRef<MediaStream | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const animFrameRef = useRef<number | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isPageVisibleRef = useRef(true);
+  const visibilityHandlerRef = useRef<(() => void) | null>(null);
 
   const isSupported = typeof MediaRecorder !== 'undefined' &&
     typeof navigator.mediaDevices !== 'undefined';
@@ -88,8 +91,16 @@ export function useFeedbackRecorder(): UseFeedbackRecorderReturn {
       cancelAnimationFrame(animFrameRef.current);
       animFrameRef.current = null;
     }
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
     if (canvasRef.current) {
       canvasRef.current = null;
+    }
+    if (visibilityHandlerRef.current) {
+      document.removeEventListener('visibilitychange', visibilityHandlerRef.current);
+      visibilityHandlerRef.current = null;
     }
     setPreviewStream(null);
   }, []);
@@ -212,8 +223,9 @@ export function useFeedbackRecorder(): UseFeedbackRecorderReturn {
       const pipWidth = 240;
       const pipHeight = 180;
       const pipMargin = 20;
+      const frameInterval = 1000 / RECORDING_CONFIG.screen_camera.frameRate;
 
-      function draw() {
+      function drawFrame() {
         ctx.drawImage(screenVideo, 0, 0, canvas.width, canvas.height);
 
         // PiP camera - sag alt kose
@@ -234,12 +246,35 @@ export function useFeedbackRecorder(): UseFeedbackRecorderReturn {
         ctx.beginPath();
         ctx.roundRect(pipX, pipY, pipWidth, pipHeight, 12);
         ctx.stroke();
-
-        animFrameRef.current = requestAnimationFrame(draw);
       }
 
+      function scheduleNextFrame() {
+        // Use requestAnimationFrame when visible, setTimeout when hidden
+        // This ensures recording continues even when tab is in background
+        if (isPageVisibleRef.current) {
+          animFrameRef.current = requestAnimationFrame(() => {
+            drawFrame();
+            scheduleNextFrame();
+          });
+        } else {
+          // Tab is hidden - use setTimeout to keep canvas updating for recording
+          timeoutRef.current = setTimeout(() => {
+            drawFrame();
+            scheduleNextFrame();
+          }, frameInterval);
+        }
+      }
+
+      // Visibility change handler - stored in ref for cleanup
+      const handleVisibilityChange = () => {
+        isPageVisibleRef.current = !document.hidden;
+      };
+      visibilityHandlerRef.current = handleVisibilityChange;
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+
       // Draw first frame before capturing stream
-      draw();
+      drawFrame();
+      scheduleNextFrame();
 
       // Capture canvas stream after first frame is painted
       const canvasStream = canvas.captureStream(RECORDING_CONFIG.screen_camera.frameRate);
