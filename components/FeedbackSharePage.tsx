@@ -39,6 +39,7 @@ const FeedbackSharePage: React.FC = () => {
   const [duration, setDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -90,13 +91,59 @@ const FeedbackSharePage: React.FC = () => {
     vid.paused ? vid.play() : vid.pause();
   };
 
-  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  // Seek to position based on mouse/touch event
+  const seekToPosition = useCallback((clientX: number) => {
     const vid = videoRef.current;
     const bar = progressRef.current;
-    if (!vid || !bar) return;
+    if (!vid || !bar || !vid.duration) return;
     const rect = bar.getBoundingClientRect();
-    vid.currentTime = ((e.clientX - rect.left) / rect.width) * vid.duration;
-  };
+    const pos = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    vid.currentTime = pos * vid.duration;
+  }, []);
+
+  const handleProgressMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+    seekToPosition(e.clientX);
+  }, [seekToPosition]);
+
+  const handleProgressTouchStart = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
+    setIsDragging(true);
+    seekToPosition(e.touches[0].clientX);
+  }, [seekToPosition]);
+
+  // Global mouse/touch move and up handlers for dragging
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      seekToPosition(e.clientX);
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      seekToPosition(e.touches[0].clientX);
+    };
+
+    const handleTouchEnd = () => {
+      setIsDragging(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('touchmove', handleTouchMove);
+    document.addEventListener('touchend', handleTouchEnd);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [isDragging, seekToPosition]);
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
@@ -144,6 +191,7 @@ const FeedbackSharePage: React.FC = () => {
             className="w-full aspect-video object-contain cursor-pointer"
             onClick={togglePlay}
             playsInline
+            preload="auto"
           />
 
           {!isPlaying && (
@@ -158,7 +206,8 @@ const FeedbackSharePage: React.FC = () => {
             <div
               ref={progressRef}
               className="relative h-1.5 bg-white/30 rounded-full cursor-pointer mb-3"
-              onClick={handleProgressClick}
+              onMouseDown={handleProgressMouseDown}
+              onTouchStart={handleProgressTouchStart}
             >
               <div className="absolute top-0 left-0 h-full bg-indigo-500 rounded-full" style={{ width: `${progress}%` }} />
               {comments.map((c, i) => (

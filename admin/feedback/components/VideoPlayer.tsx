@@ -24,6 +24,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -83,15 +84,60 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     setIsMuted(val === 0);
   }, []);
 
-  const handleProgressClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+  // Seek to position based on mouse/touch event
+  const seekToPosition = useCallback((clientX: number) => {
     const video = videoRef.current;
     const progressBar = progressRef.current;
-    if (!video || !progressBar) return;
+    if (!video || !progressBar || !video.duration) return;
 
     const rect = progressBar.getBoundingClientRect();
-    const pos = (e.clientX - rect.left) / rect.width;
+    const pos = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
     video.currentTime = pos * video.duration;
   }, []);
+
+  const handleProgressMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+    seekToPosition(e.clientX);
+  }, [seekToPosition]);
+
+  const handleProgressTouchStart = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
+    setIsDragging(true);
+    seekToPosition(e.touches[0].clientX);
+  }, [seekToPosition]);
+
+  // Global mouse/touch move and up handlers for dragging
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      seekToPosition(e.clientX);
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      seekToPosition(e.touches[0].clientX);
+    };
+
+    const handleTouchEnd = () => {
+      setIsDragging(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('touchmove', handleTouchMove);
+    document.addEventListener('touchend', handleTouchEnd);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [isDragging, seekToPosition]);
 
   const seekTo = useCallback((time: number) => {
     const video = videoRef.current;
@@ -135,6 +181,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         className="w-full aspect-video object-contain cursor-pointer"
         onClick={togglePlay}
         playsInline
+        preload="auto"
       />
 
       {/* Play overlay */}
@@ -159,7 +206,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         <div
           ref={progressRef}
           className="relative h-1.5 bg-white/30 rounded-full cursor-pointer mb-3 group/progress"
-          onClick={handleProgressClick}
+          onMouseDown={handleProgressMouseDown}
+          onTouchStart={handleProgressTouchStart}
         >
           {/* Progress fill */}
           <div
