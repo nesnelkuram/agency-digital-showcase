@@ -14,6 +14,8 @@ import {
   SkipBack,
   SkipForward,
   Loader2,
+  AlertCircle,
+  RefreshCw,
 } from 'lucide-react';
 import {
   getFeedbackVideoByShareToken,
@@ -40,6 +42,10 @@ const FeedbackSharePage: React.FC = () => {
   const [isMuted, setIsMuted] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [isBuffering, setIsBuffering] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [bufferedPercent, setBufferedPercent] = useState(0);
 
   useEffect(() => {
     const load = async () => {
@@ -69,19 +75,78 @@ const FeedbackSharePage: React.FC = () => {
   useEffect(() => {
     const vid = videoRef.current;
     if (!vid) return;
+
     const onTime = () => setCurrentTime(vid.currentTime);
     const onMeta = () => setDuration(vid.duration);
     const onPlay = () => setIsPlaying(true);
     const onPause = () => setIsPlaying(false);
+
+    // Buffering events
+    const onWaiting = () => setIsBuffering(true);
+    const onCanPlay = () => setIsBuffering(false);
+    const onCanPlayThrough = () => setIsBuffering(false);
+    const onStalled = () => setIsBuffering(true);
+    const onSeeking = () => setIsBuffering(true);
+    const onSeeked = () => setIsBuffering(false);
+
+    // Error handling
+    const onError = () => {
+      const error = vid.error;
+      setHasError(true);
+      setIsBuffering(false);
+
+      switch (error?.code) {
+        case MediaError.MEDIA_ERR_ABORTED:
+          setErrorMessage('Video yukleme iptal edildi');
+          break;
+        case MediaError.MEDIA_ERR_NETWORK:
+          setErrorMessage('Ag hatasi olustu');
+          break;
+        case MediaError.MEDIA_ERR_DECODE:
+          setErrorMessage('Video cozumlenemedi');
+          break;
+        case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+          setErrorMessage('Video formati desteklenmiyor');
+          break;
+        default:
+          setErrorMessage('Video yuklenirken hata olustu');
+      }
+    };
+
+    // Buffer progress
+    const onProgress = () => {
+      if (vid.buffered.length > 0 && vid.duration > 0) {
+        const bufferedEnd = vid.buffered.end(vid.buffered.length - 1);
+        setBufferedPercent((bufferedEnd / vid.duration) * 100);
+      }
+    };
+
     vid.addEventListener('timeupdate', onTime);
     vid.addEventListener('loadedmetadata', onMeta);
     vid.addEventListener('play', onPlay);
     vid.addEventListener('pause', onPause);
+    vid.addEventListener('waiting', onWaiting);
+    vid.addEventListener('canplay', onCanPlay);
+    vid.addEventListener('canplaythrough', onCanPlayThrough);
+    vid.addEventListener('stalled', onStalled);
+    vid.addEventListener('seeking', onSeeking);
+    vid.addEventListener('seeked', onSeeked);
+    vid.addEventListener('error', onError);
+    vid.addEventListener('progress', onProgress);
+
     return () => {
       vid.removeEventListener('timeupdate', onTime);
       vid.removeEventListener('loadedmetadata', onMeta);
       vid.removeEventListener('play', onPlay);
       vid.removeEventListener('pause', onPause);
+      vid.removeEventListener('waiting', onWaiting);
+      vid.removeEventListener('canplay', onCanPlay);
+      vid.removeEventListener('canplaythrough', onCanPlayThrough);
+      vid.removeEventListener('stalled', onStalled);
+      vid.removeEventListener('seeking', onSeeking);
+      vid.removeEventListener('seeked', onSeeked);
+      vid.removeEventListener('error', onError);
+      vid.removeEventListener('progress', onProgress);
     };
   }, [video]);
 
@@ -191,10 +256,40 @@ const FeedbackSharePage: React.FC = () => {
             className="w-full aspect-video object-contain cursor-pointer"
             onClick={togglePlay}
             playsInline
-            preload="auto"
+            preload="metadata"
+            crossOrigin="anonymous"
           />
 
-          {!isPlaying && (
+          {/* Buffering overlay */}
+          {isBuffering && !hasError && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/30 z-10">
+              <Loader2 className="w-12 h-12 text-white animate-spin" />
+            </div>
+          )}
+
+          {/* Error overlay */}
+          {hasError && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-20">
+              <div className="text-center px-4">
+                <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-3" />
+                <p className="text-white font-commons mb-4">{errorMessage}</p>
+                <button
+                  onClick={() => {
+                    setHasError(false);
+                    setErrorMessage('');
+                    videoRef.current?.load();
+                  }}
+                  className="flex items-center gap-2 mx-auto px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-white font-commons text-sm transition-colors"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Tekrar Dene
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Play overlay */}
+          {!isPlaying && !isBuffering && !hasError && (
             <div className="absolute inset-0 flex items-center justify-center cursor-pointer" onClick={togglePlay}>
               <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
                 <Play className="w-7 h-7 text-[#171717] ml-1" />
@@ -209,6 +304,12 @@ const FeedbackSharePage: React.FC = () => {
               onMouseDown={handleProgressMouseDown}
               onTouchStart={handleProgressTouchStart}
             >
+              {/* Buffered range indicator */}
+              <div
+                className="absolute top-0 left-0 h-full bg-white/20 rounded-full transition-all"
+                style={{ width: `${bufferedPercent}%` }}
+              />
+              {/* Progress fill */}
               <div className="absolute top-0 left-0 h-full bg-indigo-500 rounded-full" style={{ width: `${progress}%` }} />
               {comments.map((c, i) => (
                 <button

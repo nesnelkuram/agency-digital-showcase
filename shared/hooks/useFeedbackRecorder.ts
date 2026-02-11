@@ -333,7 +333,9 @@ export function useFeedbackRecorder(): UseFeedbackRecorderReturn {
         }
 
         mediaRecorderRef.current = recorder;
-        recorder.start(1000);
+        // 500ms timeslice - daha sık keyframe ve header yazımı için
+        // Bu seeking sorunlarını azaltır
+        recorder.start(500);
 
         // Start parallel audio-only recorder for fast AI transcription
         const audioTracks = recordStream.getAudioTracks();
@@ -352,7 +354,7 @@ export function useFeedbackRecorder(): UseFeedbackRecorderReturn {
               if (e.data.size > 0) audioChunksRef.current.push(e.data);
             };
             audioRecorderRef.current = audioRec;
-            audioRec.start(1000);
+            audioRec.start(500);
           } catch {
             // Audio recording optional - ignore errors
           }

@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { Play, Pause, Volume2, VolumeX, Maximize, SkipBack, SkipForward } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Maximize, SkipBack, SkipForward, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { formatDuration } from '@/shared/types/feedback';
 import type { FeedbackComment } from '@/shared/types/feedback';
 
@@ -25,6 +25,10 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [isMuted, setIsMuted] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [isBuffering, setIsBuffering] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [bufferedPercent, setBufferedPercent] = useState(0);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -43,11 +47,76 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     const handlePause = () => setIsPlaying(false);
     const handleEnded = () => setIsPlaying(false);
 
+    // Buffering events
+    const handleWaiting = () => {
+      setIsBuffering(true);
+    };
+
+    const handleCanPlay = () => {
+      setIsBuffering(false);
+    };
+
+    const handleCanPlayThrough = () => {
+      setIsBuffering(false);
+    };
+
+    const handleStalled = () => {
+      setIsBuffering(true);
+    };
+
+    const handleSeeking = () => {
+      setIsBuffering(true);
+    };
+
+    const handleSeeked = () => {
+      setIsBuffering(false);
+    };
+
+    // Error handling
+    const handleError = () => {
+      const error = video.error;
+      setHasError(true);
+      setIsBuffering(false);
+
+      switch (error?.code) {
+        case MediaError.MEDIA_ERR_ABORTED:
+          setErrorMessage('Video yukleme iptal edildi');
+          break;
+        case MediaError.MEDIA_ERR_NETWORK:
+          setErrorMessage('Ag hatasi olustu');
+          break;
+        case MediaError.MEDIA_ERR_DECODE:
+          setErrorMessage('Video cozumlenemedi');
+          break;
+        case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+          setErrorMessage('Video formati desteklenmiyor');
+          break;
+        default:
+          setErrorMessage('Video yuklenirken hata olustu');
+      }
+    };
+
+    // Buffer progress tracking
+    const handleProgress = () => {
+      if (video.buffered.length > 0 && video.duration > 0) {
+        const bufferedEnd = video.buffered.end(video.buffered.length - 1);
+        setBufferedPercent((bufferedEnd / video.duration) * 100);
+      }
+    };
+
     video.addEventListener('timeupdate', handleTimeUpdate);
     video.addEventListener('loadedmetadata', handleLoadedMetadata);
     video.addEventListener('play', handlePlay);
     video.addEventListener('pause', handlePause);
     video.addEventListener('ended', handleEnded);
+    video.addEventListener('waiting', handleWaiting);
+    video.addEventListener('canplay', handleCanPlay);
+    video.addEventListener('canplaythrough', handleCanPlayThrough);
+    video.addEventListener('stalled', handleStalled);
+    video.addEventListener('seeking', handleSeeking);
+    video.addEventListener('seeked', handleSeeked);
+    video.addEventListener('error', handleError);
+    video.addEventListener('progress', handleProgress);
 
     return () => {
       video.removeEventListener('timeupdate', handleTimeUpdate);
@@ -55,6 +124,14 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       video.removeEventListener('play', handlePlay);
       video.removeEventListener('pause', handlePause);
       video.removeEventListener('ended', handleEnded);
+      video.removeEventListener('waiting', handleWaiting);
+      video.removeEventListener('canplay', handleCanPlay);
+      video.removeEventListener('canplaythrough', handleCanPlayThrough);
+      video.removeEventListener('stalled', handleStalled);
+      video.removeEventListener('seeking', handleSeeking);
+      video.removeEventListener('seeked', handleSeeked);
+      video.removeEventListener('error', handleError);
+      video.removeEventListener('progress', handleProgress);
     };
   }, [onTimeUpdate]);
 
@@ -181,11 +258,40 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         className="w-full aspect-video object-contain cursor-pointer"
         onClick={togglePlay}
         playsInline
-        preload="auto"
+        preload="metadata"
+        crossOrigin="anonymous"
       />
 
+      {/* Buffering overlay */}
+      {isBuffering && !hasError && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/30 z-10">
+          <Loader2 className="w-12 h-12 text-white animate-spin" />
+        </div>
+      )}
+
+      {/* Error overlay */}
+      {hasError && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-20">
+          <div className="text-center px-4">
+            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-3" />
+            <p className="text-white font-commons mb-4">{errorMessage}</p>
+            <button
+              onClick={() => {
+                setHasError(false);
+                setErrorMessage('');
+                videoRef.current?.load();
+              }}
+              className="flex items-center gap-2 mx-auto px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-white font-commons text-sm transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Tekrar Dene
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Play overlay */}
-      {!isPlaying && (
+      {!isPlaying && !isBuffering && !hasError && (
         <div
           className="absolute inset-0 flex items-center justify-center cursor-pointer"
           onClick={togglePlay}
@@ -209,6 +315,11 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           onMouseDown={handleProgressMouseDown}
           onTouchStart={handleProgressTouchStart}
         >
+          {/* Buffered range indicator */}
+          <div
+            className="absolute top-0 left-0 h-full bg-white/20 rounded-full transition-all"
+            style={{ width: `${bufferedPercent}%` }}
+          />
           {/* Progress fill */}
           <div
             className="absolute top-0 left-0 h-full bg-indigo-500 rounded-full"
