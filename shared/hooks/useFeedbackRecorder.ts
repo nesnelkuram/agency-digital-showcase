@@ -75,6 +75,10 @@ export function useFeedbackRecorder(): UseFeedbackRecorderReturn {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isPageVisibleRef = useRef(true);
   const visibilityHandlerRef = useRef<(() => void) | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const startTimeRef = useRef<number>(0);
+  const pausedAtRef = useRef<number>(0);
+  const pausedDurationRef = useRef<number>(0);
 
   const isSupported = typeof MediaRecorder !== 'undefined' &&
     typeof navigator.mediaDevices !== 'undefined';
@@ -102,14 +106,21 @@ export function useFeedbackRecorder(): UseFeedbackRecorderReturn {
       document.removeEventListener('visibilitychange', visibilityHandlerRef.current);
       visibilityHandlerRef.current = null;
     }
+    if (audioContextRef.current) {
+      audioContextRef.current.close().catch(() => {});
+      audioContextRef.current = null;
+    }
     setPreviewStream(null);
   }, []);
 
-  // Start timer
+  // Start timer using Date.now() so background throttling doesn't affect displayed time
   const startTimer = useCallback(() => {
+    startTimeRef.current = Date.now();
+    pausedDurationRef.current = 0;
     setDuration(0);
     timerRef.current = setInterval(() => {
-      setDuration((prev) => prev + 1);
+      const elapsed = Date.now() - startTimeRef.current - pausedDurationRef.current;
+      setDuration(Math.floor(elapsed / 1000));
     }, 1000);
   }, []);
 
@@ -152,6 +163,7 @@ export function useFeedbackRecorder(): UseFeedbackRecorderReturn {
   const mergeAudioIntoStream = useCallback(
     (screenStream: MediaStream, micStream: MediaStream): MediaStream => {
       const audioContext = new AudioContext();
+      audioContextRef.current = audioContext;
       const destination = audioContext.createMediaStreamDestination();
 
       // Add system/tab audio if present
@@ -317,6 +329,15 @@ export function useFeedbackRecorder(): UseFeedbackRecorderReturn {
             });
             micStreamRef.current = mic;
             recordStream = mergeAudioIntoStream(screen, mic);
+
+            // Keep AudioContext alive when tab goes to background
+            const handleVisibility = () => {
+              if (audioContextRef.current?.state === 'suspended') {
+                audioContextRef.current.resume().catch(() => {});
+              }
+            };
+            visibilityHandlerRef.current = handleVisibility;
+            document.addEventListener('visibilitychange', handleVisibility);
           } catch {
             // Microphone not available or denied - proceed with screen only
             recordStream = screen;
@@ -418,6 +439,7 @@ export function useFeedbackRecorder(): UseFeedbackRecorderReturn {
       if (audioRecorderRef.current?.state === 'recording') {
         audioRecorderRef.current.pause();
       }
+      pausedAtRef.current = Date.now();
       setIsPaused(true);
       stopTimer();
     }
@@ -429,9 +451,12 @@ export function useFeedbackRecorder(): UseFeedbackRecorderReturn {
       if (audioRecorderRef.current?.state === 'paused') {
         audioRecorderRef.current.resume();
       }
+      // Accumulate the paused duration so elapsed time stays correct
+      pausedDurationRef.current += Date.now() - pausedAtRef.current;
       setIsPaused(false);
       timerRef.current = setInterval(() => {
-        setDuration((prev) => prev + 1);
+        const elapsed = Date.now() - startTimeRef.current - pausedDurationRef.current;
+        setDuration(Math.floor(elapsed / 1000));
       }, 1000);
     }
   }, []);
