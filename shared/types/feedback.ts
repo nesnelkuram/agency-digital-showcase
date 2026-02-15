@@ -1,5 +1,6 @@
 export type FeedbackVideoStatus = 'processing' | 'transcribing' | 'ready' | 'failed';
 export type RecordingMode = 'screen' | 'camera' | 'screen_camera';
+export type FeedbackType = 'video' | 'text';
 
 export interface FeedbackVideoMetadata {
   size: number;
@@ -12,6 +13,10 @@ export interface FeedbackVideo {
   id: string;
   title: string;
   description?: string;
+
+  // Tur
+  type: FeedbackType; // 'video' | 'text'
+  textContent?: string; // Yazili geribildirim icerigi
 
   // Video
   videoUrl: string;
@@ -46,6 +51,8 @@ export interface FeedbackVideo {
 export interface FeedbackVideoSummary {
   id: string;
   title: string;
+  type: FeedbackType;
+  textContent?: string;
   thumbnailUrl?: string;
   duration: number;
   recordingMode: RecordingMode;
@@ -63,6 +70,8 @@ export interface FeedbackVideoSummary {
 export interface CreateFeedbackVideoData {
   title: string;
   description?: string;
+  type?: FeedbackType;
+  textContent?: string;
   videoUrl: string;
   thumbnailUrl?: string;
   duration: number;
@@ -72,6 +81,14 @@ export interface CreateFeedbackVideoData {
   isPublic?: boolean;
   status?: FeedbackVideoStatus;
   metadata: FeedbackVideoMetadata;
+}
+
+export interface CreateTextFeedbackData {
+  title: string;
+  textContent: string;
+  projectId?: string;
+  tags?: string[];
+  isPublic?: boolean;
 }
 
 export interface UpdateFeedbackVideoData {
@@ -86,6 +103,7 @@ export interface UpdateFeedbackVideoData {
 
 export interface FeedbackVideoFilters {
   search?: string;
+  type?: FeedbackType;
   recordingMode?: RecordingMode;
   projectId?: string;
   createdBy?: string;
@@ -139,7 +157,13 @@ export const RECORDING_MODE_LABELS: Record<RecordingMode, string> = {
   screen_camera: 'Ekran + Kamera',
 };
 
+export const FEEDBACK_TYPE_LABELS: Record<FeedbackType, string> = {
+  video: 'Video',
+  text: 'Yazi',
+};
+
 export function formatDuration(seconds: number): string {
+  if (!isFinite(seconds) || isNaN(seconds) || seconds < 0) return '0:00';
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   return `${mins}:${secs.toString().padStart(2, '0')}`;

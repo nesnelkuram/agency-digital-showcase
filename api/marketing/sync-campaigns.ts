@@ -34,6 +34,22 @@ const STATUS_MAP: Record<string, string> = {
   WITH_ISSUES: 'active',
 };
 
+// Map Meta effective_status to internal lowercase format
+const EFFECTIVE_STATUS_MAP: Record<string, string> = {
+  ACTIVE: 'active',
+  PAUSED: 'paused',
+  IN_PROCESS: 'in_process',
+  WITH_ISSUES: 'with_issues',
+  CAMPAIGN_PAUSED: 'campaign_paused',
+  ADSET_PAUSED: 'adset_paused',
+  DISAPPROVED: 'disapproved',
+  PENDING_REVIEW: 'pending_review',
+  PREAPPROVED: 'preapproved',
+  PENDING_BILLING_INFO: 'pending_billing',
+  ARCHIVED: 'archived',
+  DELETED: 'deleted',
+};
+
 /**
  * POST /api/marketing/sync-campaigns
  *
@@ -66,7 +82,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.log(`[sync-campaigns] Fetching campaigns for ${accountId}`);
 
     // 1. Fetch campaigns from Meta
-    const campaignsUrl = `${META_API_BASE}/${accountId}/campaigns?access_token=${accessToken}&fields=id,name,objective,status,daily_budget,lifetime_budget,start_time,stop_time,created_time,updated_time&limit=50`;
+    const campaignsUrl = `${META_API_BASE}/${accountId}/campaigns?access_token=${accessToken}&fields=id,name,objective,status,effective_status,buying_type,spend_cap,bid_strategy,special_ad_categories,budget_remaining,daily_budget,lifetime_budget,start_time,stop_time,created_time,updated_time&limit=50`;
 
     const campaignsRes = await fetch(campaignsUrl);
     const campaignsData = await campaignsRes.json();
@@ -91,7 +107,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Fetch insights for this campaign
         let insights = null;
         try {
-          const insightsUrl = `${META_API_BASE}/${mc.id}/insights?access_token=${accessToken}&fields=impressions,reach,clicks,ctr,spend,actions,cost_per_action_type,cpc,cpm,frequency&time_range=${encodeURIComponent(timeRange)}`;
+          const insightsUrl = `${META_API_BASE}/${mc.id}/insights?access_token=${accessToken}&fields=impressions,reach,clicks,ctr,spend,actions,cost_per_action_type,cpc,cpm,frequency,unique_clicks,unique_ctr,cost_per_unique_click,quality_ranking,engagement_rate_ranking,conversion_rate_ranking&time_range=${encodeURIComponent(timeRange)}`;
           const insightsRes = await fetch(insightsUrl);
           const insightsData = await insightsRes.json();
           insights = insightsData.data?.[0] || null;
@@ -115,7 +131,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (deepSync) {
           try {
             console.log(`[sync-campaigns] Fetching ad sets for campaign ${mc.id}`);
-            const adSetsUrl = `${META_API_BASE}/${mc.id}/adsets?access_token=${accessToken}&fields=id,name,status,daily_budget,lifetime_budget,bid_strategy,targeting,start_time,end_time,optimization_goal&limit=100`;
+            const adSetsUrl = `${META_API_BASE}/${mc.id}/adsets?access_token=${accessToken}&fields=id,name,status,effective_status,daily_budget,lifetime_budget,bid_strategy,targeting,start_time,end_time,optimization_goal,billing_event,pacing_type,attribution_spec,promoted_object,frequency_control_specs,daily_min_spend_target,daily_spend_cap&limit=100`;
             const adSetsRes = await fetch(adSetsUrl);
             const adSetsData = await adSetsRes.json();
 
@@ -130,7 +146,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                   let ads: any[] = [];
                   try {
                     console.log(`[sync-campaigns] Fetching ads for ad set ${as.id}`);
-                    const adsUrl = `${META_API_BASE}/${as.id}/ads?access_token=${accessToken}&fields=id,name,status,creative{id,name,title,body,image_url,image_hash,video_id,thumbnail_url,object_story_spec}&limit=100`;
+                    const adsUrl = `${META_API_BASE}/${as.id}/ads?access_token=${accessToken}&fields=id,name,status,effective_status,preview_shareable_link,recommendations,creative{id,name,title,body,image_url,image_hash,video_id,thumbnail_url,object_story_spec}&limit=100`;
                     const adsRes = await fetch(adsUrl);
                     const adsData = await adsRes.json();
 
@@ -147,12 +163,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     metaAdSetId: as.id,
                     name: as.name,
                     status: mapAdSetStatus(as.status),
+                    effectiveStatus: EFFECTIVE_STATUS_MAP[as.effective_status] || as.effective_status?.toLowerCase(),
                     budget: {
                       daily: as.daily_budget ? parseInt(as.daily_budget) / 100 : 0,
                       lifetime: as.lifetime_budget ? parseInt(as.lifetime_budget) / 100 : undefined,
                     },
                     bidStrategy: mapBidStrategy(as.bid_strategy),
                     optimizationGoal: as.optimization_goal,
+                    billingEvent: as.billing_event,
+                    pacingType: as.pacing_type,
+                    attributionSpec: as.attribution_spec,
+                    promotedObject: as.promoted_object,
+                    frequencyControlSpecs: as.frequency_control_specs,
+                    dailyMinSpendTarget: as.daily_min_spend_target ? parseInt(as.daily_min_spend_target) / 100 : undefined,
+                    dailySpendCap: as.daily_spend_cap ? parseInt(as.daily_spend_cap) / 100 : undefined,
                     targetingJson: as.targeting || {},
                     schedule: {
                       startDate: as.start_time || '',
@@ -162,6 +186,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                       metaAdId: ad.id,
                       name: ad.name,
                       status: mapAdSetStatus(ad.status),
+                      effectiveStatus: EFFECTIVE_STATUS_MAP[ad.effective_status] || ad.effective_status?.toLowerCase(),
+                      previewShareableLink: ad.preview_shareable_link,
+                      recommendations: ad.recommendations?.data?.map((r: any) => ({
+                        title: r.title || '',
+                        message: r.message || '',
+                        code: r.code || '',
+                      })),
                       metaCreativeId: ad.creative?.id,
                       creative: {
                         headline: ad.creative?.title || '',
@@ -188,6 +219,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           name: mc.name,
           objective,
           status,
+          effectiveStatus: EFFECTIVE_STATUS_MAP[mc.effective_status] || mc.effective_status?.toLowerCase(),
+          buyingType: mc.buying_type,
+          spendCap: mc.spend_cap ? parseInt(mc.spend_cap) / 100 : undefined,
+          budgetRemaining: mc.budget_remaining ? parseInt(mc.budget_remaining) / 100 : undefined,
+          specialAdCategories: mc.special_ad_categories,
           platforms: ['meta'],
           budget: {
             totalBudget,

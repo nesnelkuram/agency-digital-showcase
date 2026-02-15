@@ -5,6 +5,8 @@ import type { FeedbackComment } from '@/shared/types/feedback';
 
 interface VideoPlayerProps {
   src: string;
+  /** Known duration in seconds (from DB). Used as fallback when video metadata reports Infinity (common with MediaRecorder WebM). */
+  knownDuration?: number;
   comments?: FeedbackComment[];
   onTimeUpdate?: (currentTime: number) => void;
   onCommentClick?: (comment: FeedbackComment) => void;
@@ -12,6 +14,7 @@ interface VideoPlayerProps {
 
 const VideoPlayer: React.FC<VideoPlayerProps> = ({
   src,
+  knownDuration,
   comments = [],
   onTimeUpdate,
   onCommentClick,
@@ -20,7 +23,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const progressRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
+  const [duration, setDuration] = useState(knownDuration || 0);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
@@ -40,7 +43,17 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     };
 
     const handleLoadedMetadata = () => {
-      setDuration(video.duration);
+      if (isFinite(video.duration) && video.duration > 0) {
+        setDuration(video.duration);
+      }
+    };
+
+    // MediaRecorder WebM files often report Infinity initially;
+    // the real duration arrives via durationchange after seeking/loading.
+    const handleDurationChange = () => {
+      if (isFinite(video.duration) && video.duration > 0) {
+        setDuration(video.duration);
+      }
     };
 
     const handlePlay = () => setIsPlaying(true);
@@ -98,14 +111,18 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
     // Buffer progress tracking
     const handleProgress = () => {
-      if (video.buffered.length > 0 && video.duration > 0) {
-        const bufferedEnd = video.buffered.end(video.buffered.length - 1);
-        setBufferedPercent((bufferedEnd / video.duration) * 100);
+      if (video.buffered.length > 0) {
+        const dur = isFinite(video.duration) && video.duration > 0 ? video.duration : (knownDuration || 0);
+        if (dur > 0) {
+          const bufferedEnd = video.buffered.end(video.buffered.length - 1);
+          setBufferedPercent((bufferedEnd / dur) * 100);
+        }
       }
     };
 
     video.addEventListener('timeupdate', handleTimeUpdate);
     video.addEventListener('loadedmetadata', handleLoadedMetadata);
+    video.addEventListener('durationchange', handleDurationChange);
     video.addEventListener('play', handlePlay);
     video.addEventListener('pause', handlePause);
     video.addEventListener('ended', handleEnded);
@@ -121,6 +138,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     return () => {
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      video.removeEventListener('durationchange', handleDurationChange);
       video.removeEventListener('play', handlePlay);
       video.removeEventListener('pause', handlePause);
       video.removeEventListener('ended', handleEnded);
@@ -161,16 +179,25 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     setIsMuted(val === 0);
   }, []);
 
+  // Effective duration: prefer finite video.duration, fallback to state (which may come from knownDuration)
+  const getEffectiveDuration = useCallback(() => {
+    const video = videoRef.current;
+    const videoDur = video?.duration;
+    if (videoDur && isFinite(videoDur) && videoDur > 0) return videoDur;
+    return duration;
+  }, [duration]);
+
   // Seek to position based on mouse/touch event
   const seekToPosition = useCallback((clientX: number) => {
     const video = videoRef.current;
     const progressBar = progressRef.current;
-    if (!video || !progressBar || !video.duration) return;
+    const dur = getEffectiveDuration();
+    if (!video || !progressBar || !dur) return;
 
     const rect = progressBar.getBoundingClientRect();
     const pos = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-    video.currentTime = pos * video.duration;
-  }, []);
+    video.currentTime = pos * dur;
+  }, [getEffectiveDuration]);
 
   const handleProgressMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -219,14 +246,16 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const seekTo = useCallback((time: number) => {
     const video = videoRef.current;
     if (!video) return;
-    video.currentTime = Math.max(0, Math.min(time, video.duration));
-  }, []);
+    const dur = getEffectiveDuration();
+    video.currentTime = Math.max(0, Math.min(time, dur || Infinity));
+  }, [getEffectiveDuration]);
 
   const skip = useCallback((seconds: number) => {
     const video = videoRef.current;
     if (!video) return;
-    video.currentTime = Math.max(0, Math.min(video.currentTime + seconds, video.duration));
-  }, []);
+    const dur = getEffectiveDuration();
+    video.currentTime = Math.max(0, Math.min(video.currentTime + seconds, dur || Infinity));
+  }, [getEffectiveDuration]);
 
   const toggleFullscreen = useCallback(() => {
     const video = videoRef.current;
@@ -305,7 +334,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       {/* Controls */}
       <div
         className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 pt-8 transition-opacity duration-300 ${
-          isHovering || !isPlaying ? 'opacity-100' : 'opacity-0'
+          isHovering || !isPlaying || isDragging ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
       >
         {/* Progress bar */}

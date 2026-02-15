@@ -168,6 +168,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // ============================
     // PHASE B: Pipeline agents
     // ============================
+
+    // Research quality router — no extra LLM call
+    const researchQuality: 'high' | 'medium' | 'low' | 'none' =
+      !researchFindings ? 'none'
+      : (researchFindings.sourcesUsed === 0 && researchFindings.competitors.length === 0) ? 'low'
+      : researchFindings.competitors.length < 3 ? 'medium'
+      : 'high';
+
+    console.log(`analyze-continue: ROUTER — researchQuality=${researchQuality}, competitors=${researchFindings?.competitors?.length || 0}, sources=${researchFindings?.sourcesUsed || 0}`);
     console.log(`analyze-continue: PHASE B START — remaining=${remaining()}ms, hasResearch=${!!researchFindings}, sourcesUsed=${researchFindings?.sourcesUsed}`);
 
     // Agent 3 + 7 + 8: Brand Strategist + Digital Presence + Competitor Discovery — PARALLEL
@@ -292,22 +301,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    // Agent 4a + 4b: Brand Challenger + Blog Strategy Advisor (PARALLEL, optional)
+    // Agent 4a + 4b + 9: Challenger + Blog Advisor + Consumer Test (PARALLEL, optional)
     // Resume: use checkpointed outputs if available
     let challengerOutput = (hasCheckpoint && cp?.challengerOutput) || null;
     let blogAdvisorOutput = (hasCheckpoint && cp?.blogAdvisorOutput) || null;
+    let consumerTestResult = (hasCheckpoint && cp?.consumerTest) || null;
 
     if (challengerOutput) { console.log('analyze-continue: Using checkpointed challengerOutput'); agentsRun.push('brandChallenger'); }
     if (blogAdvisorOutput) { console.log('analyze-continue: Using checkpointed blogAdvisorOutput'); agentsRun.push('blogStrategyAdvisor'); }
+    if (consumerTestResult) { console.log('analyze-continue: Using checkpointed consumerTest'); agentsRun.push('consumerTest'); }
 
     const needsChallenger = !challengerOutput;
     const needsBlog = !blogAdvisorOutput;
+    const needsConsumerTest = !consumerTestResult;
 
-    if ((needsChallenger || needsBlog) && remaining() > 30_000) {
+    if ((needsChallenger || needsBlog || needsConsumerTest) && remaining() > 30_000) {
       const parallelStart = Date.now();
-      console.log(`analyze-continue: Running parallel group 2 — challenger=${needsChallenger}, blog=${needsBlog}`);
+      console.log(`analyze-continue: Running parallel group 2 — challenger=${needsChallenger}, blog=${needsBlog}, consumerTest=${needsConsumerTest}`);
 
-      const [challResult, blogResult] = await Promise.all([
+      const [challResult, blogResult, ctResult] = await Promise.all([
         (async () => {
           if (!needsChallenger) return challengerOutput;
           if (runId) await markAgentRunning(effectiveLeadId, runId, 'brandChallenger');
@@ -346,16 +358,43 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return null;
           }
         })(),
+        // Agent 9: Consumer Test (moved here from Group 3 — tests strategy BEFORE synthesis)
+        (async () => {
+          if (!needsConsumerTest) return consumerTestResult;
+          if (remaining() < 25_000) {
+            if (runId) await markAgentSkipped(effectiveLeadId, runId, 'consumerTest');
+            console.log(`analyze-continue: SKIPPING consumerTest — remaining=${remaining()}ms`);
+            return null;
+          }
+          if (runId) await markAgentRunning(effectiveLeadId, runId, 'consumerTest');
+          const s = Date.now();
+          try {
+            const r = await runConsumerTest(normalizedData, strategistOutput, researchFindings, input.businessContext);
+            timings.consumerTest = Date.now() - s;
+            agentsRun.push('consumerTest');
+            if (runId) await checkpointAgent(effectiveLeadId, runId, 'consumerTest', 'consumerTest', r, timings.consumerTest);
+            console.log(`analyze-continue: consumerTest done in ${timings.consumerTest}ms — viability=${r?.overallViabilityScore}, personas=${r?.personas?.length}`);
+            return r;
+          } catch (error: any) {
+            timings.consumerTest = Date.now() - s;
+            errors.push({ agent: 'consumerTest', error: error.message, timestamp: Date.now() });
+            if (runId) await markAgentFailed(effectiveLeadId, runId, 'consumerTest', error.message, timings.consumerTest);
+            console.error(`analyze-continue: consumerTest failed in ${timings.consumerTest}ms: ${error.message}`);
+            return null;
+          }
+        })(),
       ]);
 
       challengerOutput = challResult;
       blogAdvisorOutput = blogResult;
-      console.log(`analyze-continue: parallel agents done in ${Date.now() - parallelStart}ms — challenger=${!!challResult}, blogAdvisor=${!!blogResult}`);
+      consumerTestResult = ctResult;
+      console.log(`analyze-continue: parallel group 2 done in ${Date.now() - parallelStart}ms — challenger=${!!challResult}, blogAdvisor=${!!blogResult}, consumerTest=${!!ctResult}`);
     } else if (needsChallenger && needsBlog) {
-      console.log(`analyze-continue: SKIPPING challenger+blogAdvisor — remaining=${remaining()}ms`);
+      console.log(`analyze-continue: SKIPPING challenger+blogAdvisor+consumerTest — remaining=${remaining()}ms`);
       if (runId) {
         await markAgentSkipped(effectiveLeadId, runId, 'brandChallenger');
         await markAgentSkipped(effectiveLeadId, runId, 'blogStrategyAdvisor');
+        await markAgentSkipped(effectiveLeadId, runId, 'consumerTest');
       }
     }
 
@@ -371,7 +410,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const revStart = Date.now();
       try {
         console.log(`analyze-continue: Running strategistRevision (remaining=${remaining()}ms)...`);
-        const revisedOutput = await runBrandStrategistRevision(normalizedData, strategistOutput, challengerOutput, researchFindings);
+        const revisedOutput = await runBrandStrategistRevision(normalizedData, strategistOutput, challengerOutput, researchFindings, consumerTestResult);
         timings.strategistRevision = Date.now() - revStart;
         agentsRun.push('strategistRevision');
         if (revisedOutput) {
@@ -426,93 +465,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // ============================
-    // Agent 6 + 9: Consultant Intro + Consumer Test — PARALLEL
+    // Agent 6: Consultant Intro Writer
     // ============================
     let consultantIntroText = (hasCheckpoint && cp?.consultantIntro) || '';
-    let consumerTestResult = (hasCheckpoint && cp?.consumerTest) || null;
     if (consultantIntroText) { console.log('analyze-continue: Using checkpointed consultantIntro'); agentsRun.push('consultantIntroWriter'); }
-    if (consumerTestResult) { console.log('analyze-continue: Using checkpointed consumerTest'); agentsRun.push('consumerTest'); }
 
     const synthesizedForIntro = synthesizedAnalysis || buildFallbackSynthesis(effectiveStrategistOutput);
-    const needsIntro = !consultantIntroText;
-    const needsConsumerTest = !consumerTestResult;
 
-    if (needsIntro || needsConsumerTest) {
-      console.log(`analyze-continue: Running parallel group 3 — intro=${needsIntro}, consumerTest=${needsConsumerTest}, remaining=${remaining()}ms`);
-      const parallelStart = Date.now();
-
-      const [introResult, ctResult] = await Promise.all([
-        // Agent 6: Consultant Intro Writer
-        (async () => {
-          if (!needsIntro) return consultantIntroText;
-          if (remaining() < 8_000) {
-            if (runId) await markAgentSkipped(effectiveLeadId, runId, 'consultantIntroWriter');
-            console.log(`analyze-continue: SKIPPING consultantIntroWriter — remaining=${remaining()}ms`);
-            return '';
-          }
-          if (runId) await markAgentRunning(effectiveLeadId, runId, 'consultantIntroWriter');
-          const s = Date.now();
-          try {
-            const r = await runConsultantIntroWriter(
-              normalizedData,
-              researchFindings,
-              synthesizedForIntro,
-              blogAdvisorOutput,
-              input.businessContext,
-            );
-            timings.consultantIntroWriter = Date.now() - s;
-            agentsRun.push('consultantIntroWriter');
-            if (runId) await checkpointAgent(effectiveLeadId, runId, 'consultantIntroWriter', 'consultantIntro', r, timings.consultantIntroWriter);
-            console.log(`analyze-continue: consultantIntroWriter done in ${timings.consultantIntroWriter}ms — ${r.length} chars`);
-            return r;
-          } catch (error: any) {
-            timings.consultantIntroWriter = Date.now() - s;
-            errors.push({ agent: 'consultantIntroWriter', error: error.message, timestamp: Date.now() });
-            if (runId) await markAgentFailed(effectiveLeadId, runId, 'consultantIntroWriter', error.message, timings.consultantIntroWriter);
-            console.error(`analyze-continue: consultantIntroWriter failed in ${timings.consultantIntroWriter}ms: ${error.message}`);
-            return '';
-          }
-        })(),
-        // Agent 9: Consumer Test (NEW — conditional)
-        (async () => {
-          if (!needsConsumerTest) return consumerTestResult;
-          if (remaining() < 25_000 || !synthesizedAnalysis) {
-            // Don't markAgentSkipped when runId exists — will be deferred via pipeline_partial
-            if (!runId) console.log(`analyze-continue: SKIPPING consumerTest — no runId for deferral`);
-            else console.log(`analyze-continue: consumerTest deferred — remaining=${remaining()}ms, hasSynthesis=${!!synthesizedAnalysis}`);
-            return null;
-          }
-          if (runId) await markAgentRunning(effectiveLeadId, runId, 'consumerTest');
-          const s = Date.now();
-          try {
-            const r = await runConsumerTest(normalizedData, synthesizedAnalysis, researchFindings, input.businessContext);
-            timings.consumerTest = Date.now() - s;
-            agentsRun.push('consumerTest');
-            if (runId) await checkpointAgent(effectiveLeadId, runId, 'consumerTest', 'consumerTest', r, timings.consumerTest);
-            console.log(`analyze-continue: consumerTest done in ${timings.consumerTest}ms — viability=${r?.overallViabilityScore}, personas=${r?.personas?.length}`);
-            return r;
-          } catch (error: any) {
-            timings.consumerTest = Date.now() - s;
-            errors.push({ agent: 'consumerTest', error: error.message, timestamp: Date.now() });
-            if (runId) await markAgentFailed(effectiveLeadId, runId, 'consumerTest', error.message, timings.consumerTest);
-            console.error(`analyze-continue: consumerTest failed in ${timings.consumerTest}ms: ${error.message}`);
-            return null;
-          }
-        })(),
-      ]);
-
-      consultantIntroText = introResult;
-      consumerTestResult = ctResult;
-      console.log(`analyze-continue: parallel group 3 done in ${Date.now() - parallelStart}ms — intro=${!!introResult}, consumerTest=${!!ctResult}`);
-
-      // If consumer test was skipped due to time (not due to missing synthesis), defer to next call
-      if (!consumerTestResult && synthesizedAnalysis && runId) {
-        console.log(`analyze-continue: ConsumerTest not completed — deferring via pipeline_partial`);
-        return res.status(200).json({
-          status: 'pipeline_partial',
-          phase: 'awaiting_consumer_test',
-          debug: { timings, errors, agentsRun, remainingMs: remaining() },
-        });
+    if (!consultantIntroText) {
+      if (remaining() < 8_000) {
+        if (runId) await markAgentSkipped(effectiveLeadId, runId, 'consultantIntroWriter');
+        console.log(`analyze-continue: SKIPPING consultantIntroWriter — remaining=${remaining()}ms`);
+      } else {
+        if (runId) await markAgentRunning(effectiveLeadId, runId, 'consultantIntroWriter');
+        const s = Date.now();
+        try {
+          consultantIntroText = await runConsultantIntroWriter(
+            normalizedData,
+            researchFindings,
+            synthesizedForIntro,
+            blogAdvisorOutput,
+            input.businessContext,
+          );
+          timings.consultantIntroWriter = Date.now() - s;
+          agentsRun.push('consultantIntroWriter');
+          if (runId) await checkpointAgent(effectiveLeadId, runId, 'consultantIntroWriter', 'consultantIntro', consultantIntroText, timings.consultantIntroWriter);
+          console.log(`analyze-continue: consultantIntroWriter done in ${timings.consultantIntroWriter}ms — ${consultantIntroText.length} chars`);
+        } catch (error: any) {
+          timings.consultantIntroWriter = Date.now() - s;
+          errors.push({ agent: 'consultantIntroWriter', error: error.message, timestamp: Date.now() });
+          if (runId) await markAgentFailed(effectiveLeadId, runId, 'consultantIntroWriter', error.message, timings.consultantIntroWriter);
+          console.error(`analyze-continue: consultantIntroWriter failed in ${timings.consultantIntroWriter}ms: ${error.message}`);
+        }
       }
     }
 
@@ -596,7 +580,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         : undefined,
 
       pipelineMetadata: {
-        version: '3.5.0',
+        version: '3.6.0',
         agentsRun,
         totalDuration,
         agentDurations: Object.fromEntries(
@@ -604,8 +588,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ),
         researchAvailable: !!researchFindings && (researchFindings.sourcesUsed !== 0),
         researchMethod: researchFindings?.sourcesUsed === -1 ? 'deep-research' : researchFindings?.sourcesUsed ? 'grounding' : 'none',
+        researchQuality,
         fallbackUsed: usedFallback,
         strategistRevised: effectiveStrategistOutput !== strategistOutput,
+        consumerTestedBeforeRevision: !!consumerTestResult,
         asyncPipeline: true,
       },
 

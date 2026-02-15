@@ -1,24 +1,36 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft, Play, Pause, BarChart3, Globe, Users, Palette, Pencil,
   Wallet, Calendar, Clock, MessageSquare, Send, Tag, TrendingUp,
   AlertTriangle, CheckCircle, Eye, MousePointer, Target, DollarSign, Lightbulb,
-  ExternalLink,
+  ExternalLink, FileDown, ArrowUpRight, ArrowDownRight,
 } from 'lucide-react';
 import { RefreshCw } from 'lucide-react';
 import SyncStatusBadge from './components/SyncStatusBadge';
 import BreakdownPanel from './components/breakdown/BreakdownPanel';
 import CreativeGallery from './components/creative/CreativeGallery';
+import AdsManagerTable from './components/AdsManagerTable';
+import AdDetailDrawer from './components/AdDetailDrawer';
+import TargetingDisplay from './components/TargetingDisplay';
+import DeliveryInsights from './components/DeliveryInsights';
 import {
   syncCampaignsFromMeta,
   updateCampaignSyncStatus,
   syncPerformanceLevel,
 } from '@/shared/services/marketingService';
-import { aggregateByAdSet, aggregateByAd } from '@/shared/utils/performanceAggregator';
+import {
+  aggregateByAdSet,
+  aggregateByAd,
+  aggregateByDate,
+  comparePeriods,
+  exportToCSV,
+} from '@/shared/utils/performanceAggregator';
 import type {
   MarketingCampaign,
   AdPlatform,
+  AdSet,
+  Ad,
   MarketingTimelineEvent,
   PerformanceSnapshot,
 } from '@/shared/types/marketing';
@@ -38,7 +50,6 @@ import {
 import { useProjectScope } from '@/shared/hooks/useProjectScope';
 import SpendTrendChart from './components/charts/SpendTrendChart';
 import FunnelChart from './components/charts/FunnelChart';
-import { aggregateByDate } from '@/shared/utils/performanceAggregator';
 import AIAnalysisPanel from './components/ai/AIAnalysisPanel';
 
 const CampaignDetailPage: React.FC = () => {
@@ -54,6 +65,13 @@ const CampaignDetailPage: React.FC = () => {
   const [syncing, setSyncing] = useState(false);
   const [performanceLevel, setPerformanceLevel] = useState<'campaign' | 'adset' | 'ad'>('campaign');
 
+  // New state for Ads Manager integration
+  const [selectedAd, setSelectedAd] = useState<Ad | null>(null);
+  const [selectedAdSet, setSelectedAdSet] = useState<AdSet | undefined>(undefined);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [dateRange, setDateRange] = useState<'7' | '14' | '30'>('7');
+  const [syncingLevel, setSyncingLevel] = useState(false);
+
   const handleSync = async () => {
     if (!campaign?.projectId || syncing) return;
     setSyncing(true);
@@ -65,7 +83,6 @@ const CampaignDetailPage: React.FC = () => {
       } else {
         await updateCampaignSyncStatus(campaign.id, 'success');
       }
-      // Reload campaign
       const updated = await getCampaign(campaign.id);
       setCampaign(updated);
       if (updated) {
@@ -112,6 +129,48 @@ const CampaignDetailPage: React.FC = () => {
     }
   };
 
+  // Handle performance level change → sync from Meta at that level
+  const handleLevelChange = async (level: 'campaign' | 'adset' | 'ad') => {
+    setPerformanceLevel(level);
+    if (level === 'campaign' || !campaign?.projectId || !campaign?.platformCampaignIds?.meta) return;
+    setSyncingLevel(true);
+    try {
+      await syncPerformanceLevel(campaign.projectId, campaign.id, campaign.platformCampaignIds.meta, level);
+      const snaps = await getPerformanceSnapshots(campaign.id);
+      setSnapshots(snaps);
+    } catch (err) {
+      console.error('Level sync failed:', err);
+    } finally {
+      setSyncingLevel(false);
+    }
+  };
+
+  // CSV export
+  const handleExportCSV = () => {
+    if (snapshots.length === 0) return;
+    const csv = exportToCSV(snapshots);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${campaign?.name || 'kampanya'}_performans_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Ad click from AdsManagerTable
+  const handleAdClick = (ad: Ad, adSet: AdSet) => {
+    setSelectedAd(ad);
+    setSelectedAdSet(adSet);
+    setDrawerOpen(true);
+  };
+
+  // Period comparison
+  const comparison = useMemo(() => {
+    if (snapshots.length === 0) return null;
+    return comparePeriods(snapshots, parseInt(dateRange));
+  }, [snapshots, dateRange]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -137,7 +196,6 @@ const CampaignDetailPage: React.FC = () => {
   const avgCTR = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
   const avgCPA = totalConversions > 0 ? totalSpend / totalConversions : 0;
 
-  // Aggregated metrics for charts
   const aggregatedMetrics = {
     impressions: totalImpressions,
     clicks: totalClicks,
@@ -231,7 +289,9 @@ const CampaignDetailPage: React.FC = () => {
         ))}
       </div>
 
-      {/* Tab Content */}
+      {/* ============================================ */}
+      {/* OVERVIEW TAB                                 */}
+      {/* ============================================ */}
       {activeTab === 'overview' && (
         <div className="space-y-6">
           {/* KPI Cards */}
@@ -329,6 +389,9 @@ const CampaignDetailPage: React.FC = () => {
         </div>
       )}
 
+      {/* ============================================ */}
+      {/* PERFORMANCE TAB                              */}
+      {/* ============================================ */}
       {activeTab === 'performance' && (
         <div className="space-y-4">
           {snapshots.length === 0 ? (
@@ -341,27 +404,88 @@ const CampaignDetailPage: React.FC = () => {
             </div>
           ) : (
             <>
-              {/* Level selector */}
-              <div className="flex items-center gap-2 mb-4">
-                <span className="text-sm font-commons text-neutral-500">Seviye:</span>
-                {(['campaign', 'adset', 'ad'] as const).map(lvl => (
+              {/* Controls bar: level selector + date range + export */}
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-commons text-neutral-500">Seviye:</span>
+                  {(['campaign', 'adset', 'ad'] as const).map(lvl => (
+                    <button
+                      key={lvl}
+                      onClick={() => handleLevelChange(lvl)}
+                      disabled={syncingLevel}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-commons transition-colors ${
+                        performanceLevel === lvl
+                          ? 'bg-indigo-100 text-indigo-700'
+                          : 'bg-neutral-50 text-neutral-600 hover:bg-neutral-100'
+                      } disabled:opacity-50`}
+                    >
+                      {lvl === 'campaign' ? 'Kampanya' : lvl === 'adset' ? 'Reklam Seti' : 'Reklam'}
+                    </button>
+                  ))}
+                  {syncingLevel && (
+                    <RefreshCw className="w-4 h-4 text-indigo-500 animate-spin" />
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-commons text-neutral-500">Donem:</span>
+                  {(['7', '14', '30'] as const).map(d => (
+                    <button
+                      key={d}
+                      onClick={() => setDateRange(d)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-commons transition-colors ${
+                        dateRange === d
+                          ? 'bg-indigo-100 text-indigo-700'
+                          : 'bg-neutral-50 text-neutral-600 hover:bg-neutral-100'
+                      }`}
+                    >
+                      {d} Gun
+                    </button>
+                  ))}
                   <button
-                    key={lvl}
-                    onClick={() => setPerformanceLevel(lvl)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-commons transition-colors ${
-                      performanceLevel === lvl
-                        ? 'bg-indigo-100 text-indigo-700'
-                        : 'bg-neutral-50 text-neutral-600 hover:bg-neutral-100'
-                    }`}
+                    onClick={handleExportCSV}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-commons bg-neutral-50 text-neutral-600 hover:bg-neutral-100 transition-colors ml-2"
                   >
-                    {lvl === 'campaign' ? 'Kampanya' : lvl === 'adset' ? 'Reklam Seti' : 'Reklam'}
+                    <FileDown className="w-4 h-4" />
+                    CSV
                   </button>
-                ))}
+                </div>
               </div>
+
+              {/* Period comparison KPI cards */}
+              {comparison && (
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+                  {[
+                    { label: 'Harcama', value: `${comparison.current.spend.toLocaleString('tr-TR', { maximumFractionDigits: 0 })} TL`, change: comparison.changes.spend },
+                    { label: 'Gosterim', value: comparison.current.impressions.toLocaleString('tr-TR'), change: comparison.changes.impressions },
+                    { label: 'Tiklama', value: comparison.current.clicks.toLocaleString('tr-TR'), change: comparison.changes.clicks },
+                    { label: 'CTR', value: `${comparison.current.ctr.toFixed(2)}%`, change: comparison.changes.ctr },
+                    { label: 'CPC', value: `${comparison.current.cpc.toFixed(2)} TL`, change: comparison.changes.cpc, invert: true },
+                    { label: 'CPM', value: `${comparison.current.cpm.toFixed(2)} TL`, change: comparison.changes.cpm, invert: true },
+                    { label: 'Donusum', value: comparison.current.conversions.toLocaleString('tr-TR'), change: comparison.changes.conversions },
+                  ].map(kpi => {
+                    const isPositive = kpi.invert ? kpi.change < 0 : kpi.change > 0;
+                    const isNegative = kpi.invert ? kpi.change > 0 : kpi.change < 0;
+                    return (
+                      <div key={kpi.label} className="bg-white rounded-xl border border-neutral-200/50 p-3">
+                        <p className="text-xs font-commons text-neutral-500 mb-1">{kpi.label}</p>
+                        <p className="text-base font-commons font-bold text-[#171717]">{kpi.value}</p>
+                        {kpi.change !== 0 && (
+                          <div className={`flex items-center gap-0.5 mt-1 text-xs font-commons ${
+                            isPositive ? 'text-green-600' : isNegative ? 'text-red-600' : 'text-neutral-400'
+                          }`}>
+                            {isPositive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                            {Math.abs(kpi.change).toFixed(1)}%
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
 
               {/* Performance Charts */}
               {snapshots.length > 0 && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <SpendTrendChart data={aggregateByDate(snapshots)} height={220} />
                   <FunnelChart
                     impressions={aggregatedMetrics.impressions}
@@ -377,7 +501,11 @@ const CampaignDetailPage: React.FC = () => {
                   <table className="w-full">
                     <thead className="bg-neutral-50">
                       <tr>
-                        {['Tarih', 'Platform', 'Harcama', 'Gosterim', 'Tiklama', 'CTR', 'Donusum', 'CPA', 'CPC'].map(h => (
+                        {[
+                          'Tarih', 'Platform',
+                          ...(performanceLevel !== 'campaign' ? ['Seviye'] : []),
+                          'Harcama', 'Gosterim', 'Tiklama', 'CTR', 'Donusum', 'CPA', 'CPC',
+                        ].map(h => (
                           <th key={h} className="px-4 py-3 text-left text-xs font-commons font-semibold text-neutral-500 uppercase">
                             {h}
                           </th>
@@ -385,7 +513,7 @@ const CampaignDetailPage: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-neutral-100">
-                      {snapshots.slice(0, 30).map((snap, i) => (
+                      {snapshots.slice(0, 50).map((snap, i) => (
                         <tr key={i} className="hover:bg-neutral-50">
                           <td className="px-4 py-3 text-sm font-commons">{snap.date}</td>
                           <td className="px-4 py-3">
@@ -393,6 +521,11 @@ const CampaignDetailPage: React.FC = () => {
                               {snap.platform}
                             </span>
                           </td>
+                          {performanceLevel !== 'campaign' && (
+                            <td className="px-4 py-3 text-sm font-commons text-neutral-500 truncate max-w-[160px]">
+                              {snap.adSetName || snap.adName || snap.adSetId || snap.adId || '-'}
+                            </td>
+                          )}
                           <td className="px-4 py-3 text-sm font-commons">{snap.spend.toFixed(0)} TL</td>
                           <td className="px-4 py-3 text-sm font-commons">{snap.impressions.toLocaleString()}</td>
                           <td className="px-4 py-3 text-sm font-commons">{snap.clicks.toLocaleString()}</td>
@@ -411,96 +544,71 @@ const CampaignDetailPage: React.FC = () => {
         </div>
       )}
 
+      {/* ============================================ */}
+      {/* AD SETS TAB — Ads Manager Table + Drawer     */}
+      {/* ============================================ */}
       {activeTab === 'adsets' && (
-        <div className="space-y-3">
+        <div className="space-y-6">
           {(campaign.adSets || []).length === 0 ? (
             <div className="bg-white rounded-xl border border-neutral-200/50 p-12 text-center">
               <Users className="w-12 h-12 text-neutral-300 mx-auto mb-3" />
               <p className="font-commons text-neutral-500">Henuz reklam seti yok</p>
+              <p className="text-sm font-commons text-neutral-400 mt-1">
+                Kampanyayi Meta'dan senkronize ederek reklam setlerini getirebilirsiniz
+              </p>
             </div>
           ) : (
-            (campaign.adSets || []).map((adSet, i) => (
-              <div key={adSet.id || i} className="bg-white rounded-xl border border-neutral-200/50 p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <span className={`px-2 py-0.5 rounded text-xs font-commons ${PLATFORM_COLORS[adSet.platform]}`}>
-                      {adSet.platform}
-                    </span>
-                    <h4 className="font-commons font-semibold text-[#171717]">{adSet.name}</h4>
-                    <span className={`px-1.5 py-0.5 rounded text-xs font-commons ${
-                      adSet.status === 'active' ? 'bg-green-100 text-green-700' :
-                      adSet.status === 'paused' ? 'bg-yellow-100 text-yellow-700' :
-                      'bg-red-100 text-red-700'
-                    }`}>
-                      {adSet.status}
-                    </span>
-                    {adSet.metaAdSetId && <code className="text-xs text-neutral-400 bg-neutral-50 px-1.5 rounded">{adSet.metaAdSetId}</code>}
-                    {adSet.optimizationGoal && <span className="text-xs font-commons text-indigo-600">{adSet.optimizationGoal}</span>}
-                  </div>
-                  <span className="text-sm font-commons text-neutral-500">
-                    {adSet.budget?.daily ?? 0} TL/gun
-                  </span>
-                </div>
-                {/* Performance summary if available */}
-                {adSet.performanceSummary && (
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {adSet.performanceSummary.impressions != null && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-purple-50 text-xs font-commons text-purple-700">
-                        <Eye className="w-3 h-3" /> {adSet.performanceSummary.impressions.toLocaleString()}
-                      </span>
-                    )}
-                    {adSet.performanceSummary.clicks != null && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-cyan-50 text-xs font-commons text-cyan-700">
-                        <MousePointer className="w-3 h-3" /> {adSet.performanceSummary.clicks.toLocaleString()}
-                      </span>
-                    )}
-                    {adSet.performanceSummary.spend != null && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-blue-50 text-xs font-commons text-blue-700">
-                        <DollarSign className="w-3 h-3" /> {adSet.performanceSummary.spend.toFixed(0)} TL
-                      </span>
-                    )}
-                    {adSet.performanceSummary.ctr != null && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 text-xs font-commons text-amber-700">
-                        CTR {adSet.performanceSummary.ctr.toFixed(2)}%
-                      </span>
-                    )}
-                    {adSet.performanceSummary.cpa != null && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-red-50 text-xs font-commons text-red-700">
-                        CPA {adSet.performanceSummary.cpa.toFixed(0)} TL
-                      </span>
-                    )}
-                  </div>
-                )}
-                <div className="text-sm font-commons text-neutral-500 space-y-1">
-                  <p>Bid: {adSet.bidStrategy || '-'}{adSet.bidAmount ? ` (${adSet.bidAmount} TL)` : ''}</p>
-                  <p>Tarih: {adSet.schedule?.startDate || '-'}{adSet.schedule?.endDate ? ` - ${adSet.schedule.endDate}` : ''}</p>
-                </div>
-                {/* Ads under this ad set */}
-                {(adSet.ads || []).length > 0 && (
-                  <div className="mt-3 space-y-2">
-                    {(adSet.ads || []).map((ad, ai) => (
-                      <div key={ad.id || ai} className="bg-neutral-50 rounded-lg p-3">
-                        <div className="flex items-center gap-2 mb-1">
-                          {(ad.creative?.imageUrl || ad.creative?.thumbnailUrl) && (
-                            <img
-                              src={ad.creative.imageUrl || ad.creative.thumbnailUrl}
-                              alt={ad.name}
-                              className="w-12 h-12 rounded object-cover flex-shrink-0"
-                            />
-                          )}
-                          <Palette className="w-3.5 h-3.5 text-neutral-400" />
-                          <span className="text-sm font-commons font-semibold">{ad.name}</span>
-                          <span className="text-xs font-commons text-neutral-400">({ad.type})</span>
-                          {ad.variant && <span className="text-xs font-commons bg-indigo-50 text-indigo-600 px-1.5 rounded">{ad.variant}</span>}
-                        </div>
-                        <p className="text-sm font-commons text-neutral-600">{ad.creative?.headline}</p>
-                        <p className="text-xs font-commons text-neutral-400">{ad.creative?.primaryText}</p>
+            <>
+              {/* Hierarchical Ads Manager table */}
+              <AdsManagerTable
+                campaign={campaign}
+                onAdClick={handleAdClick}
+              />
+
+              {/* Targeting & Delivery details per ad set */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-commons font-semibold text-[#171717] uppercase tracking-wider">
+                  Hedefleme ve Dagitim Detaylari
+                </h3>
+                {(campaign.adSets || []).map((adSet, idx) => (
+                  <div key={adSet.id || adSet.metaAdSetId || idx} className="bg-white rounded-xl border border-neutral-200/50 overflow-hidden">
+                    {/* Ad set header */}
+                    <div className="px-5 py-3 bg-neutral-50 border-b border-neutral-100 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-commons font-semibold text-[#171717]">{adSet.name}</span>
+                        {adSet.effectiveStatus && (
+                          <span className="text-xs font-commons text-neutral-400">({adSet.effectiveStatus})</span>
+                        )}
                       </div>
-                    ))}
+                      <span className="text-xs font-commons text-neutral-400">
+                        {adSet.budget?.daily ? `${adSet.budget.daily} TL/gun` : ''}
+                      </span>
+                    </div>
+                    <div className="p-5 space-y-4">
+                      {/* Delivery insights */}
+                      <DeliveryInsights
+                        effectiveStatus={adSet.effectiveStatus}
+                        qualityRanking={adSet.performanceSummary?.qualityRanking}
+                        engagementRateRanking={adSet.performanceSummary?.engagementRateRanking}
+                        conversionRateRanking={adSet.performanceSummary?.conversionRateRanking}
+                        spend={adSet.performanceSummary?.spend}
+                        dailyBudget={adSet.budget?.daily}
+                        lifetimeBudget={adSet.budget?.lifetime}
+                        frequency={adSet.performanceSummary?.frequency}
+                        reach={adSet.performanceSummary?.reach}
+                        impressions={adSet.performanceSummary?.impressions}
+                      />
+                      {/* Targeting display */}
+                      <TargetingDisplay
+                        targetingJson={adSet.targetingJson}
+                        targeting={adSet.targeting}
+                        collapsed
+                      />
+                    </div>
                   </div>
-                )}
+                ))}
               </div>
-            ))
+            </>
           )}
         </div>
       )}
@@ -555,6 +663,14 @@ const CampaignDetailPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Ad Detail Drawer (portal-style) */}
+      <AdDetailDrawer
+        ad={selectedAd}
+        adSet={selectedAdSet}
+        open={drawerOpen}
+        onClose={() => { setDrawerOpen(false); setSelectedAd(null); setSelectedAdSet(undefined); }}
+      />
     </div>
   );
 };

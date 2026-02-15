@@ -17,6 +17,7 @@ import {
   Lock,
   Smile,
   Loader2,
+  FileText,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermission } from '@/shared/hooks/usePermission';
@@ -224,7 +225,7 @@ const FeedbackDetailPage: React.FC = () => {
   if (!video) {
     return (
       <div className="text-center py-16">
-        <p className="text-lg font-commons text-neutral-600">Video bulunamadi</p>
+        <p className="text-lg font-commons text-neutral-600">Geribildirim bulunamadi</p>
         <button
           onClick={() => navigate('/admin/feedback')}
           className="mt-4 text-indigo-600 font-commons text-sm hover:underline"
@@ -290,26 +291,41 @@ const FeedbackDetailPage: React.FC = () => {
 
       {/* Main content: Video + Comments */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Video Column */}
+        {/* Video / Text Column */}
         <div className="lg:col-span-2 space-y-4">
-          <VideoPlayer
-            src={video.videoUrl}
-            comments={comments}
-            onTimeUpdate={setCurrentTime}
-            onCommentClick={handleCommentClick}
-          />
-
-          {/* AI transcribing indicator */}
-          {video.status === 'transcribing' && (
-            <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-center gap-3">
-              <Loader2 className="w-4 h-4 text-blue-600 animate-spin flex-shrink-0" />
-              <p className="text-sm font-commons text-blue-700">
-                AI baslik ve aciklama olusturuyor... Tamamlandiginda otomatik guncellenecek.
+          {video.type === 'text' ? (
+            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-8 shadow-sm border border-emerald-100">
+              <div className="flex items-center gap-2 mb-4">
+                <FileText className="w-5 h-5 text-emerald-600" />
+                <span className="font-commons text-sm font-medium text-emerald-700">Yazili Geribildirim</span>
+              </div>
+              <p className="font-commons text-base text-neutral-700 leading-relaxed whitespace-pre-wrap">
+                {video.textContent}
               </p>
             </div>
+          ) : (
+            <>
+              <VideoPlayer
+                src={video.videoUrl}
+                knownDuration={video.duration}
+                comments={comments}
+                onTimeUpdate={setCurrentTime}
+                onCommentClick={handleCommentClick}
+              />
+
+              {/* AI transcribing indicator */}
+              {video.status === 'transcribing' && (
+                <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-center gap-3">
+                  <Loader2 className="w-4 h-4 text-blue-600 animate-spin flex-shrink-0" />
+                  <p className="text-sm font-commons text-blue-700">
+                    AI baslik ve aciklama olusturuyor... Tamamlandiginda otomatik guncellenecek.
+                  </p>
+                </div>
+              )}
+            </>
           )}
 
-          {/* Video info */}
+          {/* Info */}
           <div className="bg-white rounded-2xl p-5 shadow-sm border border-neutral-100 space-y-4">
             {/* Stats row */}
             <div className="flex items-center gap-4 text-sm font-commons text-neutral-500">
@@ -321,14 +337,24 @@ const FeedbackDetailPage: React.FC = () => {
                 <MessageCircle className="w-4 h-4" />
                 {comments.length} yorum
               </span>
-              <span className="flex items-center gap-1.5">
-                <Clock className="w-4 h-4" />
-                {formatDuration(video.duration)}
-              </span>
-              <span className="flex items-center gap-1.5">
-                <ModeIcon className="w-4 h-4" />
-                {RECORDING_MODE_LABELS[video.recordingMode]}
-              </span>
+              {video.type !== 'text' && (
+                <>
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="w-4 h-4" />
+                    {formatDuration(video.duration)}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <ModeIcon className="w-4 h-4" />
+                    {RECORDING_MODE_LABELS[video.recordingMode]}
+                  </span>
+                </>
+              )}
+              {video.type === 'text' && (
+                <span className="flex items-center gap-1.5">
+                  <FileText className="w-4 h-4" />
+                  Yazi
+                </span>
+              )}
             </div>
 
             {/* Description */}

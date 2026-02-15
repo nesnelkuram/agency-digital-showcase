@@ -15,6 +15,7 @@ import {
   MonitorSmartphone,
   Filter,
   Loader2,
+  FileText,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermission } from '@/shared/hooks/usePermission';
@@ -26,12 +27,14 @@ import {
 import type {
   FeedbackVideoSummary,
   FeedbackVideoFilters,
+  FeedbackType,
   RecordingMode,
 } from '@/shared/types/feedback';
 import {
   RECORDING_MODE_LABELS,
   FEEDBACK_STATUS_COLORS,
   FEEDBACK_STATUS_LABELS,
+  FEEDBACK_TYPE_LABELS,
   formatDuration,
 } from '@/shared/types/feedback';
 import RecordFeedbackModal from './RecordFeedbackModal';
@@ -122,7 +125,7 @@ const FeedbackPage: React.FC = () => {
             Geribildirim
           </h1>
           <p className="text-sm font-commons text-neutral-500 mt-1">
-            Video kayitlari ile ekibinize geribildirim verin
+            Video veya yazi ile ekibinize geribildirim verin
           </p>
         </div>
         {can(PERMISSIONS.FEEDBACK_CREATE) && (
@@ -218,16 +221,17 @@ const FeedbackPage: React.FC = () => {
         <div className="text-center py-16">
           <Video className="w-12 h-12 text-neutral-300 mx-auto" />
           <p className="mt-4 text-lg font-commons font-medium text-neutral-600">
-            Henuz video yok
+            Henuz geribildirim yok
           </p>
           <p className="mt-1 text-sm font-commons text-neutral-400">
-            Yeni bir video kaydi olusturarak baslayabilirsiniz
+            Yeni bir kayit veya yazi olusturarak baslayabilirsiniz
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredVideos.map((video, index) => {
-            const ModeIcon = modeIcons[video.recordingMode];
+            const isText = video.type === 'text';
+            const ModeIcon = isText ? FileText : modeIcons[video.recordingMode];
             return (
               <motion.div
                 key={video.id}
@@ -237,41 +241,54 @@ const FeedbackPage: React.FC = () => {
                 className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden group cursor-pointer hover:shadow-md transition-shadow"
                 onClick={() => navigate(`/admin/feedback/${video.id}`)}
               >
-                {/* Thumbnail */}
-                <div className="relative aspect-video bg-neutral-100">
-                  {video.thumbnailUrl ? (
-                    <img
-                      src={video.thumbnailUrl}
-                      alt={video.title}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Video className="w-10 h-10 text-neutral-300" />
+                {/* Thumbnail / Text Preview */}
+                {isText ? (
+                  <div className="relative aspect-video bg-gradient-to-br from-emerald-50 to-teal-50 p-5 flex flex-col justify-between">
+                    <p className="font-commons text-sm text-neutral-600 line-clamp-4 leading-relaxed">
+                      {video.textContent || ''}
+                    </p>
+                    {/* Type badge */}
+                    <div className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm text-xs font-commons px-2 py-1 rounded-lg flex items-center gap-1">
+                      <FileText className="w-3.5 h-3.5 text-emerald-600" />
+                      <span className="text-emerald-700">Yazi</span>
                     </div>
-                  )}
-
-                  {/* Duration badge */}
-                  <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs font-commons px-2 py-0.5 rounded-md">
-                    {formatDuration(video.duration)}
                   </div>
+                ) : (
+                  <div className="relative aspect-video bg-neutral-100">
+                    {video.thumbnailUrl ? (
+                      <img
+                        src={video.thumbnailUrl}
+                        alt={video.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Video className="w-10 h-10 text-neutral-300" />
+                      </div>
+                    )}
 
-                  {/* Mode badge */}
-                  <div className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm text-xs font-commons px-2 py-1 rounded-lg flex items-center gap-1">
-                    <ModeIcon className="w-3.5 h-3.5 text-neutral-600" />
-                    <span className="text-neutral-700">{RECORDING_MODE_LABELS[video.recordingMode]}</span>
-                  </div>
-
-                  {/* Status badge */}
-                  {video.status !== 'ready' && (
-                    <div className={`absolute top-2 right-2 text-xs font-commons px-2 py-1 rounded-lg flex items-center gap-1 ${FEEDBACK_STATUS_COLORS[video.status]}`}>
-                      {video.status === 'transcribing' && (
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                      )}
-                      {FEEDBACK_STATUS_LABELS[video.status]}
+                    {/* Duration badge */}
+                    <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs font-commons px-2 py-0.5 rounded-md">
+                      {formatDuration(video.duration)}
                     </div>
-                  )}
-                </div>
+
+                    {/* Mode badge */}
+                    <div className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm text-xs font-commons px-2 py-1 rounded-lg flex items-center gap-1">
+                      <ModeIcon className="w-3.5 h-3.5 text-neutral-600" />
+                      <span className="text-neutral-700">{RECORDING_MODE_LABELS[video.recordingMode]}</span>
+                    </div>
+
+                    {/* Status badge */}
+                    {video.status !== 'ready' && (
+                      <div className={`absolute top-2 right-2 text-xs font-commons px-2 py-1 rounded-lg flex items-center gap-1 ${FEEDBACK_STATUS_COLORS[video.status]}`}>
+                        {video.status === 'transcribing' && (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        )}
+                        {FEEDBACK_STATUS_LABELS[video.status]}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Info */}
                 <div className="p-4">

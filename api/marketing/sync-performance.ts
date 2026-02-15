@@ -61,7 +61,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     for (const camp of campaigns) {
       try {
         // Build fields list based on level
-        let fields = 'date_start,date_stop,impressions,reach,clicks,ctr,spend,actions,cost_per_action_type,cpc,cpm,frequency';
+        let fields = 'date_start,date_stop,impressions,reach,clicks,ctr,spend,actions,cost_per_action_type,cpc,cpm,frequency,unique_clicks,unique_ctr,cost_per_unique_click,quality_ranking,engagement_rate_ranking,conversion_rate_ranking,video_avg_time_watched_actions,video_p25_watched_actions,video_p50_watched_actions,video_p75_watched_actions,video_p100_watched_actions';
         if (effectiveLevel === 'adset') {
           fields = 'adset_id,adset_name,' + fields;
         } else if (effectiveLevel === 'ad') {
@@ -129,6 +129,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             roas: 0,
             engagement: clicks,
             frequency: parseFloat(row.frequency || '0'),
+            // Extended fields
+            uniqueClicks: row.unique_clicks ? parseInt(row.unique_clicks) : undefined,
+            uniqueCtr: row.unique_ctr ? parseFloat(row.unique_ctr) : undefined,
+            costPerUniqueClick: row.cost_per_unique_click ? parseFloat(row.cost_per_unique_click) : undefined,
+            qualityRanking: row.quality_ranking || undefined,
+            engagementRateRanking: row.engagement_rate_ranking || undefined,
+            conversionRateRanking: row.conversion_rate_ranking || undefined,
+            videoMetrics: extractVideoMetrics(row),
           });
         });
 
@@ -194,4 +202,20 @@ function extractCPA(costPerAction: any[]): number {
     a.action_type === 'purchase'
   );
   return cpa ? parseFloat(cpa.value || '0') : 0;
+}
+
+function extractVideoMetrics(row: any): { avgWatchTime?: number; p25?: number; p50?: number; p75?: number; p100?: number } | undefined {
+  const avgWatch = row.video_avg_time_watched_actions?.[0]?.value;
+  const p25 = row.video_p25_watched_actions?.[0]?.value;
+  const p50 = row.video_p50_watched_actions?.[0]?.value;
+  const p75 = row.video_p75_watched_actions?.[0]?.value;
+  const p100 = row.video_p100_watched_actions?.[0]?.value;
+  if (!avgWatch && !p25 && !p50 && !p75 && !p100) return undefined;
+  return {
+    avgWatchTime: avgWatch ? parseFloat(avgWatch) : undefined,
+    p25: p25 ? parseInt(p25) : undefined,
+    p50: p50 ? parseInt(p50) : undefined,
+    p75: p75 ? parseInt(p75) : undefined,
+    p100: p100 ? parseInt(p100) : undefined,
+  };
 }

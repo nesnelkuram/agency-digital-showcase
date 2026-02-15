@@ -2,36 +2,36 @@ import { generateJSON } from '../geminiClient';
 import type {
   NormalizedData,
   ResearchFindings,
-  SynthesizedAnalysis,
+  StrategistOutput,
   BusinessContextInput,
   ConsumerTestOutput,
 } from '../types';
 
 export async function runConsumerTest(
   normalizedData: NormalizedData,
-  synthesizedAnalysis: SynthesizedAnalysis,
+  strategistOutput: StrategistOutput,
   researchFindings: ResearchFindings | null,
   businessContext?: BusinessContextInput,
 ): Promise<ConsumerTestOutput> {
 
   // Build strategy summary for consumer personas to react to
-  const bp = synthesizedAnalysis.brandPersonality;
-  const pos = synthesizedAnalysis.positioning;
+  const ta = strategistOutput.targetAudience;
+  const targetAudienceSummary = typeof ta === 'string'
+    ? ta
+    : `${ta.primarySegment?.demographics || 'Belirtilmedi'} — ${ta.primarySegment?.behavioralProfile || ''}`;
 
   const strategySummary = `
-- Marka Arktipi: ${bp.archetype}
-- Kisilik Ozellikleri: ${bp.traits.join(', ')}
-- Iletisim Tonu: ${bp.tone}
-- Marka Sesi: ${bp.voice}
-- Konumlandirma: ${pos.statement}
-- Hedef Kitle: ${pos.targetAudience}
-- Farklilik: ${pos.differentiator}
-- Rekabet Avantaji: ${pos.competitiveAdvantage}
-- Icerik Sutunlari: ${synthesizedAnalysis.contentStrategy.pillars.join(', ')}
-- Anahtar Mesajlar: ${synthesizedAnalysis.contentStrategy.keyMessages.join('; ')}`;
+- Marka Arktipi: ${strategistOutput.archetype}
+- Kisilik Ozellikleri: ${strategistOutput.traits.join(', ')}
+- Iletisim Tonu: ${strategistOutput.tone}
+- Marka Sesi: ${strategistOutput.voice}
+- Konumlandirma: ${strategistOutput.positioningStatement}
+- Hedef Kitle: ${targetAudienceSummary}
+- Farklilik: ${strategistOutput.differentiator}
+- Rekabet Avantaji: ${strategistOutput.competitiveAdvantage}`;
 
   // Build target segment info
-  const segments = pos.targetSegments || [];
+  const segments = typeof ta === 'string' ? [] : [ta.primarySegment, ta.secondarySegment].filter(Boolean);
   const segmentInfo = segments.map(s =>
     `- ${s.segmentLabel}: ${s.demographics} | ${s.behavioralProfile} | Ihtiyac: ${s.coreNeed}`
   ).join('\n');

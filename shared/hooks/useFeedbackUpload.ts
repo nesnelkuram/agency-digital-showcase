@@ -5,6 +5,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { createFeedbackVideo, updateFeedbackVideo } from '@/shared/services/feedbackService';
 import type { FeedbackVideo, RecordingMode } from '@/shared/types/feedback';
 
+const MAX_VIDEO_SIZE_MB = 300;
+const MAX_VIDEO_SIZE_BYTES = MAX_VIDEO_SIZE_MB * 1024 * 1024;
+
 interface UseFeedbackUploadReturn {
   uploading: boolean;
   uploadProgress: number;
@@ -161,6 +164,12 @@ export function useFeedbackUpload(): UseFeedbackUploadReturn {
         return null;
       }
 
+      if (blob.size > MAX_VIDEO_SIZE_BYTES) {
+        const sizeMB = Math.round(blob.size / (1024 * 1024));
+        setError(`Video cok buyuk (${sizeMB}MB). Maksimum ${MAX_VIDEO_SIZE_MB}MB yuklenebilir.`);
+        return null;
+      }
+
       setUploading(true);
       setUploadProgress(0);
       setError(null);
@@ -298,8 +307,25 @@ export function useFeedbackUpload(): UseFeedbackUploadReturn {
 
         return video;
       } catch (err: any) {
-        console.error('[FeedbackUpload] Error:', err);
-        setError(err.message || 'Video yuklenirken hata olustu');
+        const code = err?.code || '';
+        const sizeMB = Math.round(blob.size / (1024 * 1024));
+        console.error('[FeedbackUpload] Error:', {
+          code,
+          message: err?.message,
+          serverResponse: err?.serverResponse,
+          blobSize: `${sizeMB}MB`,
+          mimeType,
+          fullError: err,
+        });
+        if (code === 'storage/retry-limit-exceeded') {
+          setError(`Yukleme zaman asimina ugradi (${sizeMB}MB). Lutfen internet baglantinizi kontrol edip tekrar deneyin.`);
+        } else if (code === 'storage/unauthorized') {
+          setError('Yukleme yetkisi yok. Lutfen tekrar giris yapin.');
+        } else if (code === 'storage/canceled') {
+          setError('Yukleme iptal edildi.');
+        } else {
+          setError(err.message || 'Video yuklenirken hata olustu');
+        }
         return null;
       } finally {
         setUploading(false);

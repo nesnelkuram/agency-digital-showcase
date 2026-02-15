@@ -88,6 +88,58 @@ export const CAMPAIGN_STATUS_COLORS: Record<CampaignStatus, string> = {
 };
 
 // ============================================
+// META EFFECTIVE STATUS
+// ============================================
+
+export const EFFECTIVE_STATUS_LABELS: Record<string, string> = {
+  active: 'Aktif',
+  in_process: 'Isleniyor',
+  with_issues: 'Sorunlu',
+  campaign_paused: 'Kampanya Duraklatildi',
+  adset_paused: 'Reklam Seti Duraklatildi',
+  disapproved: 'Reddedildi',
+  pending_review: 'Onay Bekliyor',
+  preapproved: 'On Onayli',
+  pending_billing: 'Fatura Bekliyor',
+  archived: 'Arsivlendi',
+  deleted: 'Silindi',
+  paused: 'Duraklatildi',
+  learning: 'Ogrenme Asamasinda',
+};
+
+export const EFFECTIVE_STATUS_COLORS: Record<string, string> = {
+  active: 'bg-emerald-100 text-emerald-700',
+  in_process: 'bg-blue-100 text-blue-700',
+  with_issues: 'bg-red-100 text-red-700',
+  campaign_paused: 'bg-yellow-100 text-yellow-700',
+  adset_paused: 'bg-yellow-100 text-yellow-700',
+  disapproved: 'bg-red-100 text-red-700',
+  pending_review: 'bg-orange-100 text-orange-700',
+  preapproved: 'bg-green-100 text-green-700',
+  pending_billing: 'bg-orange-100 text-orange-700',
+  archived: 'bg-neutral-100 text-neutral-600',
+  deleted: 'bg-neutral-100 text-neutral-500',
+  paused: 'bg-yellow-100 text-yellow-700',
+  learning: 'bg-purple-100 text-purple-700',
+};
+
+export const QUALITY_RANKING_LABELS: Record<string, string> = {
+  BELOW_AVERAGE_10: 'Ortalama Alti (Alt %10)',
+  BELOW_AVERAGE_20: 'Ortalama Alti (Alt %20)',
+  BELOW_AVERAGE_35: 'Ortalama Alti (Alt %35)',
+  AVERAGE: 'Ortalama',
+  ABOVE_AVERAGE: 'Ortalamanin Ustu',
+};
+
+export const QUALITY_RANKING_COLORS: Record<string, string> = {
+  BELOW_AVERAGE_10: 'text-red-600',
+  BELOW_AVERAGE_20: 'text-red-500',
+  BELOW_AVERAGE_35: 'text-orange-500',
+  AVERAGE: 'text-yellow-600',
+  ABOVE_AVERAGE: 'text-green-600',
+};
+
+// ============================================
 // BUTCE YONETIMI
 // ============================================
 
@@ -207,7 +259,21 @@ export interface AdSet {
     ctr: number;
     cpa: number;
     conversions: number;
+    reach?: number;
+    frequency?: number;
+    qualityRanking?: string;
+    engagementRateRanking?: string;
+    conversionRateRanking?: string;
   };
+  // Extended Meta fields
+  effectiveStatus?: string;        // ACTIVE, LEARNING, WITH_ISSUES, etc.
+  billingEvent?: string;           // IMPRESSIONS, LINK_CLICKS, etc.
+  pacingType?: string[];           // standard, no_pacing
+  attributionSpec?: Record<string, any>;
+  promotedObject?: Record<string, any>; // pixel_id, page_id, etc.
+  frequencyControlSpecs?: any[];
+  dailyMinSpendTarget?: number;
+  dailySpendCap?: number;
 }
 
 export interface Ad {
@@ -227,6 +293,14 @@ export interface Ad {
     ctr: number;
     conversions: number;
   };
+  // Extended Meta fields
+  effectiveStatus?: string;        // ACTIVE, DISAPPROVED, PENDING_REVIEW, etc.
+  previewShareableLink?: string;   // Meta ad preview URL
+  recommendations?: Array<{
+    title: string;
+    message: string;
+    code: string;
+  }>;
 }
 
 export interface AdCreative {
@@ -408,7 +482,9 @@ export interface PerformanceSnapshot {
   date: string;                    // YYYY-MM-DD
   level?: 'campaign' | 'adset' | 'ad'; // Metric seviyesi
   adSetId?: string;                // Ad set seviye ise
+  adSetName?: string;
   adId?: string;                   // Ad seviye ise
+  adName?: string;
   impressions: number;
   reach: number;
   clicks: number;
@@ -424,6 +500,20 @@ export interface PerformanceSnapshot {
   leads?: number;
   frequency?: number;
   qualityScore?: number;
+  // Extended Meta fields
+  uniqueClicks?: number;
+  uniqueCtr?: number;
+  costPerUniqueClick?: number;
+  qualityRanking?: string;         // BELOW_AVERAGE_10, AVERAGE, ABOVE_AVERAGE
+  engagementRateRanking?: string;
+  conversionRateRanking?: string;
+  videoMetrics?: {
+    avgWatchTime?: number;
+    p25?: number;
+    p50?: number;
+    p75?: number;
+    p100?: number;
+  };
 }
 
 export interface CampaignPerformance {
@@ -529,6 +619,13 @@ export interface MarketingCampaign {
   lastSyncAt?: Timestamp;
   syncStatus?: 'idle' | 'syncing' | 'success' | 'error';
   syncError?: string;
+
+  // Extended Meta campaign fields
+  effectiveStatus?: string;        // ACTIVE, IN_PROCESS, WITH_ISSUES, etc.
+  buyingType?: string;             // AUCTION, RESERVED
+  spendCap?: number;
+  budgetRemaining?: number;
+  specialAdCategories?: string[];
 
   createdAt: Timestamp;
   updatedAt: Timestamp;

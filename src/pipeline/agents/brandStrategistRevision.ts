@@ -1,11 +1,12 @@
 import { generateJSON } from '../geminiClient';
-import type { NormalizedData, ResearchFindings, StrategistOutput, ChallengerOutput } from '../types';
+import type { NormalizedData, ResearchFindings, StrategistOutput, ChallengerOutput, ConsumerTestOutput } from '../types';
 
 export async function runBrandStrategistRevision(
   normalizedData: NormalizedData,
   originalOutput: StrategistOutput,
   challengerOutput: ChallengerOutput,
   researchFindings: ResearchFindings | null,
+  consumerTestOutput?: ConsumerTestOutput,
 ): Promise<StrategistOutput> {
 
   // Format original strategy
@@ -43,6 +44,34 @@ ${competitorSummary}
 - Trendler: ${researchFindings.marketData.consumerTrends.join('; ') || 'N/A'}`;
   }
 
+  // Build consumer test feedback section (if available)
+  let consumerFeedbackSection = '';
+  if (consumerTestOutput) {
+    const topConcerns = consumerTestOutput.crossPersonaConcerns.join('; ');
+    const refinements = consumerTestOutput.strategyRefinements.join('; ');
+    const personaSummary = consumerTestOutput.personas
+      .map(p => `- ${p.personaLabel}: Uyum=${p.alignmentScore}/100, Satin alma=${p.purchaseLikelihood}. Endiseler: ${p.concerns.slice(0, 2).join('; ')}`)
+      .join('\n');
+
+    consumerFeedbackSection = `
+
+## TUKETICI SIMULASYONU SONUCLARI
+Genel Pazar Uygunluk Skoru: ${consumerTestOutput.overallViabilityScore}/100
+Pazar Hazirlik: ${consumerTestOutput.marketReadiness}
+
+### Persona Tepkileri
+${personaSummary}
+
+### Ortak Endiseler
+${topConcerns}
+
+### Iyilestirme Onerileri
+${refinements}
+
+### En Guclu Eslesen: ${consumerTestOutput.strongestFit}
+### En Zayif Eslesen: ${consumerTestOutput.weakestFit}`;
+  }
+
   const prompt = `Sen deneyimli bir marka strateji uzmanisin. Orijinal strateji onerilerini bir SEYTAN AVUKATI inceledi ve elestiriler yapti. Simdi bu elestirileri tek tek degerlendirecek ve stratejini savunacak veya revize edeceksin.
 
 ## Isletme
@@ -78,12 +107,13 @@ ${blindSpotsList}
 ### Risk Degerlendirmesi
 ${challengerOutput.riskAssessment}
 ${researchContext}
+${consumerFeedbackSection}
 
 ---
 
-GOREV: Her elestiriyi tek tek degerlendir:
+GOREV: ${consumerTestOutput ? 'Hem seytan avukatinin hem de tuketici simulasyonunun geri bildirimlerini degerlendir' : 'Her elestiriyi tek tek degerlendir'}:
 - Hakli olan elestirileri KABUL ET ve stratejiyi buna gore REVIZE ET
-- Haksiz olan elestirileri KANITLARLA REDDET ve orijinal pozisyonunu koru
+- Haksiz olan elestirileri KANITLARLA REDDET ve orijinal pozisyonunu koru${consumerTestOutput ? '\n- Tuketici endiselerini ciddiye al — dusuk uyum skorlu personaların sorunlarini gider' : ''}
 - Kor noktalari gidermeye calis
 
 REVIZE EDILMIS stratejiyi asagidaki JSON yapisinda don (ORIJINAL ile AYNI yapi):

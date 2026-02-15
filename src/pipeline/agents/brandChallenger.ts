@@ -119,7 +119,8 @@ KRITIK KURALLAR:
 6. BOS LAF YASAK: "Hedef kitle daha da daraltilabilir" gibi GENEL ifadeler YASAK. "Arastirmaya gore [segment X] %Y buyume gosteriyor, stratejist bunu dahil etmemis" gibi SPESIFIK ol.
 7. ${hasResearch ? 'Sektor arastirmasi bulgularini DOGRUDAN referans goster. Rakip isimlerini kullan.' : 'Sektor arastirmasi mevcut degil, genel sektor bilgini kullanarak somut elestiriler sun.'}
 8. Tum metinler TURKCE olmali.
-9. Sadece JSON don, baska bir sey yazma.`;
+9. Sadece JSON don, baska bir sey yazma.
+10. GROUNDING KONTROLU: Her iddianda arastirma verisinde kanit olup olmadigini belirt. Arastirma verisinde dogrudan kaniti OLMAYAN bir iddia yapiyorsan, bunu ACIKCA isaretle: "(Sektor genel bilgisine dayali — arastirmada dogrudan kanit bulunamadi)". Bu sayede stratejist hangi elestirilerin DOGRULANMIS veriye, hangilerinin VARSAYIMA dayandigini bilir.`;
 
   const parsed = await generateJSON<ChallengerOutput>('pro', prompt, 'BrandChallenger', {
     temperature: 0.8,

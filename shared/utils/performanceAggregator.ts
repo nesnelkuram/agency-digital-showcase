@@ -190,3 +190,102 @@ export function aggregateByAd(snapshots: PerformanceSnapshot[]): EntityAggregate
     cpm: data.impressions > 0 ? (data.spend / data.impressions) * 1000 : 0,
   }));
 }
+
+// ============================================
+// PERIOD COMPARISON & EXPORT
+// ============================================
+
+export interface PeriodComparison {
+  current: AggregatedMetrics;
+  previous: AggregatedMetrics;
+  changes: {
+    spend: number;
+    impressions: number;
+    clicks: number;
+    conversions: number;
+    ctr: number;
+    cpc: number;
+    cpm: number;
+  };
+}
+
+/**
+ * Compare current period with previous period.
+ * Returns percentage change for each metric.
+ */
+export function comparePeriods(snapshots: PerformanceSnapshot[], days: number = 7): PeriodComparison {
+  const now = new Date();
+  const cutoff = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+  const prevCutoff = new Date(cutoff.getTime() - days * 24 * 60 * 60 * 1000);
+
+  const current = snapshots.filter(s => new Date(s.date) >= cutoff);
+  const previous = snapshots.filter(s => {
+    const d = new Date(s.date);
+    return d >= prevCutoff && d < cutoff;
+  });
+
+  const sumMetrics = (arr: PerformanceSnapshot[]) => {
+    const imp = arr.reduce((s, a) => s + (a.impressions || 0), 0);
+    const clk = arr.reduce((s, a) => s + (a.clicks || 0), 0);
+    const spd = arr.reduce((s, a) => s + (a.spend || 0), 0);
+    const cnv = arr.reduce((s, a) => s + (a.conversions || 0), 0);
+    const rch = arr.reduce((s, a) => s + (a.reach || 0), 0);
+    return {
+      date: '',
+      impressions: imp,
+      clicks: clk,
+      spend: spd,
+      conversions: cnv,
+      reach: rch,
+      ctr: imp > 0 ? (clk / imp) * 100 : 0,
+      cpc: clk > 0 ? spd / clk : 0,
+      cpm: imp > 0 ? (spd / imp) * 1000 : 0,
+      roas: 0,
+    };
+  };
+
+  const cur = sumMetrics(current);
+  const prev = sumMetrics(previous);
+
+  const pctChange = (c: number, p: number) => p > 0 ? ((c - p) / p) * 100 : c > 0 ? 100 : 0;
+
+  return {
+    current: cur,
+    previous: prev,
+    changes: {
+      spend: pctChange(cur.spend, prev.spend),
+      impressions: pctChange(cur.impressions, prev.impressions),
+      clicks: pctChange(cur.clicks, prev.clicks),
+      conversions: pctChange(cur.conversions, prev.conversions),
+      ctr: pctChange(cur.ctr, prev.ctr),
+      cpc: pctChange(cur.cpc, prev.cpc),
+      cpm: pctChange(cur.cpm, prev.cpm),
+    },
+  };
+}
+
+/**
+ * Export snapshots as CSV string.
+ */
+export function exportToCSV(snapshots: PerformanceSnapshot[]): string {
+  const headers = ['Tarih', 'Platform', 'Seviye', 'Reklam Seti', 'Reklam', 'Harcama', 'Gosterim', 'Erisim', 'Tiklama', 'CTR', 'Donusum', 'CPA', 'CPC', 'CPM', 'Frekans'];
+  const rows = snapshots.map(s => [
+    s.date,
+    s.platform,
+    s.level || 'campaign',
+    s.adSetName || s.adSetId || '',
+    s.adName || s.adId || '',
+    s.spend.toFixed(2),
+    s.impressions,
+    s.reach,
+    s.clicks,
+    s.ctr.toFixed(2),
+    s.conversions,
+    s.cpa.toFixed(2),
+    s.cpc.toFixed(2),
+    s.cpm.toFixed(2),
+    s.frequency?.toFixed(2) || '',
+  ].join(','));
+
+  return [headers.join(','), ...rows].join('\n');
+}

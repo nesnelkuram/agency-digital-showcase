@@ -44,6 +44,14 @@ export default defineConfig(({ mode }) => {
         sourcemap: false,
         assetsInlineLimit: 4096,
       },
+      server: {
+        proxy: {
+          '/api': {
+            target: 'http://localhost:3000',
+            changeOrigin: true,
+          },
+        },
+      },
       optimizeDeps: {
         include: ['three', '@react-three/fiber', '@react-three/drei', 'firebase/app', 'firebase/auth', 'firebase/firestore'],
       },

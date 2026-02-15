@@ -12,9 +12,15 @@ import {
   Upload,
   Loader2,
   Mic,
+  FileText,
+  Send,
 } from 'lucide-react';
 import { useFeedbackRecorder } from '@/shared/hooks/useFeedbackRecorder';
 import { useFeedbackUpload } from '@/shared/hooks/useFeedbackUpload';
+import { useDocumentPiP } from '@/shared/hooks/useDocumentPiP';
+import { useAuth } from '@/contexts/AuthContext';
+import { createTextFeedback } from '@/shared/services/feedbackService';
+import PiPRecordingControls from './components/PiPRecordingControls';
 import type { RecordingMode } from '@/shared/types/feedback';
 import { formatDuration } from '@/shared/types/feedback';
 
@@ -24,7 +30,7 @@ interface RecordFeedbackModalProps {
 }
 
 // Steps where modal is shown (recording uses floating bar instead)
-type ModalStep = 'select' | 'preview';
+type ModalStep = 'select' | 'preview' | 'text';
 
 const RecordFeedbackModal: React.FC<RecordFeedbackModalProps> = ({ onClose, onComplete }) => {
   const [step, setStep] = useState<ModalStep>('select');
@@ -35,8 +41,18 @@ const RecordFeedbackModal: React.FC<RecordFeedbackModalProps> = ({ onClose, onCo
   const [uploadedBlob, setUploadedBlob] = useState<Blob | null>(null);
   const [uploadedDuration, setUploadedDuration] = useState(0);
 
+  // Text feedback state
+  const [textTitle, setTextTitle] = useState('');
+  const [textContent, setTextContent] = useState('');
+  const [textSubmitting, setTextSubmitting] = useState(false);
+  const [textError, setTextError] = useState<string | null>(null);
+
+  const { user } = useAuth();
   const recorder = useFeedbackRecorder();
   const uploader = useFeedbackUpload();
+
+  // Document PiP: when PiP window is closed by user, fallback to in-page bar
+  const pip = useDocumentPiP();
 
   // Determine the active blob/duration/mode (recorder or uploaded file)
   const activeBlob = recorder.recordedBlob || uploadedBlob;
@@ -71,18 +87,36 @@ const RecordFeedbackModal: React.FC<RecordFeedbackModalProps> = ({ onClose, onCo
 
   const handleSelectMode = async (mode: RecordingMode) => {
     await recorder.startRecording(mode);
-    // No setStep - recording uses floating bar, modal disappears
+    // No setStep - recording uses floating bar (or PiP), modal disappears
   };
 
   const handleStop = async () => {
+    pip.closePiP();
     await recorder.stopRecording();
     setStep('preview');
+  };
+
+  const handleStopFromPiP = () => {
+    // Can't await in PiP callback (window may close), so fire-and-forget
+    pip.closePiP();
+    recorder.stopRecording().then(() => setStep('preview'));
+  };
+
+  const handleCancelFromPiP = () => {
+    pip.closePiP();
+    recorder.cancelRecording();
+    setUploadedBlob(null);
+    setUploadedDuration(0);
+    onClose();
   };
 
   const handleRetake = () => {
     recorder.cancelRecording();
     setUploadedBlob(null);
     setUploadedDuration(0);
+    setTextTitle('');
+    setTextContent('');
+    setTextError(null);
     setStep('select');
   };
 
@@ -113,12 +147,69 @@ const RecordFeedbackModal: React.FC<RecordFeedbackModalProps> = ({ onClose, onCo
     setStep('preview');
   };
 
+  const handleTextSubmit = async () => {
+    if (!textContent.trim() || !user) return;
+
+    setTextSubmitting(true);
+    setTextError(null);
+    try {
+      await createTextFeedback(
+        {
+          title: textTitle.trim() || 'Yazili Geribildirim',
+          textContent: textContent.trim(),
+        },
+        user.uid,
+        user.displayName || user.email || 'Unknown'
+      );
+      onComplete();
+    } catch (err) {
+      console.error('[RecordFeedbackModal] Text feedback error:', err);
+      setTextError('Geribildirim gonderilemedi. Lutfen tekrar deneyin.');
+    } finally {
+      setTextSubmitting(false);
+    }
+  };
+
   const handleCancel = () => {
+    pip.closePiP();
     recorder.cancelRecording();
     setUploadedBlob(null);
     setUploadedDuration(0);
+    setTextTitle('');
+    setTextContent('');
+    setTextError(null);
     onClose();
   };
+
+  // ── PiP: Open PiP when recording starts, update content on state changes ──
+  // All hooks MUST be above early returns to satisfy Rules of Hooks.
+  const pipContent = recorder.isRecording ? (
+    <PiPRecordingControls
+      duration={recorder.duration}
+      isPaused={recorder.isPaused}
+      recordingMode={recorder.recordingMode}
+      onPause={recorder.pauseRecording}
+      onResume={recorder.resumeRecording}
+      onStop={handleStopFromPiP}
+      onCancel={handleCancelFromPiP}
+    />
+  ) : null;
+
+  // Open PiP when recording starts
+  useEffect(() => {
+    if (recorder.isRecording && pip.isPiPSupported && !pip.isPiPOpen) {
+      pip.openPiP(pipContent);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recorder.isRecording]);
+
+  // Keep PiP content in sync with recording state changes (duration, pause, etc.)
+  useEffect(() => {
+    if (pip.isPiPOpen && pipContent) {
+      pip.updatePiPContent(pipContent);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recorder.duration, recorder.isPaused, pip.isPiPOpen]);
 
   if (!recorder.isSupported) {
     return (
@@ -136,8 +227,13 @@ const RecordFeedbackModal: React.FC<RecordFeedbackModalProps> = ({ onClose, onCo
     );
   }
 
-  // ── RECORDING STATE: Show floating bar, NO modal ──
+  // ── RECORDING STATE: PiP open → nothing in-page; PiP closed/unsupported → floating bar ──
   if (recorder.isRecording) {
+    if (pip.isPiPOpen) {
+      // PiP is showing controls — no in-page UI needed
+      return null;
+    }
+    // Fallback: PiP not supported or was closed by user
     return (
       <FloatingRecordingBar
         duration={recorder.duration}
@@ -203,8 +299,8 @@ const RecordFeedbackModal: React.FC<RecordFeedbackModalProps> = ({ onClose, onCo
               ))}
             </div>
 
-            {/* File upload option */}
-            <div className="border-t border-neutral-100 pt-4">
+            {/* File upload & text feedback options */}
+            <div className="border-t border-neutral-100 pt-4 space-y-3">
               <button
                 onClick={() => fileInputRef.current?.click()}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-neutral-200 hover:border-indigo-400 text-neutral-500 hover:text-indigo-600 transition-colors font-commons text-sm"
@@ -219,6 +315,89 @@ const RecordFeedbackModal: React.FC<RecordFeedbackModalProps> = ({ onClose, onCo
                 className="hidden"
                 onChange={handleFileUpload}
               />
+
+              <button
+                onClick={() => setStep('text')}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-neutral-200 hover:border-emerald-400 text-neutral-500 hover:text-emerald-600 transition-colors font-commons text-sm"
+              >
+                <FileText className="w-4 h-4" />
+                Yazili Geribildirim
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Step: Text Feedback */}
+        {step === 'text' && (
+          <motion.div
+            key="text"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="space-y-5"
+          >
+            <div className="text-center">
+              <h2 className="text-xl font-ramillas font-bold text-[#171717]">
+                Yazili Geribildirim
+              </h2>
+              <p className="text-sm font-commons text-neutral-500 mt-1">
+                Dusuncelerinizi yazarak paylasabilirsiniz
+              </p>
+            </div>
+
+            {textError && (
+              <div className="bg-red-50 text-red-700 text-sm font-commons px-4 py-3 rounded-xl">
+                {textError}
+              </div>
+            )}
+
+            <div className="space-y-3">
+              <input
+                type="text"
+                value={textTitle}
+                onChange={(e) => setTextTitle(e.target.value)}
+                placeholder="Baslik (opsiyonel)"
+                className="w-full px-4 py-3 rounded-xl border border-neutral-200 font-commons text-sm focus:outline-none focus:border-indigo-400 transition-colors"
+              />
+              <textarea
+                value={textContent}
+                onChange={(e) => setTextContent(e.target.value)}
+                placeholder="Geribildiriminizi buraya yazin..."
+                rows={6}
+                className="w-full px-4 py-3 rounded-xl border border-neutral-200 font-commons text-sm focus:outline-none focus:border-indigo-400 transition-colors resize-none"
+              />
+              <p className="text-xs font-commons text-neutral-400 text-right">
+                {textContent.length} karakter
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <button
+                onClick={handleRetake}
+                disabled={textSubmitting}
+                className="px-4 py-2.5 rounded-full border border-neutral-200 font-commons text-sm text-neutral-600 hover:bg-neutral-50 transition-colors disabled:opacity-50"
+              >
+                Geri
+              </button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleTextSubmit}
+                disabled={!textContent.trim() || textSubmitting}
+                className="flex items-center gap-2 px-6 py-2.5 bg-[#171717] text-white rounded-full font-commons text-sm font-medium hover:bg-[#171717]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {textSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Gonderiliyor
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    Gonder
+                  </>
+                )}
+              </motion.button>
             </div>
           </motion.div>
         )}
