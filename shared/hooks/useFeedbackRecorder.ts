@@ -51,6 +51,66 @@ const RECORDING_CONFIG: Record<RecordingMode, {
   },
 };
 
+// Write ASCII string into DataView at given offset
+function writeString(view: DataView, offset: number, str: string): void {
+  for (let i = 0; i < str.length; i++) {
+    view.setUint8(offset + i, str.charCodeAt(i));
+  }
+}
+
+/**
+ * Creates a silent audio loop that keeps Chrome from throttling the tab.
+ * Chrome marks tabs playing audio as "audible" and exempts them from
+ * aggressive background throttling — AudioContext stays running and
+ * timers are less restricted.
+ * Returns a cleanup function to stop playback.
+ */
+function startSilentKeepAlive(): () => void {
+  const sampleRate = 8000;
+  const numSamples = sampleRate; // 1 second
+  const dataSize = numSamples * 2; // 16-bit = 2 bytes per sample
+  const buffer = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(buffer);
+
+  // RIFF header
+  writeString(view, 0, 'RIFF');
+  view.setUint32(4, 36 + dataSize, true);
+  writeString(view, 8, 'WAVE');
+
+  // fmt sub-chunk
+  writeString(view, 12, 'fmt ');
+  view.setUint32(16, 16, true);           // sub-chunk size
+  view.setUint16(20, 1, true);            // PCM format
+  view.setUint16(22, 1, true);            // mono
+  view.setUint32(24, sampleRate, true);    // sample rate
+  view.setUint32(28, sampleRate * 2, true); // byte rate
+  view.setUint16(32, 2, true);            // block align
+  view.setUint16(34, 16, true);           // bits per sample
+
+  // data sub-chunk
+  writeString(view, 36, 'data');
+  view.setUint32(40, dataSize, true);
+
+  // PCM samples: value 1 (near-silent but not zero — zero can be treated as "no audio")
+  for (let i = 0; i < numSamples; i++) {
+    view.setInt16(44 + i * 2, 1, true);
+  }
+
+  const blob = new Blob([buffer], { type: 'audio/wav' });
+  const url = URL.createObjectURL(blob);
+  const audio = document.createElement('audio');
+  audio.src = url;
+  audio.loop = true;
+  audio.volume = 0.01; // 1% volume — inaudible but Chrome considers it "audible"
+  audio.play().catch(() => {});
+
+  return () => {
+    audio.pause();
+    audio.src = '';
+    URL.revokeObjectURL(url);
+  };
+}
+
 export function useFeedbackRecorder(): UseFeedbackRecorderReturn {
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -76,6 +136,7 @@ export function useFeedbackRecorder(): UseFeedbackRecorderReturn {
   const isPageVisibleRef = useRef(true);
   const visibilityHandlerRef = useRef<(() => void) | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const keepAliveCleanupRef = useRef<(() => void) | null>(null);
   const startTimeRef = useRef<number>(0);
   const pausedAtRef = useRef<number>(0);
   const pausedDurationRef = useRef<number>(0);
@@ -109,6 +170,10 @@ export function useFeedbackRecorder(): UseFeedbackRecorderReturn {
     if (audioContextRef.current) {
       audioContextRef.current.close().catch(() => {});
       audioContextRef.current = null;
+    }
+    if (keepAliveCleanupRef.current) {
+      keepAliveCleanupRef.current();
+      keepAliveCleanupRef.current = null;
     }
     setPreviewStream(null);
   }, []);
@@ -329,6 +394,9 @@ export function useFeedbackRecorder(): UseFeedbackRecorderReturn {
             });
             micStreamRef.current = mic;
             recordStream = mergeAudioIntoStream(screen, mic);
+
+            // Silent audio loop keeps Chrome from throttling the background tab
+            keepAliveCleanupRef.current = startSilentKeepAlive();
 
             // Keep AudioContext alive when tab goes to background
             const handleVisibility = () => {
