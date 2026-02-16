@@ -1,6 +1,4 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getAuth } from 'firebase-admin/auth';
-import { getAdminDb } from './firebaseAdmin';
 
 // ============================================
 // Types
@@ -41,7 +39,7 @@ function extractBearerToken(req: VercelRequest): string | null {
 }
 
 // ============================================
-// User lookup helper
+// User lookup helper (lazy-loads firebase-admin)
 // ============================================
 
 interface UserRecord {
@@ -50,8 +48,18 @@ interface UserRecord {
   status?: string;
 }
 
+async function verifyTokenAndGetUid(token: string): Promise<string> {
+  const { getAdminDb } = await import('./firebaseAdmin');
+  // Ensure firebase-admin app is initialized
+  getAdminDb();
+  const { getAuth } = await import('firebase-admin/auth');
+  const decoded = await getAuth().verifyIdToken(token);
+  return decoded.uid;
+}
+
 async function lookupUser(uid: string): Promise<UserRecord | null> {
   try {
+    const { getAdminDb } = await import('./firebaseAdmin');
     const db = getAdminDb();
     const userDoc = await db.collection('users').doc(uid).get();
     if (!userDoc.exists) {
@@ -80,12 +88,7 @@ export function withAuth(handler: AuthenticatedHandler) {
     }
 
     try {
-      // Ensure firebase-admin is initialized before calling getAuth()
-      getAdminDb();
-
-      const auth = getAuth();
-      const decoded = await auth.verifyIdToken(token);
-      const uid = decoded.uid;
+      const uid = await verifyTokenAndGetUid(token);
 
       // Look up user document in Firestore
       const userRecord = await lookupUser(uid);
@@ -106,7 +109,6 @@ export function withAuth(handler: AuthenticatedHandler) {
       return await handler(authReq, res);
     } catch (err: any) {
       console.error('[withAuth] Error:', err.message);
-      // If response already sent (handler partially completed), don't send again
       if (res.headersSent) return;
       return res.status(401).json({ error: 'Invalid or expired token' });
     }
@@ -124,11 +126,7 @@ export function withAuthOptional(handler: OptionalAuthHandler) {
 
     if (token) {
       try {
-        getAdminDb();
-        const auth = getAuth();
-        const decoded = await auth.verifyIdToken(token);
-        const uid = decoded.uid;
-
+        const uid = await verifyTokenAndGetUid(token);
         const userRecord = await lookupUser(uid);
         if (userRecord && userRecord.status !== 'suspended') {
           optReq.userId = uid;

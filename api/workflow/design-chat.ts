@@ -1,6 +1,4 @@
 import type { VercelResponse } from '@vercel/node';
-import { getAdminDb } from '../_lib/firebaseAdmin';
-import { FieldValue } from 'firebase-admin/firestore';
 import { withAuth, AuthenticatedRequest } from '../_lib/withAuth';
 
 export const config = {
@@ -84,6 +82,7 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
     }
 
     // Load session from Firestore
+    const { getAdminDb } = await import('../_lib/firebaseAdmin');
     const db = getAdminDb();
     const sessionDoc = await db.collection('workflow_design_sessions').doc(sessionId).get();
 
@@ -158,7 +157,7 @@ ONEMLI: Sadece gecerli JSON don. Baska bir sey yazma.`);
     };
 
     const updateData: Record<string, any> = {
-      messages: FieldValue.arrayUnion(userMsg, assistantMsg),
+      messages: (await import('firebase-admin/firestore')).FieldValue.arrayUnion(userMsg, assistantMsg),
       updatedAt: Date.now(),
     };
 
