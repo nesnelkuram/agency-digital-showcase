@@ -55,7 +55,10 @@ const WorkflowDesignChat: React.FC<Props> = ({ onDraftUpdate }) => {
         method: 'POST',
         body: JSON.stringify({}),
       });
-      if (!res.ok) throw new Error('Oturum baslatilamadi');
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `Oturum baslatilamadi (${res.status})`);
+      }
       const data = await res.json();
       setSessionId(data.sessionId);
       setSuggestedCategories(data.suggestedCategories || []);
@@ -81,7 +84,10 @@ const WorkflowDesignChat: React.FC<Props> = ({ onDraftUpdate }) => {
         method: 'POST',
         body: JSON.stringify({ sessionId, message: text.trim() }),
       });
-      if (!res.ok) throw new Error('Yanit alinamadi');
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `Yanit alinamadi (${res.status})`);
+      }
       const data = await res.json();
       const assistantMessage: Message = {
         role: 'assistant',

@@ -100,9 +100,11 @@ export function withAuth(handler: AuthenticatedHandler) {
       authReq.tenantId = userRecord.tenantId;
       authReq.userRole = userRecord.role;
 
-      return handler(authReq, res);
+      return await handler(authReq, res);
     } catch (err: any) {
-      console.error('[withAuth] Token verification failed:', err.message);
+      console.error('[withAuth] Error:', err.message);
+      // If response already sent (handler partially completed), don't send again
+      if (res.headersSent) return;
       return res.status(401).json({ error: 'Invalid or expired token' });
     }
   };

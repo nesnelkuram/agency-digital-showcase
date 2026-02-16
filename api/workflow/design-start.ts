@@ -25,25 +25,27 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
   }
 
   try {
+    console.log('[design-start] userId:', req.userId, 'tenantId:', req.tenantId);
     const sessionId = randomUUID();
     const db = getAdminDb();
 
     await db.collection('workflow_design_sessions').doc(sessionId).set({
       id: sessionId,
-      tenantId: req.tenantId,
-      userId: req.userId,
+      tenantId: req.tenantId || '',
+      userId: req.userId || '',
       createdAt: Date.now(),
       updatedAt: Date.now(),
       messages: [],
       currentDraft: null,
     });
 
+    console.log('[design-start] Session created:', sessionId);
     return res.status(200).json({
       sessionId,
       suggestedCategories: SUGGESTED_CATEGORIES,
     });
   } catch (error: any) {
-    console.error('workflow/design-start error:', error);
+    console.error('workflow/design-start error:', error?.message, error?.stack);
     return res.status(500).json({
       error: String(error?.message || 'Failed to start design session'),
     });
