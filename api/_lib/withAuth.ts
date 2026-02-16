@@ -80,6 +80,9 @@ export function withAuth(handler: AuthenticatedHandler) {
     }
 
     try {
+      // Ensure firebase-admin is initialized before calling getAuth()
+      getAdminDb();
+
       const auth = getAuth();
       const decoded = await auth.verifyIdToken(token);
       const uid = decoded.uid;
@@ -121,6 +124,7 @@ export function withAuthOptional(handler: OptionalAuthHandler) {
 
     if (token) {
       try {
+        getAdminDb();
         const auth = getAuth();
         const decoded = await auth.verifyIdToken(token);
         const uid = decoded.uid;
