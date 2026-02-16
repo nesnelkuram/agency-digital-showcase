@@ -1,4 +1,5 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { VercelResponse } from '@vercel/node';
+import { withAuth, AuthenticatedRequest } from '../_lib/withAuth';
 
 export const config = {
   maxDuration: 120,
@@ -12,7 +13,7 @@ const GOOGLE_ADS_API = 'https://googleads.googleapis.com/v17';
  * Fetches campaigns from Google Ads API.
  * Body: { accessToken, customerId, developerToken, dateRange? }
  */
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) => {
   res.setHeader('Content-Type', 'application/json');
 
   if (req.method !== 'POST') {
@@ -155,7 +156,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.error('[sync-google] Error:', error.message);
     return res.status(500).json({ success: false, error: error.message });
   }
-}
+});
 
 function mapGoogleChannelType(type: string): string {
   const map: Record<string, string> = {

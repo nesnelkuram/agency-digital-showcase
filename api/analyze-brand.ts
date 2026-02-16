@@ -1,5 +1,6 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { VercelResponse } from '@vercel/node';
 import { GoogleGenAI } from '@google/genai';
+import { withAuthOptional, OptionalAuthRequest } from './_lib/withAuth';
 
 // Question ID → { question text, answer options } per sector
 // IDs: 3,4,5 (Stage 0), 9,10,11 (Stage 1), 15,16,17 (Stage 2), 21,22,23 (Stage 3), 27,28,29 (Stage 4)
@@ -142,7 +143,7 @@ const STAGE_QUESTION_IDS: number[][] = [
   [27, 28, 29],
 ];
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResponse) => {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -186,7 +187,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.error('Gemini analysis error:', error);
     return res.status(500).json({ error: error.message || 'Analysis failed' });
   }
-}
+});
 
 function buildPrompt(
   contact: { name: string; businessName: string; email: string },

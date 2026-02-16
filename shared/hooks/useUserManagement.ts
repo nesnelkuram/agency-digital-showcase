@@ -15,6 +15,7 @@ import {
 import { db } from '@/lib/firebase/config';
 import { User, UserRole, Invitation, InvitationStatus } from '@/shared/types/user';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTenantId } from '@/shared/hooks/useTenant';
 
 interface UseUserManagementReturn {
   users: User[];
@@ -31,6 +32,7 @@ interface UseUserManagementReturn {
 
 export function useUserManagement(): UseUserManagementReturn {
   const { user: currentUser } = useAuth();
+  const tenantId = useTenantId();
   const [users, setUsers] = useState<User[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,10 +51,11 @@ export function useUserManagement(): UseUserManagementReturn {
 
       // Fetch users and invitations in parallel
       const [usersSnapshot, invitationsSnapshot] = await Promise.all([
-        getDocs(query(collection(db, 'users'), orderBy('metadata.createdAt', 'desc'))),
+        getDocs(query(collection(db, 'users'), where('tenantId', '==', tenantId), orderBy('metadata.createdAt', 'desc'))),
         getDocs(
           query(
             collection(db, 'invitations'),
+            where('tenantId', '==', tenantId),
             where('status', '==', 'pending'),
             orderBy('createdAt', 'desc')
           )
@@ -143,6 +146,7 @@ export function useUserManagement(): UseUserManagementReturn {
       expiresAt.setDate(expiresAt.getDate() + 7); // 7 gun gecerli
 
       await setDoc(invitationRef, {
+        tenantId,
         email: email.toLowerCase(),
         displayName,
         role,

@@ -55,6 +55,7 @@ function stripUndefined(obj: any): any {
  * campaignId bazinda upsert yapar (setDoc merge).
  */
 export async function saveForecast(
+  tenantId: string,
   data: Omit<BudgetForecast, 'id' | 'createdAt'>
 ): Promise<string> {
   if (!db) throw new Error('Firebase not initialized');
@@ -66,6 +67,7 @@ export async function saveForecast(
     docRef,
     {
       ...stripUndefined(data),
+      tenantId,
       createdAt: serverTimestamp(),
     },
     { merge: true }
@@ -82,6 +84,7 @@ export async function saveForecast(
  * Bir kampanyanin en guncel butce tahminini getirir.
  */
 export async function getForecast(
+  tenantId: string,
   campaignId: string
 ): Promise<BudgetForecast | null> {
   if (!db) throw new Error('Firebase not initialized');
@@ -106,11 +109,14 @@ export async function getForecast(
  * Tum butce tahminlerini getirir, opsiyonel olarak projectId'ye gore filtreler.
  */
 export async function getForecasts(
+  tenantId: string,
   projectId?: string
 ): Promise<BudgetForecast[]> {
   if (!db) throw new Error('Firebase not initialized');
 
-  const constraints: QueryConstraint[] = [];
+  const constraints: QueryConstraint[] = [
+    where('tenantId', '==', tenantId),
+  ];
 
   if (projectId) {
     constraints.push(where('projectId', '==', projectId));
@@ -132,6 +138,7 @@ export async function getForecasts(
       console.warn('[getForecasts] Index eksik, siralanmamis sorguya donuluyor');
       const fallbackQ = query(
         collection(db, FORECASTS_COLLECTION),
+        where('tenantId', '==', tenantId),
         where('projectId', '==', projectId)
       );
       const snapshot = await getDocs(fallbackQ);
@@ -152,11 +159,12 @@ export async function getForecasts(
  * Butce tahmin ozet istatistiklerini hesaplar.
  */
 export async function getForecastSummary(
+  tenantId: string,
   projectId?: string
 ): Promise<BudgetForecastSummary> {
   if (!db) throw new Error('Firebase not initialized');
 
-  const forecasts = await getForecasts(projectId);
+  const forecasts = await getForecasts(tenantId, projectId);
 
   let totalBudgetAllCampaigns = 0;
   let totalSpentAllCampaigns = 0;
@@ -205,7 +213,7 @@ export async function getForecastSummary(
 /**
  * Bir kampanyanin butce tahminini siler.
  */
-export async function deleteForecast(campaignId: string): Promise<void> {
+export async function deleteForecast(tenantId: string, campaignId: string): Promise<void> {
   if (!db) throw new Error('Firebase not initialized');
 
   const docId = `forecast_${campaignId}`;

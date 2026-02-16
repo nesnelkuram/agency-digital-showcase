@@ -1,11 +1,11 @@
 import React from 'react';
-import { Settings, User, Bell, Shield, Link } from 'lucide-react';
+import { Settings, User, Bell, Shield, Link, Building2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermission } from '@/shared/hooks/usePermission';
 
 const SettingsPage: React.FC = () => {
   const { user } = useAuth();
-  const { isAdmin } = usePermission();
+  const { isAdmin, isSuperAdmin } = usePermission();
 
   const settingsMenus = [
     {
@@ -33,6 +33,16 @@ const SettingsPage: React.FC = () => {
             description: 'Canva, Google Drive ve diger entegrasyonlar',
             icon: <Link className="w-5 h-5" />,
             href: '/admin/settings/integrations',
+          },
+        ]
+      : []),
+    ...(isSuperAdmin()
+      ? [
+          {
+            label: 'Tenant Yonetimi',
+            description: 'Organizasyonlari olusturun ve yonetin',
+            icon: <Building2 className="w-5 h-5" />,
+            href: '/admin/settings/tenants',
           },
         ]
       : []),

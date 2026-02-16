@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Vercel environment files
+.env.vercel
+.env.vercel-pulled
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

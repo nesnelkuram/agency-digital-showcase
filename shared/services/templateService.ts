@@ -127,12 +127,14 @@ function stripUndefined(obj: any): any {
  * usageCount otomatik olarak 0 ile baslar.
  */
 export async function createTemplate(
+  tenantId: string,
   data: Omit<CampaignTemplate, 'id' | 'createdAt' | 'updatedAt' | 'usageCount'>
 ): Promise<string> {
   if (!db) throw new Error('Firebase not initialized');
 
   const templateData = {
     ...stripUndefined(data),
+    tenantId,
     usageCount: 0,
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
@@ -150,6 +152,7 @@ export async function createTemplate(
  * Kategori, platform ve arama filtresi destekler.
  */
 export async function getTemplates(
+  tenantId: string,
   filters?: {
     category?: TemplateCategory;
     platform?: AdPlatform;
@@ -159,7 +162,9 @@ export async function getTemplates(
 ): Promise<CampaignTemplate[]> {
   if (!db) throw new Error('Firebase not initialized');
 
-  const constraints: QueryConstraint[] = [];
+  const constraints: QueryConstraint[] = [
+    where('tenantId', '==', tenantId),
+  ];
 
   if (filters?.category) {
     constraints.push(where('category', '==', filters.category));
@@ -200,6 +205,7 @@ export async function getTemplates(
       console.warn('[getTemplates] Index missing, falling back to basic query');
       const fallbackQ = query(
         collection(db, TEMPLATES_COLLECTION),
+        where('tenantId', '==', tenantId),
         orderBy('createdAt', 'desc'),
         limit(pageSize)
       );
@@ -235,7 +241,7 @@ export async function getTemplates(
 /**
  * Tek bir sablonu ID ile getirir.
  */
-export async function getTemplate(id: string): Promise<CampaignTemplate | null> {
+export async function getTemplate(tenantId: string, id: string): Promise<CampaignTemplate | null> {
   if (!db) throw new Error('Firebase not initialized');
 
   const docRef = doc(db, TEMPLATES_COLLECTION, id);
@@ -253,6 +259,7 @@ export async function getTemplate(id: string): Promise<CampaignTemplate | null> 
  * Mevcut bir sablonu gunceller.
  */
 export async function updateTemplate(
+  tenantId: string,
   id: string,
   data: Partial<CampaignTemplate>
 ): Promise<void> {
@@ -268,7 +275,7 @@ export async function updateTemplate(
 /**
  * Bir sablonu siler.
  */
-export async function deleteTemplate(id: string): Promise<void> {
+export async function deleteTemplate(tenantId: string, id: string): Promise<void> {
   if (!db) throw new Error('Firebase not initialized');
 
   await deleteDoc(doc(db, TEMPLATES_COLLECTION, id));
@@ -277,7 +284,7 @@ export async function deleteTemplate(id: string): Promise<void> {
 /**
  * Sablon kullanim sayacini 1 arttirir.
  */
-export async function incrementUsageCount(id: string): Promise<void> {
+export async function incrementUsageCount(tenantId: string, id: string): Promise<void> {
   if (!db) throw new Error('Firebase not initialized');
 
   const docRef = doc(db, TEMPLATES_COLLECTION, id);
@@ -292,6 +299,7 @@ export async function incrementUsageCount(id: string): Promise<void> {
  * Kampanyanin hedefleme, platform, butce ve reklam seti bilgilerini ayiklar.
  */
 export async function createTemplateFromCampaign(
+  tenantId: string,
   campaignId: string,
   name: string,
   description: string,
@@ -301,7 +309,7 @@ export async function createTemplateFromCampaign(
 ): Promise<string> {
   if (!db) throw new Error('Firebase not initialized');
 
-  const campaign = await getCampaign(campaignId);
+  const campaign = await getCampaign(tenantId, campaignId);
   if (!campaign) throw new Error('Kampanya bulunamadi');
 
   // Kampanyadan sablon verisi ayikla
@@ -358,5 +366,5 @@ export async function createTemplateFromCampaign(
     createdByName,
   };
 
-  return createTemplate(templateData);
+  return createTemplate(tenantId, templateData);
 }

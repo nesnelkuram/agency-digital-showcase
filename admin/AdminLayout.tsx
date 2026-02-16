@@ -39,10 +39,12 @@ import {
   CalendarDays,
   FileBarChart,
   Eye,
+  GitBranch,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermission } from '@/shared/hooks/usePermission';
 import { PERMISSIONS } from '@/lib/rbac/permissions';
+import TenantSwitcher from './components/TenantSwitcher';
 
 interface NavItem {
   label: string;
@@ -98,6 +100,12 @@ const navItems: NavItem[] = [
     label: 'Danisman AI',
     path: '/admin/persona-chat',
     icon: Bot,
+  },
+  {
+    label: 'Workflows',
+    path: '/admin/workflows',
+    icon: GitBranch,
+    permission: PERMISSIONS.WORKFLOWS_VIEW,
   },
   {
     label: 'Pazarlama',
@@ -478,6 +486,9 @@ const AdminLayout: React.FC = () => {
 
             {/* Right side - intiba logo */}
             <div className="flex items-center gap-4">
+              {/* Tenant Switcher (super_admin only) */}
+              <TenantSwitcher />
+
               {/* Notifications */}
               <button className="relative p-2 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 rounded-lg transition-colors">
                 <Bell className="w-5 h-5" />

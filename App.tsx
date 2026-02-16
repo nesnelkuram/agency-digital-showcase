@@ -7,6 +7,7 @@ import { videoCache } from './utils/videoCache';
 import { useBreakpoint } from './hooks/useMediaQuery';
 import { getVideosByCategory } from './videoUtils';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { TenantProvider } from '@/contexts/TenantContext';
 
 // Lazy load heavy components
 const Header3D = lazy(() => import('./components/Header3D'));
@@ -331,7 +332,9 @@ const App: React.FC = () => {
           path="/admin/*"
           element={
             <Suspense fallback={<div className="min-h-screen" style={{ backgroundColor: '#ebeef8' }} />}>
-              <AdminApp />
+              <TenantProvider>
+                <AdminApp />
+              </TenantProvider>
             </Suspense>
           }
         />

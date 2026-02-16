@@ -1,6 +1,6 @@
 import { Timestamp } from 'firebase/firestore';
 
-export type UserRole = 'admin' | 'staff' | 'client' | 'freelancer';
+export type UserRole = 'super_admin' | 'admin' | 'staff' | 'client' | 'freelancer';
 export type UserStatus = 'active' | 'invited' | 'suspended';
 
 export interface UserMetadata {
@@ -31,6 +31,7 @@ export interface User {
   displayName: string;
   photoURL?: string;
   role: UserRole;
+  tenantId: string;
   organizationId?: string;
   permissions: string[];
   status: UserStatus;
@@ -43,5 +44,6 @@ export interface CreateUserData {
   email: string;
   displayName: string;
   role: UserRole;
+  tenantId: string;
   organizationId?: string;
 }

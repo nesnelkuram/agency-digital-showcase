@@ -53,7 +53,7 @@ function stripUndefined(obj: any): any {
 // UYARI OLUSTURMA
 // ============================================
 
-export async function createAlert(data: CreateAlertData): Promise<string> {
+export async function createAlert(tenantId: string, data: CreateAlertData): Promise<string> {
   if (!db) throw new Error('Firebase not initialized');
 
   const alertData: Omit<MarketingAlert, 'id'> = {
@@ -64,7 +64,7 @@ export async function createAlert(data: CreateAlertData): Promise<string> {
 
   const docRef = await addDoc(
     collection(db, ALERTS_COLLECTION),
-    alertData
+    { ...alertData, tenantId }
   );
   return docRef.id;
 }
@@ -74,13 +74,16 @@ export async function createAlert(data: CreateAlertData): Promise<string> {
 // ============================================
 
 export async function getAlerts(
+  tenantId: string,
   projectId?: string,
   filters?: AlertFilters,
   maxAlerts: number = 50
 ): Promise<MarketingAlert[]> {
   if (!db) throw new Error('Firebase not initialized');
 
-  const constraints: QueryConstraint[] = [];
+  const constraints: QueryConstraint[] = [
+    where('tenantId', '==', tenantId),
+  ];
 
   if (projectId) {
     constraints.push(where('projectId', '==', projectId));
@@ -116,12 +119,14 @@ export async function getAlerts(
       const fallbackQ = projectId
         ? query(
             collection(db, ALERTS_COLLECTION),
+            where('tenantId', '==', tenantId),
             where('projectId', '==', projectId),
             orderBy('createdAt', 'desc'),
             limit(maxAlerts)
           )
         : query(
             collection(db, ALERTS_COLLECTION),
+            where('tenantId', '==', tenantId),
             orderBy('createdAt', 'desc'),
             limit(maxAlerts)
           );
@@ -139,10 +144,11 @@ export async function getAlerts(
 // OKUNMAMIS UYARI SAYISI
 // ============================================
 
-export async function getUnreadAlertCount(projectId?: string): Promise<number> {
+export async function getUnreadAlertCount(tenantId: string, projectId?: string): Promise<number> {
   if (!db) throw new Error('Firebase not initialized');
 
   const constraints: QueryConstraint[] = [
+    where('tenantId', '==', tenantId),
     where('status', '==', 'unread'),
   ];
 
@@ -166,7 +172,7 @@ export async function getUnreadAlertCount(projectId?: string): Promise<number> {
 // DURUM GUNCELLEME
 // ============================================
 
-export async function markAsRead(alertId: string): Promise<void> {
+export async function markAsRead(tenantId: string, alertId: string): Promise<void> {
   if (!db) throw new Error('Firebase not initialized');
 
   const docRef = doc(db, ALERTS_COLLECTION, alertId);
@@ -175,10 +181,11 @@ export async function markAsRead(alertId: string): Promise<void> {
   });
 }
 
-export async function markAllAsRead(projectId?: string): Promise<void> {
+export async function markAllAsRead(tenantId: string, projectId?: string): Promise<void> {
   if (!db) throw new Error('Firebase not initialized');
 
   const constraints: QueryConstraint[] = [
+    where('tenantId', '==', tenantId),
     where('status', '==', 'unread'),
   ];
 
@@ -201,7 +208,7 @@ export async function markAllAsRead(projectId?: string): Promise<void> {
   await batch.commit();
 }
 
-export async function dismissAlert(alertId: string): Promise<void> {
+export async function dismissAlert(tenantId: string, alertId: string): Promise<void> {
   if (!db) throw new Error('Firebase not initialized');
 
   const docRef = doc(db, ALERTS_COLLECTION, alertId);
@@ -210,7 +217,7 @@ export async function dismissAlert(alertId: string): Promise<void> {
   });
 }
 
-export async function resolveAlert(alertId: string, userId: string): Promise<void> {
+export async function resolveAlert(tenantId: string, alertId: string, userId: string): Promise<void> {
   if (!db) throw new Error('Firebase not initialized');
 
   const docRef = doc(db, ALERTS_COLLECTION, alertId);
@@ -225,7 +232,7 @@ export async function resolveAlert(alertId: string, userId: string): Promise<voi
 // ESKI UYARILARI TEMIZLEME
 // ============================================
 
-export async function deleteOldAlerts(daysOld: number): Promise<number> {
+export async function deleteOldAlerts(tenantId: string, daysOld: number): Promise<number> {
   if (!db) throw new Error('Firebase not initialized');
 
   const cutoffDate = new Date();
@@ -234,6 +241,7 @@ export async function deleteOldAlerts(daysOld: number): Promise<number> {
 
   const q = query(
     collection(db, ALERTS_COLLECTION),
+    where('tenantId', '==', tenantId),
     where('createdAt', '<', cutoffTimestamp),
     limit(500) // Batch limit
   );
@@ -255,6 +263,7 @@ export async function deleteOldAlerts(daysOld: number): Promise<number> {
 // ============================================
 
 export async function createBudgetAlert(
+  tenantId: string,
   campaignId: string,
   campaignName: string,
   spentPercentage: number,
@@ -280,7 +289,7 @@ export async function createBudgetAlert(
         : ''
   }`;
 
-  return createAlert({
+  return createAlert(tenantId, {
     projectId,
     campaignId,
     campaignName,
@@ -296,6 +305,7 @@ export async function createBudgetAlert(
 }
 
 export async function createPerformanceAlert(
+  tenantId: string,
   campaignId: string,
   campaignName: string,
   metric: string,
@@ -314,7 +324,7 @@ export async function createPerformanceAlert(
     ? `${campaignName} kampanyasinin ${metric} metrigi ${currentValue.toFixed(2)} ile esik deger ${threshold.toFixed(2)}'in altinda.`
     : `${campaignName} kampanyasinin ${metric} metrigi ${currentValue.toFixed(2)} ile esik deger ${threshold.toFixed(2)}'i asti.`;
 
-  return createAlert({
+  return createAlert(tenantId, {
     projectId,
     campaignId,
     campaignName,

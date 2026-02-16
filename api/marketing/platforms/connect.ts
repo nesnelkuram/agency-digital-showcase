@@ -1,4 +1,5 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { VercelResponse } from '@vercel/node';
+import { withAuth, AuthenticatedRequest } from '../../_lib/withAuth';
 
 export const config = {
   maxDuration: 10,
@@ -16,7 +17,7 @@ const META_API_VERSION = 'v21.0';
  *  - platform: 'meta' | 'google' | 'tiktok' | 'linkedin'
  *  - state: JSON-encoded { platform, redirectPath, projectId? }
  */
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) => {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -121,4 +122,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.error('[platform-connect] Error:', error.message);
     return res.status(500).json({ error: error.message || 'Failed to initiate OAuth' });
   }
-}
+});

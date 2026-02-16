@@ -1,4 +1,5 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { VercelResponse } from '@vercel/node';
+import { withAuth, AuthenticatedRequest } from '../_lib/withAuth';
 
 export const config = {
   maxDuration: 120,
@@ -60,7 +61,7 @@ const EFFECTIVE_STATUS_MAP: Record<string, string> = {
  *  - accessToken: string (Meta access token)
  *  - adAccountId: string (Meta ad account ID)
  */
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) => {
   res.setHeader('Content-Type', 'application/json');
 
   if (req.method !== 'POST') {
@@ -280,7 +281,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       error: error.message || 'Campaign sync failed',
     });
   }
-}
+});
 
 function extractConversions(actions: any[]): number {
   if (!actions) return 0;

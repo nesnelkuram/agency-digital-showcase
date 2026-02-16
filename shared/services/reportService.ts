@@ -58,6 +58,7 @@ function stripUndefined(obj: any): any {
  * Yeni rapor olusturur (status: 'generating').
  */
 export async function createReport(
+  tenantId: string,
   data: CreateReportData,
   userId: string,
   userName: string
@@ -79,7 +80,7 @@ export async function createReport(
 
   const docRef = await addDoc(
     collection(db, REPORTS_COLLECTION),
-    stripUndefined(reportData)
+    stripUndefined({ ...reportData, tenantId })
   );
   return docRef.id;
 }
@@ -88,11 +89,14 @@ export async function createReport(
  * Tum raporlari listeler (createdAt desc).
  */
 export async function getReports(
+  tenantId: string,
   projectId?: string
 ): Promise<MarketingReport[]> {
   if (!db) throw new Error('Firebase not initialized');
 
-  const constraints: QueryConstraint[] = [];
+  const constraints: QueryConstraint[] = [
+    where('tenantId', '==', tenantId),
+  ];
 
   if (projectId) {
     constraints.push(where('projectId', '==', projectId));
@@ -114,6 +118,7 @@ export async function getReports(
       console.warn('[getReports] Index missing, falling back to unordered query');
       const fallbackQ = query(
         collection(db, REPORTS_COLLECTION),
+        where('tenantId', '==', tenantId),
         where('projectId', '==', projectId)
       );
       const snapshot = await getDocs(fallbackQ);
@@ -131,7 +136,7 @@ export async function getReports(
 /**
  * Tek rapor getirir.
  */
-export async function getReport(id: string): Promise<MarketingReport | null> {
+export async function getReport(tenantId: string, id: string): Promise<MarketingReport | null> {
   if (!db) throw new Error('Firebase not initialized');
 
   const docRef = doc(db, REPORTS_COLLECTION, id);
@@ -149,6 +154,7 @@ export async function getReport(id: string): Promise<MarketingReport | null> {
  * Raporu kismi gunceller.
  */
 export async function updateReport(
+  tenantId: string,
   id: string,
   data: Partial<MarketingReport>
 ): Promise<void> {
@@ -161,7 +167,7 @@ export async function updateReport(
 /**
  * Raporu siler.
  */
-export async function deleteReport(id: string): Promise<void> {
+export async function deleteReport(tenantId: string, id: string): Promise<void> {
   if (!db) throw new Error('Firebase not initialized');
   await deleteDoc(doc(db, REPORTS_COLLECTION, id));
 }
@@ -170,12 +176,14 @@ export async function deleteReport(id: string): Promise<void> {
  * Duruma gore raporlari filtreler.
  */
 export async function getReportsByStatus(
+  tenantId: string,
   status: ReportStatus,
   projectId?: string
 ): Promise<MarketingReport[]> {
   if (!db) throw new Error('Firebase not initialized');
 
   const constraints: QueryConstraint[] = [
+    where('tenantId', '==', tenantId),
     where('status', '==', status),
   ];
 
@@ -197,6 +205,7 @@ export async function getReportsByStatus(
     if (err?.code === 'failed-precondition') {
       console.warn('[getReportsByStatus] Index missing, falling back');
       const fallbackConstraints: QueryConstraint[] = [
+        where('tenantId', '==', tenantId),
         where('status', '==', status),
       ];
       if (projectId) {
@@ -221,6 +230,7 @@ export async function getReportsByStatus(
  * Raporu tamamlanmis olarak isaretler ve olusan icerikleri kaydeder.
  */
 export async function completeReport(
+  tenantId: string,
   id: string,
   results: {
     summary?: string;

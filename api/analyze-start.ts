@@ -1,13 +1,14 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { VercelResponse } from '@vercel/node';
 // @ts-ignore — pre-bundled by esbuild during vercel-build
 import { runDataNormalizer, startDeepResearch, buildDeepResearchPrompt, fetchAndParseWebsite } from './_lib/pipeline-bundle.mjs';
 import { initRun, markAgentRunning, checkpointAgent, checkpointDrInteractionId, markAgentFailed } from './_lib/checkpointManager.js';
+import { withAuthOptional, OptionalAuthRequest } from './_lib/withAuth';
 
 export const config = {
   maxDuration: 60,
 };
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResponse) => {
   res.setHeader('Content-Type', 'application/json');
 
   if (req.method !== 'POST') {
@@ -118,4 +119,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       error: String(error?.message || 'Start phase failed'),
     });
   }
-}
+});

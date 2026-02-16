@@ -1,4 +1,5 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { VercelResponse } from '@vercel/node';
+import { withAuth, AuthenticatedRequest } from '../_lib/withAuth';
 
 export const config = {
   maxDuration: 120,
@@ -19,7 +20,7 @@ const META_API_BASE = `https://graph.facebook.com/${META_API_VERSION}`;
  *  - dateRange?: { start: string; end: string } (defaults to last 7 days)
  *  - level?: 'campaign' | 'adset' | 'ad' (defaults to 'campaign')
  */
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) => {
   res.setHeader('Content-Type', 'application/json');
 
   if (req.method !== 'POST') {
@@ -182,7 +183,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       error: error.message || 'Performance sync failed',
     });
   }
-}
+});
 
 function extractConversions(actions: any[]): number {
   if (!actions) return 0;

@@ -1,12 +1,13 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { VercelResponse } from '@vercel/node';
 import { Resend } from 'resend';
+import { withAuth, AuthenticatedRequest } from './_lib/withAuth';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-export default async function handler(
-  req: VercelRequest,
+export default withAuth(async (
+  req: AuthenticatedRequest,
   res: VercelResponse
-) {
+) => {
   // Only allow POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -133,4 +134,4 @@ export default async function handler(
     console.error('Server error:', error);
     return res.status(500).json({ error: error.message || 'Internal server error' });
   }
-}
+});

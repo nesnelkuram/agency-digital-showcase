@@ -49,6 +49,7 @@ function stripUndefined(obj: any): any {
 // ============================================
 
 export async function createSocialPost(
+  tenantId: string,
   data: CreateSocialPostData,
   createdByUid: string,
   createdByName: string
@@ -74,11 +75,11 @@ export async function createSocialPost(
     createdByName,
   };
 
-  const docRef = await addDoc(collection(db, COLLECTION_NAME), stripUndefined(postData));
+  const docRef = await addDoc(collection(db, COLLECTION_NAME), stripUndefined({ ...postData, tenantId }));
   return docRef.id;
 }
 
-export async function getSocialPost(id: string): Promise<SocialMediaPost | null> {
+export async function getSocialPost(tenantId: string, id: string): Promise<SocialMediaPost | null> {
   if (!db) throw new Error('Firebase not initialized');
 
   const docRef = doc(db, COLLECTION_NAME, id);
@@ -93,6 +94,7 @@ export async function getSocialPost(id: string): Promise<SocialMediaPost | null>
 }
 
 export async function updateSocialPost(
+  tenantId: string,
   id: string,
   data: UpdateSocialPostData,
   updatedByUid: string,
@@ -108,7 +110,7 @@ export async function updateSocialPost(
   });
 }
 
-export async function deleteSocialPost(id: string): Promise<void> {
+export async function deleteSocialPost(tenantId: string, id: string): Promise<void> {
   if (!db) throw new Error('Firebase not initialized');
   await deleteDoc(doc(db, COLLECTION_NAME, id));
 }
@@ -118,13 +120,16 @@ export async function deleteSocialPost(id: string): Promise<void> {
 // ============================================
 
 export async function getSocialPosts(
+  tenantId: string,
   filters?: SocialPostFilters,
   pageSize: number = 50,
   lastDoc?: DocumentSnapshot
 ): Promise<{ posts: SocialPostSummary[]; lastDoc: DocumentSnapshot | null }> {
   if (!db) throw new Error('Firebase not initialized');
 
-  const constraints: QueryConstraint[] = [];
+  const constraints: QueryConstraint[] = [
+    where('tenantId', '==', tenantId),
+  ];
 
   if (filters?.projectId) {
     constraints.push(where('projectId', '==', filters.projectId));
@@ -176,6 +181,7 @@ export async function getSocialPosts(
 }
 
 export async function getSocialPostsByDate(
+  tenantId: string,
   projectId: string,
   month: number,
   year: number
@@ -187,6 +193,7 @@ export async function getSocialPostsByDate(
 
   const q = query(
     collection(db, COLLECTION_NAME),
+    where('tenantId', '==', tenantId),
     where('projectId', '==', projectId),
     where('scheduledAt', '>=', startDate),
     where('scheduledAt', '<=', endDate),
@@ -214,11 +221,12 @@ export async function getSocialPostsByDate(
 // ISTATISTIKLER
 // ============================================
 
-export async function getProjectSocialStats(projectId: string): Promise<SocialMediaStats> {
+export async function getProjectSocialStats(tenantId: string, projectId: string): Promise<SocialMediaStats> {
   if (!db) throw new Error('Firebase not initialized');
 
   const q = query(
     collection(db, COLLECTION_NAME),
+    where('tenantId', '==', tenantId),
     where('projectId', '==', projectId)
   );
 

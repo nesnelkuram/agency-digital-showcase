@@ -49,6 +49,7 @@ function generateShareToken(): string {
 // ============================================================
 
 export async function createFeedbackVideo(
+  tenantId: string,
   data: CreateFeedbackVideoData,
   createdByUid: string,
   createdByName: string
@@ -56,6 +57,7 @@ export async function createFeedbackVideo(
   if (!db) throw new Error('Firestore baglantisi yok');
 
   const videoData = {
+    tenantId,
     title: data.title,
     description: data.description || '',
     type: data.type || 'video',
@@ -84,6 +86,7 @@ export async function createFeedbackVideo(
 }
 
 export async function createTextFeedback(
+  tenantId: string,
   data: CreateTextFeedbackData,
   createdByUid: string,
   createdByName: string
@@ -91,6 +94,7 @@ export async function createTextFeedback(
   if (!db) throw new Error('Firestore baglantisi yok');
 
   const feedbackData = {
+    tenantId,
     title: data.title,
     description: '',
     type: 'text',
@@ -118,7 +122,7 @@ export async function createTextFeedback(
   return docRef.id;
 }
 
-export async function getFeedbackVideo(id: string): Promise<FeedbackVideo | null> {
+export async function getFeedbackVideo(tenantId: string, id: string): Promise<FeedbackVideo | null> {
   if (!db) throw new Error('Firestore baglantisi yok');
 
   const docSnap = await getDoc(doc(db, VIDEOS_COLLECTION, id));
@@ -145,13 +149,14 @@ export async function getFeedbackVideoByShareToken(token: string): Promise<Feedb
 }
 
 export async function getFeedbackVideos(
+  tenantId: string,
   filters: FeedbackVideoFilters,
   pageSize: number = 12,
   lastDoc?: DocumentSnapshot
 ): Promise<{ videos: FeedbackVideoSummary[]; lastDoc: DocumentSnapshot | null }> {
   if (!db) throw new Error('Firestore baglantisi yok');
 
-  const constraints: QueryConstraint[] = [];
+  const constraints: QueryConstraint[] = [where('tenantId', '==', tenantId)];
 
   if (filters.type) {
     constraints.push(where('type', '==', filters.type));
@@ -209,6 +214,7 @@ export async function getFeedbackVideos(
 }
 
 export async function updateFeedbackVideo(
+  tenantId: string,
   id: string,
   data: UpdateFeedbackVideoData
 ): Promise<void> {
@@ -220,11 +226,11 @@ export async function updateFeedbackVideo(
   });
 }
 
-export async function deleteFeedbackVideo(id: string): Promise<void> {
+export async function deleteFeedbackVideo(tenantId: string, id: string): Promise<void> {
   if (!db) throw new Error('Firestore baglantisi yok');
 
   // Get video to find storage URL
-  const video = await getFeedbackVideo(id);
+  const video = await getFeedbackVideo(tenantId, id);
   if (!video) return;
 
   // Delete video file from storage
@@ -250,6 +256,7 @@ export async function deleteFeedbackVideo(id: string): Promise<void> {
   // Delete all comments
   const commentsQ = query(
     collection(db, COMMENTS_COLLECTION),
+    where('tenantId', '==', tenantId),
     where('videoId', '==', id)
   );
   const commentsSnap = await getDocs(commentsQ);
@@ -259,6 +266,7 @@ export async function deleteFeedbackVideo(id: string): Promise<void> {
   // Delete all reactions
   const reactionsQ = query(
     collection(db, REACTIONS_COLLECTION),
+    where('tenantId', '==', tenantId),
     where('videoId', '==', id)
   );
   const reactionsSnap = await getDocs(reactionsQ);
@@ -281,6 +289,7 @@ export async function incrementViewCount(videoId: string): Promise<void> {
 // ============================================================
 
 export async function addComment(
+  tenantId: string,
   data: CreateCommentData,
   createdByUid: string,
   createdByName: string
@@ -288,6 +297,7 @@ export async function addComment(
   if (!db) throw new Error('Firestore baglantisi yok');
 
   const commentData = {
+    tenantId,
     videoId: data.videoId,
     timestamp: data.timestamp,
     text: data.text,
@@ -307,11 +317,12 @@ export async function addComment(
   return docRef.id;
 }
 
-export async function getComments(videoId: string): Promise<FeedbackComment[]> {
+export async function getComments(tenantId: string, videoId: string): Promise<FeedbackComment[]> {
   if (!db) throw new Error('Firestore baglantisi yok');
 
   const q = query(
     collection(db, COMMENTS_COLLECTION),
+    where('tenantId', '==', tenantId),
     where('videoId', '==', videoId),
     orderBy('timestamp', 'asc')
   );
@@ -332,7 +343,7 @@ export async function getComments(videoId: string): Promise<FeedbackComment[]> {
   });
 }
 
-export async function deleteComment(commentId: string, videoId: string): Promise<void> {
+export async function deleteComment(tenantId: string, commentId: string, videoId: string): Promise<void> {
   if (!db) throw new Error('Firestore baglantisi yok');
 
   await deleteDoc(doc(db, COMMENTS_COLLECTION, commentId));
@@ -349,6 +360,7 @@ export async function deleteComment(commentId: string, videoId: string): Promise
 // ============================================================
 
 export async function toggleReaction(
+  tenantId: string,
   videoId: string,
   emoji: string,
   timestamp: number,
@@ -360,6 +372,7 @@ export async function toggleReaction(
   // Check if user already reacted with same emoji at same timestamp
   const q = query(
     collection(db, REACTIONS_COLLECTION),
+    where('tenantId', '==', tenantId),
     where('videoId', '==', videoId),
     where('emoji', '==', emoji),
     where('createdBy', '==', createdByUid)
@@ -374,6 +387,7 @@ export async function toggleReaction(
 
   // Add new reaction
   await addDoc(collection(db, REACTIONS_COLLECTION), {
+    tenantId,
     videoId,
     emoji,
     timestamp,
@@ -385,11 +399,12 @@ export async function toggleReaction(
   return { added: true };
 }
 
-export async function getReactions(videoId: string): Promise<FeedbackReaction[]> {
+export async function getReactions(tenantId: string, videoId: string): Promise<FeedbackReaction[]> {
   if (!db) throw new Error('Firestore baglantisi yok');
 
   const q = query(
     collection(db, REACTIONS_COLLECTION),
+    where('tenantId', '==', tenantId),
     where('videoId', '==', videoId),
     orderBy('createdAt', 'asc')
   );
@@ -413,7 +428,7 @@ export async function getReactions(videoId: string): Promise<FeedbackReaction[]>
 // Stats
 // ============================================================
 
-export async function getFeedbackStats(): Promise<{
+export async function getFeedbackStats(tenantId: string): Promise<{
   totalVideos: number;
   thisWeekVideos: number;
   totalComments: number;
@@ -421,7 +436,7 @@ export async function getFeedbackStats(): Promise<{
 }> {
   if (!db) return { totalVideos: 0, thisWeekVideos: 0, totalComments: 0, totalViews: 0 };
 
-  const allVideosQ = query(collection(db, VIDEOS_COLLECTION));
+  const allVideosQ = query(collection(db, VIDEOS_COLLECTION), where('tenantId', '==', tenantId));
   const snapshot = await getDocs(allVideosQ);
 
   const now = new Date();

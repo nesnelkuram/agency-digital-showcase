@@ -7,6 +7,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTenantId } from '@/shared/hooks/useTenant';
 import { createProject } from '@/shared/services/projectService';
 import { SERVICE_MODULE_CONFIG } from '@/admin/projects/constants';
 import type { ServiceCategory } from '@/shared/types/pricing/services';
@@ -27,6 +28,7 @@ const ALL_SERVICE_CATEGORIES: ServiceCategory[] = [
 const CreateProjectPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const tenantId = useTenantId();
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -97,6 +99,7 @@ const CreateProjectPage: React.FC = () => {
       };
 
       const newId = await createProject(
+        tenantId,
         projectData,
         user.uid,
         user.displayName || user.email || 'Unknown'

@@ -1,32 +1,10 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
+import type { VercelResponse } from '@vercel/node';
+import { withAuth, AuthenticatedRequest } from '../_lib/withAuth';
+import { getAdminDb } from '../_lib/firebaseAdmin';
 
 export const config = {
   maxDuration: 120,
 };
-
-// ============================================
-// Firebase Admin baslat
-// ============================================
-
-function getAdminDb() {
-  if (getApps().length === 0) {
-    const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
-    const projectId = process.env.FIREBASE_PROJECT_ID;
-
-    if (serviceAccountJson) {
-      const serviceAccount = JSON.parse(serviceAccountJson);
-      initializeApp({ credential: cert(serviceAccount) });
-    } else if (projectId) {
-      initializeApp({ projectId });
-    } else {
-      throw new Error('FIREBASE_SERVICE_ACCOUNT veya FIREBASE_PROJECT_ID ortam degiskeni gerekli');
-    }
-  }
-
-  return getFirestore();
-}
 
 // ============================================
 // POST /api/marketing/forecast-budget
@@ -47,7 +25,7 @@ function getAdminDb() {
  *  4. Sonucu budget_forecasts koleksiyonuna kaydet
  *  5. Forecast verisini dondur
  */
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) => {
   res.setHeader('Content-Type', 'application/json');
 
   if (req.method !== 'POST') {
@@ -214,4 +192,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       error: error.message || 'Butce tahmini basarisiz',
     });
   }
-}
+});

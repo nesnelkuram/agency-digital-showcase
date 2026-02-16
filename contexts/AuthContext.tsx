@@ -35,7 +35,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const userDoc = await getDoc(doc(db, 'users', uid));
       if (userDoc.exists()) {
-        return { uid, ...userDoc.data() } as User;
+        const data = userDoc.data();
+        return {
+          uid,
+          ...data,
+          tenantId: data.tenantId || data.organizationId || '',
+        } as User;
       }
       return null;
     } catch (err) {

@@ -1,4 +1,5 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { VercelResponse } from '@vercel/node';
+import { withAuthOptional, OptionalAuthRequest } from '../../_lib/withAuth';
 
 export const config = {
   maxDuration: 30,
@@ -23,7 +24,7 @@ const META_API_BASE = `https://graph.facebook.com/${META_API_VERSION}`;
  *  - error: OAuth error (if any)
  *  - error_description: OAuth error description
  */
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResponse) => {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -468,4 +469,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       `${errorRedirect}?error=${encodeURIComponent(error.message || 'Connection failed')}`
     );
   }
-}
+});

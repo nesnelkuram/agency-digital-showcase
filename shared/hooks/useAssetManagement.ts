@@ -15,6 +15,7 @@ import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage
 import { db, storage } from '@/lib/firebase/config';
 import { Asset, AssetFolder, getAssetTypeFromMimeType } from '@/shared/types/asset';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTenantId } from '@/shared/hooks/useTenant';
 
 interface UseAssetManagementReturn {
   assets: Asset[];
@@ -36,6 +37,7 @@ interface UseAssetManagementReturn {
 
 export function useAssetManagement(): UseAssetManagementReturn {
   const { user } = useAuth();
+  const tenantId = useTenantId();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [folders, setFolders] = useState<AssetFolder[]>([]);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
@@ -59,11 +61,13 @@ export function useAssetManagement(): UseAssetManagementReturn {
       const assetsQuery = currentFolderId
         ? query(
             collection(db, 'assets'),
+            where('tenantId', '==', tenantId),
             where('folderId', '==', currentFolderId),
             orderBy('createdAt', 'desc')
           )
         : query(
             collection(db, 'assets'),
+            where('tenantId', '==', tenantId),
             where('folderId', '==', null),
             orderBy('createdAt', 'desc')
           );
@@ -71,11 +75,13 @@ export function useAssetManagement(): UseAssetManagementReturn {
       const foldersQuery = currentFolderId
         ? query(
             collection(db, 'assetFolders'),
+            where('tenantId', '==', tenantId),
             where('parentId', '==', currentFolderId),
             orderBy('name')
           )
         : query(
             collection(db, 'assetFolders'),
+            where('tenantId', '==', tenantId),
             where('parentId', '==', null),
             orderBy('name')
           );
@@ -166,6 +172,7 @@ export function useAssetManagement(): UseAssetManagementReturn {
         // Create asset document
         const assetRef = doc(collection(db, 'assets'));
         const assetData = {
+          tenantId,
           name: file.name,
           type: getAssetTypeFromMimeType(file.type),
           source: 'upload' as const,
@@ -224,6 +231,7 @@ export function useAssetManagement(): UseAssetManagementReturn {
         // Create asset document (reference to external URL)
         const assetRef = doc(collection(db, 'assets'));
         const assetData = {
+          tenantId,
           name,
           type: getAssetTypeFromMimeType(mimeType),
           source: 'google_drive' as const,
@@ -274,6 +282,7 @@ export function useAssetManagement(): UseAssetManagementReturn {
       try {
         const folderRef = doc(collection(db, 'assetFolders'));
         const folderData = {
+          tenantId,
           name,
           parentId: parentId || currentFolderId || null,
           createdBy: user.uid,

@@ -16,6 +16,7 @@ export interface ServiceModuleConfig {
   color: string;
   bgColor: string;
   isActive: boolean;
+  supportsWorkflow: boolean;
   route?: string;
 }
 
@@ -27,6 +28,7 @@ export const SERVICE_MODULE_CONFIG: Record<ServiceCategory, ServiceModuleConfig>
     color: '#8B5CF6',
     bgColor: 'bg-violet-50',
     isActive: true,
+    supportsWorkflow: false,
     route: 'marketing',
   },
   social_media: {
@@ -36,6 +38,7 @@ export const SERVICE_MODULE_CONFIG: Record<ServiceCategory, ServiceModuleConfig>
     color: '#EC4899',
     bgColor: 'bg-pink-50',
     isActive: true,
+    supportsWorkflow: false,
     route: 'social-media',
   },
   video_production: {
@@ -44,7 +47,8 @@ export const SERVICE_MODULE_CONFIG: Record<ServiceCategory, ServiceModuleConfig>
     description: 'Video cekim, kurgu ve post-produksiyon',
     color: '#3B82F6',
     bgColor: 'bg-blue-50',
-    isActive: false,
+    isActive: true,
+    supportsWorkflow: true,
   },
   photography: {
     icon: Camera,
@@ -52,7 +56,8 @@ export const SERVICE_MODULE_CONFIG: Record<ServiceCategory, ServiceModuleConfig>
     description: 'Urun, mekan ve portre fotograf hizmetleri',
     color: '#F59E0B',
     bgColor: 'bg-amber-50',
-    isActive: false,
+    isActive: true,
+    supportsWorkflow: true,
   },
   event_coverage: {
     icon: Calendar,
@@ -60,7 +65,8 @@ export const SERVICE_MODULE_CONFIG: Record<ServiceCategory, ServiceModuleConfig>
     description: 'Etkinlik dokumantasyonu ve canli yayinlar',
     color: '#10B981',
     bgColor: 'bg-emerald-50',
-    isActive: false,
+    isActive: true,
+    supportsWorkflow: true,
   },
   brand_strategy: {
     icon: Target,
@@ -69,6 +75,7 @@ export const SERVICE_MODULE_CONFIG: Record<ServiceCategory, ServiceModuleConfig>
     color: '#6366F1',
     bgColor: 'bg-indigo-50',
     isActive: false,
+    supportsWorkflow: false,
   },
   graphic_design: {
     icon: Palette,
@@ -77,5 +84,6 @@ export const SERVICE_MODULE_CONFIG: Record<ServiceCategory, ServiceModuleConfig>
     color: '#F43F5E',
     bgColor: 'bg-rose-50',
     isActive: false,
+    supportsWorkflow: false,
   },
 };

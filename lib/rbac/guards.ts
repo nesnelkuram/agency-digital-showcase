@@ -29,8 +29,12 @@ export function hasAllPermissions(user: User | null, permissions: Permission[]):
   return permissions.every((p) => hasPermission(user, p));
 }
 
+export function isSuperAdmin(user: User | null): boolean {
+  return user?.role === 'super_admin';
+}
+
 export function isAdmin(user: User | null): boolean {
-  return user?.role === 'admin';
+  return user?.role === 'admin' || user?.role === 'super_admin';
 }
 
 export function isStaff(user: User | null): boolean {
@@ -52,8 +56,8 @@ export function canAccessProject(
 ): boolean {
   if (!user) return false;
 
-  // Admins can access all
-  if (user.role === 'admin') return true;
+  // Super admins and admins can access all
+  if (user.role === 'super_admin' || user.role === 'admin') return true;
 
   // Staff can access all projects
   if (user.role === 'staff') return true;

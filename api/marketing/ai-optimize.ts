@@ -1,4 +1,5 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { VercelResponse } from '@vercel/node';
+import { withAuth, AuthenticatedRequest } from '../_lib/withAuth';
 
 export const config = {
   maxDuration: 300,
@@ -22,7 +23,7 @@ export const config = {
  *  2. optimizationRecommender ajanini calistir
  *  3. Optimizasyon onerilerini dondur
  */
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) => {
   res.setHeader('Content-Type', 'application/json');
 
   if (req.method !== 'POST') {
@@ -141,4 +142,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       details: error.stack?.split('\n').slice(0, 3),
     });
   }
-}
+});

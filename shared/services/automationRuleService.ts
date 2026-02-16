@@ -55,6 +55,7 @@ function stripUndefined(obj: any): any {
 // ============================================
 
 export async function createRule(
+  tenantId: string,
   data: CreateAutomationRuleData,
   userId: string,
   userName: string
@@ -63,6 +64,7 @@ export async function createRule(
 
   const ruleData = {
     ...stripUndefined(data),
+    tenantId,
     status: 'active' as RuleStatus,
     totalExecutions: 0,
     totalTriggered: 0,
@@ -79,10 +81,12 @@ export async function createRule(
   return docRef.id;
 }
 
-export async function getRules(projectId?: string): Promise<AutomationRule[]> {
+export async function getRules(tenantId: string, projectId?: string): Promise<AutomationRule[]> {
   if (!db) throw new Error('Firebase not initialized');
 
-  const constraints: QueryConstraint[] = [];
+  const constraints: QueryConstraint[] = [
+    where('tenantId', '==', tenantId),
+  ];
 
   if (projectId) {
     constraints.push(where('projectId', '==', projectId));
@@ -104,6 +108,7 @@ export async function getRules(projectId?: string): Promise<AutomationRule[]> {
       console.warn('[getRules] Index missing, falling back to unordered query');
       const fallbackQ = query(
         collection(db, RULES_COLLECTION),
+        where('tenantId', '==', tenantId),
         where('projectId', '==', projectId)
       );
       const snapshot = await getDocs(fallbackQ);
@@ -122,7 +127,7 @@ export async function getRules(projectId?: string): Promise<AutomationRule[]> {
   }
 }
 
-export async function getRule(id: string): Promise<AutomationRule | null> {
+export async function getRule(tenantId: string, id: string): Promise<AutomationRule | null> {
   if (!db) throw new Error('Firebase not initialized');
 
   const docRef = doc(db, RULES_COLLECTION, id);
@@ -137,6 +142,7 @@ export async function getRule(id: string): Promise<AutomationRule | null> {
 }
 
 export async function updateRule(
+  tenantId: string,
   id: string,
   data: UpdateAutomationRuleData
 ): Promise<void> {
@@ -149,7 +155,7 @@ export async function updateRule(
   });
 }
 
-export async function deleteRule(id: string): Promise<void> {
+export async function deleteRule(tenantId: string, id: string): Promise<void> {
   if (!db) throw new Error('Firebase not initialized');
   await deleteDoc(doc(db, RULES_COLLECTION, id));
 }
@@ -159,6 +165,7 @@ export async function deleteRule(id: string): Promise<void> {
 // ============================================
 
 export async function toggleRuleStatus(
+  tenantId: string,
   id: string,
   status: RuleStatus
 ): Promise<void> {
@@ -176,12 +183,14 @@ export async function toggleRuleStatus(
 // ============================================
 
 export async function logRuleExecution(
+  tenantId: string,
   log: Omit<RuleExecutionLog, 'id'>
 ): Promise<string> {
   if (!db) throw new Error('Firebase not initialized');
 
   const logData = {
     ...stripUndefined(log),
+    tenantId,
     executedAt: serverTimestamp(),
   };
 
@@ -193,12 +202,14 @@ export async function logRuleExecution(
 }
 
 export async function getRuleExecutionLogs(
+  tenantId: string,
   ruleId: string,
   pageSize: number = 50
 ): Promise<RuleExecutionLog[]> {
   if (!db) throw new Error('Firebase not initialized');
 
   const constraints: QueryConstraint[] = [
+    where('tenantId', '==', tenantId),
     where('ruleId', '==', ruleId),
     orderBy('executedAt', 'desc'),
     limit(pageSize),
@@ -218,6 +229,7 @@ export async function getRuleExecutionLogs(
       console.warn('[getRuleExecutionLogs] Index missing, falling back to unordered query');
       const fallbackQ = query(
         collection(db, EXECUTION_LOGS_COLLECTION),
+        where('tenantId', '==', tenantId),
         where('ruleId', '==', ruleId),
         limit(pageSize)
       );
@@ -237,12 +249,15 @@ export async function getRuleExecutionLogs(
 }
 
 export async function getRecentExecutionLogs(
+  tenantId: string,
   projectId?: string,
   pageSize: number = 50
 ): Promise<RuleExecutionLog[]> {
   if (!db) throw new Error('Firebase not initialized');
 
-  const constraints: QueryConstraint[] = [];
+  const constraints: QueryConstraint[] = [
+    where('tenantId', '==', tenantId),
+  ];
 
   if (projectId) {
     constraints.push(where('projectId', '==', projectId));
@@ -265,6 +280,7 @@ export async function getRecentExecutionLogs(
       console.warn('[getRecentExecutionLogs] Index missing, falling back to unordered query');
       const fallbackQ = query(
         collection(db, EXECUTION_LOGS_COLLECTION),
+        where('tenantId', '==', tenantId),
         where('projectId', '==', projectId),
         limit(pageSize)
       );

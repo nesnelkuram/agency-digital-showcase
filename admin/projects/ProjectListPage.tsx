@@ -10,6 +10,7 @@ import {
   DollarSign,
 } from 'lucide-react';
 import { getProjects } from '@/shared/services/projectService';
+import { useTenantId } from '@/shared/hooks/useTenant';
 import { SERVICE_MODULE_CONFIG } from '@/admin/projects/constants';
 import type {
   ProjectSummary,
@@ -36,6 +37,7 @@ const STATUS_TABS: { key: StatusTab; label: string }[] = [
 
 const ProjectListPage: React.FC = () => {
   const navigate = useNavigate();
+  const tenantId = useTenantId();
 
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,6 +67,7 @@ const ProjectListPage: React.FC = () => {
         }
 
         const result = await getProjects(
+          tenantId,
           filters,
           20,
           reset ? undefined : lastDoc || undefined
@@ -84,7 +87,7 @@ const ProjectListPage: React.FC = () => {
         setLoading(false);
       }
     },
-    [activeTab, searchQuery, lastDoc]
+    [tenantId, activeTab, searchQuery, lastDoc]
   );
 
   useEffect(() => {

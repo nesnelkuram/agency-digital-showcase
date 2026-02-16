@@ -9,6 +9,7 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
+import { useTenantId } from '@/shared/hooks/useTenant';
 
 interface DashboardStats {
   activeProjects: number;
@@ -89,6 +90,7 @@ function getDueDateText(date: Date): string {
 }
 
 export function useDashboardStats(): UseDashboardStatsReturn {
+  const tenantId = useTenantId();
   const [stats, setStats] = useState<DashboardStats>({
     activeProjects: 0,
     pendingApprovals: 0,
@@ -126,20 +128,21 @@ export function useDashboardStats(): UseDashboardStatsReturn {
       ] = await Promise.all([
         // Active projects
         getDocs(
-          query(collection(db, 'projects'), where('status', '==', 'active'))
+          query(collection(db, 'projects'), where('tenantId', '==', tenantId), where('status', '==', 'active'))
         ),
         // Pending approvals
         getDocs(
-          query(collection(db, 'approvals'), where('status', '==', 'pending'))
+          query(collection(db, 'approvals'), where('tenantId', '==', tenantId), where('status', '==', 'pending'))
         ),
         // Team members (active users)
         getDocs(
-          query(collection(db, 'users'), where('status', '==', 'active'))
+          query(collection(db, 'users'), where('tenantId', '==', tenantId), where('status', '==', 'active'))
         ),
         // Completed this month
         getDocs(
           query(
             collection(db, 'projects'),
+            where('tenantId', '==', tenantId),
             where('status', '==', 'completed'),
             where('completedAt', '>=', Timestamp.fromDate(firstDayOfMonth))
           )
@@ -148,6 +151,7 @@ export function useDashboardStats(): UseDashboardStatsReturn {
         getDocs(
           query(
             collection(db, 'activityLog'),
+            where('tenantId', '==', tenantId),
             orderBy('createdAt', 'desc'),
             limit(10)
           )
@@ -219,7 +223,7 @@ export function useDashboardStats(): UseDashboardStatsReturn {
 
   useEffect(() => {
     fetchStats();
-  }, []);
+  }, [tenantId]);
 
   return {
     stats,

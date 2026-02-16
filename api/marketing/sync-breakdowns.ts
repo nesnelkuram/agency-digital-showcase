@@ -1,4 +1,5 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { VercelResponse } from '@vercel/node';
+import { withAuth, AuthenticatedRequest } from '../_lib/withAuth';
 
 export const config = {
   maxDuration: 120,
@@ -28,7 +29,7 @@ const VALID_BREAKDOWN_TYPES = Object.keys(BREAKDOWN_PARAMS);
  *  - breakdownType: 'age_gender' | 'device' | 'placement' | 'region'
  *  - dateRange?: { start: string; end: string } (defaults to last 30 days)
  */
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) => {
   res.setHeader('Content-Type', 'application/json');
 
   if (req.method !== 'POST') {
@@ -131,7 +132,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       error: error.message || 'Breakdown sync failed',
     });
   }
-}
+});
 
 function extractConversions(actions: any[]): number {
   if (!actions) return 0;

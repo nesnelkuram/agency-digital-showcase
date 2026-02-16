@@ -1,91 +1,339 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Brand leads: allow public creation from website wizard
+
+    // =============================================
+    // Helper functions for multi-tenant isolation
+    // =============================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function getUserTenantId() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantId;
+    }
+
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function belongsToTenant() {
+      return isAuthenticated() && resource.data.tenantId == getUserTenantId();
+    }
+
+    function creatingForOwnTenant() {
+      return isAuthenticated() && request.resource.data.tenantId == getUserTenantId();
+    }
+
+    function isSuperAdmin() {
+      return isAuthenticated() && getUserRole() == 'super_admin';
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (getUserRole() == 'admin' || getUserRole() == 'super_admin');
+    }
+
+    // =============================================
+    // Tenant collection
+    // =============================================
+    match /tenants/{tenantId} {
+      // Super admins can read all tenants
+      // Regular users can only read their own tenant
+      allow read: if isSuperAdmin() || (isAuthenticated() && getUserTenantId() == tenantId);
+      // Only super admins can create/update/delete tenants
+      allow write: if isSuperAdmin();
+    }
+
+    // =============================================
+    // Users collection
+    // =============================================
+    match /users/{userId} {
+      // Users can read their own document
+      // Admins can read users in the same tenant
+      // Super admins can read all users
+      allow read: if isSuperAdmin()
+                  || (isAuthenticated() && request.auth.uid == userId)
+                  || (isAdmin() && resource.data.tenantId == getUserTenantId());
+      // Users can update their own document
+      // Admins can update users in their tenant
+      // Super admins can update any user
+      allow update: if isSuperAdmin()
+                    || (isAuthenticated() && request.auth.uid == userId)
+                    || (isAdmin() && resource.data.tenantId == getUserTenantId());
+      // Only super admins or admins (for their tenant) can create/delete users
+      allow create: if isSuperAdmin()
+                    || (isAdmin() && request.resource.data.tenantId == getUserTenantId());
+      allow delete: if isSuperAdmin()
+                    || (isAdmin() && resource.data.tenantId == getUserTenantId());
+    }
+
+    // =============================================
+    // Invitations collection
+    // =============================================
+    match /invitations/{invitationId} {
+      allow read, write: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+    }
+
+    // =============================================
+    // Brand leads: allow public creation (website wizard), tenant-isolated otherwise
+    // =============================================
     match /brand_leads/{leadId} {
-      // Anyone can create a new lead (website form)
+      // Anyone can create a new lead (website form submissions)
       allow create: if true;
-      // Authenticated users (admin) can read any lead
-      // Unauthenticated users can only read leads with a shareToken (public report links)
-      allow read: if request.auth != null || resource.data.shareToken != null;
-      // Only authenticated users can update/delete
-      allow update, delete: if request.auth != null;
+      // Authenticated users in the same tenant can read; also allow public read for shareToken links
+      allow read: if isSuperAdmin()
+                  || belongsToTenant()
+                  || resource.data.shareToken != null;
+      // Only authenticated users in the same tenant can update/delete
+      allow update, delete: if isSuperAdmin() || belongsToTenant();
     }
 
-    // Marketing campaigns: authenticated users only
-    match /marketing_campaigns/{campaignId} {
-      allow read, write: if request.auth != null;
-    }
-
-    // Campaign proposals: authenticated users only
-    match /campaign_proposals/{proposalId} {
-      allow read, write: if request.auth != null;
-    }
-
-    // Platform accounts: authenticated users only (sensitive tokens)
-    match /platform_accounts/{accountId} {
-      allow read, write: if request.auth != null;
-    }
-
-    // Performance snapshots: authenticated read, API-only write
-    match /performance_snapshots/{snapshotId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
-    }
-
-    // Optimization suggestions: authenticated users only
-    match /optimization_suggestions/{suggestionId} {
-      allow read, write: if request.auth != null;
-    }
-
-    // Marketing budgets: authenticated users only
-    match /marketing_budgets/{budgetId} {
-      allow read, write: if request.auth != null;
-    }
-
-    // Projects: authenticated users only
+    // =============================================
+    // Projects
+    // =============================================
     match /projects/{projectId} {
-      allow read, write: if request.auth != null;
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update, delete: if isSuperAdmin() || belongsToTenant();
     }
 
-    // Social media posts: authenticated users only
-    match /social_media_posts/{postId} {
-      allow read, write: if request.auth != null;
+    // =============================================
+    // Marketing campaigns
+    // =============================================
+    match /marketing_campaigns/{campaignId} {
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update, delete: if isSuperAdmin() || belongsToTenant();
     }
 
-    // Campaign breakdowns (Meta Ads kirilim verileri)
+    // =============================================
+    // Campaign proposals
+    // =============================================
+    match /campaign_proposals/{proposalId} {
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update, delete: if isSuperAdmin() || belongsToTenant();
+    }
+
+    // =============================================
+    // Platform accounts
+    // =============================================
+    match /platform_accounts/{accountId} {
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update, delete: if isSuperAdmin() || belongsToTenant();
+    }
+
+    // =============================================
+    // Performance data
+    // =============================================
+    match /performance_data/{dataId} {
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update, delete: if isSuperAdmin() || belongsToTenant();
+    }
+
+    // =============================================
+    // Marketing optimizations
+    // =============================================
+    match /marketing_optimizations/{optimizationId} {
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update, delete: if isSuperAdmin() || belongsToTenant();
+    }
+
+    // =============================================
+    // Campaign breakdowns
+    // =============================================
     match /campaign_breakdowns/{breakdownId} {
-      allow read, write: if request.auth != null;
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update, delete: if isSuperAdmin() || belongsToTenant();
     }
 
-    // Campaign AI analyses (kurulum analizi + optimizasyon onerileri)
+    // =============================================
+    // Campaign AI analyses
+    // =============================================
     match /campaign_ai_analyses/{analysisId} {
-      allow read, write: if request.auth != null;
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update, delete: if isSuperAdmin() || belongsToTenant();
     }
 
-    // Feedback videos: public read for shared videos, authenticated write
+    // =============================================
+    // Feedback videos: tenant-isolated + public read when isPublic == true
+    // =============================================
     match /feedback_videos/{videoId} {
-      // Public can read if video has isPublic=true
-      allow read: if request.auth != null || resource.data.isPublic == true;
-      // Only authenticated users can write
-      allow write: if request.auth != null;
+      // Public can read if video is marked isPublic; otherwise tenant-only
+      allow read: if isSuperAdmin()
+                  || belongsToTenant()
+                  || resource.data.isPublic == true;
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update, delete: if isSuperAdmin() || belongsToTenant();
     }
 
-    // Feedback comments: public read for public videos, authenticated write
+    // =============================================
+    // Feedback comments
+    // =============================================
     match /feedback_comments/{commentId} {
-      allow read: if request.auth != null || true;
-      allow write: if request.auth != null;
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update, delete: if isSuperAdmin() || belongsToTenant();
     }
 
-    // Feedback reactions: public read, authenticated write
+    // =============================================
+    // Feedback reactions
+    // =============================================
     match /feedback_reactions/{reactionId} {
-      allow read: if request.auth != null || true;
-      allow write: if request.auth != null;
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update, delete: if isSuperAdmin() || belongsToTenant();
     }
 
-    // All other collections: authenticated users only
-    match /{document=**} {
-      allow read, write: if request.auth != null;
+    // =============================================
+    // Competitors
+    // =============================================
+    match /competitors/{competitorId} {
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update, delete: if isSuperAdmin() || belongsToTenant();
+    }
+
+    // =============================================
+    // Competitor analyses
+    // =============================================
+    match /competitor_analyses/{analysisId} {
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update, delete: if isSuperAdmin() || belongsToTenant();
+    }
+
+    // =============================================
+    // Marketing reports
+    // =============================================
+    match /marketing_reports/{reportId} {
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update, delete: if isSuperAdmin() || belongsToTenant();
+    }
+
+    // =============================================
+    // UTM links
+    // =============================================
+    match /utm_links/{linkId} {
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update, delete: if isSuperAdmin() || belongsToTenant();
+    }
+
+    // =============================================
+    // Automation rules
+    // =============================================
+    match /automation_rules/{ruleId} {
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update, delete: if isSuperAdmin() || belongsToTenant();
+    }
+
+    // =============================================
+    // Rule execution logs
+    // =============================================
+    match /rule_execution_logs/{logId} {
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update, delete: if isSuperAdmin() || belongsToTenant();
+    }
+
+    // =============================================
+    // Campaign templates
+    // =============================================
+    match /campaign_templates/{templateId} {
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update, delete: if isSuperAdmin() || belongsToTenant();
+    }
+
+    // =============================================
+    // A/B tests
+    // =============================================
+    match /ab_tests/{testId} {
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update, delete: if isSuperAdmin() || belongsToTenant();
+    }
+
+    // =============================================
+    // Marketing alerts
+    // =============================================
+    match /marketing_alerts/{alertId} {
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update, delete: if isSuperAdmin() || belongsToTenant();
+    }
+
+    // =============================================
+    // Budget forecasts
+    // =============================================
+    match /budget_forecasts/{forecastId} {
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update, delete: if isSuperAdmin() || belongsToTenant();
+    }
+
+    // =============================================
+    // Social media posts
+    // =============================================
+    match /social_media_posts/{postId} {
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update, delete: if isSuperAdmin() || belongsToTenant();
+    }
+
+    // =============================================
+    // Creatives
+    // =============================================
+    match /creatives/{creativeId} {
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update, delete: if isSuperAdmin() || belongsToTenant();
+    }
+
+    // =============================================
+    // Approvals
+    // =============================================
+    match /approvals/{approvalId} {
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update, delete: if isSuperAdmin() || belongsToTenant();
+    }
+
+    // =============================================
+    // Activity log
+    // =============================================
+    match /activityLog/{logId} {
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update, delete: if isSuperAdmin() || belongsToTenant();
+    }
+
+    // =============================================
+    // Assets
+    // =============================================
+    match /assets/{assetId} {
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update, delete: if isSuperAdmin() || belongsToTenant();
+    }
+
+    // =============================================
+    // Asset folders
+    // =============================================
+    match /assetFolders/{folderId} {
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update, delete: if isSuperAdmin() || belongsToTenant();
     }
   }
 }

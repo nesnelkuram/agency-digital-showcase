@@ -59,6 +59,7 @@ function stripUndefined(obj: any): any {
  * Yeni lead oluştur
  */
 export async function createBrandLead(
+  tenantId: string,
   data: CreateBrandLeadData,
   createdByUid: string,
   createdByName: string
@@ -79,6 +80,7 @@ export async function createBrandLead(
   };
 
   const leadData: Omit<BrandLead, 'id'> = {
+    tenantId,
     sector: data.sector,
     contact: data.contact,
     status: 'new',
@@ -149,7 +151,7 @@ export async function createBrandLeadFromWebsite(
 /**
  * Lead getir (ID ile)
  */
-export async function getBrandLead(id: string): Promise<BrandLead | null> {
+export async function getBrandLead(tenantId: string, id: string): Promise<BrandLead | null> {
   if (!db) throw new Error('Firebase not initialized');
 
   const docRef = doc(db, COLLECTION_NAME, id);
@@ -167,6 +169,7 @@ export async function getBrandLead(id: string): Promise<BrandLead | null> {
  * Lead güncelle
  */
 export async function updateBrandLead(
+  tenantId: string,
   id: string,
   data: UpdateBrandLeadData,
   updatedByUid: string,
@@ -177,7 +180,7 @@ export async function updateBrandLead(
   const docRef = doc(db, COLLECTION_NAME, id);
 
   // Mevcut lead'i al
-  const currentLead = await getBrandLead(id);
+  const currentLead = await getBrandLead(tenantId, id);
   if (!currentLead) throw new Error('Lead not found');
 
   // Timeline olayları oluştur
@@ -243,6 +246,7 @@ export async function updateBrandLead(
  * Lead'e not ekle
  */
 export async function addNoteToLead(
+  tenantId: string,
   id: string,
   note: string,
   addedByUid: string,
@@ -250,7 +254,7 @@ export async function addNoteToLead(
 ): Promise<void> {
   if (!db) throw new Error('Firebase not initialized');
 
-  const lead = await getBrandLead(id);
+  const lead = await getBrandLead(tenantId, id);
   if (!lead) throw new Error('Lead not found');
 
   const noteEvent: TimelineEvent = {
@@ -273,7 +277,7 @@ export async function addNoteToLead(
 /**
  * Lead sil
  */
-export async function deleteBrandLead(id: string): Promise<void> {
+export async function deleteBrandLead(tenantId: string, id: string): Promise<void> {
   if (!db) throw new Error('Firebase not initialized');
   await deleteDoc(doc(db, COLLECTION_NAME, id));
 }
@@ -286,13 +290,16 @@ export async function deleteBrandLead(id: string): Promise<void> {
  * Lead listesi getir (pagination + filtre)
  */
 export async function getBrandLeads(
+  tenantId: string,
   filters?: BrandLeadFilters,
   pageSize: number = 20,
   lastDoc?: DocumentSnapshot
 ): Promise<{ leads: BrandLeadSummary[]; lastDoc: DocumentSnapshot | null }> {
   if (!db) throw new Error('Firebase not initialized');
 
-  const constraints: QueryConstraint[] = [];
+  const constraints: QueryConstraint[] = [
+    where('tenantId', '==', tenantId),
+  ];
 
   // Filtreler
   if (filters?.sector?.length) {
@@ -357,7 +364,7 @@ export async function getBrandLeads(
 /**
  * İstatistikler
  */
-export async function getBrandLeadStats(): Promise<{
+export async function getBrandLeadStats(tenantId: string): Promise<{
   total: number;
   byStatus: Record<LeadStatus, number>;
   newThisWeek: number;
@@ -365,7 +372,7 @@ export async function getBrandLeadStats(): Promise<{
 }> {
   if (!db) throw new Error('Firebase not initialized');
 
-  const snapshot = await getDocs(collection(db, COLLECTION_NAME));
+  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where('tenantId', '==', tenantId)));
 
   const byStatus: Record<LeadStatus, number> = {
     new: 0,
@@ -411,6 +418,7 @@ export async function getBrandLeadStats(): Promise<{
  * Lead'i müşteriye dönüştür
  */
 export async function convertLeadToClient(
+  tenantId: string,
   leadId: string,
   clientId: string,
   projectId: string | undefined,
@@ -419,7 +427,7 @@ export async function convertLeadToClient(
 ): Promise<void> {
   if (!db) throw new Error('Firebase not initialized');
 
-  const lead = await getBrandLead(leadId);
+  const lead = await getBrandLead(tenantId, leadId);
   if (!lead) throw new Error('Lead not found');
 
   const convertEvent: TimelineEvent = {
@@ -456,10 +464,10 @@ function generateShareToken(): string {
 /**
  * Lead için rapor paylaşım token'ı oluştur
  */
-export async function generateReportShareToken(leadId: string): Promise<string> {
+export async function generateReportShareToken(tenantId: string, leadId: string): Promise<string> {
   if (!db) throw new Error('Firebase not initialized');
 
-  const lead = await getBrandLead(leadId);
+  const lead = await getBrandLead(tenantId, leadId);
   if (!lead) throw new Error('Lead not found');
   if (!lead.aiAnalysis) throw new Error('Lead has no AI analysis to share');
 
@@ -504,7 +512,7 @@ export async function getBrandLeadByShareToken(token: string): Promise<BrandLead
 /**
  * Rapor paylaşımını iptal et
  */
-export async function revokeReportShare(leadId: string): Promise<void> {
+export async function revokeReportShare(tenantId: string, leadId: string): Promise<void> {
   if (!db) throw new Error('Firebase not initialized');
 
   const docRef = doc(db, COLLECTION_NAME, leadId);
@@ -518,7 +526,7 @@ export async function revokeReportShare(leadId: string): Promise<void> {
 /**
  * AI analizini sil
  */
-export async function deleteAIAnalysis(leadId: string): Promise<void> {
+export async function deleteAIAnalysis(tenantId: string, leadId: string): Promise<void> {
   if (!db) throw new Error('Firebase not initialized');
 
   const docRef = doc(db, COLLECTION_NAME, leadId);

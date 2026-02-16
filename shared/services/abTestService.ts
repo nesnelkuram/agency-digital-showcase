@@ -48,12 +48,14 @@ function stripUndefined(obj: any): any {
 // ============================================
 
 export async function createABTest(
+  tenantId: string,
   data: Omit<ABTest, 'id' | 'createdAt' | 'updatedAt'>
 ): Promise<string> {
   if (!db) throw new Error('Firebase not initialized');
 
   const testData = {
     ...stripUndefined(data),
+    tenantId,
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
   };
@@ -66,6 +68,7 @@ export async function createABTest(
 }
 
 export async function getABTests(
+  tenantId: string,
   filters?: {
     projectId?: string;
     campaignId?: string;
@@ -75,7 +78,9 @@ export async function getABTests(
 ): Promise<ABTest[]> {
   if (!db) throw new Error('Firebase not initialized');
 
-  const constraints: QueryConstraint[] = [];
+  const constraints: QueryConstraint[] = [
+    where('tenantId', '==', tenantId),
+  ];
 
   if (filters?.projectId) {
     constraints.push(where('projectId', '==', filters.projectId));
@@ -101,7 +106,7 @@ export async function getABTests(
   })) as ABTest[];
 }
 
-export async function getABTest(id: string): Promise<ABTest | null> {
+export async function getABTest(tenantId: string, id: string): Promise<ABTest | null> {
   if (!db) throw new Error('Firebase not initialized');
 
   const docRef = doc(db, AB_TESTS_COLLECTION, id);
@@ -116,6 +121,7 @@ export async function getABTest(id: string): Promise<ABTest | null> {
 }
 
 export async function updateABTest(
+  tenantId: string,
   id: string,
   data: Partial<ABTest>
 ): Promise<void> {
@@ -128,7 +134,7 @@ export async function updateABTest(
   });
 }
 
-export async function deleteABTest(id: string): Promise<void> {
+export async function deleteABTest(tenantId: string, id: string): Promise<void> {
   if (!db) throw new Error('Firebase not initialized');
   await deleteDoc(doc(db, AB_TESTS_COLLECTION, id));
 }
@@ -137,7 +143,7 @@ export async function deleteABTest(id: string): Promise<void> {
 // TEST DURUM YONETIMI
 // ============================================
 
-export async function startTest(id: string): Promise<void> {
+export async function startTest(tenantId: string, id: string): Promise<void> {
   if (!db) throw new Error('Firebase not initialized');
 
   const docRef = doc(db, AB_TESTS_COLLECTION, id);
@@ -148,7 +154,7 @@ export async function startTest(id: string): Promise<void> {
   });
 }
 
-export async function stopTest(id: string): Promise<void> {
+export async function stopTest(tenantId: string, id: string): Promise<void> {
   if (!db) throw new Error('Firebase not initialized');
 
   const docRef = doc(db, AB_TESTS_COLLECTION, id);
@@ -160,6 +166,7 @@ export async function stopTest(id: string): Promise<void> {
 }
 
 export async function declareWinner(
+  tenantId: string,
   id: string,
   winnerId: string
 ): Promise<void> {

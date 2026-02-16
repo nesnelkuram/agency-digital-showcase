@@ -73,6 +73,13 @@
     },
     "api/cron/marketing-optimize.ts": {
       "maxDuration": 300
+    },
+    "api/workflow/design-start.ts": {
+      "maxDuration": 10
+    },
+    "api/workflow/design-chat.ts": {
+      "maxDuration": 60,
+      "includeFiles": "src/pipeline/**"
     }
   },
   "crons": [

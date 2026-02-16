@@ -87,6 +87,37 @@ export const PERMISSIONS = {
   SOCIAL_MEDIA_EDIT: 'social_media:edit',
   SOCIAL_MEDIA_APPROVE: 'social_media:approve',
   SOCIAL_MEDIA_DELETE: 'social_media:delete',
+
+  // Tenant Management (super_admin only)
+  TENANTS_VIEW: 'tenants:view',
+  TENANTS_CREATE: 'tenants:create',
+  TENANTS_EDIT: 'tenants:edit',
+  TENANTS_DELETE: 'tenants:delete',
+  TENANTS_SWITCH: 'tenants:switch',
+
+  // Workflows
+  WORKFLOWS_VIEW: 'workflows:view',
+  WORKFLOWS_CREATE: 'workflows:create',
+  WORKFLOWS_EDIT: 'workflows:edit',
+  WORKFLOWS_DELETE: 'workflows:delete',
+  WORKFLOWS_PUBLISH: 'workflows:publish',
+
+  // Workflow Instances
+  WORKFLOW_INSTANCES_VIEW: 'workflow_instances:view',
+  WORKFLOW_INSTANCES_VIEW_OWN: 'workflow_instances:view_own',
+  WORKFLOW_INSTANCES_MANAGE: 'workflow_instances:manage',
+  WORKFLOW_INSTANCES_ASSIGN: 'workflow_instances:assign',
+
+  // Workflow Steps
+  WORKFLOW_STEPS_COMPLETE: 'workflow_steps:complete',
+  WORKFLOW_STEPS_REVIEW: 'workflow_steps:review',
+  WORKFLOW_STEPS_AI_EXECUTE: 'workflow_steps:ai_execute',
+
+  // SOP Resources
+  SOP_VIEW: 'sop:view',
+  SOP_CREATE: 'sop:create',
+  SOP_EDIT: 'sop:edit',
+  SOP_DELETE: 'sop:delete',
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

@@ -57,6 +57,7 @@ function stripUndefined(obj: any): any {
  * Yeni rakip olustur.
  */
 export async function createCompetitor(
+  tenantId: string,
   data: CreateCompetitorData,
   userId: string
 ): Promise<string> {
@@ -76,7 +77,7 @@ export async function createCompetitor(
 
   const docRef = await addDoc(
     collection(db, COMPETITORS_COLLECTION),
-    stripUndefined(competitorData)
+    stripUndefined({ ...competitorData, tenantId })
   );
   return docRef.id;
 }
@@ -85,11 +86,14 @@ export async function createCompetitor(
  * Tum rakipleri getir, olusturma tarihine gore siralama (en yeni en ustte).
  */
 export async function getCompetitors(
+  tenantId: string,
   projectId?: string
 ): Promise<Competitor[]> {
   if (!db) throw new Error('Firebase not initialized');
 
-  const constraints: QueryConstraint[] = [];
+  const constraints: QueryConstraint[] = [
+    where('tenantId', '==', tenantId),
+  ];
 
   if (projectId) {
     constraints.push(where('projectId', '==', projectId));
@@ -113,6 +117,7 @@ export async function getCompetitors(
       );
       const fallbackQ = query(
         collection(db, COMPETITORS_COLLECTION),
+        where('tenantId', '==', tenantId),
         where('projectId', '==', projectId)
       );
       const snapshot = await getDocs(fallbackQ);
@@ -132,7 +137,7 @@ export async function getCompetitors(
 /**
  * Tek bir rakip getir.
  */
-export async function getCompetitor(id: string): Promise<Competitor | null> {
+export async function getCompetitor(tenantId: string, id: string): Promise<Competitor | null> {
   if (!db) throw new Error('Firebase not initialized');
 
   const docRef = doc(db, COMPETITORS_COLLECTION, id);
@@ -150,6 +155,7 @@ export async function getCompetitor(id: string): Promise<Competitor | null> {
  * Rakibi guncelle (partial update).
  */
 export async function updateCompetitor(
+  tenantId: string,
   id: string,
   data: Partial<Omit<Competitor, 'id' | 'createdAt' | 'createdBy'>>
 ): Promise<void> {
@@ -162,7 +168,7 @@ export async function updateCompetitor(
 /**
  * Rakibi sil.
  */
-export async function deleteCompetitor(id: string): Promise<void> {
+export async function deleteCompetitor(tenantId: string, id: string): Promise<void> {
   if (!db) throw new Error('Firebase not initialized');
 
   await deleteDoc(doc(db, COMPETITORS_COLLECTION, id));
@@ -172,6 +178,7 @@ export async function deleteCompetitor(id: string): Promise<void> {
  * Rakip durumunu guncelle (aktif/duraklatildi/arsivlendi).
  */
 export async function toggleCompetitorStatus(
+  tenantId: string,
   id: string,
   status: CompetitorStatus
 ): Promise<void> {
@@ -189,13 +196,14 @@ export async function toggleCompetitorStatus(
  * Analiz sonucunu kaydet.
  */
 export async function saveAnalysis(
+  tenantId: string,
   data: Omit<CompetitorAnalysis, 'id'>
 ): Promise<string> {
   if (!db) throw new Error('Firebase not initialized');
 
   const docRef = await addDoc(
     collection(db, ANALYSES_COLLECTION),
-    stripUndefined(data)
+    stripUndefined({ ...data, tenantId })
   );
   return docRef.id;
 }
@@ -204,6 +212,7 @@ export async function saveAnalysis(
  * Bir rakip icin tum analizleri getir (en yeni en ustte).
  */
 export async function getAnalyses(
+  tenantId: string,
   competitorId: string,
   maxResults: number = 10
 ): Promise<CompetitorAnalysis[]> {
@@ -211,6 +220,7 @@ export async function getAnalyses(
 
   const q = query(
     collection(db, ANALYSES_COLLECTION),
+    where('tenantId', '==', tenantId),
     where('competitorId', '==', competitorId),
     orderBy('analyzedAt', 'desc'),
     limit(maxResults)
@@ -227,12 +237,14 @@ export async function getAnalyses(
  * Bir rakip icin en son analizi getir.
  */
 export async function getLatestAnalysis(
+  tenantId: string,
   competitorId: string
 ): Promise<CompetitorAnalysis | null> {
   if (!db) throw new Error('Firebase not initialized');
 
   const q = query(
     collection(db, ANALYSES_COLLECTION),
+    where('tenantId', '==', tenantId),
     where('competitorId', '==', competitorId),
     orderBy('analyzedAt', 'desc'),
     limit(1)
@@ -252,18 +264,19 @@ export async function getLatestAnalysis(
  * Her competitor icin tek tek getLatestAnalysis cagirarak toplar.
  */
 export async function getAllLatestAnalyses(
+  tenantId: string,
   projectId?: string
 ): Promise<Map<string, CompetitorAnalysis>> {
   if (!db) throw new Error('Firebase not initialized');
 
   // Once tum rakipleri al
-  const competitors = await getCompetitors(projectId);
+  const competitors = await getCompetitors(tenantId, projectId);
 
   // Her biri icin en son analizi paralel getir
   const analysisMap = new Map<string, CompetitorAnalysis>();
 
   const promises = competitors.map(async (comp) => {
-    const analysis = await getLatestAnalysis(comp.id);
+    const analysis = await getLatestAnalysis(tenantId, comp.id);
     if (analysis) {
       analysisMap.set(comp.id, analysis);
     }

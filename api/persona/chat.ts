@@ -1,14 +1,15 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { VercelResponse } from '@vercel/node';
 // @ts-ignore — pre-bundled by esbuild during vercel-build
 import { chat } from '../_lib/persona-bundle.mjs';
 import { getAdminDb } from '../_lib/firebaseAdmin';
 import { FieldValue } from 'firebase-admin/firestore';
+import { withAuth, AuthenticatedRequest } from '../_lib/withAuth';
 
 export const config = {
   maxDuration: 30,
 };
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) => {
   res.setHeader('Content-Type', 'application/json');
 
   if (req.method !== 'POST') {
@@ -88,4 +89,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       error: String(error?.message || 'Chat failed'),
     });
   }
-}
+});

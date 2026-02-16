@@ -36,6 +36,7 @@ export default defineConfig(({ mode }) => {
               'react-three': ['@react-three/fiber', '@react-three/drei'],
               'react-vendor': ['react', 'react-dom'],
               'firebase-vendor': ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage'],
+              'reactflow-vendor': ['@xyflow/react'],
             },
           },
         },

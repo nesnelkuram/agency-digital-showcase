@@ -74,6 +74,7 @@ function stripUndefined(obj: any): any {
 // ============================================
 
 export async function createCampaign(
+  tenantId: string,
   data: CreateCampaignData,
   createdByUid: string,
   createdByName: string
@@ -114,12 +115,12 @@ export async function createCampaign(
 
   const docRef = await addDoc(
     collection(db, CAMPAIGNS_COLLECTION),
-    stripUndefined(campaignData)
+    stripUndefined({ ...campaignData, tenantId })
   );
   return docRef.id;
 }
 
-export async function getCampaign(id: string): Promise<MarketingCampaign | null> {
+export async function getCampaign(tenantId: string, id: string): Promise<MarketingCampaign | null> {
   if (!db) throw new Error('Firebase not initialized');
 
   const docRef = doc(db, CAMPAIGNS_COLLECTION, id);
@@ -134,6 +135,7 @@ export async function getCampaign(id: string): Promise<MarketingCampaign | null>
 }
 
 export async function updateCampaign(
+  tenantId: string,
   id: string,
   data: UpdateCampaignData,
   updatedByUid: string,
@@ -142,7 +144,7 @@ export async function updateCampaign(
   if (!db) throw new Error('Firebase not initialized');
 
   const docRef = doc(db, CAMPAIGNS_COLLECTION, id);
-  const current = await getCampaign(id);
+  const current = await getCampaign(tenantId, id);
   if (!current) throw new Error('Campaign not found');
 
   const newEvents: MarketingTimelineEvent[] = [];
@@ -167,7 +169,7 @@ export async function updateCampaign(
   });
 }
 
-export async function deleteCampaign(id: string): Promise<void> {
+export async function deleteCampaign(tenantId: string, id: string): Promise<void> {
   if (!db) throw new Error('Firebase not initialized');
   await deleteDoc(doc(db, CAMPAIGNS_COLLECTION, id));
 }
@@ -177,13 +179,14 @@ export async function deleteCampaign(id: string): Promise<void> {
 // ============================================
 
 export async function getCampaigns(
+  tenantId: string,
   filters?: CampaignFilters,
   pageSize: number = 20,
   lastDoc?: DocumentSnapshot
 ): Promise<{ campaigns: CampaignSummary[]; lastDoc: DocumentSnapshot | null }> {
   if (!db) throw new Error('Firebase not initialized');
 
-  const constraints: QueryConstraint[] = [];
+  const constraints: QueryConstraint[] = [where('tenantId', '==', tenantId)];
 
   if (filters?.status?.length) {
     constraints.push(where('status', 'in', filters.status));
@@ -245,6 +248,7 @@ export async function getCampaigns(
 // ============================================
 
 export async function approveCampaign(
+  tenantId: string,
   campaignId: string,
   approvedByUid: string,
   approvedByName: string,
@@ -252,7 +256,7 @@ export async function approveCampaign(
 ): Promise<void> {
   if (!db) throw new Error('Firebase not initialized');
 
-  const campaign = await getCampaign(campaignId);
+  const campaign = await getCampaign(tenantId, campaignId);
   if (!campaign) throw new Error('Campaign not found');
 
   const now = Timestamp.now();
@@ -285,6 +289,7 @@ export async function approveCampaign(
 }
 
 export async function rejectCampaign(
+  tenantId: string,
   campaignId: string,
   rejectedByUid: string,
   rejectedByName: string,
@@ -292,7 +297,7 @@ export async function rejectCampaign(
 ): Promise<void> {
   if (!db) throw new Error('Firebase not initialized');
 
-  const campaign = await getCampaign(campaignId);
+  const campaign = await getCampaign(tenantId, campaignId);
   if (!campaign) throw new Error('Campaign not found');
 
   const now = Timestamp.now();
@@ -325,6 +330,7 @@ export async function rejectCampaign(
 }
 
 export async function requestRevision(
+  tenantId: string,
   campaignId: string,
   requestedByUid: string,
   requestedByName: string,
@@ -332,7 +338,7 @@ export async function requestRevision(
 ): Promise<void> {
   if (!db) throw new Error('Firebase not initialized');
 
-  const campaign = await getCampaign(campaignId);
+  const campaign = await getCampaign(tenantId, campaignId);
   if (!campaign) throw new Error('Campaign not found');
 
   const now = Timestamp.now();
@@ -369,12 +375,14 @@ export async function requestRevision(
 // ============================================
 
 export async function createProposal(
+  tenantId: string,
   data: Omit<CampaignProposal, 'id' | 'createdAt' | 'updatedAt'>
 ): Promise<string> {
   if (!db) throw new Error('Firebase not initialized');
 
   const proposalData = {
     ...stripUndefined(data),
+    tenantId,
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
   };
@@ -386,7 +394,7 @@ export async function createProposal(
   return docRef.id;
 }
 
-export async function getProposal(id: string): Promise<CampaignProposal | null> {
+export async function getProposal(tenantId: string, id: string): Promise<CampaignProposal | null> {
   if (!db) throw new Error('Firebase not initialized');
 
   const docRef = doc(db, PROPOSALS_COLLECTION, id);
@@ -401,6 +409,7 @@ export async function getProposal(id: string): Promise<CampaignProposal | null> 
 }
 
 export async function updateProposalStatus(
+  tenantId: string,
   id: string,
   status: ProposalStatus,
   reviewedByUid: string,
@@ -421,13 +430,14 @@ export async function updateProposalStatus(
 }
 
 export async function getProposals(
+  tenantId: string,
   filters?: ProposalFilters,
   pageSize: number = 20,
   lastDoc?: DocumentSnapshot
 ): Promise<{ proposals: ProposalSummary[]; lastDoc: DocumentSnapshot | null }> {
   if (!db) throw new Error('Firebase not initialized');
 
-  const constraints: QueryConstraint[] = [];
+  const constraints: QueryConstraint[] = [where('tenantId', '==', tenantId)];
 
   if (filters?.status?.length) {
     constraints.push(where('status', 'in', filters.status));
@@ -475,10 +485,10 @@ export async function getProposals(
 // PLATFORM HESAPLARI
 // ============================================
 
-export async function getPlatformAccounts(projectId?: string): Promise<PlatformAccount[]> {
+export async function getPlatformAccounts(tenantId: string, projectId?: string): Promise<PlatformAccount[]> {
   if (!db) throw new Error('Firebase not initialized');
 
-  const constraints: QueryConstraint[] = [];
+  const constraints: QueryConstraint[] = [where('tenantId', '==', tenantId)];
   if (projectId) {
     constraints.push(where('projectId', '==', projectId));
   }
@@ -498,6 +508,7 @@ export async function getPlatformAccounts(projectId?: string): Promise<PlatformA
       console.warn('[getPlatformAccounts] Index missing, falling back to unordered query');
       const fallbackQ = query(
         collection(db, PLATFORM_ACCOUNTS_COLLECTION),
+        where('tenantId', '==', tenantId),
         where('projectId', '==', projectId)
       );
       const snapshot = await getDocs(fallbackQ);
@@ -511,12 +522,14 @@ export async function getPlatformAccounts(projectId?: string): Promise<PlatformA
 }
 
 export async function getPlatformAccount(
+  tenantId: string,
   platform: AdPlatform,
   projectId?: string
 ): Promise<PlatformAccount | null> {
   if (!db) throw new Error('Firebase not initialized');
 
   const constraints: QueryConstraint[] = [
+    where('tenantId', '==', tenantId),
     where('platform', '==', platform),
     where('status', '==', 'connected'),
   ];
@@ -537,12 +550,14 @@ export async function getPlatformAccount(
 }
 
 export async function savePlatformAccount(
+  tenantId: string,
   data: Omit<PlatformAccount, 'id' | 'createdAt' | 'updatedAt'>
 ): Promise<string> {
   if (!db) throw new Error('Firebase not initialized');
 
   // Upsert: check if account already exists for this platform (+projectId)
   const constraints: QueryConstraint[] = [
+    where('tenantId', '==', tenantId),
     where('platform', '==', data.platform),
   ];
   if (data.projectId) {
@@ -567,6 +582,7 @@ export async function savePlatformAccount(
   // Create new document
   const accountData = {
     ...stripUndefined(data),
+    tenantId,
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
   };
@@ -579,6 +595,7 @@ export async function savePlatformAccount(
 }
 
 export async function updatePlatformAccount(
+  tenantId: string,
   id: string,
   data: Partial<PlatformAccount>
 ): Promise<void> {
@@ -591,7 +608,7 @@ export async function updatePlatformAccount(
   });
 }
 
-export async function disconnectPlatformAccount(id: string): Promise<void> {
+export async function disconnectPlatformAccount(tenantId: string, id: string): Promise<void> {
   if (!db) throw new Error('Firebase not initialized');
 
   const docRef = doc(db, PLATFORM_ACCOUNTS_COLLECTION, id);
@@ -606,24 +623,27 @@ export async function disconnectPlatformAccount(id: string): Promise<void> {
 // ============================================
 
 export async function savePerformanceSnapshot(
+  tenantId: string,
   data: Omit<PerformanceSnapshot, 'id'>
 ): Promise<string> {
   if (!db) throw new Error('Firebase not initialized');
 
   const docRef = await addDoc(
     collection(db, PERFORMANCE_COLLECTION),
-    stripUndefined(data)
+    stripUndefined({ ...data, tenantId })
   );
   return docRef.id;
 }
 
 export async function getPerformanceSnapshots(
+  tenantId: string,
   campaignId: string,
   dateRange?: { start: string; end: string }
 ): Promise<PerformanceSnapshot[]> {
   if (!db) throw new Error('Firebase not initialized');
 
   const constraints: QueryConstraint[] = [
+    where('tenantId', '==', tenantId),
     where('campaignId', '==', campaignId),
     orderBy('date', 'desc'),
   ];
@@ -647,24 +667,27 @@ export async function getPerformanceSnapshots(
 // ============================================
 
 export async function saveOptimizationSuggestion(
+  tenantId: string,
   data: Omit<OptimizationSuggestion, 'id'>
 ): Promise<string> {
   if (!db) throw new Error('Firebase not initialized');
 
   const docRef = await addDoc(
     collection(db, OPTIMIZATIONS_COLLECTION),
-    stripUndefined(data)
+    stripUndefined({ ...data, tenantId })
   );
   return docRef.id;
 }
 
 export async function getOptimizationSuggestions(
+  tenantId: string,
   campaignId: string
 ): Promise<OptimizationSuggestion[]> {
   if (!db) throw new Error('Firebase not initialized');
 
   const q = query(
     collection(db, OPTIMIZATIONS_COLLECTION),
+    where('tenantId', '==', tenantId),
     where('campaignId', '==', campaignId),
     orderBy('createdAt', 'desc')
   );
@@ -677,6 +700,7 @@ export async function getOptimizationSuggestions(
 }
 
 export async function applyOptimization(
+  tenantId: string,
   id: string
 ): Promise<void> {
   if (!db) throw new Error('Firebase not initialized');
@@ -692,14 +716,14 @@ export async function applyOptimization(
 // ISTATISTIKLER
 // ============================================
 
-export async function getMarketingStats(projectId?: string): Promise<MarketingDashboardStats> {
+export async function getMarketingStats(tenantId: string, projectId?: string): Promise<MarketingDashboardStats> {
   if (!db) throw new Error('Firebase not initialized');
 
   const campaignQuery = projectId
-    ? query(collection(db, CAMPAIGNS_COLLECTION), where('projectId', '==', projectId))
-    : collection(db, CAMPAIGNS_COLLECTION);
+    ? query(collection(db, CAMPAIGNS_COLLECTION), where('tenantId', '==', tenantId), where('projectId', '==', projectId))
+    : query(collection(db, CAMPAIGNS_COLLECTION), where('tenantId', '==', tenantId));
 
-  const proposalConstraints: QueryConstraint[] = [where('status', '==', 'pending')];
+  const proposalConstraints: QueryConstraint[] = [where('tenantId', '==', tenantId), where('status', '==', 'pending')];
   if (projectId) {
     proposalConstraints.push(where('projectId', '==', projectId));
   }
@@ -712,6 +736,7 @@ export async function getMarketingStats(projectId?: string): Promise<MarketingDa
     )),
     getDocs(query(
       collection(db, PLATFORM_ACCOUNTS_COLLECTION),
+      where('tenantId', '==', tenantId),
       where('status', '==', 'connected')
     )),
   ]);
@@ -792,13 +817,14 @@ export async function getMarketingStats(projectId?: string): Promise<MarketingDa
  * Calls the sync-campaigns API, then upserts results to Firestore.
  */
 export async function syncCampaignsFromMeta(
+  tenantId: string,
   projectId: string,
   platform: AdPlatform = 'meta'
 ): Promise<{ synced: number; error?: string }> {
   if (!db) throw new Error('Firebase not initialized');
 
   // 1. Get platform account (accessToken + adAccountId)
-  const account = await getPlatformAccount(platform, projectId);
+  const account = await getPlatformAccount(tenantId, platform, projectId);
   if (!account || !account.metadata?.accessToken || !account.metadata?.adAccountId) {
     return { synced: 0, error: 'Platform hesabi bulunamadi veya token eksik' };
   }
@@ -824,7 +850,7 @@ export async function syncCampaignsFromMeta(
   // 3. Upsert each campaign to Firestore
   let synced = 0;
   for (const camp of data.campaigns) {
-    await upsertCampaignByPlatformId(platform, camp.metaCampaignId, {
+    await upsertCampaignByPlatformId(tenantId, platform, camp.metaCampaignId, {
       projectId,
       name: camp.name,
       objective: camp.objective,
@@ -851,6 +877,7 @@ export async function syncCampaignsFromMeta(
  * Otherwise create a new one.
  */
 export async function upsertCampaignByPlatformId(
+  tenantId: string,
   platform: AdPlatform,
   platformCampaignId: string,
   data: Partial<MarketingCampaign>
@@ -860,6 +887,7 @@ export async function upsertCampaignByPlatformId(
   // Check if campaign already exists with this platform ID
   const q = query(
     collection(db, CAMPAIGNS_COLLECTION),
+    where('tenantId', '==', tenantId),
     where(`platformCampaignIds.${platform}`, '==', platformCampaignId),
     limit(1)
   );
@@ -879,6 +907,7 @@ export async function upsertCampaignByPlatformId(
   // Create new campaign
   const newCampaign = {
     ...stripUndefined(data),
+    tenantId,
     description: data.description || '',
     targeting: data.targeting || {},
     adSets: data.adSets || [],
@@ -907,6 +936,7 @@ export async function upsertCampaignByPlatformId(
 // ============================================
 
 export async function addNoteToCampaign(
+  tenantId: string,
   campaignId: string,
   note: string,
   addedByUid: string,
@@ -914,7 +944,7 @@ export async function addNoteToCampaign(
 ): Promise<void> {
   if (!db) throw new Error('Firebase not initialized');
 
-  const campaign = await getCampaign(campaignId);
+  const campaign = await getCampaign(tenantId, campaignId);
   if (!campaign) throw new Error('Campaign not found');
 
   const noteEvent: MarketingTimelineEvent = {
@@ -943,12 +973,13 @@ export async function addNoteToCampaign(
  * Like syncCampaignsFromMeta but passes deepSync: true to fetch full details.
  */
 export async function deepSyncFromMeta(
+  tenantId: string,
   projectId: string,
   platform: AdPlatform = 'meta'
 ): Promise<{ synced: number; error?: string }> {
   if (!db) throw new Error('Firebase not initialized');
 
-  const account = await getPlatformAccount(platform, projectId);
+  const account = await getPlatformAccount(tenantId, platform, projectId);
   if (!account || !account.metadata?.accessToken || !account.metadata?.adAccountId) {
     return { synced: 0, error: 'Platform hesabi bulunamadi veya token eksik' };
   }
@@ -973,7 +1004,7 @@ export async function deepSyncFromMeta(
 
   let synced = 0;
   for (const camp of data.campaigns) {
-    await upsertCampaignByPlatformId(platform, camp.metaCampaignId, {
+    await upsertCampaignByPlatformId(tenantId, platform, camp.metaCampaignId, {
       projectId,
       name: camp.name,
       objective: camp.objective,
@@ -1000,6 +1031,7 @@ export async function deepSyncFromMeta(
  * Sync performance data at adset or ad level for a single campaign.
  */
 export async function syncPerformanceLevel(
+  tenantId: string,
   projectId: string,
   campaignId: string,
   metaCampaignId: string,
@@ -1007,7 +1039,7 @@ export async function syncPerformanceLevel(
 ): Promise<void> {
   if (!db) throw new Error('Firebase not initialized');
 
-  const account = await getPlatformAccount('meta', projectId);
+  const account = await getPlatformAccount(tenantId, 'meta', projectId);
   if (!account || !account.metadata?.accessToken || !account.metadata?.adAccountId) {
     throw new Error('Platform hesabi bulunamadi veya token eksik');
   }
@@ -1037,6 +1069,7 @@ export async function syncPerformanceLevel(
       collection(db, PERFORMANCE_COLLECTION),
       stripUndefined({
         ...snapshot,
+        tenantId,
         campaignId,
         level,
         updatedAt: serverTimestamp(),
@@ -1050,6 +1083,7 @@ export async function syncPerformanceLevel(
  * Uses upsert logic: updates existing breakdown or creates new one.
  */
 export async function syncBreakdown(
+  tenantId: string,
   projectId: string,
   campaignId: string,
   metaCampaignId: string,
@@ -1057,7 +1091,7 @@ export async function syncBreakdown(
 ): Promise<void> {
   if (!db) throw new Error('Firebase not initialized');
 
-  const account = await getPlatformAccount('meta', projectId);
+  const account = await getPlatformAccount(tenantId, 'meta', projectId);
   if (!account || !account.metadata?.accessToken || !account.metadata?.adAccountId) {
     throw new Error('Platform hesabi bulunamadi veya token eksik');
   }
@@ -1084,6 +1118,7 @@ export async function syncBreakdown(
   // Upsert: query by campaignId + breakdownType
   const q = query(
     collection(db, BREAKDOWNS_COLLECTION),
+    where('tenantId', '==', tenantId),
     where('campaignId', '==', campaignId),
     where('breakdownType', '==', breakdownType),
     limit(1)
@@ -1104,7 +1139,7 @@ export async function syncBreakdown(
     const existingDoc = existing.docs[0];
     await updateDoc(doc(db, BREAKDOWNS_COLLECTION, existingDoc.id), breakdownData);
   } else {
-    await addDoc(collection(db, BREAKDOWNS_COLLECTION), breakdownData);
+    await addDoc(collection(db, BREAKDOWNS_COLLECTION), { ...breakdownData, tenantId });
   }
 }
 
@@ -1113,6 +1148,7 @@ export async function syncBreakdown(
  * Returns the latest breakdown (ordered by fetchedAt desc, limit 1).
  */
 export async function getBreakdownData(
+  tenantId: string,
   campaignId: string,
   breakdownType: BreakdownType
 ): Promise<CampaignBreakdown | null> {
@@ -1120,6 +1156,7 @@ export async function getBreakdownData(
 
   const q = query(
     collection(db, BREAKDOWNS_COLLECTION),
+    where('tenantId', '==', tenantId),
     where('campaignId', '==', campaignId),
     where('breakdownType', '==', breakdownType),
     orderBy('fetchedAt', 'desc'),
@@ -1143,6 +1180,7 @@ export async function getBreakdownData(
  * Run a setup analysis for a campaign via the AI endpoint.
  */
 export async function runSetupAnalysis(
+  tenantId: string,
   campaignId: string
 ): Promise<CampaignAIAnalysis> {
   if (!db) throw new Error('Firebase not initialized');
@@ -1165,6 +1203,7 @@ export async function runSetupAnalysis(
  * Run optimization recommendations for a campaign via the AI endpoint.
  */
 export async function runOptimizationAnalysis(
+  tenantId: string,
   campaignId: string
 ): Promise<CampaignAIAnalysis> {
   if (!db) throw new Error('Firebase not initialized');
@@ -1188,6 +1227,7 @@ export async function runOptimizationAnalysis(
  * Ordered by generatedAt desc, limit 1.
  */
 export async function getLatestAIAnalysis(
+  tenantId: string,
   campaignId: string,
   type: 'setup_analysis' | 'optimization_recommendations'
 ): Promise<CampaignAIAnalysis | null> {
@@ -1195,6 +1235,7 @@ export async function getLatestAIAnalysis(
 
   const q = query(
     collection(db, AI_ANALYSES_COLLECTION),
+    where('tenantId', '==', tenantId),
     where('campaignId', '==', campaignId),
     where('type', '==', type),
     orderBy('generatedAt', 'desc'),
@@ -1214,6 +1255,7 @@ export async function getLatestAIAnalysis(
  * Save an AI analysis result to Firestore.
  */
 export async function saveAIAnalysis(
+  tenantId: string,
   data: Omit<CampaignAIAnalysis, 'id'>
 ): Promise<string> {
   if (!db) throw new Error('Firebase not initialized');
@@ -1222,6 +1264,7 @@ export async function saveAIAnalysis(
     collection(db, AI_ANALYSES_COLLECTION),
     stripUndefined({
       ...data,
+      tenantId,
       updatedAt: serverTimestamp(),
     })
   );
@@ -1232,6 +1275,7 @@ export async function saveAIAnalysis(
  * Update campaign sync status (idle, syncing, success, error).
  */
 export async function updateCampaignSyncStatus(
+  tenantId: string,
   campaignId: string,
   status: 'idle' | 'syncing' | 'success' | 'error',
   error?: string

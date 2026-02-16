@@ -1,4 +1,4 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { VercelResponse } from '@vercel/node';
 // @ts-ignore — pre-bundled by esbuild during vercel-build
 import {
   runSectorResearch,
@@ -23,6 +23,7 @@ import {
   completeRun,
   failRun,
 } from './_lib/checkpointManager.js';
+import { withAuthOptional, OptionalAuthRequest } from './_lib/withAuth';
 
 export const config = {
   maxDuration: 300,
@@ -31,7 +32,7 @@ export const config = {
 const BUDGET_MS = 290_000; // 10s safety margin
 const PIPELINE_BUDGET_MS = 150_000; // strategist(50s) + challenger(27s) + synthesizer(67s) + buffer(6s)
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResponse) => {
   res.setHeader('Content-Type', 'application/json');
 
   if (req.method !== 'POST') {
@@ -623,7 +624,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).end(JSON.stringify({ status: 'failed', error: 'Internal server error' }));
     }
   }
-}
+});
 
 // Fallback synthesis when synthesizer is skipped
 function buildFallbackSynthesis(strategistOutput: any) {

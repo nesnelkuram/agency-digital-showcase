@@ -1,4 +1,5 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { VercelResponse } from '@vercel/node';
+import { withAuth, AuthenticatedRequest } from '../_lib/withAuth';
 
 export const config = {
   maxDuration: 120,
@@ -14,7 +15,7 @@ export const config = {
  *  - campaignId: string
  *  - platforms: AdPlatform[] (optional — defaults to campaign.platforms)
  */
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) => {
   res.setHeader('Content-Type', 'application/json');
 
   if (req.method !== 'POST') {
@@ -111,4 +112,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       error: error.message || 'Campaign execution failed',
     });
   }
-}
+});

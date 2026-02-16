@@ -83,6 +83,16 @@ const CreatePostPage = React.lazy(() => import('./social-media/CreatePostPage'))
 // Persona AI Pages
 const PersonaChatPage = React.lazy(() => import('./persona/PersonaChatPage'));
 
+// Tenant Management (super_admin only)
+const TenantManagementPage = React.lazy(() => import('./settings/TenantManagementPage'));
+
+// Workflow Pages
+const WorkflowListPage = React.lazy(() => import('./workflows/WorkflowListPage'));
+const WorkflowBuilderPage = React.lazy(() => import('./workflows/WorkflowBuilderPage'));
+const WorkflowInstancePage = React.lazy(() => import('./workflows/WorkflowInstancePage'));
+const WorkflowStepDetailPage = React.lazy(() => import('./workflows/WorkflowStepDetailPage'));
+const AIWorkflowDesigner = React.lazy(() => import('./workflows/AIWorkflowDesigner'));
+
 const AdminApp: React.FC = () => {
   return (
     <AuthGuard>
@@ -677,6 +687,80 @@ const AdminApp: React.FC = () => {
             element={
               <React.Suspense fallback={<PageLoader />}>
                 <PersonaChatPage />
+              </React.Suspense>
+            }
+          />
+          {/* Workflow Routes */}
+          <Route
+            path="workflows"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <WorkflowListPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="workflows/ai-designer"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <AIWorkflowDesigner />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="workflows/builder"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <WorkflowBuilderPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="workflows/builder/:id"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <WorkflowBuilderPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="workflows/instance/:id"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <WorkflowInstancePage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="workflows/instance/:id/step/:stepId"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <WorkflowStepDetailPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="projects/:projectId/workflow/:instanceId"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <WorkflowInstancePage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="projects/:projectId/workflow/:instanceId/step/:stepId"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <WorkflowStepDetailPage />
+              </React.Suspense>
+            }
+          />
+          {/* Tenant Management (super_admin) */}
+          <Route
+            path="settings/tenants"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <TenantManagementPage />
               </React.Suspense>
             }
           />

@@ -54,6 +54,7 @@ function stripUndefined(obj: any): any {
 // ============================================
 
 export async function createProject(
+  tenantId: string,
   data: CreateProjectData,
   createdByUid: string,
   createdByName: string
@@ -97,11 +98,11 @@ export async function createProject(
     createdByName,
   };
 
-  const docRef = await addDoc(collection(db, COLLECTION_NAME), stripUndefined(projectData));
+  const docRef = await addDoc(collection(db, COLLECTION_NAME), stripUndefined({ tenantId, ...projectData }));
   return docRef.id;
 }
 
-export async function getProject(id: string): Promise<Project | null> {
+export async function getProject(tenantId: string, id: string): Promise<Project | null> {
   if (!db) throw new Error('Firebase not initialized');
 
   const docRef = doc(db, COLLECTION_NAME, id);
@@ -116,6 +117,7 @@ export async function getProject(id: string): Promise<Project | null> {
 }
 
 export async function updateProject(
+  tenantId: string,
   id: string,
   data: UpdateProjectData,
   updatedByUid: string,
@@ -124,7 +126,7 @@ export async function updateProject(
   if (!db) throw new Error('Firebase not initialized');
 
   const docRef = doc(db, COLLECTION_NAME, id);
-  const current = await getProject(id);
+  const current = await getProject(tenantId, id);
   if (!current) throw new Error('Project not found');
 
   const newEvents: ProjectTimelineEvent[] = [];
@@ -149,7 +151,7 @@ export async function updateProject(
   });
 }
 
-export async function deleteProject(id: string): Promise<void> {
+export async function deleteProject(tenantId: string, id: string): Promise<void> {
   if (!db) throw new Error('Firebase not initialized');
   await deleteDoc(doc(db, COLLECTION_NAME, id));
 }
@@ -159,13 +161,14 @@ export async function deleteProject(id: string): Promise<void> {
 // ============================================
 
 export async function getProjects(
+  tenantId: string,
   filters?: ProjectFilters,
   pageSize: number = 20,
   lastDoc?: DocumentSnapshot
 ): Promise<{ projects: ProjectSummary[]; lastDoc: DocumentSnapshot | null }> {
   if (!db) throw new Error('Firebase not initialized');
 
-  const constraints: QueryConstraint[] = [];
+  const constraints: QueryConstraint[] = [where('tenantId', '==', tenantId)];
 
   if (filters?.status?.length) {
     constraints.push(where('status', 'in', filters.status));
@@ -228,7 +231,7 @@ export async function getProjects(
   return { projects: filtered, lastDoc: newLastDoc };
 }
 
-export async function getProjectStats(): Promise<{
+export async function getProjectStats(tenantId: string): Promise<{
   total: number;
   active: number;
   paused: number;
@@ -237,7 +240,7 @@ export async function getProjectStats(): Promise<{
 }> {
   if (!db) throw new Error('Firebase not initialized');
 
-  const q = query(collection(db, COLLECTION_NAME));
+  const q = query(collection(db, COLLECTION_NAME), where('tenantId', '==', tenantId));
   const snapshot = await getDocs(q);
 
   const stats = { total: 0, active: 0, paused: 0, completed: 0, cancelled: 0 };
@@ -258,6 +261,7 @@ export async function getProjectStats(): Promise<{
 // ============================================
 
 export async function activateService(
+  tenantId: string,
   projectId: string,
   category: ServiceCategory,
   activatedByUid: string,
@@ -265,7 +269,7 @@ export async function activateService(
 ): Promise<void> {
   if (!db) throw new Error('Firebase not initialized');
 
-  const project = await getProject(projectId);
+  const project = await getProject(tenantId, projectId);
   if (!project) throw new Error('Project not found');
 
   const now = Timestamp.now();
@@ -307,6 +311,7 @@ export async function activateService(
 }
 
 export async function deactivateService(
+  tenantId: string,
   projectId: string,
   category: ServiceCategory,
   deactivatedByUid: string,
@@ -314,7 +319,7 @@ export async function deactivateService(
 ): Promise<void> {
   if (!db) throw new Error('Firebase not initialized');
 
-  const project = await getProject(projectId);
+  const project = await getProject(tenantId, projectId);
   if (!project) throw new Error('Project not found');
 
   const now = Timestamp.now();
@@ -346,6 +351,7 @@ export async function deactivateService(
 // ============================================
 
 export async function convertQuoteToProject(
+  tenantId: string,
   quoteId: string,
   additionalData: Partial<CreateProjectData>,
   convertedByUid: string,
@@ -407,6 +413,7 @@ export async function convertQuoteToProject(
   };
 
   batch.set(projectRef, stripUndefined({
+    tenantId,
     name: projectData.name,
     description: projectData.description,
     status: 'active',
@@ -455,12 +462,14 @@ export async function convertQuoteToProject(
 // ============================================
 
 export async function getProjectsByClient(
+  tenantId: string,
   clientId: string
 ): Promise<ProjectSummary[]> {
   if (!db) throw new Error('Firebase not initialized');
 
   const q = query(
     collection(db, COLLECTION_NAME),
+    where('tenantId', '==', tenantId),
     where('clientId', '==', clientId),
     orderBy('createdAt', 'desc')
   );
@@ -494,12 +503,13 @@ export async function getProjectsByClient(
 // ============================================
 
 export async function addTimelineEvent(
+  tenantId: string,
   projectId: string,
   event: Omit<ProjectTimelineEvent, 'id' | 'createdAt'>
 ): Promise<void> {
   if (!db) throw new Error('Firebase not initialized');
 
-  const project = await getProject(projectId);
+  const project = await getProject(tenantId, projectId);
   if (!project) throw new Error('Project not found');
 
   const timelineEvent: ProjectTimelineEvent = {

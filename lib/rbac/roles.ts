@@ -8,11 +8,20 @@ export interface RoleConfig {
 }
 
 export const ROLES: Record<string, RoleConfig> = {
+  super_admin: {
+    name: 'super_admin',
+    displayName: 'Super Administrator',
+    description: 'Global administrator with access to all tenants and features',
+    permissions: Object.values(PERMISSIONS),
+  },
+
   admin: {
     name: 'admin',
     displayName: 'Administrator',
-    description: 'Full access to all features and settings',
-    permissions: Object.values(PERMISSIONS),
+    description: 'Full access to all features and settings within a tenant',
+    permissions: Object.values(PERMISSIONS).filter(
+      (p) => !p.startsWith('tenants:')
+    ),
   },
 
   staff: {
@@ -81,6 +90,15 @@ export const ROLES: Record<string, RoleConfig> = {
       PERMISSIONS.SOCIAL_MEDIA_CREATE,
       PERMISSIONS.SOCIAL_MEDIA_EDIT,
       PERMISSIONS.SOCIAL_MEDIA_APPROVE,
+
+      // Workflows
+      PERMISSIONS.WORKFLOWS_VIEW,
+      PERMISSIONS.WORKFLOW_INSTANCES_VIEW,
+      PERMISSIONS.WORKFLOW_INSTANCES_MANAGE,
+      PERMISSIONS.WORKFLOW_INSTANCES_ASSIGN,
+      PERMISSIONS.WORKFLOW_STEPS_COMPLETE,
+      PERMISSIONS.WORKFLOW_STEPS_REVIEW,
+      PERMISSIONS.SOP_VIEW,
     ],
   },
 
@@ -113,6 +131,9 @@ export const ROLES: Record<string, RoleConfig> = {
       PERMISSIONS.FEEDBACK_VIEW,
       PERMISSIONS.FEEDBACK_CREATE,
       PERMISSIONS.FEEDBACK_COMMENT,
+
+      // Workflows (view own projects only)
+      PERMISSIONS.WORKFLOW_INSTANCES_VIEW_OWN,
     ],
   },
 
@@ -147,6 +168,11 @@ export const ROLES: Record<string, RoleConfig> = {
       PERMISSIONS.FEEDBACK_VIEW,
       PERMISSIONS.FEEDBACK_CREATE,
       PERMISSIONS.FEEDBACK_COMMENT,
+
+      // Workflows
+      PERMISSIONS.WORKFLOW_INSTANCES_VIEW_OWN,
+      PERMISSIONS.WORKFLOW_STEPS_COMPLETE,
+      PERMISSIONS.SOP_VIEW,
     ],
   },
 };

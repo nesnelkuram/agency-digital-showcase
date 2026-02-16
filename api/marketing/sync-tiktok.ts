@@ -1,4 +1,5 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { VercelResponse } from '@vercel/node';
+import { withAuth, AuthenticatedRequest } from '../_lib/withAuth';
 
 export const config = {
   maxDuration: 120,
@@ -12,7 +13,7 @@ const TIKTOK_API = 'https://business-api.tiktok.com/open_api/v1.3';
  * Fetches campaigns from TikTok Marketing API.
  * Body: { accessToken, advertiserId, dateRange? }
  */
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) => {
   res.setHeader('Content-Type', 'application/json');
 
   if (req.method !== 'POST') {
@@ -130,7 +131,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.error('[sync-tiktok] Error:', error.message);
     return res.status(500).json({ success: false, error: error.message });
   }
-}
+});
 
 function mapTikTokObjective(obj: string): string {
   const map: Record<string, string> = {

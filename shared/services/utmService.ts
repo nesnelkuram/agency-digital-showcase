@@ -97,11 +97,13 @@ export function buildUTMUrl(
  * @returns Olusturulan belgenin ID'si
  */
 export async function createUTMLink(
+  tenantId: string,
   data: Omit<UTMLink, 'id' | 'createdAt'>
 ): Promise<string> {
   if (!db) throw new Error('Firebase not initialized');
 
   const docData = {
+    tenantId,
     projectId: data.projectId || null,
     baseUrl: data.baseUrl,
     source: data.source,
@@ -127,12 +129,15 @@ export async function createUTMLink(
  * Opsiyonel projectId filtresi ve limit destekler.
  */
 export async function getUTMLinks(
+  tenantId: string,
   projectId?: string,
   limitCount: number = 20
 ): Promise<UTMLink[]> {
   if (!db) throw new Error('Firebase not initialized');
 
-  const constraints = [];
+  const constraints = [
+    where('tenantId', '==', tenantId),
+  ];
 
   if (projectId) {
     constraints.push(where('projectId', '==', projectId));
@@ -158,6 +163,7 @@ export async function getUTMLinks(
       );
       const fallbackQ = query(
         collection(db, UTM_LINKS_COLLECTION),
+        where('tenantId', '==', tenantId),
         where('projectId', '==', projectId)
       );
       const snapshot = await getDocs(fallbackQ);
@@ -182,7 +188,7 @@ export async function getUTMLinks(
 /**
  * Belirtilen ID'ye sahip UTM link'ini siler.
  */
-export async function deleteUTMLink(id: string): Promise<void> {
+export async function deleteUTMLink(tenantId: string, id: string): Promise<void> {
   if (!db) throw new Error('Firebase not initialized');
 
   await deleteDoc(doc(db, UTM_LINKS_COLLECTION, id));

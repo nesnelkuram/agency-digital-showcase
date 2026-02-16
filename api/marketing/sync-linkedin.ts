@@ -1,4 +1,5 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { VercelResponse } from '@vercel/node';
+import { withAuth, AuthenticatedRequest } from '../_lib/withAuth';
 
 export const config = {
   maxDuration: 120,
@@ -12,7 +13,7 @@ const LINKEDIN_API = 'https://api.linkedin.com/v2';
  * Fetches campaigns from LinkedIn Marketing API.
  * Body: { accessToken, accountId, dateRange? }
  */
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) => {
   res.setHeader('Content-Type', 'application/json');
 
   if (req.method !== 'POST') {
@@ -124,7 +125,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.error('[sync-linkedin] Error:', error.message);
     return res.status(500).json({ success: false, error: error.message });
   }
-}
+});
 
 function mapLinkedInObjective(obj: string): string {
   const map: Record<string, string> = {

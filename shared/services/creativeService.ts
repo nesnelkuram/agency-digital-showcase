@@ -86,12 +86,14 @@ export async function uploadCreativeFile(
  * id, createdAt ve updatedAt otomatik atanir.
  */
 export async function createCreative(
+  tenantId: string,
   data: Omit<CreativeAsset, 'id' | 'createdAt' | 'updatedAt'>
 ): Promise<string> {
   if (!db) throw new Error('Firebase baglantisi yok');
 
   const creativeData = {
     ...stripUndefined(data),
+    tenantId,
     platforms: data.platforms || [],
     tags: data.tags || [],
     campaignIds: data.campaignIds || [],
@@ -114,7 +116,7 @@ export async function createCreative(
  * ID'ye gore tek bir kreatif dondurur.
  * Bulunamazsa null doner.
  */
-export async function getCreative(id: string): Promise<CreativeAsset | null> {
+export async function getCreative(tenantId: string, id: string): Promise<CreativeAsset | null> {
   if (!db) throw new Error('Firebase baglantisi yok');
 
   const docRef = doc(db, CREATIVES_COLLECTION, id);
@@ -138,6 +140,7 @@ export async function getCreative(id: string): Promise<CreativeAsset | null> {
  * Varsayilan siralamasi: updatedAt desc.
  */
 export async function getCreatives(
+  tenantId: string,
   filters?: {
     projectId?: string;
     type?: CreativeType;
@@ -149,7 +152,9 @@ export async function getCreatives(
 ): Promise<CreativeAsset[]> {
   if (!db) throw new Error('Firebase baglantisi yok');
 
-  const constraints: QueryConstraint[] = [];
+  const constraints: QueryConstraint[] = [
+    where('tenantId', '==', tenantId),
+  ];
 
   // Proje filtresi
   if (filters?.projectId) {
@@ -207,6 +212,7 @@ export async function getCreatives(
  * updatedAt otomatik olarak serverTimestamp ile set edilir.
  */
 export async function updateCreative(
+  tenantId: string,
   id: string,
   data: Partial<CreativeAsset>
 ): Promise<void> {
@@ -227,7 +233,7 @@ export async function updateCreative(
  * Kreatif dokumanini Firestore'dan siler.
  * Dosya silimi (Blob) ayri olarak handle edilmelidir.
  */
-export async function deleteCreative(id: string): Promise<void> {
+export async function deleteCreative(tenantId: string, id: string): Promise<void> {
   if (!db) throw new Error('Firebase baglantisi yok');
 
   await deleteDoc(doc(db, CREATIVES_COLLECTION, id));
@@ -242,6 +248,7 @@ export async function deleteCreative(id: string): Promise<void> {
  * Firestore arrayUnion ile campaignIds'e ekleme yapar (tekrar eklemez).
  */
 export async function linkCreativeToCampaign(
+  tenantId: string,
   creativeId: string,
   campaignId: string
 ): Promise<void> {
