@@ -44,3 +44,22 @@ await build({
 });
 
 console.log('Built api/_lib/persona-bundle.mjs');
+
+// Gemini client bundle — used by workflow design-chat
+await build({
+  entryPoints: ['src/pipeline/geminiClient.ts'],
+  bundle: true,
+  platform: 'node',
+  target: 'node18',
+  format: 'esm',
+  outfile: 'api/_lib/gemini-bundle.mjs',
+  external: ['@vercel/node', '@google/genai'],
+  minify: false,
+  sourcemap: false,
+  mainFields: ['module', 'main'],
+  conditions: ['import', 'module', 'default'],
+  loader: { '.json': 'json' },
+  banner: { js: esmBanner },
+});
+
+console.log('Built api/_lib/gemini-bundle.mjs');

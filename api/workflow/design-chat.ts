@@ -1,4 +1,8 @@
 import type { VercelResponse } from '@vercel/node';
+import { getAdminDb } from '../_lib/firebaseAdmin';
+import { FieldValue } from 'firebase-admin/firestore';
+// @ts-ignore — pre-bundled by esbuild during vercel-build
+import { generateJSON } from '../_lib/gemini-bundle.mjs';
 import { withAuth, AuthenticatedRequest } from '../_lib/withAuth';
 
 export const config = {
@@ -82,7 +86,6 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
     }
 
     // Load session from Firestore
-    const { getAdminDb } = await import('../_lib/firebaseAdmin');
     const db = getAdminDb();
     const sessionDoc = await db.collection('workflow_design_sessions').doc(sessionId).get();
 
@@ -135,8 +138,7 @@ ONEMLI: Sadece gecerli JSON don. Baska bir sey yazma.`);
 
     const prompt = conversationParts.join('\n');
 
-    // Call Gemini via dynamic import
-    const { generateJSON } = await import('../../src/pipeline/geminiClient');
+    // Call Gemini via pre-bundled client
     const result = await generateJSON<DesignResponse>(
       'flash',
       prompt,
@@ -157,7 +159,7 @@ ONEMLI: Sadece gecerli JSON don. Baska bir sey yazma.`);
     };
 
     const updateData: Record<string, any> = {
-      messages: (await import('firebase-admin/firestore')).FieldValue.arrayUnion(userMsg, assistantMsg),
+      messages: FieldValue.arrayUnion(userMsg, assistantMsg),
       updatedAt: Date.now(),
     };
 

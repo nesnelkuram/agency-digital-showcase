@@ -1,5 +1,6 @@
 import type { VercelResponse } from '@vercel/node';
 import { randomUUID } from 'crypto';
+import { getAdminDb } from '../_lib/firebaseAdmin';
 import { withAuth, AuthenticatedRequest } from '../_lib/withAuth';
 
 export const config = {
@@ -26,7 +27,6 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
   try {
     console.log('[design-start] userId:', req.userId, 'tenantId:', req.tenantId);
     const sessionId = randomUUID();
-    const { getAdminDb } = await import('../_lib/firebaseAdmin');
     const db = getAdminDb();
 
     await db.collection('workflow_design_sessions').doc(sessionId).set({
