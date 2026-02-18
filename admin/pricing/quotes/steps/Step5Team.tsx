@@ -141,7 +141,7 @@ const Step5Team: React.FC<Step5TeamProps> = ({
   return (
     <div>
       <div className="text-center mb-8">
-        <h2 className="font-ramillas text-2xl font-bold text-[#171717] mb-2">
+        <h2 className="font-grotesk text-2xl font-bold text-[#171717] mb-2">
           Ekip & Ekipman
         </h2>
         <p className="font-grotesk text-neutral-500">
@@ -392,7 +392,7 @@ const Step5Team: React.FC<Step5TeamProps> = ({
         <div className="mt-6 p-4 bg-neutral-100 rounded-xl">
           <div className="flex items-center justify-between">
             <span className="font-grotesk text-neutral-600">Bu adim toplami:</span>
-            <span className="font-ramillas text-xl font-bold text-[#171717]">
+            <span className="font-grotesk text-xl font-bold text-[#171717]">
               {formatCurrency(staffTotal + equipmentTotal)}
             </span>
           </div>

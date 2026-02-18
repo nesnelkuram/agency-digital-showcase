@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermission } from '@/shared/hooks/usePermission';
+import { useTenantId } from '@/shared/hooks/useTenant';
 import { PERMISSIONS } from '@/lib/rbac/permissions';
 import {
   getFeedbackVideo,
@@ -52,6 +53,7 @@ const FeedbackDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { can } = usePermission();
+  const tenantId = useTenantId();
 
   const [video, setVideo] = useState<FeedbackVideo | null>(null);
   const [comments, setComments] = useState<FeedbackComment[]>([]);
@@ -71,7 +73,7 @@ const FeedbackDetailPage: React.FC = () => {
       setLoading(true);
 
       // Load video first - this is required
-      const videoData = await getFeedbackVideo(id);
+      const videoData = await getFeedbackVideo(tenantId, id);
       setVideo(videoData);
 
       if (videoData) {
@@ -79,8 +81,8 @@ const FeedbackDetailPage: React.FC = () => {
 
         // Load comments and reactions separately - don't block video if indexes are missing
         const [commentsResult, reactionsResult] = await Promise.allSettled([
-          getComments(id),
-          getReactions(id),
+          getComments(tenantId, id),
+          getReactions(tenantId, id),
         ]);
 
         if (commentsResult.status === 'fulfilled') {
@@ -100,7 +102,7 @@ const FeedbackDetailPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [tenantId, id]);
 
   useEffect(() => {
     loadData();
@@ -111,7 +113,7 @@ const FeedbackDetailPage: React.FC = () => {
     if (!id || !video || video.status !== 'transcribing') return;
     const interval = setInterval(async () => {
       try {
-        const updated = await getFeedbackVideo(id);
+        const updated = await getFeedbackVideo(tenantId, id);
         if (updated && updated.status !== 'transcribing') {
           setVideo(updated);
         }
@@ -120,7 +122,7 @@ const FeedbackDetailPage: React.FC = () => {
       }
     }, 3000);
     return () => clearInterval(interval);
-  }, [id, video?.status]);
+  }, [tenantId, id, video?.status]);
 
   const handleAddComment = async () => {
     if (!commentText.trim() || !user || !id) return;
@@ -128,12 +130,13 @@ const FeedbackDetailPage: React.FC = () => {
     setSubmitting(true);
     try {
       await addComment(
+        tenantId,
         { videoId: id, timestamp: Math.floor(currentTime), text: commentText.trim() },
         user.uid,
         user.displayName || user.email || 'Unknown'
       );
       setCommentText('');
-      const updatedComments = await getComments(id);
+      const updatedComments = await getComments(tenantId, id);
       setComments(updatedComments);
     } catch (err) {
       console.error('[FeedbackDetail] Error adding comment:', err);
@@ -145,7 +148,7 @@ const FeedbackDetailPage: React.FC = () => {
   const handleDeleteComment = async (commentId: string) => {
     if (!id) return;
     try {
-      await deleteComment(commentId, id);
+      await deleteComment(tenantId, commentId, id);
       setComments((prev) => prev.filter((c) => c.id !== commentId));
     } catch (err) {
       console.error('[FeedbackDetail] Error deleting comment:', err);
@@ -155,8 +158,8 @@ const FeedbackDetailPage: React.FC = () => {
   const handleToggleReaction = async (emoji: string) => {
     if (!user || !id) return;
     try {
-      await toggleReaction(id, emoji, Math.floor(currentTime), user.uid, user.displayName || '');
-      const updatedReactions = await getReactions(id);
+      await toggleReaction(tenantId, id, emoji, Math.floor(currentTime), user.uid, user.displayName || '');
+      const updatedReactions = await getReactions(tenantId, id);
       setReactions(updatedReactions);
     } catch (err) {
       console.error('[FeedbackDetail] Error toggling reaction:', err);
@@ -174,7 +177,7 @@ const FeedbackDetailPage: React.FC = () => {
 
   const handleTogglePublic = async () => {
     if (!video || !id) return;
-    await updateFeedbackVideo(id, { isPublic: !video.isPublic });
+    await updateFeedbackVideo(tenantId, id, { isPublic: !video.isPublic });
     setVideo({ ...video, isPublic: !video.isPublic });
   };
 
@@ -182,7 +185,7 @@ const FeedbackDetailPage: React.FC = () => {
     if (!id || !confirm('Bu videoyu silmek istediginize emin misiniz?')) return;
     setDeleting(true);
     try {
-      await deleteFeedbackVideo(id);
+      await deleteFeedbackVideo(tenantId, id);
       navigate('/admin/feedback');
     } catch (err) {
       console.error('[FeedbackDetail] Error deleting video:', err);
@@ -249,7 +252,7 @@ const FeedbackDetailPage: React.FC = () => {
           <ArrowLeft className="w-5 h-5 text-neutral-600" />
         </button>
         <div className="flex-1">
-          <h1 className="text-xl font-ramillas font-bold text-[#171717]">
+          <h1 className="text-xl font-grotesk font-bold text-[#171717]">
             {video.title}
           </h1>
           <div className="flex items-center gap-3 mt-1 text-sm font-commons text-neutral-500">
@@ -446,7 +449,7 @@ const FeedbackDetailPage: React.FC = () => {
 
         {/* Comments Column */}
         <div className="space-y-4">
-          <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
+          <div className="admin-card p-0 overflow-hidden">
             <div className="px-5 py-4 border-b border-neutral-100">
               <h2 className="font-commons font-medium text-[#171717]">
                 Yorumlar ({comments.length})

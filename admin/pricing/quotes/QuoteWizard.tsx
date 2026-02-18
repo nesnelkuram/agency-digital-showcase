@@ -387,7 +387,7 @@ const QuoteWizard: React.FC = () => {
                 </motion.button>
               </Link>
               <div>
-                <h1 className="font-ramillas text-xl font-bold text-[#171717]">
+                <h1 className="font-grotesk text-xl font-bold text-[#171717]">
                   Fiyat Teklifi Olustur
                 </h1>
                 <p className="font-grotesk text-sm text-neutral-500">
@@ -400,7 +400,7 @@ const QuoteWizard: React.FC = () => {
             {currentStep >= 5 && wizardState.costs.total > 0 && (
               <div className="text-right">
                 <p className="font-grotesk text-xs text-neutral-500">Tahmini Fiyat</p>
-                <p className="font-ramillas text-2xl font-bold text-[#171717]">
+                <p className="font-grotesk text-2xl font-bold text-[#171717]">
                   {formatCurrency(wizardState.sellPrice)}
                 </p>
               </div>

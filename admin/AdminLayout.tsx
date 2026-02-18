@@ -41,6 +41,7 @@ import {
   Eye,
   GitBranch,
   HardDrive,
+  Share2,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermission } from '@/shared/hooks/usePermission';
@@ -143,6 +144,17 @@ const navItems: NavItem[] = [
     ],
   },
   {
+    label: 'Sosyal Medya',
+    path: '/admin/social-media',
+    icon: Share2,
+    permission: PERMISSIONS.SOCIAL_MEDIA_VIEW,
+    children: [
+      { label: 'Takvim', path: '/admin/social-media', icon: CalendarDays },
+      { label: 'Icerik Planlari', path: '/admin/social-media/plans', icon: FileText },
+      { label: 'Yeni Icerik', path: '/admin/social-media/new', icon: Sparkles },
+    ],
+  },
+  {
     label: 'Hizmet Katalogu',
     path: '/admin/pricing/catalog',
     icon: BookOpen,
@@ -226,6 +238,9 @@ const AdminLayout: React.FC = () => {
     }
     if (path === '/admin/pricing/costs') {
       return location.pathname === '/admin/pricing/costs';
+    }
+    if (path === '/admin/social-media') {
+      return location.pathname.startsWith('/admin/social-media');
     }
     if (path === '/admin/pricing/catalog') {
       return location.pathname.startsWith('/admin/pricing/catalog');

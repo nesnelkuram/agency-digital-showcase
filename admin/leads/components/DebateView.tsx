@@ -11,7 +11,7 @@ const DebateView: React.FC<Props> = ({ debate }) => {
     <div>
       <div className="flex items-center gap-2 mb-4">
         <Swords className="w-5 h-5 text-orange-600" />
-        <h4 className="font-ramillas text-lg font-bold text-[#171717]">
+        <h4 className="font-grotesk text-lg font-bold text-[#171717]">
           Strateji Tartismasi
         </h4>
         {debate.debateCompleted ? (

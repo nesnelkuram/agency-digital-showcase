@@ -151,7 +151,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ config: propConfig }) => {
   };
 
   return (
-    <>
+    <div className="landing-bg">
       {/* SEO Meta Tags */}
       <SEOHead
         title={config.meta.title}
@@ -194,7 +194,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ config: propConfig }) => {
         progress={loadingProgress}
         isActive={isLoading}
       />
-    </>
+    </div>
   );
 };
 

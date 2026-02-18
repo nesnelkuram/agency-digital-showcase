@@ -42,7 +42,7 @@ const Step2Category: React.FC<Step2CategoryProps> = ({ selected, onChange }) => 
   return (
     <div>
       <div className="text-center mb-8">
-        <h2 className="font-ramillas text-2xl font-bold text-[#171717] mb-2">
+        <h2 className="font-grotesk text-2xl font-bold text-[#171717] mb-2">
           Servis Kategorisi
         </h2>
         <p className="font-grotesk text-neutral-500">

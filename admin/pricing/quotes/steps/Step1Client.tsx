@@ -40,7 +40,7 @@ const Step1Client: React.FC<Step1ClientProps> = ({ data, onChange }) => {
   return (
     <div className="max-w-xl mx-auto">
       <div className="text-center mb-8">
-        <h2 className="font-ramillas text-2xl font-bold text-[#171717] mb-2">
+        <h2 className="font-grotesk text-2xl font-bold text-[#171717] mb-2">
           Musteri Bilgileri
         </h2>
         <p className="font-grotesk text-neutral-500">

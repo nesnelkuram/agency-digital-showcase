@@ -176,7 +176,7 @@ const ProjectDetailPage: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-center">
         <FolderKanban className="w-12 h-12 text-neutral-300 mb-4" />
-        <h3 className="font-ramillas text-xl font-bold text-neutral-700 mb-2">
+        <h3 className="font-grotesk text-xl font-bold text-neutral-700 mb-2">
           Proje bulunamadi
         </h3>
         <p className="font-grotesk text-neutral-500 mb-4">
@@ -218,11 +218,11 @@ const ProjectDetailPage: React.FC = () => {
       />
 
       {/* Project Header */}
-      <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-6 md:p-8">
+      <div className="admin-card md:p-8">
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-2xl md:text-3xl font-ramillas font-bold text-[#171717]">
+              <h1 className="text-2xl md:text-3xl font-grotesk font-bold text-[#1a1a2e]">
                 {project.name}
               </h1>
               <span
@@ -234,7 +234,7 @@ const ProjectDetailPage: React.FC = () => {
               </span>
             </div>
             {project.description && (
-              <p className="font-grotesk text-neutral-600 text-sm max-w-2xl">
+              <p className="font-grotesk text-neutral-500 text-sm max-w-2xl">
                 {project.description}
               </p>
             )}
@@ -336,7 +336,7 @@ const ProjectDetailPage: React.FC = () => {
 
       {/* Services & Workflows Section */}
       <div>
-        <h2 className="font-ramillas text-xl font-bold text-[#171717] mb-4">
+        <h2 className="font-grotesk text-xl font-bold text-[#171717] mb-4">
           Hizmetler ve Is Akislari
         </h2>
         {project.services.length === 0 ? (
@@ -402,10 +402,10 @@ const ProjectDetailPage: React.FC = () => {
 
       {/* Timeline */}
       <div>
-        <h2 className="font-ramillas text-xl font-bold text-[#171717] mb-4">
+        <h2 className="font-grotesk text-xl font-bold text-[#171717] mb-4">
           Zaman Cizelgesi
         </h2>
-        <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
+        <div className="admin-card p-0 overflow-hidden">
           {/* Add Note Input */}
           <div className="px-5 py-4 border-b border-neutral-100">
             <div className="flex items-center gap-3">

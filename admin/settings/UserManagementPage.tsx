@@ -99,7 +99,7 @@ const UserManagementPage: React.FC = () => {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <Shield className="w-12 h-12 text-neutral-300 mx-auto" />
-          <h3 className="font-ramillas text-xl font-bold text-[#171717] mt-4">
+          <h3 className="font-grotesk text-xl font-bold text-[#171717] mt-4">
             Erisim Engellendi
           </h3>
           <p className="font-grotesk text-neutral-600 mt-2">
@@ -126,7 +126,7 @@ const UserManagementPage: React.FC = () => {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center max-w-md">
           <AlertCircle className="w-12 h-12 text-red-400 mx-auto" />
-          <h3 className="font-ramillas text-xl font-bold text-[#171717] mt-4">Hata</h3>
+          <h3 className="font-grotesk text-xl font-bold text-[#171717] mt-4">Hata</h3>
           <p className="font-grotesk text-neutral-600 mt-2">{error}</p>
           <button
             onClick={refetch}
@@ -152,10 +152,10 @@ const UserManagementPage: React.FC = () => {
             <ChevronLeft className="w-5 h-5 text-neutral-600" />
           </a>
           <div>
-            <h1 className="text-2xl md:text-3xl font-ramillas font-bold text-[#171717]">
+            <h1 className="text-2xl md:text-3xl font-grotesk font-bold text-[#1a1a2e]">
               Kullanici Yonetimi
             </h1>
-            <p className="font-grotesk text-neutral-600 mt-1">
+            <p className="font-grotesk text-neutral-500 mt-1">
               Ekip uyelerini davet edin ve yonetin.
             </p>
           </div>
@@ -235,7 +235,7 @@ const UserManagementPage: React.FC = () => {
         <div className="p-4 border-b border-neutral-100">
           <div className="flex items-center gap-2">
             <Users className="w-5 h-5 text-neutral-600" />
-            <h2 className="font-ramillas text-lg font-bold text-[#171717]">
+            <h2 className="font-grotesk text-lg font-bold text-[#171717]">
               Kullanicilar ({users.length})
             </h2>
           </div>
@@ -381,7 +381,7 @@ const UserManagementPage: React.FC = () => {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-6">
-                <h3 className="font-ramillas text-xl font-bold text-[#171717]">
+                <h3 className="font-grotesk text-xl font-bold text-[#171717]">
                   Kullanici Davet Et
                 </h3>
                 <button

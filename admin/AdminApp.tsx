@@ -312,6 +312,55 @@ const AdminApp: React.FC = () => {
               </React.Suspense>
             }
           />
+          {/* Standalone Social Media Routes */}
+          <Route
+            path="social-media"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <SocialMediaCalendar />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="social-media/dashboard"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <SocialMediaDashboard />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="social-media/new"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <CreatePostPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="social-media/plans"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <ContentPlanListPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="social-media/plans/new"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <CreateContentPlanPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="social-media/plans/:planId"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <ContentPlanView />
+              </React.Suspense>
+            }
+          />
           {/* Project-scoped Social Media Routes */}
           <Route
             path="projects/:projectId/social-media"

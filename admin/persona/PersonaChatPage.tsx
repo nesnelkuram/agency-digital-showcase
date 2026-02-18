@@ -6,10 +6,10 @@ const PersonaChatPage: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl md:text-3xl font-ramillas font-bold text-[#171717]">
+        <h1 className="text-2xl md:text-3xl font-grotesk font-bold text-[#1a1a2e]">
           Danisman AI
         </h1>
-        <p className="font-grotesk text-neutral-600 mt-1">
+        <p className="font-grotesk text-neutral-500 mt-1">
           432 blog yazisinin perspektifiyle is ve marka stratejisi danismanligi
         </p>
       </div>

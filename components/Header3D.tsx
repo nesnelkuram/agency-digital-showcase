@@ -375,7 +375,7 @@ const Header3D: React.FC<Header3DProps> = ({
       className="relative w-full block" 
       style={{ height: `${PARALLAX_DURATION_VIEWPORTS * 100}vh` }}
     >
-      <div className={`sticky top-0 h-screen w-full overflow-hidden bg-[#ebeef8] z-10 ${isMobile ? 'flex flex-col' : 'flex items-center'}`}>
+      <div className={`sticky top-0 h-screen w-full overflow-hidden z-10 ${isMobile ? 'flex flex-col' : 'flex items-center'}`} style={{ backgroundColor: 'rgba(235, 238, 248, 0.85)' }}>
         
         {/* Logo */}
         <div className="absolute top-12 z-50" style={{ left: '5.5%' }}>
@@ -479,23 +479,23 @@ const Header3D: React.FC<Header3DProps> = ({
         
         {/* Updated Background */}
         <div className="absolute inset-0 z-0">
-          {/* Base background color #ebeef8 */}
-          <div 
+          {/* Base background color - semi-transparent for glassmorphism */}
+          <div
             className="absolute inset-0"
             style={{
-              background: '#ebeef8'
+              background: 'rgba(235, 238, 248, 0.85)'
             }}
           />
           
-          {/* Triangle area with #fffceb */}
-          <div 
+          {/* Triangle area - semi-transparent for glassmorphism */}
+          <div
             className="absolute"
             style={{
               bottom: 0,
               right: 0,
               width: '100%',
               height: '100%',
-              background: '#fffceb',
+              background: 'rgba(255, 252, 235, 0.85)',
               clipPath: 'circle(50% at 84% 26%)',
             }}
           />
@@ -705,11 +705,12 @@ const Header3D: React.FC<Header3DProps> = ({
         )}
 
         {/* Expanding circle background - only in header section */}
-        <div 
-          className={`absolute bg-[#fffceb] rounded-full transition-all ${
+        <div
+          className={`absolute rounded-full transition-all ${
             selectedPhone || isClosing ? 'z-30' : 'z-10'
           }`}
           style={{
+            backgroundColor: 'rgba(255, 252, 235, 0.85)',
             // Circle expands when selected, shrinks when closing
             width: isClosing ? '100vh' : (selectedPhone ? '400vw' : '100vh'),
             height: isClosing ? '100vh' : (selectedPhone ? '400vw' : '100vh'),
@@ -737,9 +738,10 @@ const Header3D: React.FC<Header3DProps> = ({
         />
         
         {/* Blue expanding circle background - between yellow bg and phone */}
-        <div 
-          className={`absolute bg-[#EBEEF8] rounded-full transition-all`}
+        <div
+          className={`absolute rounded-full transition-all`}
           style={{
+            backgroundColor: 'rgba(235, 238, 248, 0.85)',
             zIndex: selectedPhone || isClosing ? 35 : 9,
             // Hidden when not selected, expands when selected
             width: isClosing ? '0' : (selectedPhone ? '120vh' : '0'),

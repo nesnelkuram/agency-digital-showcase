@@ -15,7 +15,7 @@ const PositioningSection: React.FC<Props> = ({ positioning }) => {
     <div>
       <div className="flex items-center gap-2 mb-4">
         <Compass className="w-5 h-5 text-cyan-600" />
-        <h4 className="font-ramillas text-lg font-bold text-[#171717]">
+        <h4 className="font-grotesk text-lg font-bold text-[#171717]">
           Marka Konumlandirmasi
         </h4>
       </div>

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermission } from '@/shared/hooks/usePermission';
+import { useTenantId } from '@/shared/hooks/useTenant';
 import {
   getBrandLeads,
   getBrandLeadStats,
@@ -38,6 +39,7 @@ import { isFirebaseConfigured } from '@/lib/firebase/config';
 const LeadsPage: React.FC = () => {
   const { user } = useAuth();
   const { can } = usePermission();
+  const tenantId = useTenantId();
 
   // State
   const [leads, setLeads] = useState<BrandLeadSummary[]>([]);
@@ -66,6 +68,7 @@ const LeadsPage: React.FC = () => {
     try {
       setLoading(true);
       const result = await getBrandLeads(
+        tenantId,
         filters,
         20,
         reset ? undefined : lastDoc || undefined
@@ -84,19 +87,19 @@ const LeadsPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [filters, lastDoc]);
+  }, [tenantId, filters, lastDoc]);
 
   // Load stats
   const loadStats = useCallback(async () => {
     if (!isFirebaseConfigured) return;
 
     try {
-      const statsData = await getBrandLeadStats();
+      const statsData = await getBrandLeadStats(tenantId);
       setStats(statsData);
     } catch (error) {
       console.error('Error loading stats:', error);
     }
-  }, []);
+  }, [tenantId]);
 
   // Initial load
   useEffect(() => {
@@ -153,7 +156,7 @@ const LeadsPage: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-center">
         <Users className="w-12 h-12 text-neutral-300 mb-4" />
-        <h3 className="font-ramillas text-xl font-bold text-neutral-700 mb-2">
+        <h3 className="font-grotesk text-xl font-bold text-neutral-700 mb-2">
           Firebase Yapilandirilmadi
         </h3>
         <p className="font-grotesk text-neutral-500 max-w-md">
@@ -169,10 +172,10 @@ const LeadsPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-ramillas font-bold text-[#171717]">
+          <h1 className="text-2xl md:text-3xl font-grotesk font-bold text-[#1a1a2e]">
             Marka Basvurulari
           </h1>
-          <p className="font-grotesk text-neutral-600 mt-1">
+          <p className="font-grotesk text-neutral-500 mt-1">
             Website formlarindan gelen basvurular
           </p>
         </div>
@@ -203,18 +206,18 @@ const LeadsPage: React.FC = () => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-2xl p-7 shadow-sm border border-neutral-100"
+            className="admin-stat-card"
           >
             <div className="flex items-start justify-between">
-              <div className="p-3 rounded-lg bg-blue-50 text-blue-600">
+              <div className="p-3 rounded-xl bg-blue-500/10 text-blue-600">
                 <Users className="w-6 h-6" />
               </div>
-              <span className="text-xs font-grotesk font-medium px-2 py-1 rounded-full bg-blue-50 text-blue-600">
+              <span className="text-xs font-grotesk font-medium px-2.5 py-1 rounded-full backdrop-blur-sm bg-blue-500/10 text-blue-600">
                 Toplam
               </span>
             </div>
-            <div className="mt-4">
-              <p className="text-3xl font-ramillas font-bold text-[#171717]">
+            <div className="mt-5">
+              <p className="text-3xl font-grotesk font-bold text-[#1a1a2e]">
                 {stats.total}
               </p>
               <p className="font-grotesk text-sm text-neutral-500 mt-1">Lead</p>
@@ -225,18 +228,18 @@ const LeadsPage: React.FC = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-white rounded-2xl p-7 shadow-sm border border-neutral-100"
+            className="admin-stat-card"
           >
             <div className="flex items-start justify-between">
-              <div className="p-3 rounded-lg bg-green-50 text-green-600">
+              <div className="p-3 rounded-xl bg-green-500/10 text-green-600">
                 <UserPlus className="w-6 h-6" />
               </div>
-              <span className="text-xs font-grotesk font-medium px-2 py-1 rounded-full bg-green-50 text-green-600">
+              <span className="text-xs font-grotesk font-medium px-2.5 py-1 rounded-full backdrop-blur-sm bg-green-500/10 text-green-600">
                 Bu hafta
               </span>
             </div>
-            <div className="mt-4">
-              <p className="text-3xl font-ramillas font-bold text-[#171717]">
+            <div className="mt-5">
+              <p className="text-3xl font-grotesk font-bold text-[#1a1a2e]">
                 {stats.newThisWeek}
               </p>
               <p className="font-grotesk text-sm text-neutral-500 mt-1">Yeni Lead</p>
@@ -247,18 +250,18 @@ const LeadsPage: React.FC = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="bg-white rounded-2xl p-7 shadow-sm border border-neutral-100"
+            className="admin-stat-card"
           >
             <div className="flex items-start justify-between">
-              <div className="p-3 rounded-lg bg-amber-50 text-amber-600">
+              <div className="p-3 rounded-xl bg-amber-500/10 text-amber-600">
                 <Clock className="w-6 h-6" />
               </div>
-              <span className="text-xs font-grotesk font-medium px-2 py-1 rounded-full bg-amber-50 text-amber-600">
+              <span className="text-xs font-grotesk font-medium px-2.5 py-1 rounded-full backdrop-blur-sm bg-amber-500/10 text-amber-600">
                 Bekliyor
               </span>
             </div>
-            <div className="mt-4">
-              <p className="text-3xl font-ramillas font-bold text-[#171717]">
+            <div className="mt-5">
+              <p className="text-3xl font-grotesk font-bold text-[#1a1a2e]">
                 {stats.byStatus.new}
               </p>
               <p className="font-grotesk text-sm text-neutral-500 mt-1">Incelenmemis</p>
@@ -269,18 +272,18 @@ const LeadsPage: React.FC = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="bg-white rounded-2xl p-7 shadow-sm border border-neutral-100"
+            className="admin-stat-card"
           >
             <div className="flex items-start justify-between">
-              <div className="p-3 rounded-lg bg-purple-50 text-purple-600">
+              <div className="p-3 rounded-xl bg-purple-500/10 text-purple-600">
                 <TrendingUp className="w-6 h-6" />
               </div>
-              <span className="text-xs font-grotesk font-medium px-2 py-1 rounded-full bg-purple-50 text-purple-600">
+              <span className="text-xs font-grotesk font-medium px-2.5 py-1 rounded-full backdrop-blur-sm bg-purple-500/10 text-purple-600">
                 Oran
               </span>
             </div>
-            <div className="mt-4">
-              <p className="text-3xl font-ramillas font-bold text-[#171717]">
+            <div className="mt-5">
+              <p className="text-3xl font-grotesk font-bold text-[#1a1a2e]">
                 %{stats.conversionRate}
               </p>
               <p className="font-grotesk text-sm text-neutral-500 mt-1">Donusum</p>
@@ -367,7 +370,7 @@ const LeadsPage: React.FC = () => {
       </div>
 
       {/* Leads List */}
-      <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
+      <div className="admin-card p-0 overflow-hidden">
         {loading && leads.length === 0 ? (
           <div className="flex items-center justify-center h-64">
             <div className="w-8 h-8 border-2 border-[#171717] border-t-transparent rounded-full animate-spin" />
@@ -375,7 +378,7 @@ const LeadsPage: React.FC = () => {
         ) : leads.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-center p-6">
             <Users className="w-12 h-12 text-neutral-300 mb-4" />
-            <h3 className="font-ramillas text-xl font-bold text-neutral-700 mb-2">
+            <h3 className="font-grotesk text-xl font-bold text-neutral-700 mb-2">
               Henuz basvuru yok
             </h3>
             <p className="font-grotesk text-neutral-500 max-w-md">

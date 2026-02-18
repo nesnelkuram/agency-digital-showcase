@@ -72,7 +72,7 @@ const StartWorkflowModal: React.FC<StartWorkflowModalProps> = ({
               {/* Header */}
               <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-100">
                 <div>
-                  <h3 className="font-ramillas text-lg font-bold text-[#171717]">
+                  <h3 className="font-grotesk text-lg font-bold text-[#171717]">
                     Yeni Produksiyon Baslat
                   </h3>
                   <p className="font-grotesk text-xs text-neutral-500 mt-0.5">

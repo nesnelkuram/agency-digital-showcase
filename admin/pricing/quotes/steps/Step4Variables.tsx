@@ -260,7 +260,7 @@ const Step4Variables: React.FC<Step4VariablesProps> = ({
           <div className="w-16 h-16 bg-neutral-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Layers className="w-8 h-8 text-neutral-400" />
           </div>
-          <h3 className="font-ramillas text-xl font-bold text-[#171717] mb-2">
+          <h3 className="font-grotesk text-xl font-bold text-[#171717] mb-2">
             Degisken Yok
           </h3>
           <p className="font-grotesk text-neutral-500">
@@ -274,7 +274,7 @@ const Step4Variables: React.FC<Step4VariablesProps> = ({
   return (
     <div>
       <div className="text-center mb-8">
-        <h2 className="font-ramillas text-2xl font-bold text-[#171717] mb-2">
+        <h2 className="font-grotesk text-2xl font-bold text-[#171717] mb-2">
           Proje Degiskenleri
         </h2>
         <p className="font-grotesk text-neutral-500">

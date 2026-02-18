@@ -426,7 +426,7 @@ const ProposalViewPage: React.FC = () => {
             <ArrowLeft className="w-5 h-5 text-neutral-700" />
           </button>
           <div>
-            <h1 className="text-xl font-ramillas font-bold text-[#171717]">
+            <h1 className="text-xl font-grotesk font-bold text-[#171717]">
               {proposal.proposalNumber || 'Yeni Teklif'}
             </h1>
             <p className="font-grotesk text-sm text-neutral-500">
@@ -539,7 +539,7 @@ const ProposalViewPage: React.FC = () => {
         <div className="bg-[#171717] text-white p-8 md:p-12">
           <div className="flex flex-col md:flex-row justify-between items-start gap-6">
             <div>
-              <h1 className="font-ramillas text-4xl font-bold tracking-tight">
+              <h1 className="font-grotesk text-4xl font-bold tracking-tight">
                 {proposal.companyName}
               </h1>
               <p className="font-grotesk text-neutral-400 mt-1">{proposal.companyTitle}</p>
@@ -607,7 +607,7 @@ const ProposalViewPage: React.FC = () => {
 
         {/* Project Description */}
         <div className="p-8 md:p-12 border-b border-neutral-100">
-          <h2 className="font-ramillas text-xl font-bold text-[#171717] mb-3 flex items-center gap-2">
+          <h2 className="font-grotesk text-xl font-bold text-[#171717] mb-3 flex items-center gap-2">
             <FileText className="w-5 h-5" />
             Proje Hakkinda
           </h2>
@@ -618,7 +618,7 @@ const ProposalViewPage: React.FC = () => {
 
         {/* Service Lines Table */}
         <div className="p-8 md:p-12 border-b border-neutral-100">
-          <h2 className="font-ramillas text-xl font-bold text-[#171717] mb-6 flex items-center gap-2">
+          <h2 className="font-grotesk text-xl font-bold text-[#171717] mb-6 flex items-center gap-2">
             <Receipt className="w-5 h-5" />
             Hizmet Kalemleri
           </h2>
@@ -699,7 +699,7 @@ const ProposalViewPage: React.FC = () => {
                   <td colSpan={4} className="py-4 px-4 text-right font-grotesk text-sm font-bold text-white">
                     GENEL TOPLAM (KDV Dahil)
                   </td>
-                  <td className="py-4 px-4 text-right font-ramillas text-xl font-bold text-white">
+                  <td className="py-4 px-4 text-right font-grotesk text-xl font-bold text-white">
                     {formatCurrency(proposal.grandTotal)} TL
                   </td>
                 </tr>
@@ -710,7 +710,7 @@ const ProposalViewPage: React.FC = () => {
 
         {/* PAYMENT PLANS - Ana ozellik */}
         <div className="p-8 md:p-12 border-b border-neutral-100">
-          <h2 className="font-ramillas text-xl font-bold text-[#171717] mb-2 flex items-center gap-2">
+          <h2 className="font-grotesk text-xl font-bold text-[#171717] mb-2 flex items-center gap-2">
             <BadgePercent className="w-5 h-5" />
             Odeme Planlari & Iskonto Secenekleri
           </h2>
@@ -768,7 +768,7 @@ const ProposalViewPage: React.FC = () => {
                     <>
                       {plan.period === 1 ? (
                         <div className="text-center mb-4">
-                          <p className={`font-ramillas text-2xl font-bold ${isPopular ? 'text-white' : 'text-[#171717]'}`}>
+                          <p className={`font-grotesk text-2xl font-bold ${isPopular ? 'text-white' : 'text-[#171717]'}`}>
                             {formatCurrency(plan.monthlyAmount)} TL
                           </p>
                           <p className={`font-grotesk text-xs ${isPopular ? 'text-neutral-400' : 'text-neutral-500'}`}>
@@ -780,7 +780,7 @@ const ProposalViewPage: React.FC = () => {
                           <p className={`font-grotesk text-xs line-through ${isPopular ? 'text-neutral-500' : 'text-neutral-400'}`}>
                             {formatCurrency(plan.totalWithoutDiscount)} TL
                           </p>
-                          <p className={`font-ramillas text-2xl font-bold ${isPopular ? 'text-white' : 'text-[#171717]'}`}>
+                          <p className={`font-grotesk text-2xl font-bold ${isPopular ? 'text-white' : 'text-[#171717]'}`}>
                             {formatCurrency(plan.totalWithDiscount)} TL
                           </p>
                           <p className={`font-grotesk text-xs ${isPopular ? 'text-neutral-400' : 'text-neutral-500'}`}>
@@ -799,7 +799,7 @@ const ProposalViewPage: React.FC = () => {
                           <p className={`font-grotesk text-xs line-through ${isPopular ? 'text-neutral-500' : 'text-neutral-400'}`}>
                             {formatCurrency(plan.totalWithoutDiscount)} TL
                           </p>
-                          <p className={`font-ramillas text-2xl font-bold ${isPopular ? 'text-white' : 'text-[#171717]'}`}>
+                          <p className={`font-grotesk text-2xl font-bold ${isPopular ? 'text-white' : 'text-[#171717]'}`}>
                             {formatCurrency(plan.totalWithDiscount)} TL
                           </p>
                           <p className={`font-grotesk text-xs mt-1 ${isPopular ? 'text-green-400' : 'text-green-600'}`}>
@@ -807,7 +807,7 @@ const ProposalViewPage: React.FC = () => {
                           </p>
                         </>
                       ) : (
-                        <p className={`font-ramillas text-2xl font-bold ${isPopular ? 'text-white' : 'text-[#171717]'}`}>
+                        <p className={`font-grotesk text-2xl font-bold ${isPopular ? 'text-white' : 'text-[#171717]'}`}>
                           {formatCurrency(plan.totalWithDiscount)} TL
                         </p>
                       )}
@@ -957,7 +957,7 @@ const ProposalViewPage: React.FC = () => {
 
         {/* Terms & Conditions */}
         <div className="p-8 md:p-12 border-b border-neutral-100">
-          <h2 className="font-ramillas text-xl font-bold text-[#171717] mb-6 flex items-center gap-2">
+          <h2 className="font-grotesk text-xl font-bold text-[#171717] mb-6 flex items-center gap-2">
             <Shield className="w-5 h-5" />
             Kosullar & Sartlar
           </h2>
@@ -1046,7 +1046,7 @@ const ProposalViewPage: React.FC = () => {
 
           {/* Footer */}
           <div className="mt-12 pt-6 border-t border-neutral-100 text-center">
-            <p className="font-ramillas text-lg font-bold text-[#171717]">{proposal.companyName}</p>
+            <p className="font-grotesk text-lg font-bold text-[#171717]">{proposal.companyName}</p>
             <p className="font-grotesk text-xs text-neutral-400 mt-1">
               {proposal.companyTitle} | {proposal.companyPhone} | {proposal.companyEmail}
             </p>

@@ -126,7 +126,7 @@ const WorkflowDesignChat: React.FC<Props> = ({ onDraftUpdate }) => {
           <Bot className="w-5 h-5 text-violet-600" />
         </div>
         <div>
-          <h3 className="font-ramillas text-lg font-bold text-neutral-800">Workflow Tasarimcisi</h3>
+          <h3 className="font-grotesk text-lg font-bold text-neutral-800">Workflow Tasarimcisi</h3>
           <p className="font-grotesk text-xs text-neutral-500">
             AI ile sohbet ederek is sureci tasarlayin
           </p>

@@ -11,7 +11,7 @@ const EvidenceSummary: React.FC<Props> = ({ evidenceSummary }) => {
     <div>
       <div className="flex items-center gap-2 mb-4">
         <FileCheck className="w-5 h-5 text-slate-600" />
-        <h4 className="font-ramillas text-lg font-bold text-[#171717]">
+        <h4 className="font-grotesk text-lg font-bold text-[#171717]">
           Kanit ve Kaynaklar
         </h4>
       </div>

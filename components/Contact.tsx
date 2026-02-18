@@ -29,7 +29,7 @@ const Contact: React.FC = () => {
   };
 
   return (
-    <section id="contact" className="py-20" style={{ backgroundColor: '#ebeef8' }}>
+    <section id="contact" className="py-20" style={{ backgroundColor: 'rgba(235, 238, 248, 0.85)' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="font-ramillas text-4xl sm:text-5xl font-bold text-neutral-900 mb-4 leading-tight">

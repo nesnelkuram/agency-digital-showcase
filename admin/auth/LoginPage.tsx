@@ -59,7 +59,7 @@ const LoginPage: React.FC = () => {
       >
         {/* Logo */}
         <div className="text-center mb-8">
-          <h1 className="font-ramillas text-4xl font-bold text-[#171717]">Intiba</h1>
+          <h1 className="font-grotesk text-4xl font-bold text-[#171717]">Intiba</h1>
           <p className="font-grotesk text-neutral-600 mt-2">Admin Panel</p>
         </div>
 
@@ -67,7 +67,7 @@ const LoginPage: React.FC = () => {
         <div className="bg-white rounded-2xl shadow-lg p-8">
           {!showForgotPassword ? (
             <>
-              <h2 className="font-ramillas text-2xl font-bold text-[#171717] mb-6">
+              <h2 className="font-grotesk text-2xl font-bold text-[#171717] mb-6">
                 Giris Yap
               </h2>
 
@@ -165,7 +165,7 @@ const LoginPage: React.FC = () => {
             </>
           ) : (
             <>
-              <h2 className="font-ramillas text-2xl font-bold text-[#171717] mb-2">
+              <h2 className="font-grotesk text-2xl font-bold text-[#171717] mb-2">
                 Sifremi Sifirla
               </h2>
               <p className="font-grotesk text-neutral-600 text-sm mb-6">

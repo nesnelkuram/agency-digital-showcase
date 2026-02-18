@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermission } from '@/shared/hooks/usePermission';
+import { useTenantId } from '@/shared/hooks/useTenant';
 import { getBrandLead, updateBrandLead, addNoteToLead, generateReportShareToken, revokeReportShare, deleteAIAnalysis } from '@/shared/services/brandLeadService';
 import {
   BrandLead,
@@ -58,6 +59,7 @@ const LeadDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { can } = usePermission();
+  const tenantId = useTenantId();
 
   const [lead, setLead] = useState<BrandLead | null>(null);
   const [loading, setLoading] = useState(true);
@@ -99,8 +101,8 @@ const LeadDetailPage: React.FC = () => {
         }
         const data = await response.json();
         const aiAnalysis = { ...data.analysis, analyzedAt: new Date() };
-        await updateBrandLead(lead.id, { aiAnalysis }, user.uid, user.displayName || 'Unknown');
-        const updatedLead = await getBrandLead(lead.id);
+        await updateBrandLead(tenantId, lead.id, { aiAnalysis }, user.uid, user.displayName || 'Unknown');
+        const updatedLead = await getBrandLead(tenantId, lead.id);
         setLead(updatedLead);
         setActiveTab('ai');
         return;
@@ -185,8 +187,8 @@ const LeadDetailPage: React.FC = () => {
       if (result.status === 'completed' && result.analysis) {
         console.log(`[AsyncPipeline] COMPLETED: agents=[${result.analysis.pipelineMetadata?.agentsRun?.join(',') || 'N/A'}], fallback=${result.analysis.pipelineMetadata?.fallbackUsed}, researchMethod=${result.analysis.pipelineMetadata?.researchMethod}, totalDuration=${result.analysis.pipelineMetadata?.totalDuration}ms`);
         const aiAnalysis = { ...result.analysis, analyzedAt: new Date() };
-        await updateBrandLead(lead.id, { aiAnalysis }, user.uid, user.displayName || 'Unknown');
-        const updatedLead = await getBrandLead(lead.id);
+        await updateBrandLead(tenantId, lead.id, { aiAnalysis }, user.uid, user.displayName || 'Unknown');
+        const updatedLead = await getBrandLead(tenantId, lead.id);
         setLead(updatedLead);
         setActiveTab('ai');
       } else {
@@ -210,7 +212,7 @@ const LeadDetailPage: React.FC = () => {
 
     const loadLead = async () => {
       try {
-        const leadData = await getBrandLead(id);
+        const leadData = await getBrandLead(tenantId, id);
         setLead(leadData);
       } catch (error) {
         console.error('Error loading lead:', error);
@@ -229,6 +231,7 @@ const LeadDetailPage: React.FC = () => {
     setSaving(true);
     try {
       await updateBrandLead(
+        tenantId,
         lead.id,
         { status: newStatus },
         user.uid,
@@ -249,6 +252,7 @@ const LeadDetailPage: React.FC = () => {
     setSaving(true);
     try {
       await updateBrandLead(
+        tenantId,
         lead.id,
         { priority: newPriority },
         user.uid,
@@ -268,9 +272,9 @@ const LeadDetailPage: React.FC = () => {
 
     setSaving(true);
     try {
-      await addNoteToLead(lead.id, newNote.trim(), user.uid, user.displayName || 'Unknown');
+      await addNoteToLead(tenantId, lead.id, newNote.trim(), user.uid, user.displayName || 'Unknown');
       // Reload lead to get updated timeline
-      const updatedLead = await getBrandLead(lead.id);
+      const updatedLead = await getBrandLead(tenantId, lead.id);
       setLead(updatedLead);
       setNewNote('');
     } catch (error) {
@@ -297,7 +301,7 @@ const LeadDetailPage: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-center">
         <AlertCircle className="w-12 h-12 text-neutral-300 mb-4" />
-        <h3 className="font-ramillas text-xl font-bold text-neutral-700 mb-2">
+        <h3 className="font-grotesk text-xl font-bold text-neutral-700 mb-2">
           Firebase Yapilandirilmadi
         </h3>
       </div>
@@ -316,7 +320,7 @@ const LeadDetailPage: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-center">
         <XCircle className="w-12 h-12 text-red-300 mb-4" />
-        <h3 className="font-ramillas text-xl font-bold text-neutral-700 mb-2">
+        <h3 className="font-grotesk text-xl font-bold text-neutral-700 mb-2">
           Lead bulunamadi
         </h3>
         <button
@@ -342,7 +346,7 @@ const LeadDetailPage: React.FC = () => {
           </button>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-ramillas font-bold text-[#171717]">
+              <h1 className="text-2xl font-grotesk font-bold text-[#171717]">
                 {lead.contact.businessName}
               </h1>
               <span className={`text-xs font-grotesk font-medium px-2 py-1 rounded-full ${LEAD_STATUS_COLORS[lead.status]}`}>
@@ -398,7 +402,7 @@ const LeadDetailPage: React.FC = () => {
             </>
           )}
           {lead.aiAnalysis && (
-            <ReportShareButton lead={lead} onLeadUpdate={setLead} />
+            <ReportShareButton lead={lead} onLeadUpdate={setLead} tenantId={tenantId} />
           )}
           {can(PERMISSIONS.LEADS_CONVERT) && lead.status !== 'won' && (
             <motion.button
@@ -418,8 +422,8 @@ const LeadDetailPage: React.FC = () => {
         {/* Left Column - Contact & Quick Actions */}
         <div className="space-y-8">
           {/* Contact Card */}
-          <div className="bg-white rounded-2xl p-7 shadow-sm border border-neutral-100">
-            <h3 className="font-ramillas text-lg font-bold text-[#171717] mb-4">
+          <div className="admin-card">
+            <h3 className="font-grotesk text-lg font-bold text-[#171717] mb-4">
               Iletisim Bilgileri
             </h3>
             <div className="space-y-4">
@@ -470,8 +474,8 @@ const LeadDetailPage: React.FC = () => {
           </div>
 
           {/* Status & Priority */}
-          <div className="bg-white rounded-2xl p-7 shadow-sm border border-neutral-100">
-            <h3 className="font-ramillas text-lg font-bold text-[#171717] mb-4">
+          <div className="admin-card">
+            <h3 className="font-grotesk text-lg font-bold text-[#171717] mb-4">
               Durum
             </h3>
             <div className="space-y-4">
@@ -510,8 +514,8 @@ const LeadDetailPage: React.FC = () => {
           </div>
 
           {/* Requested Services */}
-          <div className="bg-white rounded-2xl p-7 shadow-sm border border-neutral-100">
-            <h3 className="font-ramillas text-lg font-bold text-[#171717] mb-4">
+          <div className="admin-card">
+            <h3 className="font-grotesk text-lg font-bold text-[#171717] mb-4">
               Talep Edilen Hizmetler
             </h3>
             {lead.requestedServices.length > 0 ? (
@@ -558,7 +562,7 @@ const LeadDetailPage: React.FC = () => {
           </div>
 
           {/* Tab Content */}
-          <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-7">
+          <div className="admin-card p-7">
             {activeTab === 'overview' && (
               <div className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
@@ -808,7 +812,7 @@ const LeadDetailPage: React.FC = () => {
                       <div>
                         <div className="flex items-center gap-2 mb-4">
                           <Sparkles className="w-5 h-5 text-purple-600" />
-                          <h4 className="font-ramillas text-lg font-bold text-[#171717]">
+                          <h4 className="font-grotesk text-lg font-bold text-[#171717]">
                             Marka Kisiligi
                           </h4>
                         </div>
@@ -860,7 +864,7 @@ const LeadDetailPage: React.FC = () => {
                       <div>
                         <div className="flex items-center gap-2 mb-4">
                           <Palette className="w-5 h-5 text-pink-600" />
-                          <h4 className="font-ramillas text-lg font-bold text-[#171717]">
+                          <h4 className="font-grotesk text-lg font-bold text-[#171717]">
                             Gorsel Dunya
                           </h4>
                         </div>
@@ -917,7 +921,7 @@ const LeadDetailPage: React.FC = () => {
                       <div>
                         <div className="flex items-center gap-2 mb-4">
                           <Target className="w-5 h-5 text-blue-600" />
-                          <h4 className="font-ramillas text-lg font-bold text-[#171717]">
+                          <h4 className="font-grotesk text-lg font-bold text-[#171717]">
                             Icerik Stratejisi
                           </h4>
                         </div>
@@ -981,7 +985,7 @@ const LeadDetailPage: React.FC = () => {
                       <div>
                         <div className="flex items-center gap-2 mb-4">
                           <TrendingUp className="w-5 h-5 text-green-600" />
-                          <h4 className="font-ramillas text-lg font-bold text-[#171717]">
+                          <h4 className="font-grotesk text-lg font-bold text-[#171717]">
                             Stratejik Analiz
                           </h4>
                         </div>
@@ -1043,7 +1047,7 @@ const LeadDetailPage: React.FC = () => {
                       <div>
                         <div className="flex items-center gap-2 mb-4">
                           <Database className="w-5 h-5 text-neutral-500" />
-                          <h4 className="font-ramillas text-lg font-bold text-[#171717]">
+                          <h4 className="font-grotesk text-lg font-bold text-[#171717]">
                             Veri Kalitesi
                           </h4>
                           <span className="ml-auto font-grotesk text-sm font-medium text-neutral-600">
@@ -1112,7 +1116,7 @@ const LeadDetailPage: React.FC = () => {
                         {lead.aiAnalysis.confidence != null && ` • Guven: %${Math.round(lead.aiAnalysis.confidence * 100)}`}
                       </p>
                       {can(PERMISSIONS.LEADS_AI_ANALYZE) && (
-                        <DeleteAnalysisButton leadId={lead.id} onDeleted={() => {
+                        <DeleteAnalysisButton leadId={lead.id} tenantId={tenantId} onDeleted={() => {
                           setLead((prev) => {
                             if (!prev) return null;
                             const { aiAnalysis, ...rest } = prev as any;
@@ -1125,7 +1129,7 @@ const LeadDetailPage: React.FC = () => {
                 ) : (
                   <div className="text-center py-16">
                     <Sparkles className="w-12 h-12 text-purple-200 mx-auto mb-4" />
-                    <h3 className="font-ramillas text-xl font-bold text-neutral-700 mb-2">
+                    <h3 className="font-grotesk text-xl font-bold text-neutral-700 mb-2">
                       AI Analizi Henuz Yapilmadi
                     </h3>
                     <p className="font-grotesk text-neutral-500 mb-4">
@@ -1188,13 +1192,13 @@ const LeadDetailPage: React.FC = () => {
 
 // ─── Delete Analysis Button (two-step confirm) ──────
 
-function DeleteAnalysisButton({ leadId, onDeleted }: { leadId: string; onDeleted: () => void }) {
+function DeleteAnalysisButton({ leadId, onDeleted, tenantId }: { leadId: string; onDeleted: () => void; tenantId: string }) {
   const [step, setStep] = useState<'idle' | 'confirm1' | 'confirm2' | 'deleting'>('idle');
 
   const handleDelete = async () => {
     setStep('deleting');
     try {
-      await deleteAIAnalysis(leadId);
+      await deleteAIAnalysis(tenantId, leadId);
       onDeleted();
       setStep('idle');
     } catch (err) {
@@ -1264,7 +1268,7 @@ function DeleteAnalysisButton({ leadId, onDeleted }: { leadId: string; onDeleted
 
 // ─── Report Share Button ─────────────────────────────
 
-function ReportShareButton({ lead, onLeadUpdate }: { lead: BrandLead; onLeadUpdate: (fn: (prev: BrandLead | null) => BrandLead | null) => void }) {
+function ReportShareButton({ lead, onLeadUpdate, tenantId }: { lead: BrandLead; onLeadUpdate: (fn: (prev: BrandLead | null) => BrandLead | null) => void; tenantId: string }) {
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showRevoke, setShowRevoke] = useState(false);
@@ -1274,7 +1278,7 @@ function ReportShareButton({ lead, onLeadUpdate }: { lead: BrandLead; onLeadUpda
   const handleShare = async () => {
     setBusy(true);
     try {
-      const token = await generateReportShareToken(lead.id);
+      const token = await generateReportShareToken(tenantId, lead.id);
       const url = getReportUrl(token);
       await navigator.clipboard.writeText(url);
       setCopied(true);
@@ -1298,7 +1302,7 @@ function ReportShareButton({ lead, onLeadUpdate }: { lead: BrandLead; onLeadUpda
   const handleRevoke = async () => {
     setBusy(true);
     try {
-      await revokeReportShare(lead.id);
+      await revokeReportShare(tenantId, lead.id);
       onLeadUpdate((prev) => {
         if (!prev) return null;
         const { shareToken, reportSharedAt, ...rest } = prev as any;

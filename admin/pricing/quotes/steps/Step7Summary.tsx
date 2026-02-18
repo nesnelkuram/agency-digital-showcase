@@ -58,7 +58,7 @@ const Step7Summary: React.FC<Step7SummaryProps> = ({
   return (
     <div className="max-w-3xl mx-auto">
       <div className="text-center mb-8">
-        <h2 className="font-ramillas text-2xl font-bold text-[#171717] mb-2">
+        <h2 className="font-grotesk text-2xl font-bold text-[#171717] mb-2">
           Ozet & Fiyat
         </h2>
         <p className="font-grotesk text-neutral-500">
@@ -198,7 +198,7 @@ const Step7Summary: React.FC<Step7SummaryProps> = ({
               <div className="border-t border-neutral-200 pt-3 mt-3">
                 <div className="flex justify-between items-center">
                   <span className="font-grotesk font-medium text-[#171717]">TOPLAM MALIYET</span>
-                  <span className="font-ramillas text-lg font-bold text-[#171717]">
+                  <span className="font-grotesk text-lg font-bold text-[#171717]">
                     {formatCurrency(costs.total)}
                   </span>
                 </div>
@@ -281,7 +281,7 @@ const Step7Summary: React.FC<Step7SummaryProps> = ({
             <div className="mb-4">
               <motion.span
                 key={sellPrice}
-                className="font-ramillas text-4xl font-bold"
+                className="font-grotesk text-4xl font-bold"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
               >
@@ -366,7 +366,7 @@ const Step7Summary: React.FC<Step7SummaryProps> = ({
                     <span className="font-grotesk text-sm font-medium text-orange-800">
                       Gerçek Net Kar
                     </span>
-                    <span className={`font-ramillas text-lg font-bold ${
+                    <span className={`font-grotesk text-lg font-bold ${
                       realProfit >= 0 ? 'text-green-600' : 'text-red-600'
                     }`}>
                       {formatCurrency(realProfit)}

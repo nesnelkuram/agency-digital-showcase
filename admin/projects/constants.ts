@@ -6,6 +6,9 @@ import {
   Calendar,
   Target,
   Palette,
+  Plane,
+  FileEdit,
+  ShoppingBag,
 } from 'lucide-react';
 import type { ServiceCategory } from '@/shared/types/pricing/services';
 
@@ -85,5 +88,32 @@ export const SERVICE_MODULE_CONFIG: Record<ServiceCategory, ServiceModuleConfig>
     bgColor: 'bg-rose-50',
     isActive: false,
     supportsWorkflow: false,
+  },
+  drone_shooting: {
+    icon: Plane,
+    label: 'Drone Cekimi',
+    description: 'Profesyonel hava cekimi hizmetleri',
+    color: '#0EA5E9',
+    bgColor: 'bg-sky-50',
+    isActive: true,
+    supportsWorkflow: true,
+  },
+  scriptwriting: {
+    icon: FileEdit,
+    label: 'Senaryo & Brief Yazimi',
+    description: 'Video senaryo, brief ve metin yazarligi',
+    color: '#78716C',
+    bgColor: 'bg-stone-50',
+    isActive: true,
+    supportsWorkflow: false,
+  },
+  ecommerce_content: {
+    icon: ShoppingBag,
+    label: 'E-Ticaret Urun Cekimi',
+    description: 'Urun fotograf, video ve marketplace icerik uretimi',
+    color: '#F97316',
+    bgColor: 'bg-orange-50',
+    isActive: true,
+    supportsWorkflow: true,
   },
 };

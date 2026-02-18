@@ -19,6 +19,7 @@ import { useFeedbackRecorder } from '@/shared/hooks/useFeedbackRecorder';
 import { useFeedbackUpload } from '@/shared/hooks/useFeedbackUpload';
 import { useDocumentPiP } from '@/shared/hooks/useDocumentPiP';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTenantId } from '@/shared/hooks/useTenant';
 import { createTextFeedback } from '@/shared/services/feedbackService';
 import PiPRecordingControls from './components/PiPRecordingControls';
 import type { RecordingMode } from '@/shared/types/feedback';
@@ -48,6 +49,7 @@ const RecordFeedbackModal: React.FC<RecordFeedbackModalProps> = ({ onClose, onCo
   const [textError, setTextError] = useState<string | null>(null);
 
   const { user } = useAuth();
+  const tenantId = useTenantId();
   const recorder = useFeedbackRecorder();
   const uploader = useFeedbackUpload();
 
@@ -154,6 +156,7 @@ const RecordFeedbackModal: React.FC<RecordFeedbackModalProps> = ({ onClose, onCo
     setTextError(null);
     try {
       await createTextFeedback(
+        tenantId,
         {
           title: textTitle.trim() || 'Yazili Geribildirim',
           textContent: textContent.trim(),
@@ -261,7 +264,7 @@ const RecordFeedbackModal: React.FC<RecordFeedbackModalProps> = ({ onClose, onCo
             className="space-y-6"
           >
             <div className="text-center">
-              <h2 className="text-xl font-ramillas font-bold text-[#171717]">
+              <h2 className="text-xl font-grotesk font-bold text-[#171717]">
                 Yeni Kayit
               </h2>
               <p className="text-sm font-commons text-neutral-500 mt-1">
@@ -337,7 +340,7 @@ const RecordFeedbackModal: React.FC<RecordFeedbackModalProps> = ({ onClose, onCo
             className="space-y-5"
           >
             <div className="text-center">
-              <h2 className="text-xl font-ramillas font-bold text-[#171717]">
+              <h2 className="text-xl font-grotesk font-bold text-[#171717]">
                 Yazili Geribildirim
               </h2>
               <p className="text-sm font-commons text-neutral-500 mt-1">
@@ -411,7 +414,7 @@ const RecordFeedbackModal: React.FC<RecordFeedbackModalProps> = ({ onClose, onCo
             exit={{ opacity: 0 }}
             className="space-y-4"
           >
-            <h2 className="text-lg font-ramillas font-bold text-[#171717] text-center">
+            <h2 className="text-lg font-grotesk font-bold text-[#171717] text-center">
               Onizleme
             </h2>
 

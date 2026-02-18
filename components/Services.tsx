@@ -65,7 +65,7 @@ const Services: React.FC<ServicesProps> = ({ onOpenQuote }) => {
   ];
 
   return (
-    <section id="services" className="py-24" style={{ backgroundColor: '#ebeef8' }}>
+    <section id="services" className="py-24" style={{ backgroundColor: 'rgba(235, 238, 248, 0.85)' }}>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <h2 className="font-ramillas text-4xl sm:text-5xl font-bold text-neutral-900 mb-12 leading-tight">
           Video Marketing That Delivers ROI

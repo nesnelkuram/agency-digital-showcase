@@ -61,7 +61,7 @@ const ActionPlanSection: React.FC<Props> = ({ actionPlan }) => {
     <div>
       <div className="flex items-center gap-2 mb-4">
         <Rocket className="w-5 h-5 text-amber-600" />
-        <h4 className="font-ramillas text-lg font-bold text-[#171717]">
+        <h4 className="font-grotesk text-lg font-bold text-[#171717]">
           90 Gunluk Eylem Plani
         </h4>
       </div>

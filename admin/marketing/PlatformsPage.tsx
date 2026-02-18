@@ -404,7 +404,7 @@ const PlatformsPage: React.FC = () => {
               {/* Header */}
               <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-100">
                 <div>
-                  <h2 className="font-ramillas text-lg font-bold text-[#171717]">
+                  <h2 className="font-grotesk text-lg font-bold text-[#171717]">
                     Reklam Hesabi Secin
                   </h2>
                   <p className="font-grotesk text-xs text-neutral-500 mt-0.5">

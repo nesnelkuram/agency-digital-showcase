@@ -96,7 +96,7 @@ const AnalysisProgressIndicator: React.FC<Props> = ({ agentProgress, phase = 'no
         ) : (
           <Loader2 className="w-12 h-12 text-purple-400 mx-auto mb-6 animate-spin" />
         )}
-        <h3 className="font-ramillas text-xl font-bold text-neutral-700 mb-2">
+        <h3 className="font-grotesk text-xl font-bold text-neutral-700 mb-2">
           Multi-Agent Analiz {allDone ? 'Tamamlandi' : 'Yapiliyor...'}
         </h3>
         <p className="font-grotesk text-sm text-neutral-500 mb-8">{statusMessage}</p>
@@ -213,7 +213,7 @@ const AnalysisProgressIndicator: React.FC<Props> = ({ agentProgress, phase = 'no
   return (
     <div className="text-center py-12">
       <Loader2 className="w-12 h-12 text-purple-400 mx-auto mb-6 animate-spin" />
-      <h3 className="font-ramillas text-xl font-bold text-neutral-700 mb-2">
+      <h3 className="font-grotesk text-xl font-bold text-neutral-700 mb-2">
         Multi-Agent Analiz Yapiliyor...
       </h3>
       <p className="font-grotesk text-sm text-neutral-500 mb-8">{phaseMessages[phase]}</p>

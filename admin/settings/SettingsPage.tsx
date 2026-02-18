@@ -51,10 +51,10 @@ const SettingsPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl md:text-3xl font-ramillas font-bold text-[#171717]">
+        <h1 className="text-2xl md:text-3xl font-grotesk font-bold text-[#1a1a2e]">
           Ayarlar
         </h1>
-        <p className="font-grotesk text-neutral-600 mt-1">
+        <p className="font-grotesk text-neutral-500 mt-1">
           Hesap ve uygulama ayarlarinizi yonetin.
         </p>
       </div>
@@ -81,7 +81,7 @@ const SettingsPage: React.FC = () => {
 
       {/* Current User Info */}
       <div className="bg-white rounded-xl p-6 border border-neutral-100">
-        <h2 className="font-ramillas text-lg font-bold text-[#171717] mb-4">
+        <h2 className="font-grotesk text-lg font-bold text-[#171717] mb-4">
           Hesap Bilgileri
         </h2>
         <div className="space-y-3">

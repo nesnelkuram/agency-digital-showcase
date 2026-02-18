@@ -176,10 +176,10 @@ const TrainingPage: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl md:text-3xl font-ramillas font-bold text-[#171717]">
+        <h1 className="text-2xl md:text-3xl font-grotesk font-bold text-[#1a1a2e]">
           Egitim Merkezi
         </h1>
-        <p className="font-grotesk text-neutral-600 mt-1">
+        <p className="font-grotesk text-neutral-500 mt-1">
           Standart calisma prosedurlerini (SOP) inceleyin ve gelisin.
         </p>
       </div>
@@ -227,7 +227,7 @@ const TrainingPage: React.FC = () => {
                 className="bg-white rounded-xl p-12 text-center border border-neutral-100"
               >
                 <GraduationCap className="w-16 h-16 text-neutral-300 mx-auto mb-4" />
-                <h3 className="font-ramillas text-xl font-bold text-neutral-400 mb-2">
+                <h3 className="font-grotesk text-xl font-bold text-neutral-400 mb-2">
                   Kaynak bulunamadi
                 </h3>
                 <p className="font-grotesk text-neutral-400">
@@ -246,7 +246,7 @@ const TrainingPage: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: catIndex * 0.1 }}
           >
-            <h2 className="font-ramillas text-lg font-bold text-[#171717] mb-4">
+            <h2 className="font-grotesk text-lg font-bold text-[#171717] mb-4">
               {categoryLabels[category]}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-8">
@@ -307,7 +307,7 @@ const TrainingPage: React.FC = () => {
           className="bg-white rounded-xl p-12 text-center border border-neutral-100"
         >
           <GraduationCap className="w-16 h-16 text-neutral-300 mx-auto mb-4" />
-          <h3 className="font-ramillas text-xl font-bold text-neutral-400 mb-2">
+          <h3 className="font-grotesk text-xl font-bold text-neutral-400 mb-2">
             Kaynak bulunamadi
           </h3>
           <p className="font-grotesk text-neutral-400">

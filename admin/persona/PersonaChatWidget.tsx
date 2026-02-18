@@ -143,7 +143,7 @@ const PersonaChatWidget: React.FC<Props> = ({ initialContext, leadId }) => {
           <Bot className="w-5 h-5 text-purple-600" />
         </div>
         <div>
-          <h3 className="font-ramillas text-lg font-bold text-neutral-800">Danisman AI</h3>
+          <h3 className="font-grotesk text-lg font-bold text-neutral-800">Danisman AI</h3>
           <p className="font-grotesk text-xs text-neutral-500">
             432 blog yazisinin birikimli perspektifi
           </p>

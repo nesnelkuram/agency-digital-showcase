@@ -65,7 +65,7 @@ const WorkflowInstancePage: React.FC = () => {
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h1 className="text-xl md:text-2xl font-ramillas font-bold text-[#171717] flex items-center gap-2">
+            <h1 className="text-xl md:text-2xl font-grotesk font-bold text-[#171717] flex items-center gap-2">
               <GitBranch className="w-6 h-6 text-indigo-600" />
               {instance.templateName}
             </h1>

@@ -72,11 +72,11 @@ const WorkflowListPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl md:text-3xl font-ramillas font-bold text-[#171717] flex items-center gap-3">
+          <h1 className="text-2xl md:text-3xl font-grotesk font-bold text-[#1a1a2e] flex items-center gap-3">
             <GitBranch className="w-8 h-8 text-indigo-600" />
             Workflow Sablonlari
           </h1>
-          <p className="font-grotesk text-neutral-600 mt-1">
+          <p className="font-grotesk text-neutral-500 mt-1">
             Hizmet teslimat sureclerinizi gorsel olarak tasarlayin ve yonetin.
           </p>
         </div>

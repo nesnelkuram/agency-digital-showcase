@@ -43,7 +43,7 @@ const brands = [
 
 const About: React.FC = () => {
   return (
-    <section id="about" className="py-20" style={{ backgroundColor: '#fffceb' }}>
+    <section id="about" className="py-20" style={{ backgroundColor: 'rgba(255, 252, 235, 0.85)' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Trusted by Section */}
         <div className="text-center mb-16">

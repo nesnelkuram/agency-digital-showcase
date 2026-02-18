@@ -115,7 +115,7 @@ const ProjectListPage: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-center">
         <FolderKanban className="w-12 h-12 text-neutral-300 mb-4" />
-        <h3 className="font-ramillas text-xl font-bold text-neutral-700 mb-2">
+        <h3 className="font-grotesk text-xl font-bold text-neutral-700 mb-2">
           Firebase Yapilandirilmadi
         </h3>
         <p className="font-grotesk text-neutral-500 max-w-md">
@@ -130,10 +130,10 @@ const ProjectListPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-ramillas font-bold text-[#171717]">
+          <h1 className="text-2xl md:text-3xl font-grotesk font-bold text-[#1a1a2e]">
             Projeler
           </h1>
-          <p className="font-grotesk text-neutral-600 mt-1">
+          <p className="font-grotesk text-neutral-500 mt-1">
             Tum projeleri yonetin ve takip edin
           </p>
         </div>
@@ -179,7 +179,7 @@ const ProjectListPage: React.FC = () => {
       </div>
 
       {/* Projects List */}
-      <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
+      <div className="admin-card p-0 overflow-hidden">
         {loading && projects.length === 0 ? (
           <div className="flex items-center justify-center h-64">
             <div className="w-8 h-8 border-2 border-[#171717] border-t-transparent rounded-full animate-spin" />
@@ -187,7 +187,7 @@ const ProjectListPage: React.FC = () => {
         ) : projects.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-center p-6">
             <FolderKanban className="w-12 h-12 text-neutral-300 mb-4" />
-            <h3 className="font-ramillas text-xl font-bold text-neutral-700 mb-2">
+            <h3 className="font-grotesk text-xl font-bold text-neutral-700 mb-2">
               Henuz proje yok
             </h3>
             <p className="font-grotesk text-neutral-500 max-w-md">

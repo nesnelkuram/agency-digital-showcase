@@ -53,7 +53,7 @@ const AIWorkflowDesigner: React.FC = () => {
           >
             <ArrowLeft className="w-5 h-5" />
           </Link>
-          <h1 className="text-xl md:text-2xl font-ramillas font-bold text-[#171717]">
+          <h1 className="text-xl md:text-2xl font-grotesk font-bold text-[#171717]">
             AI Workflow Tasarimcisi
           </h1>
         </div>

@@ -124,10 +124,10 @@ const CreateProjectPage: React.FC = () => {
 
       {/* Header */}
       <div>
-        <h1 className="text-2xl md:text-3xl font-ramillas font-bold text-[#171717]">
+        <h1 className="text-2xl md:text-3xl font-grotesk font-bold text-[#1a1a2e]">
           Yeni Proje Olustur
         </h1>
-        <p className="font-grotesk text-neutral-600 mt-1">
+        <p className="font-grotesk text-neutral-500 mt-1">
           Musteri bilgilerini ve hizmet secimlerini girerek yeni bir proje olusturun.
         </p>
       </div>
@@ -147,8 +147,8 @@ const CreateProjectPage: React.FC = () => {
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Project Info */}
-        <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-6">
-          <h2 className="font-ramillas text-lg font-bold text-[#171717] mb-5">
+        <div className="admin-card">
+          <h2 className="font-grotesk text-lg font-bold text-[#171717] mb-5">
             Proje Bilgileri
           </h2>
           <div className="space-y-4">
@@ -184,8 +184,8 @@ const CreateProjectPage: React.FC = () => {
         </div>
 
         {/* Client Info */}
-        <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-6">
-          <h2 className="font-ramillas text-lg font-bold text-[#171717] mb-5">
+        <div className="admin-card">
+          <h2 className="font-grotesk text-lg font-bold text-[#171717] mb-5">
             Musteri Bilgileri
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -249,8 +249,8 @@ const CreateProjectPage: React.FC = () => {
         </div>
 
         {/* Services */}
-        <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-6">
-          <h2 className="font-ramillas text-lg font-bold text-[#171717] mb-2">
+        <div className="admin-card">
+          <h2 className="font-grotesk text-lg font-bold text-[#171717] mb-2">
             Hizmetler
           </h2>
           <p className="font-grotesk text-sm text-neutral-500 mb-5">
@@ -317,8 +317,8 @@ const CreateProjectPage: React.FC = () => {
         </div>
 
         {/* Financial */}
-        <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-6">
-          <h2 className="font-ramillas text-lg font-bold text-[#171717] mb-5">
+        <div className="admin-card">
+          <h2 className="font-grotesk text-lg font-bold text-[#171717] mb-5">
             Finansal Bilgiler
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

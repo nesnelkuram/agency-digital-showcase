@@ -97,7 +97,7 @@ function PreviewCanvas({ draft }: Props) {
     <div className="flex flex-col h-full bg-white rounded-2xl border border-neutral-100 shadow-sm overflow-hidden">
       {/* Header info */}
       <div className="px-5 py-3 border-b border-neutral-100 bg-gradient-to-r from-indigo-50 to-white">
-        <h3 className="font-ramillas text-base font-bold text-neutral-800 truncate">
+        <h3 className="font-grotesk text-base font-bold text-neutral-800 truncate">
           {draft.name || 'Isimsiz Workflow'}
         </h3>
         <div className="flex items-center gap-3 mt-1 text-xs font-grotesk text-neutral-500">

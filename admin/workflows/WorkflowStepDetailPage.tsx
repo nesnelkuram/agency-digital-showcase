@@ -116,7 +116,7 @@ const WorkflowStepDetailPage: React.FC = () => {
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h1 className="text-xl md:text-2xl font-ramillas font-bold text-[#171717]">
+            <h1 className="text-xl md:text-2xl font-grotesk font-bold text-[#171717]">
               {stepId}
             </h1>
             <p className="font-commons text-sm text-neutral-500 mt-0.5">

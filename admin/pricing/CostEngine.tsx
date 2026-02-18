@@ -373,10 +373,10 @@ const CostEngine: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-ramillas font-bold text-[#171717]">
+          <h1 className="text-2xl md:text-3xl font-grotesk font-bold text-[#1a1a2e]">
             Cost Engine
           </h1>
-          <p className="font-grotesk text-neutral-600 mt-1">
+          <p className="font-grotesk text-neutral-500 mt-1">
             Proje maliyet ve fiyat hesaplayicisi
           </p>
         </div>
@@ -433,11 +433,11 @@ const CostEngine: React.FC = () => {
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden"
+          className="admin-card p-0 overflow-hidden"
         >
           {/* Client & Project Type */}
           <div className="p-6 border-b border-neutral-100">
-            <h2 className="font-ramillas text-lg font-bold text-[#171717] mb-4 flex items-center gap-2">
+            <h2 className="font-grotesk text-lg font-bold text-[#171717] mb-4 flex items-center gap-2">
               <Briefcase className="w-5 h-5" />
               Proje Bilgileri
             </h2>
@@ -490,7 +490,7 @@ const CostEngine: React.FC = () => {
 
           {/* Labor Costs */}
           <div className="p-6 border-b border-neutral-100">
-            <h2 className="font-ramillas text-lg font-bold text-[#171717] mb-4 flex items-center gap-2">
+            <h2 className="font-grotesk text-lg font-bold text-[#171717] mb-4 flex items-center gap-2">
               <User className="w-5 h-5" />
               Iscilik Maliyetleri
             </h2>
@@ -599,7 +599,7 @@ const CostEngine: React.FC = () => {
           {/* Gear Costs - Only for Production Mode */}
           {projectType === 'production' && (
             <div className="p-6 border-b border-neutral-100">
-              <h2 className="font-ramillas text-lg font-bold text-[#171717] mb-4 flex items-center gap-2">
+              <h2 className="font-grotesk text-lg font-bold text-[#171717] mb-4 flex items-center gap-2">
                 <Camera className="w-5 h-5" />
                 Ekipman Maliyetleri
               </h2>
@@ -700,7 +700,7 @@ const CostEngine: React.FC = () => {
 
           {/* Additional Expenses & Margin */}
           <div className="p-6">
-            <h2 className="font-ramillas text-lg font-bold text-[#171717] mb-4 flex items-center gap-2">
+            <h2 className="font-grotesk text-lg font-bold text-[#171717] mb-4 flex items-center gap-2">
               <TrendingUp className="w-5 h-5" />
               Ek Giderler & Kar Marji
             </h2>
@@ -752,11 +752,11 @@ const CostEngine: React.FC = () => {
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden"
+          className="admin-card p-0 overflow-hidden"
         >
           <div className="p-6 bg-[#171717] text-white">
             <div className="flex items-center justify-between">
-              <h2 className="font-ramillas text-lg font-bold flex items-center gap-2">
+              <h2 className="font-grotesk text-lg font-bold flex items-center gap-2">
                 <Receipt className="w-5 h-5" />
                 Fiyat Dokumu
               </h2>
@@ -898,10 +898,10 @@ const CostEngine: React.FC = () => {
             {/* Final Price */}
             <div className="bg-[#fffceb] -mx-6 px-6 py-5">
               <div className="flex justify-between items-center mb-3">
-                <span className="font-ramillas text-lg font-bold text-[#171717]">
+                <span className="font-grotesk text-lg font-bold text-[#171717]">
                   Satis Fiyati
                 </span>
-                <span className="font-ramillas text-3xl font-bold text-[#171717]">
+                <span className="font-grotesk text-3xl font-bold text-[#171717]">
                   {formatCurrency(calculations.sellPrice)}
                 </span>
               </div>

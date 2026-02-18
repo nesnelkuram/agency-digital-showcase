@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermission } from '@/shared/hooks/usePermission';
+import { useTenantId } from '@/shared/hooks/useTenant';
 import { PERMISSIONS } from '@/lib/rbac/permissions';
 import {
   getFeedbackVideos,
@@ -43,6 +44,7 @@ const FeedbackPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { can } = usePermission();
+  const tenantId = useTenantId();
 
   const [videos, setVideos] = useState<FeedbackVideoSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,23 +62,23 @@ const FeedbackPage: React.FC = () => {
   const loadVideos = useCallback(async () => {
     try {
       setLoading(true);
-      const result = await getFeedbackVideos(filters, 24);
+      const result = await getFeedbackVideos(tenantId, filters, 24);
       setVideos(result.videos);
     } catch (err) {
       console.error('[FeedbackPage] Error loading videos:', err);
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [tenantId, filters]);
 
   const loadStats = useCallback(async () => {
     try {
-      const s = await getFeedbackStats();
+      const s = await getFeedbackStats(tenantId);
       setStats(s);
     } catch (err) {
       console.error('[FeedbackPage] Error loading stats:', err);
     }
-  }, []);
+  }, [tenantId]);
 
   useEffect(() => {
     loadVideos();
@@ -121,7 +123,7 @@ const FeedbackPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-ramillas font-bold text-[#171717]">
+          <h1 className="text-2xl font-grotesk font-bold text-[#171717]">
             Geribildirim
           </h1>
           <p className="text-sm font-commons text-neutral-500 mt-1">
@@ -238,7 +240,7 @@ const FeedbackPage: React.FC = () => {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden group cursor-pointer hover:shadow-md transition-shadow"
+                className="admin-card p-0 overflow-hidden group cursor-pointer hover:shadow-card-hover transition-shadow"
                 onClick={() => navigate(`/admin/feedback/${video.id}`)}
               >
                 {/* Thumbnail / Text Preview */}

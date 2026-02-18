@@ -187,10 +187,10 @@ const ProposalListPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-ramillas font-bold text-[#171717]">
+          <h1 className="text-2xl md:text-3xl font-grotesk font-bold text-[#1a1a2e]">
             Teklif Yonetimi
           </h1>
-          <p className="font-grotesk text-neutral-600 mt-1">
+          <p className="font-grotesk text-neutral-500 mt-1">
             Kayitli tekliflerden profesyonel teklif dokumanlari olusturun
           </p>
         </div>
@@ -214,21 +214,21 @@ const ProposalListPage: React.FC = () => {
             <FileText className="w-4 h-4" />
             <span className="font-grotesk text-xs">Toplam Teklif</span>
           </div>
-          <p className="font-ramillas text-2xl font-bold text-[#171717]">{quotes.length}</p>
+          <p className="font-grotesk text-2xl font-bold text-[#171717]">{quotes.length}</p>
         </div>
         <div className="bg-white rounded-xl border border-neutral-200 p-4">
           <div className="flex items-center gap-2 text-neutral-500 mb-1">
             <FileCheck className="w-4 h-4" />
             <span className="font-grotesk text-xs">Olusturulan Dokumanlar</span>
           </div>
-          <p className="font-ramillas text-2xl font-bold text-[#171717]">{proposals.length}</p>
+          <p className="font-grotesk text-2xl font-bold text-[#171717]">{proposals.length}</p>
         </div>
         <div className="bg-white rounded-xl border border-neutral-200 p-4">
           <div className="flex items-center gap-2 text-green-500 mb-1">
             <CheckCircle className="w-4 h-4" />
             <span className="font-grotesk text-xs">Kabul Edilen</span>
           </div>
-          <p className="font-ramillas text-2xl font-bold text-green-600">
+          <p className="font-grotesk text-2xl font-bold text-green-600">
             {proposals.filter(p => p.status === 'accepted').length}
           </p>
         </div>
@@ -237,7 +237,7 @@ const ProposalListPage: React.FC = () => {
             <TrendingUp className="w-4 h-4" />
             <span className="font-grotesk text-xs">Toplam Tutar</span>
           </div>
-          <p className="font-ramillas text-2xl font-bold text-[#171717]">
+          <p className="font-grotesk text-2xl font-bold text-[#171717]">
             {formatCurrency(quotes.reduce((sum, q) => sum + ((q as any).finalPrice || q.sellPrice || 0), 0))}
           </p>
         </div>
@@ -433,7 +433,7 @@ const QuoteList: React.FC<QuoteListProps> = ({
 
               <div className="flex items-center gap-4">
                 <div className="text-right">
-                  <p className="font-ramillas text-xl font-bold text-[#171717]">
+                  <p className="font-grotesk text-xl font-bold text-[#171717]">
                     {formatCurrency(price)}
                   </p>
                   <p className="font-grotesk text-xs text-neutral-400">KDV Haric</p>
@@ -575,7 +575,7 @@ const ProposalList: React.FC<ProposalListProps> = ({
 
             <div className="flex items-center gap-4">
               <div className="text-right">
-                <p className="font-ramillas text-xl font-bold text-[#171717]">
+                <p className="font-grotesk text-xl font-bold text-[#171717]">
                   {formatCurrency(proposal.grandTotal)}
                 </p>
                 <p className="font-grotesk text-xs text-neutral-400">KDV Dahil</p>
