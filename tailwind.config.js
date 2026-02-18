@@ -30,6 +30,10 @@ export default {
         'grotesk': ['HK Grotesk', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
         'commons': ['TT Commons', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
       },
+      boxShadow: {
+        'card': '0 1px 3px rgba(0,0,0,0.02), 0 8px 32px rgba(0,0,0,0.04)',
+        'card-hover': '0 2px 6px rgba(0,0,0,0.03), 0 12px 40px rgba(0,0,0,0.06)',
+      },
     },
   },
   plugins: [],

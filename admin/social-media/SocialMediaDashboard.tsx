@@ -6,40 +6,46 @@ import {
   FileText,
   Clock,
   CheckCircle,
-  Plus,
-  CalendarDays,
   Megaphone,
+  AlertCircle,
+  ArrowLeft,
 } from 'lucide-react';
 import type { SocialPostSummary, SocialMediaStats } from '@/shared/types/socialMedia';
 import {
   getSocialPosts,
   getProjectSocialStats,
 } from '@/shared/services/socialMediaService';
+import { getContentPlanStats } from '@/shared/services/contentPlanService';
+import { useTenantId } from '@/shared/hooks/useTenant';
 import ProjectBreadcrumb from '@/admin/projects/components/ProjectBreadcrumb';
 import PostCard from './components/PostCard';
 
 const SocialMediaDashboard: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
+  const tenantId = useTenantId();
   const [posts, setPosts] = useState<SocialPostSummary[]>([]);
   const [stats, setStats] = useState<SocialMediaStats | null>(null);
+  const [planStats, setPlanStats] = useState<{ total: number; pendingApproval: number } | null>(null);
   const [loading, setLoading] = useState(true);
 
   const loadData = useCallback(async () => {
     if (!projectId) return;
     try {
       setLoading(true);
-      const [statsResult, postsResult] = await Promise.all([
-        getProjectSocialStats(projectId),
-        getSocialPosts({ projectId }, 10),
+      const [statsResult, postsResult, planStatsResult] = await Promise.all([
+        getProjectSocialStats(tenantId, projectId),
+        getSocialPosts(tenantId, { projectId }, 10),
+        getContentPlanStats(tenantId, projectId),
       ]);
       setStats(statsResult);
       setPosts(postsResult.posts);
+      setPlanStats(planStatsResult);
     } catch (err) {
       console.error('[SocialMediaDashboard] Error loading data:', err);
     } finally {
       setLoading(false);
     }
-  }, [projectId]);
+  }, [tenantId, projectId]);
 
   useEffect(() => {
     loadData();
@@ -83,6 +89,13 @@ const SocialMediaDashboard: React.FC = () => {
           color: 'text-emerald-600',
           bg: 'bg-emerald-50',
         },
+        {
+          label: 'Onay Bekleyen',
+          value: planStats?.pendingApproval || 0,
+          icon: AlertCircle,
+          color: 'text-amber-600',
+          bg: 'bg-amber-50',
+        },
       ]
     : [];
 
@@ -96,33 +109,26 @@ const SocialMediaDashboard: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-ramillas font-bold text-[#171717]">
+          <h1 className="text-2xl md:text-3xl font-grotesk font-bold text-[#1a1a2e]">
             Sosyal Medya
           </h1>
-          <p className="font-grotesk text-neutral-600 mt-1">
+          <p className="font-grotesk text-neutral-500 mt-1">
             Post planlama, takvim ve icerik yonetimi
           </p>
         </div>
         <div className="flex items-center gap-3">
           <Link
-            to={`/admin/projects/${projectId}/social-media/calendar`}
+            to={`/admin/projects/${projectId}/social-media`}
             className="inline-flex items-center gap-2 px-4 py-2 border border-neutral-300 text-neutral-700 rounded-full font-grotesk text-sm font-medium hover:bg-neutral-50 transition-colors"
           >
-            <CalendarDays className="w-4 h-4" />
-            Takvim
-          </Link>
-          <Link
-            to={`/admin/projects/${projectId}/social-media/new`}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[#171717] text-white rounded-full font-grotesk text-sm font-medium hover:bg-neutral-800 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Yeni Post
+            <ArrowLeft className="w-4 h-4" />
+            Takvime Don
           </Link>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {statCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
@@ -155,25 +161,25 @@ const SocialMediaDashboard: React.FC = () => {
 
       {/* Recent Posts */}
       <div>
-        <h2 className="text-lg font-ramillas font-semibold text-[#171717] mb-4">
+        <h2 className="text-lg font-grotesk font-semibold text-[#171717] mb-4">
           Son Postlar
         </h2>
 
         {posts.length === 0 ? (
           <div className="bg-white rounded-xl border border-neutral-100 p-12 text-center">
             <Megaphone className="w-16 h-16 text-neutral-300 mx-auto mb-4" />
-            <h3 className="font-ramillas text-xl font-bold text-neutral-400 mb-2">
+            <h3 className="font-grotesk text-xl font-bold text-neutral-400 mb-2">
               Henuz post yok
             </h3>
             <p className="font-grotesk text-neutral-400 mb-6 max-w-md mx-auto">
               Ilk sosyal medya postunuzu olusturarak baslayabilirsiniz.
             </p>
             <Link
-              to={`/admin/projects/${projectId}/social-media/new`}
+              to={`/admin/projects/${projectId}/social-media`}
               className="inline-flex items-center gap-2 px-6 py-3 bg-[#171717] text-white rounded-full font-grotesk text-sm font-medium hover:bg-neutral-800 transition-colors"
             >
-              <Plus className="w-4 h-4" />
-              Yeni Post Olustur
+              <ArrowLeft className="w-4 h-4" />
+              Takvime Git
             </Link>
           </div>
         ) : (

@@ -79,6 +79,9 @@ const CompetitorMonitorPage = React.lazy(() => import('./marketing/CompetitorMon
 const SocialMediaDashboard = React.lazy(() => import('./social-media/SocialMediaDashboard'));
 const SocialMediaCalendar = React.lazy(() => import('./social-media/SocialMediaCalendar'));
 const CreatePostPage = React.lazy(() => import('./social-media/CreatePostPage'));
+const ContentPlanListPage = React.lazy(() => import('./social-media/ContentPlanListPage'));
+const CreateContentPlanPage = React.lazy(() => import('./social-media/CreateContentPlanPage'));
+const ContentPlanView = React.lazy(() => import('./social-media/ContentPlanView'));
 
 // Persona AI Pages
 const PersonaChatPage = React.lazy(() => import('./persona/PersonaChatPage'));
@@ -92,6 +95,13 @@ const WorkflowBuilderPage = React.lazy(() => import('./workflows/WorkflowBuilder
 const WorkflowInstancePage = React.lazy(() => import('./workflows/WorkflowInstancePage'));
 const WorkflowStepDetailPage = React.lazy(() => import('./workflows/WorkflowStepDetailPage'));
 const AIWorkflowDesigner = React.lazy(() => import('./workflows/AIWorkflowDesigner'));
+const AIServiceDesigner = React.lazy(() => import('./pricing/catalog/AIServiceDesigner'));
+
+// Filing Pages
+const FilingDashboardPage = React.lazy(() => import('./filing/FilingDashboardPage'));
+const CreateFilingPage = React.lazy(() => import('./filing/CreateFilingPage'));
+const FilingTemplatesPage = React.lazy(() => import('./filing/FilingTemplatesPage'));
+const FilingDetailPage = React.lazy(() => import('./filing/FilingDetailPage'));
 
 const AdminApp: React.FC = () => {
   return (
@@ -307,15 +317,15 @@ const AdminApp: React.FC = () => {
             path="projects/:projectId/social-media"
             element={
               <React.Suspense fallback={<PageLoader />}>
-                <SocialMediaDashboard />
+                <SocialMediaCalendar />
               </React.Suspense>
             }
           />
           <Route
-            path="projects/:projectId/social-media/calendar"
+            path="projects/:projectId/social-media/dashboard"
             element={
               <React.Suspense fallback={<PageLoader />}>
-                <SocialMediaCalendar />
+                <SocialMediaDashboard />
               </React.Suspense>
             }
           />
@@ -324,6 +334,30 @@ const AdminApp: React.FC = () => {
             element={
               <React.Suspense fallback={<PageLoader />}>
                 <CreatePostPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="projects/:projectId/social-media/plans"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <ContentPlanListPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="projects/:projectId/social-media/plans/new"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <CreateContentPlanPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="projects/:projectId/social-media/plans/:planId"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <ContentPlanView />
               </React.Suspense>
             }
           />
@@ -436,6 +470,14 @@ const AdminApp: React.FC = () => {
             element={
               <React.Suspense fallback={<PageLoader />}>
                 <CatalogPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="pricing/catalog/ai-designer"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <AIServiceDesigner />
               </React.Suspense>
             }
           />
@@ -752,6 +794,39 @@ const AdminApp: React.FC = () => {
             element={
               <React.Suspense fallback={<PageLoader />}>
                 <WorkflowStepDetailPage />
+              </React.Suspense>
+            }
+          />
+          {/* Filing Routes */}
+          <Route
+            path="filing"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <FilingDashboardPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="filing/new"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <CreateFilingPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="filing/templates"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <FilingTemplatesPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="filing/:id"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <FilingDetailPage />
               </React.Suspense>
             }
           />

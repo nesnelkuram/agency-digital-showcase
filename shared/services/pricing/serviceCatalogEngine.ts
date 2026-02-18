@@ -124,6 +124,7 @@ export class ServiceCatalogEngine {
       lighting: { dailyRate: 0 },
       audio: { dailyRate: 0 },
       computer: { dailyRate: 0 },
+      drone: { dailyRate: 0 },
       accessory: { dailyRate: 0 },
       other: { dailyRate: 0 },
     };
@@ -134,6 +135,7 @@ export class ServiceCatalogEngine {
       lighting: 0,
       audio: 0,
       computer: 0,
+      drone: 0,
       accessory: 0,
       other: 0,
     };

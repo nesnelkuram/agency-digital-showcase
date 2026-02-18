@@ -24,6 +24,7 @@ import type {
   CreateSocialPostData,
   UpdateSocialPostData,
   SocialMediaStats,
+  SocialPlatform,
 } from '@/shared/types/socialMedia';
 
 const COLLECTION_NAME = 'social_media_posts';
@@ -60,12 +61,15 @@ export async function createSocialPost(
 
   const postData: Omit<SocialMediaPost, 'id'> = {
     projectId: data.projectId,
-    title: data.title,
+    title: data.title ?? '',
     caption: data.caption,
     hashtags: data.hashtags || [],
     mediaUrls: data.mediaUrls || [],
+    media: data.media || [],
+    aiGeneratedCaption: data.aiGeneratedCaption,
     postType: data.postType,
     platforms: data.platforms,
+    contentPlanId: data.contentPlanId,
     status: 'draft',
     scheduledAt: data.scheduledAt,
     tags: data.tags || [],
@@ -115,6 +119,20 @@ export async function deleteSocialPost(tenantId: string, id: string): Promise<vo
   await deleteDoc(doc(db, COLLECTION_NAME, id));
 }
 
+export async function createMultiplePosts(
+  tenantId: string,
+  posts: CreateSocialPostData[],
+  createdByUid: string,
+  createdByName: string
+): Promise<string[]> {
+  const ids: string[] = [];
+  for (const postData of posts) {
+    const id = await createSocialPost(tenantId, postData, createdByUid, createdByName);
+    ids.push(id);
+  }
+  return ids;
+}
+
 // ============================================
 // LISTELEME VE FILTRELEME
 // ============================================
@@ -160,9 +178,12 @@ export async function getSocialPosts(
       id: d.id,
       projectId: data.projectId,
       title: data.title,
+      caption: data.caption,
       postType: data.postType,
       platforms: data.platforms,
       status: data.status,
+      media: data.media,
+      contentPlanId: data.contentPlanId,
       scheduledAt: data.scheduledAt,
       createdAt: data.createdAt,
     };
@@ -172,7 +193,7 @@ export async function getSocialPosts(
   let filtered = posts;
   if (filters?.search) {
     const term = filters.search.toLowerCase();
-    filtered = posts.filter((p) => p.title.toLowerCase().includes(term));
+    filtered = posts.filter((p) => (p.title || '').toLowerCase().includes(term) || (p.caption || '').toLowerCase().includes(term));
   }
 
   const newLastDoc = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : null;
@@ -208,13 +229,83 @@ export async function getSocialPostsByDate(
       id: d.id,
       projectId: data.projectId,
       title: data.title,
+      caption: data.caption,
       postType: data.postType,
       platforms: data.platforms,
       status: data.status,
+      media: data.media,
+      contentPlanId: data.contentPlanId,
       scheduledAt: data.scheduledAt,
       createdAt: data.createdAt,
     };
   });
+}
+
+// ============================================
+// PLATFORM + HAFTA SORGULARI
+// ============================================
+
+export async function getSocialPostsByPlatformAndWeek(
+  tenantId: string,
+  projectId: string,
+  platform: SocialPlatform,
+  weekStart: Date,
+  weekEnd: Date
+): Promise<SocialPostSummary[]> {
+  if (!db) throw new Error('Firebase not initialized');
+
+  const startTs = Timestamp.fromDate(weekStart);
+  const endTs = Timestamp.fromDate(weekEnd);
+
+  const q = query(
+    collection(db, COLLECTION_NAME),
+    where('tenantId', '==', tenantId),
+    where('projectId', '==', projectId),
+    where('platforms', 'array-contains', platform),
+    where('scheduledAt', '>=', startTs),
+    where('scheduledAt', '<=', endTs),
+    orderBy('scheduledAt', 'asc')
+  );
+
+  const snapshot = await getDocs(q);
+
+  return snapshot.docs.map((d) => {
+    const data = d.data();
+    return {
+      id: d.id,
+      projectId: data.projectId,
+      title: data.title,
+      caption: data.caption,
+      postType: data.postType,
+      platforms: data.platforms,
+      status: data.status,
+      media: data.media,
+      contentPlanId: data.contentPlanId,
+      scheduledAt: data.scheduledAt,
+      createdAt: data.createdAt,
+    };
+  });
+}
+
+export async function getSocialPostsForPlan(
+  tenantId: string,
+  contentPlanId: string
+): Promise<SocialMediaPost[]> {
+  if (!db) throw new Error('Firebase not initialized');
+
+  const q = query(
+    collection(db, COLLECTION_NAME),
+    where('tenantId', '==', tenantId),
+    where('contentPlanId', '==', contentPlanId),
+    orderBy('scheduledAt', 'asc')
+  );
+
+  const snapshot = await getDocs(q);
+
+  return snapshot.docs.map((d) => ({
+    id: d.id,
+    ...d.data(),
+  })) as SocialMediaPost[];
 }
 
 // ============================================

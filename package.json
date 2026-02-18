@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:full": "npx concurrently \"vite\" \"vercel dev --listen 3000 --yes\"",
     "build": "vite build",
     "preview": "vite preview",
     "vercel-build": "node scripts/build-blog-kb.mjs && node scripts/build-api.mjs && vite build"

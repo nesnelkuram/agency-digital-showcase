@@ -11,7 +11,10 @@ export type ServiceCategory =
   | 'digital_marketing'
   | 'event_coverage'
   | 'brand_strategy'
-  | 'graphic_design';
+  | 'graphic_design'
+  | 'drone_shooting'
+  | 'scriptwriting'
+  | 'ecommerce_content';
 
 export const SERVICE_CATEGORY_LABELS: Record<ServiceCategory, string> = {
   video_production: 'Video Produksiyon',
@@ -21,6 +24,9 @@ export const SERVICE_CATEGORY_LABELS: Record<ServiceCategory, string> = {
   event_coverage: 'Etkinlik Cekimi',
   brand_strategy: 'Marka Stratejisi',
   graphic_design: 'Grafik Tasarim',
+  drone_shooting: 'Drone Cekimi',
+  scriptwriting: 'Senaryo & Brief Yazimi',
+  ecommerce_content: 'E-Ticaret Urun Cekimi',
 };
 
 export const SERVICE_CATEGORY_ICONS: Record<ServiceCategory, string> = {
@@ -31,6 +37,9 @@ export const SERVICE_CATEGORY_ICONS: Record<ServiceCategory, string> = {
   event_coverage: 'Calendar',
   brand_strategy: 'Target',
   graphic_design: 'Palette',
+  drone_shooting: 'Plane',
+  scriptwriting: 'FileEdit',
+  ecommerce_content: 'ShoppingBag',
 };
 
 // ============================================
@@ -63,10 +72,32 @@ export const PHOTOGRAPHY_SUBTYPES = {
 
 export const SOCIAL_MEDIA_SUBTYPES = {
   content_creation: 'Icerik Uretimi',
+  content_calendar: 'Icerik Takvimi & Planlama',
   community_management: 'Topluluk Yonetimi',
   strategy: 'Strateji',
-  reporting: 'Raporlama',
+  reporting: 'Raporlama & Analiz',
   full_management: 'Tam Yonetim',
+  paid_social: 'Sosyal Medya Reklam Yonetimi',
+  ugc_management: 'UGC Icerik Koordinasyonu',
+  crisis_management: 'Kriz Yonetimi',
+} as const;
+
+export const DRONE_SUBTYPES = {
+  aerial_shooting: 'Hava Cekimi',
+} as const;
+
+export const SCRIPTWRITING_SUBTYPES = {
+  video_script: 'Video Senaryo Yazimi',
+  brief_writing: 'Brief Yazimi',
+  social_copy: 'Sosyal Medya Metin Yazarligi',
+  ad_copy: 'Reklam Metni',
+} as const;
+
+export const ECOMMERCE_SUBTYPES = {
+  product_photo: 'Urun Fotograf Paketi',
+  product_video: 'Urun Tanitim Videosu',
+  marketplace_content: 'Marketplace Icerik (Trendyol, Amazon)',
+  lookbook: 'Lookbook / Katalog Cekimi',
 } as const;
 
 export const GRAPHIC_DESIGN_SUBTYPES = {

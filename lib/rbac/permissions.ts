@@ -118,6 +118,13 @@ export const PERMISSIONS = {
   SOP_CREATE: 'sop:create',
   SOP_EDIT: 'sop:edit',
   SOP_DELETE: 'sop:delete',
+
+  // Filing (Proje Dosyalama Sistemi)
+  FILING_VIEW: 'filing:view',
+  FILING_CREATE: 'filing:create',
+  FILING_EDIT: 'filing:edit',
+  FILING_DELETE: 'filing:delete',
+  FILING_TEMPLATES_MANAGE: 'filing:templates_manage',
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

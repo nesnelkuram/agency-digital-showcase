@@ -83,7 +83,7 @@ export interface StaffMember {
 // EQUIPMENT (Ekipman)
 // ============================================
 
-export type EquipmentCategory = 'camera' | 'lens' | 'lighting' | 'audio' | 'computer' | 'accessory' | 'other';
+export type EquipmentCategory = 'camera' | 'lens' | 'lighting' | 'audio' | 'computer' | 'drone' | 'accessory' | 'other';
 export type EquipmentCostMethod = 'depreciation' | 'rental_value';
 
 export const EQUIPMENT_CATEGORY_LABELS: Record<EquipmentCategory, string> = {
@@ -92,6 +92,7 @@ export const EQUIPMENT_CATEGORY_LABELS: Record<EquipmentCategory, string> = {
   lighting: 'Isik',
   audio: 'Ses',
   computer: 'Bilgisayar',
+  drone: 'Drone',
   accessory: 'Aksesuar',
   other: 'Diger',
 };

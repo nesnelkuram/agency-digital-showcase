@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Loader2, Filter, Search, FileCheck, Copy } from 'lucide-react';
+import { Plus, Loader2, Filter, Search, FileCheck, Copy, Bot, ShoppingCart } from 'lucide-react';
 import { db } from '@/lib/firebase/config';
 import {
   collection,
@@ -28,6 +28,7 @@ import {
 import { ServiceCatalogEngine, getOrCalculateFixedCostsSummary } from '@/shared/services/pricing';
 import ServiceCard from './components/ServiceCard';
 import QuickQuoteModal from './components/QuickQuoteModal';
+import CartSidebar, { CartItem } from './components/CartSidebar';
 
 const CatalogPage: React.FC = () => {
   const navigate = useNavigate();
@@ -48,6 +49,16 @@ const CatalogPage: React.FC = () => {
   const [quoteBillingType, setQuoteBillingType] = useState<BillingType>('one_time');
   const [quoteBillingPeriod, setQuoteBillingPeriod] = useState<BillingPeriod>(12);
   const [savingQuote, setSavingQuote] = useState(false);
+
+  // Cart state
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [cartQuoteModalOpen, setCartQuoteModalOpen] = useState(false);
+  const [cartClientName, setCartClientName] = useState('');
+  const [cartProjectTitle, setCartProjectTitle] = useState('');
+  const [cartBillingType, setCartBillingType] = useState<BillingType>('one_time');
+  const [cartBillingPeriod, setCartBillingPeriod] = useState<BillingPeriod>(12);
+  const [savingCartQuote, setSavingCartQuote] = useState(false);
 
   // Cost results for cards
   const [costResults, setCostResults] = useState<Record<string, ServiceCostResult>>({});
@@ -288,6 +299,168 @@ const CatalogPage: React.FC = () => {
     navigate('/admin/pricing/proposals');
   }, [navigate, closeQuickQuote]);
 
+  // Cart handlers
+  const addToCart = useCallback((templateId: string) => {
+    const template = templates.find((t) => t.id === templateId);
+    const costResult = costResults[templateId];
+    if (!template || !costResult) return;
+
+    setCartItems((prev) => {
+      const existing = prev.find((item) => item.templateId === templateId);
+      if (existing) {
+        return prev.map((item) =>
+          item.templateId === templateId
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      }
+      return [
+        ...prev,
+        {
+          templateId,
+          name: template.name,
+          category: template.category,
+          costResult,
+          quantity: 1,
+        },
+      ];
+    });
+    setCartOpen(true);
+  }, [templates, costResults]);
+
+  const handleCartQuantityChange = useCallback((templateId: string, quantity: number) => {
+    if (quantity < 1) return;
+    setCartItems((prev) =>
+      prev.map((item) =>
+        item.templateId === templateId ? { ...item, quantity } : item
+      )
+    );
+  }, []);
+
+  const handleCartRemove = useCallback((templateId: string) => {
+    setCartItems((prev) => prev.filter((item) => item.templateId !== templateId));
+  }, []);
+
+  const openCartQuoteModal = useCallback(() => {
+    setCartProjectTitle(cartItems.map((i) => i.name).join(', '));
+    setCartClientName('');
+    setCartBillingType('one_time');
+    setCartBillingPeriod(12);
+    setCartQuoteModalOpen(true);
+  }, [cartItems]);
+
+  const handleSaveCartAsQuote = useCallback(async () => {
+    if (!db || cartItems.length === 0) return;
+
+    setSavingCartQuote(true);
+    try {
+      const now = Timestamp.now();
+      const validUntilDate = new Date();
+      validUntilDate.setDate(validUntilDate.getDate() + 30);
+
+      const serviceLines = cartItems.flatMap((item) =>
+        item.costResult.components.map((comp) => ({
+          name: `[${item.name}] ${comp.componentName}`,
+          componentId: comp.componentId,
+          quantity: comp.quantity * item.quantity,
+          unitCost: comp.unitCost,
+          totalCost: comp.totalCost * item.quantity,
+          laborCost: comp.laborCost,
+          equipmentCost: comp.equipmentCost,
+          overheadCost: comp.overheadCost,
+          manualCost: comp.manualCost,
+        }))
+      );
+
+      const totalCost = cartItems.reduce(
+        (sum, item) => sum + item.costResult.totalCost * item.quantity,
+        0
+      );
+      const totalSellPrice = cartItems.reduce(
+        (sum, item) => sum + item.costResult.suggestedPrice * item.quantity,
+        0
+      );
+      const totalProfit = totalSellPrice - totalCost;
+
+      const totalLaborCost = cartItems.reduce(
+        (sum, item) => sum + item.costResult.employeeLaborCost * item.quantity,
+        0
+      );
+      const totalEquipmentCost = cartItems.reduce(
+        (sum, item) => sum + item.costResult.equipmentCost * item.quantity,
+        0
+      );
+      const totalOverheadCost = cartItems.reduce(
+        (sum, item) =>
+          sum + (item.costResult.overheadCost + item.costResult.autoOverheadCost) * item.quantity,
+        0
+      );
+      const totalOwnerLaborCost = cartItems.reduce(
+        (sum, item) => sum + item.costResult.ownerLaborCost * item.quantity,
+        0
+      );
+      const totalHours = cartItems.reduce(
+        (sum, item) => sum + item.costResult.estimatedHours * item.quantity,
+        0
+      );
+      const totalDays = cartItems.reduce(
+        (sum, item) => sum + item.costResult.estimatedDays * item.quantity,
+        0
+      );
+
+      const quoteData = {
+        templateId: cartItems.map((i) => i.templateId).join(','),
+        serviceName: cartItems.map((i) => i.name).join(', '),
+        serviceDescription: `Sepet teklifi: ${cartItems.map((i) => i.name).join(', ')}`,
+        serviceCategory: cartItems[0].category,
+        clientName: cartClientName || cartItems[0].name,
+        projectTitle: cartProjectTitle,
+        items: [],
+        serviceLines,
+        totalLaborCost,
+        totalEquipmentCost,
+        totalFixedCostAllocation: totalOverheadCost,
+        additionalExpenses: 0,
+        subtotal: totalCost,
+        discountAmount: 0,
+        targetMarginPercent: totalSellPrice > 0 ? totalProfit / totalSellPrice : 0,
+        safetyBufferPercent: 0,
+        rawCost: totalCost,
+        sellPrice: totalSellPrice,
+        profit: totalProfit,
+        ownerLaborCost: totalOwnerLaborCost,
+        employeeLaborCost: totalLaborCost,
+        freelancerCost: 0,
+        equipmentCost: totalEquipmentCost,
+        overheadCost: totalOverheadCost,
+        manualCost: 0,
+        nonDeductibleCost: 0,
+        actualMarginPercent: totalSellPrice > 0 ? totalProfit / totalSellPrice : 0,
+        totalEstimatedHours: totalHours,
+        totalEstimatedDays: totalDays,
+        status: 'draft' as const,
+        validUntil: Timestamp.fromDate(validUntilDate),
+        billingType: cartBillingType,
+        billingPeriodMonths: cartBillingType === 'recurring' ? cartBillingPeriod : undefined,
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+        createdBy: 'system',
+        createdByName: 'Sistem',
+      };
+
+      await addDoc(collection(db, 'quotes'), quoteData);
+      setCartItems([]);
+      setCartOpen(false);
+      setCartQuoteModalOpen(false);
+      navigate('/admin/pricing/proposals');
+    } catch (err) {
+      console.error('Error saving cart quote:', err);
+    } finally {
+      setSavingCartQuote(false);
+    }
+  }, [cartItems, cartClientName, cartProjectTitle, cartBillingType, cartBillingPeriod, navigate]);
+
   // Save as quote handler
   const handleSaveAsQuote = useCallback(async () => {
     if (!db || !saveQuoteTemplate) return;
@@ -432,15 +605,26 @@ const CatalogPage: React.FC = () => {
             Servis sablonlari ve fiyatlandirma
           </p>
         </div>
-        <motion.button
-          onClick={handleAddTemplate}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-500 text-white rounded-lg font-commons text-sm font-medium hover:bg-indigo-600 transition-colors"
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          <Plus className="w-4 h-4" />
-          Yeni Servis
-        </motion.button>
+        <div className="flex items-center gap-2">
+          <motion.button
+            onClick={() => navigate('/admin/pricing/catalog/ai-designer')}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-lg font-commons text-sm font-medium hover:bg-emerald-600 transition-colors"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <Bot className="w-4 h-4" />
+            AI ile Olustur
+          </motion.button>
+          <motion.button
+            onClick={handleAddTemplate}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-500 text-white rounded-lg font-commons text-sm font-medium hover:bg-indigo-600 transition-colors"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <Plus className="w-4 h-4" />
+            Yeni Servis
+          </motion.button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -511,6 +695,7 @@ const CatalogPage: React.FC = () => {
               onQuickQuote={() => handleQuickQuote(template)}
               onSaveAsQuote={() => setSaveQuoteTemplate(template)}
               onCopy={() => handleCopyTemplate(template)}
+              onAddToCart={() => addToCart(template.id)}
             />
           ))}
         </div>
@@ -527,6 +712,189 @@ const CatalogPage: React.FC = () => {
           onSaveAsQuote={handleQuickQuoteSave}
         />
       )}
+
+      {/* Floating Cart Button */}
+      <AnimatePresence>
+        {cartItems.length > 0 && !cartOpen && (
+          <motion.button
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            onClick={() => setCartOpen(true)}
+            className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-3 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 transition-colors font-commons text-sm font-semibold"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <ShoppingCart className="w-5 h-5" />
+            Sepet
+            <span className="w-5 h-5 flex items-center justify-center bg-white text-indigo-600 text-xs font-bold rounded-full">
+              {cartItems.length}
+            </span>
+          </motion.button>
+        )}
+      </AnimatePresence>
+
+      {/* Cart Sidebar */}
+      <CartSidebar
+        isOpen={cartOpen}
+        onClose={() => setCartOpen(false)}
+        items={cartItems}
+        onQuantityChange={handleCartQuantityChange}
+        onRemove={handleCartRemove}
+        onCreateQuote={openCartQuoteModal}
+      />
+
+      {/* Cart Quote Modal */}
+      <AnimatePresence>
+        {cartQuoteModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center"
+            onClick={() => setCartQuoteModalOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl"
+            >
+              <h3 className="font-commons text-lg font-semibold text-[#171717] mb-1">
+                Teklif Olustur
+              </h3>
+              <p className="font-commons text-xs text-neutral-500 mb-5">
+                {cartItems.length} hizmet · Toplam{' '}
+                {formatCurrency(
+                  cartItems.reduce(
+                    (s, i) => s + i.costResult.suggestedPrice * i.quantity,
+                    0
+                  )
+                )}{' '}
+                TL
+              </p>
+
+              <div className="space-y-4">
+                {/* Client name */}
+                <div>
+                  <label className="block font-commons text-sm font-medium text-neutral-600 mb-1">
+                    Musteri Adi
+                  </label>
+                  <input
+                    type="text"
+                    value={cartClientName}
+                    onChange={(e) => setCartClientName(e.target.value)}
+                    placeholder="Musteri adi girin"
+                    className="w-full px-3 py-2 rounded-lg border border-neutral-200 font-commons text-sm focus:outline-none focus:border-indigo-400 transition-colors"
+                  />
+                </div>
+
+                {/* Project title */}
+                <div>
+                  <label className="block font-commons text-sm font-medium text-neutral-600 mb-1">
+                    Proje Basligi
+                  </label>
+                  <input
+                    type="text"
+                    value={cartProjectTitle}
+                    onChange={(e) => setCartProjectTitle(e.target.value)}
+                    placeholder="Proje basligini girin"
+                    className="w-full px-3 py-2 rounded-lg border border-neutral-200 font-commons text-sm focus:outline-none focus:border-indigo-400 transition-colors"
+                  />
+                </div>
+
+                {/* Billing type */}
+                <div>
+                  <label className="block font-commons text-sm font-medium text-neutral-600 mb-2">
+                    Fatura Turu
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setCartBillingType('one_time')}
+                      className={`px-4 py-3 rounded-lg text-left transition-all ${
+                        cartBillingType === 'one_time'
+                          ? 'bg-indigo-500 text-white'
+                          : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                      }`}
+                    >
+                      <span className="font-commons text-sm font-medium block">Tek Seferlik</span>
+                      <span className={`font-commons text-xs ${cartBillingType === 'one_time' ? 'text-indigo-200' : 'text-neutral-500'}`}>
+                        Tek seferlik proje
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => setCartBillingType('recurring')}
+                      className={`px-4 py-3 rounded-lg text-left transition-all ${
+                        cartBillingType === 'recurring'
+                          ? 'bg-indigo-500 text-white'
+                          : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                      }`}
+                    >
+                      <span className="font-commons text-sm font-medium block">Aylik Duzenli</span>
+                      <span className={`font-commons text-xs ${cartBillingType === 'recurring' ? 'text-indigo-200' : 'text-neutral-500'}`}>
+                        Aylik tekrarlayan
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Billing period */}
+                {cartBillingType === 'recurring' && (
+                  <div>
+                    <label className="block font-commons text-sm font-medium text-neutral-600 mb-2">
+                      Sozlesme Suresi
+                    </label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {([1, 3, 6, 12] as BillingPeriod[]).map((period) => (
+                        <button
+                          key={period}
+                          onClick={() => setCartBillingPeriod(period)}
+                          className={`px-3 py-2 rounded-lg font-commons text-sm font-medium transition-all ${
+                            cartBillingPeriod === period
+                              ? 'bg-indigo-500 text-white'
+                              : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                          }`}
+                        >
+                          {period} Ay
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => setCartQuoteModalOpen(false)}
+                  className="px-4 py-2 bg-neutral-100 text-neutral-700 rounded-lg font-commons text-sm font-medium hover:bg-neutral-200"
+                >
+                  Iptal
+                </button>
+                <motion.button
+                  onClick={handleSaveCartAsQuote}
+                  disabled={savingCartQuote || !cartClientName.trim()}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-commons text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  {savingCartQuote ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Kaydediliyor...
+                    </>
+                  ) : (
+                    <>
+                      <FileCheck className="w-4 h-4" />
+                      Kaydet
+                    </>
+                  )}
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Save as Quote Modal */}
       <AnimatePresence>

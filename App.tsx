@@ -24,6 +24,7 @@ const AdminApp = lazy(() => import('./admin/AdminApp'));
 const LoginPage = lazy(() => import('./admin/auth/LoginPage'));
 const FeedbackSharePage = lazy(() => import('./components/FeedbackSharePage'));
 const AnalysisReportPage = lazy(() => import('./components/AnalysisReportPage'));
+const ContentPlanSharePage = lazy(() => import('./components/ContentPlanSharePage'));
 
 const HomePage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -305,6 +306,16 @@ const App: React.FC = () => {
           element={
             <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
               <AnalysisReportPage />
+            </Suspense>
+          }
+        />
+
+        {/* Content Plan Share - Public client approval page */}
+        <Route
+          path="/icerik-plani/:shareToken"
+          element={
+            <Suspense fallback={<div className="min-h-screen bg-[#fafafa]" />}>
+              <ContentPlanSharePage />
             </Suspense>
           }
         />

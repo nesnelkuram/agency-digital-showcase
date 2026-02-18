@@ -141,10 +141,10 @@ const DashboardPage: React.FC = () => {
       {/* Welcome Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-ramillas font-bold text-[#171717]">
+          <h1 className="text-2xl md:text-3xl font-grotesk font-bold text-[#1a1a2e]">
             Hos geldin, {user?.displayName?.split(' ')[0] || 'User'}!
           </h1>
-          <p className="font-grotesk text-neutral-600 mt-1">
+          <p className="font-grotesk text-neutral-500 mt-1">
             Bugun neler var, bir bakalim.
           </p>
         </div>
@@ -169,24 +169,24 @@ const DashboardPage: React.FC = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
-            className="bg-white rounded-2xl p-7 shadow-sm border border-neutral-100"
+            className="admin-stat-card"
           >
             <div className="flex items-start justify-between">
-              <div className={`p-3 rounded-lg ${stat.color}`}>{stat.icon}</div>
+              <div className={`p-3 rounded-xl ${stat.color}`}>{stat.icon}</div>
               <span
-                className={`text-xs font-grotesk font-medium px-2 py-1 rounded-full ${
+                className={`text-xs font-grotesk font-medium px-2.5 py-1 rounded-full backdrop-blur-sm ${
                   stat.changeType === 'positive'
-                    ? 'bg-green-50 text-green-600'
+                    ? 'bg-green-500/10 text-green-600'
                     : stat.changeType === 'warning'
-                    ? 'bg-amber-50 text-amber-600'
-                    : 'bg-neutral-50 text-neutral-600'
+                    ? 'bg-amber-500/10 text-amber-600'
+                    : 'bg-neutral-500/10 text-neutral-600'
                 }`}
               >
                 {stat.change}
               </span>
             </div>
-            <div className="mt-4">
-              <p className="text-3xl font-ramillas font-bold text-[#171717]">
+            <div className="mt-5">
+              <p className="text-3xl font-grotesk font-bold text-[#1a1a2e]">
                 {stat.value}
               </p>
               <p className="font-grotesk text-sm text-neutral-500 mt-1">{stat.label}</p>
@@ -200,14 +200,14 @@ const DashboardPage: React.FC = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.35 }}
-        className="bg-white rounded-2xl shadow-sm border border-neutral-100"
+        className="admin-card p-0"
       >
         <div className="p-7 border-b border-neutral-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-indigo-50 text-indigo-600">
               <ListChecks className="w-5 h-5" />
             </div>
-            <h2 className="font-ramillas text-xl font-bold text-[#171717]">Gorevlerim</h2>
+            <h2 className="font-grotesk text-xl font-bold text-[#171717]">Gorevlerim</h2>
           </div>
           <Link
             to="/admin/workflows"
@@ -291,10 +291,10 @@ const DashboardPage: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-neutral-100"
+          className="lg:col-span-2 admin-card p-0"
         >
           <div className="p-7 border-b border-neutral-100">
-            <h2 className="font-ramillas text-xl font-bold text-[#171717]">
+            <h2 className="font-grotesk text-xl font-bold text-[#171717]">
               Son Aktiviteler
             </h2>
           </div>
@@ -337,10 +337,10 @@ const DashboardPage: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="bg-white rounded-2xl shadow-sm border border-neutral-100"
+          className="admin-card p-0"
         >
           <div className="p-7 border-b border-neutral-100">
-            <h2 className="font-ramillas text-xl font-bold text-[#171717]">
+            <h2 className="font-grotesk text-xl font-bold text-[#171717]">
               Bekleyen Onaylar
             </h2>
           </div>

@@ -1,4 +1,5 @@
 {
+  "framework": "vite",
   "functions": {
     "api/analyze-brand-multi.ts": {
       "includeFiles": "src/pipeline/**"
@@ -80,6 +81,18 @@
     },
     "api/workflow/design-chat.ts": {
       "maxDuration": 60,
+      "includeFiles": "api/_lib/**"
+    },
+    "api/service-catalog/design-start.ts": {
+      "maxDuration": 10,
+      "includeFiles": "api/_lib/**"
+    },
+    "api/service-catalog/design-chat.ts": {
+      "maxDuration": 60,
+      "includeFiles": "api/_lib/**"
+    },
+    "api/social-media/generate-caption.ts": {
+      "maxDuration": 30,
       "includeFiles": "api/_lib/**"
     }
   },

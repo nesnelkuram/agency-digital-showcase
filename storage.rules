@@ -78,5 +78,38 @@ service firebase.storage {
       allow write: if isAuthenticated()
                    && request.resource.size < 100 * 1024 * 1024; // max 100MB
     }
+
+    // =============================================
+    // Tenant-scoped filing template files (Premiere Pro, AE, etc.)
+    // Path: /filing_templates/{tenantId}/{allPaths}
+    // =============================================
+    match /filing_templates/{tenantId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated()
+                   && request.resource.size < 500 * 1024 * 1024; // max 500MB for project files
+    }
+
+    // =============================================
+    // Tenant-scoped app seed files (Premiere, AE, etc. blank starters)
+    // Path: /filing_seeds/{tenantId}/{allPaths}
+    // =============================================
+    match /filing_seeds/{tenantId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated()
+                   && request.resource.size < 500 * 1024 * 1024;
+    }
+
+    // =============================================
+    // Tenant-scoped social media content
+    // Public read (for shared content plan previews), tenant-scoped write
+    // Path: /social-media/{tenantId}/{allPaths}
+    // =============================================
+    match /social-media/{tenantId}/{allPaths=**} {
+      // Public read for content plan share pages
+      allow read: if true;
+      // Authenticated users can write (images max 10MB, videos max 100MB)
+      allow write: if isAuthenticated()
+                   && request.resource.size < 100 * 1024 * 1024; // max 100MB
+    }
   }
 }

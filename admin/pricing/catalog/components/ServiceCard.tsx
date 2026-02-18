@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ChevronRight, Zap, FileCheck, Copy } from 'lucide-react';
+import { ChevronRight, Zap, FileCheck, Copy, ShoppingCart } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import type { ServiceTemplate, ServiceCostResult } from '@/shared/types/pricing';
 import { SERVICE_CATEGORY_LABELS, formatCurrency } from '@/shared/types/pricing';
@@ -12,6 +12,7 @@ interface ServiceCardProps {
   onQuickQuote: () => void;
   onSaveAsQuote?: () => void;
   onCopy?: () => void;
+  onAddToCart?: () => void;
 }
 
 const ServiceCard: React.FC<ServiceCardProps> = ({
@@ -21,6 +22,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   onQuickQuote,
   onSaveAsQuote,
   onCopy,
+  onAddToCart,
 }) => {
   // Get the icon component dynamically
   const IconComponent = template.icon
@@ -92,22 +94,22 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
 
         {/* Actions */}
         <div className="space-y-2">
-          {onSaveAsQuote && costResult && (
-            <button
-              onClick={onSaveAsQuote}
-              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-green-500 text-white rounded-lg font-commons text-sm font-medium hover:bg-green-600 transition-colors"
-            >
-              <FileCheck className="w-4 h-4" />
-              Teklif Olarak Kaydet
-            </button>
-          )}
           <div className="flex gap-2">
+            {onAddToCart && costResult && (
+              <button
+                onClick={onAddToCart}
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-indigo-500 text-white rounded-lg font-commons text-sm font-medium hover:bg-indigo-600 transition-colors"
+              >
+                <ShoppingCart className="w-4 h-4" />
+                Sepete Ekle
+              </button>
+            )}
             <button
               onClick={onQuickQuote}
-              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-indigo-500 text-white rounded-lg font-commons text-sm font-medium hover:bg-indigo-600 transition-colors"
+              className="flex items-center justify-center px-3 py-2 border border-neutral-200 text-neutral-700 rounded-lg font-commons text-sm hover:bg-neutral-50 transition-colors"
+              title="Hizli Teklif"
             >
               <Zap className="w-4 h-4" />
-              Hizli Teklif
             </button>
             {onCopy && (
               <button
@@ -126,6 +128,15 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
+          {onSaveAsQuote && costResult && (
+            <button
+              onClick={onSaveAsQuote}
+              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-green-500 text-white rounded-lg font-commons text-sm font-medium hover:bg-green-600 transition-colors"
+            >
+              <FileCheck className="w-4 h-4" />
+              Teklif Olarak Kaydet
+            </button>
+          )}
         </div>
       </div>
     </motion.div>

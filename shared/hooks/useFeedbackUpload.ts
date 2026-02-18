@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase/config';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTenantId } from '@/shared/hooks/useTenant';
 import { createFeedbackVideo, updateFeedbackVideo } from '@/shared/services/feedbackService';
 import type { FeedbackVideo, RecordingMode } from '@/shared/types/feedback';
 
@@ -146,6 +147,7 @@ async function callTranscriptionAPI(
 
 export function useFeedbackUpload(): UseFeedbackUploadReturn {
   const { user } = useAuth();
+  const tenantId = useTenantId();
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -246,6 +248,7 @@ export function useFeedbackUpload(): UseFeedbackUploadReturn {
 
         // Create Firestore record
         const videoId = await createFeedbackVideo(
+          tenantId,
           {
             title,
             description,
@@ -270,13 +273,13 @@ export function useFeedbackUpload(): UseFeedbackUploadReturn {
           callTranscriptionAPI(null, videoUrl, mimeType, duration, mode).then(
             async (result) => {
               if (result) {
-                await updateFeedbackVideo(videoId, {
+                await updateFeedbackVideo(tenantId, videoId, {
                   title: result.title,
                   description: result.description,
                   status: 'ready',
                 });
               } else {
-                await updateFeedbackVideo(videoId, { status: 'ready' });
+                await updateFeedbackVideo(tenantId, videoId, { status: 'ready' });
               }
             }
           );
@@ -332,7 +335,7 @@ export function useFeedbackUpload(): UseFeedbackUploadReturn {
         setTimeout(() => setUploadProgress(0), 1000);
       }
     },
-    [user]
+    [tenantId, user]
   );
 
   const uploadRecording = useCallback(

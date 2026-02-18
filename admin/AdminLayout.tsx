@@ -40,6 +40,7 @@ import {
   FileBarChart,
   Eye,
   GitBranch,
+  HardDrive,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermission } from '@/shared/hooks/usePermission';
@@ -71,6 +72,12 @@ const navItems: NavItem[] = [
     path: '/admin/projects',
     icon: FolderKanban,
     permission: PERMISSIONS.PROJECTS_VIEW,
+  },
+  {
+    label: 'Dosyalama',
+    path: '/admin/filing',
+    icon: HardDrive,
+    permission: PERMISSIONS.FILING_VIEW,
   },
   {
     label: 'Onaylar',
@@ -236,7 +243,7 @@ const AdminLayout: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex" style={{ backgroundColor: '#F5F3FF' }}>
+    <div className="min-h-screen flex admin-bg">
       {/* Mobile Sidebar Overlay */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -255,33 +262,14 @@ const AdminLayout: React.FC = () => {
         initial={false}
         animate={{ width: sidebarCollapsed ? 72 : 260 }}
         transition={{ duration: 0.2, ease: 'easeInOut' }}
-        className={`fixed top-0 left-0 h-full z-50 transform transition-transform duration-300 lg:relative lg:translate-x-0 flex-shrink-0 ${
+        className={`fixed top-0 left-0 h-full z-50 transform transition-transform duration-300 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 flex-shrink-0 glass-surface border-r border-white/40 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
-        {/* Holographic Gradient Background */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background: `linear-gradient(
-              135deg,
-              #d4c5f9 0%,
-              #c9d4f9 15%,
-              #b8d4f7 25%,
-              #d4b8e8 35%,
-              #e8c8f0 45%,
-              #b8d8f8 55%,
-              #a8e0d8 70%,
-              #b8f0d8 85%,
-              #c8f8e8 100%
-            )`,
-          }}
-        />
-
         {/* Content */}
-        <div className="relative h-full flex flex-col">
-          {/* Logo */}
-          <div className="h-16 flex items-center justify-between px-4 border-b border-white/20">
+        <div className="h-full flex flex-col relative">
+          {/* Logo + Collapse Toggle */}
+          <div className="h-16 flex items-center justify-between px-4 border-b border-white/30">
             <AnimatePresence mode="wait">
               {!sidebarCollapsed && (
                 <motion.span
@@ -294,16 +282,28 @@ const AdminLayout: React.FC = () => {
                 </motion.span>
               )}
             </AnimatePresence>
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="lg:hidden text-[#171717]/70 hover:text-[#171717]"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                className="hidden lg:flex p-1.5 rounded-lg hover:bg-white/40 text-neutral-400 hover:text-neutral-600 transition-all duration-200"
+              >
+                {sidebarCollapsed ? (
+                  <ChevronRight className="w-4 h-4" />
+                ) : (
+                  <ChevronLeft className="w-4 h-4" />
+                )}
+              </button>
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="lg:hidden text-[#171717]/70 hover:text-[#171717]"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+          <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
             {filteredNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = isActiveRoute(item.path);
@@ -317,15 +317,15 @@ const AdminLayout: React.FC = () => {
                       <button
                         onClick={() => toggleMenu(item.path)}
                         className={`
-                          w-full flex items-center gap-3 px-3 py-2.5 rounded-xl
+                          w-full flex items-center gap-3 px-3 py-2 rounded-xl
                           transition-all duration-200
                           ${isActive || isExpanded
-                            ? 'bg-white/80 text-[#171717] shadow-sm'
-                            : 'text-[#171717]/70 hover:bg-white/40 hover:text-[#171717]'
+                            ? 'bg-white/60 text-[#171717] shadow-sm shadow-black/[0.03]'
+                            : 'text-neutral-500 hover:bg-white/30 hover:text-[#171717]'
                           }
                         `}
                       >
-                        <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-indigo-600' : ''}`} />
+                        <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${isActive ? 'text-[#171717]' : ''}`} />
                         <AnimatePresence mode="wait">
                           {!sidebarCollapsed && (
                             <motion.div
@@ -352,7 +352,7 @@ const AdminLayout: React.FC = () => {
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: 'auto' }}
                             exit={{ opacity: 0, height: 0 }}
-                            className="ml-4 mt-1 space-y-1 overflow-hidden"
+                            className="ml-4 mt-0.5 space-y-0.5 overflow-hidden"
                           >
                             {item.children?.map((child) => {
                               const ChildIcon = child.icon;
@@ -363,15 +363,15 @@ const AdminLayout: React.FC = () => {
                                   key={child.path}
                                   to={child.path}
                                   className={`
-                                    flex items-center gap-3 px-3 py-2 rounded-lg
+                                    flex items-center gap-3 px-3 py-1.5 rounded-lg
                                     transition-all duration-200
                                     ${isChildActive
-                                      ? 'bg-white/70 text-[#171717]'
-                                      : 'text-[#171717]/60 hover:bg-white/30 hover:text-[#171717]'
+                                      ? 'bg-white/50 text-[#171717]'
+                                      : 'text-neutral-400 hover:bg-white/25 hover:text-neutral-600'
                                     }
                                   `}
                                 >
-                                  <ChildIcon className={`w-4 h-4 ${isChildActive ? 'text-indigo-600' : ''}`} />
+                                  <ChildIcon className={`w-4 h-4 ${isChildActive ? 'text-[#171717]' : ''}`} />
                                   <span className="font-commons text-sm">{child.label}</span>
                                 </Link>
                               );
@@ -384,15 +384,15 @@ const AdminLayout: React.FC = () => {
                     <Link
                       to={item.path}
                       className={`
-                        flex items-center gap-3 px-3 py-2.5 rounded-xl
+                        flex items-center gap-3 px-3 py-2 rounded-xl
                         transition-all duration-200
                         ${isActive
-                          ? 'bg-white/80 text-[#171717] shadow-sm'
-                          : 'text-[#171717]/70 hover:bg-white/40 hover:text-[#171717]'
+                          ? 'bg-white/60 text-[#171717] shadow-sm shadow-black/[0.03]'
+                          : 'text-neutral-500 hover:bg-white/30 hover:text-[#171717]'
                         }
                       `}
                     >
-                      <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-indigo-600' : ''}`} />
+                      <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${isActive ? 'text-[#171717]' : ''}`} />
                       <AnimatePresence mode="wait">
                         {!sidebarCollapsed && (
                           <motion.span
@@ -413,10 +413,10 @@ const AdminLayout: React.FC = () => {
           </nav>
 
           {/* User Info */}
-          <div className="p-3 border-t border-white/20">
+          <div className="p-3 border-t border-white/30">
             {!sidebarCollapsed && (
               <div className="flex items-center gap-3 px-2 py-2">
-                <div className="w-10 h-10 rounded-full bg-white/50 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-white/40 flex items-center justify-center flex-shrink-0">
                   {user?.photoURL ? (
                     <img
                       src={user.photoURL}
@@ -424,37 +424,17 @@ const AdminLayout: React.FC = () => {
                       className="w-full h-full rounded-full object-cover"
                     />
                   ) : (
-                    <User className="w-5 h-5 text-[#171717]/70" />
+                    <User className="w-4 h-4 text-neutral-500" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-commons text-[#171717] truncate">
                     {user?.displayName || 'User'}
                   </p>
-                  <p className="text-xs font-commons text-[#171717]/50 capitalize">{user?.role}</p>
+                  <p className="text-xs font-commons text-neutral-400 capitalize">{user?.role}</p>
                 </div>
               </div>
             )}
-
-            {/* Collapse Toggle */}
-            <button
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="
-                w-full flex items-center justify-center gap-2 px-3 py-2.5 mt-2
-                rounded-xl bg-white/50 hover:bg-white/70
-                text-[#171717]/70 hover:text-[#171717]
-                transition-all duration-200
-              "
-            >
-              {sidebarCollapsed ? (
-                <ChevronRight className="w-5 h-5" />
-              ) : (
-                <>
-                  <ChevronLeft className="w-5 h-5" />
-                  <span className="font-commons text-sm font-medium">Daralt</span>
-                </>
-              )}
-            </button>
           </div>
         </div>
       </motion.aside>
@@ -462,7 +442,7 @@ const AdminLayout: React.FC = () => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-h-screen">
         {/* Header */}
-        <header className="h-16 bg-white/80 backdrop-blur-sm border-b border-neutral-200/50 sticky top-0 z-30">
+        <header className="h-16 glass-surface border-b border-white/30 sticky top-0 z-30">
           <div className="h-full px-4 lg:px-6 flex items-center justify-between">
             {/* Mobile Menu Button */}
             <button
@@ -479,7 +459,7 @@ const AdminLayout: React.FC = () => {
                 <input
                   type="text"
                   placeholder="Ara..."
-                  className="w-full pl-10 pr-4 py-2 rounded-lg border border-neutral-200 bg-white font-commons text-sm focus:outline-none focus:border-indigo-400 transition-colors"
+                  className="w-full pl-10 pr-4 py-2 rounded-xl bg-black/[0.03] border border-white/50 font-commons text-sm focus:outline-none focus:bg-white/60 focus:border-white/70 placeholder:text-neutral-400 transition-all"
                 />
               </div>
             </div>
@@ -490,7 +470,7 @@ const AdminLayout: React.FC = () => {
               <TenantSwitcher />
 
               {/* Notifications */}
-              <button className="relative p-2 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 rounded-lg transition-colors">
+              <button className="relative p-2 text-neutral-500 hover:text-neutral-800 hover:bg-white/40 rounded-xl transition-all">
                 <Bell className="w-5 h-5" />
                 <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
               </button>
@@ -499,7 +479,7 @@ const AdminLayout: React.FC = () => {
               <div className="relative">
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center gap-2 p-2 hover:bg-neutral-100 rounded-lg transition-colors"
+                  className="flex items-center gap-2 p-2 hover:bg-white/40 rounded-xl transition-all"
                 >
                   <div className="w-8 h-8 rounded-full bg-neutral-200 flex items-center justify-center">
                     {user?.photoURL ? (
@@ -526,26 +506,26 @@ const AdminLayout: React.FC = () => {
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-neutral-200 py-1 z-50"
+                        className="absolute right-0 top-full mt-2 w-48 glass-elevated rounded-2xl py-1.5 z-50"
                       >
                         <Link
                           to="/admin/settings/profile"
-                          className="flex items-center gap-2 px-4 py-2 text-sm font-commons text-neutral-700 hover:bg-neutral-50"
+                          className="flex items-center gap-2 px-4 py-2 mx-1.5 rounded-lg text-sm font-commons text-neutral-700 hover:bg-white/50"
                         >
                           <User className="w-4 h-4" />
                           Profil
                         </Link>
                         <Link
                           to="/admin/settings"
-                          className="flex items-center gap-2 px-4 py-2 text-sm font-commons text-neutral-700 hover:bg-neutral-50"
+                          className="flex items-center gap-2 px-4 py-2 mx-1.5 rounded-lg text-sm font-commons text-neutral-700 hover:bg-white/50"
                         >
                           <Settings className="w-4 h-4" />
                           Ayarlar
                         </Link>
-                        <hr className="my-1 border-neutral-200" />
+                        <hr className="my-1.5 mx-3 border-white/40" />
                         <button
                           onClick={handleSignOut}
-                          className="w-full flex items-center gap-2 px-4 py-2 text-sm font-commons text-red-600 hover:bg-red-50"
+                          className="w-[calc(100%-12px)] mx-1.5 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-commons text-red-600 hover:bg-red-500/10"
                         >
                           <LogOut className="w-4 h-4" />
                           Cikis Yap

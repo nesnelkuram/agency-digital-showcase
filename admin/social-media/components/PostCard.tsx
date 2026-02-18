@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Clock } from 'lucide-react';
+import { Calendar, Clock, Image as ImageIcon, Film } from 'lucide-react';
 import type { SocialPostSummary } from '@/shared/types/socialMedia';
 import {
   POST_TYPE_LABELS,
@@ -33,12 +33,33 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       })
     : null;
 
+  const displayTitle = post.title || post.caption?.slice(0, 60) || 'Isimsiz Post';
+  const thumbnail = post.media?.[0];
+
   return (
     <div className="bg-white rounded-xl border border-neutral-100 p-4 hover:shadow-sm transition-shadow">
-      {/* Title */}
-      <h3 className="font-grotesk font-medium text-[#171717] text-sm truncate mb-3">
-        {post.title}
-      </h3>
+      <div className="flex gap-3 mb-3">
+        {/* Media Thumbnail */}
+        {thumbnail && (
+          <div className="w-12 h-12 rounded-lg overflow-hidden bg-neutral-100 flex-shrink-0">
+            {thumbnail.type === 'image' ? (
+              <img
+                src={thumbnail.thumbnailUrl || thumbnail.url}
+                alt=""
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <Film className="w-5 h-5 text-neutral-400" />
+              </div>
+            )}
+          </div>
+        )}
+        {/* Title */}
+        <h3 className="font-grotesk font-medium text-[#171717] text-sm truncate flex-1">
+          {displayTitle}
+        </h3>
+      </div>
 
       {/* Badges Row */}
       <div className="flex flex-wrap items-center gap-1.5 mb-3">

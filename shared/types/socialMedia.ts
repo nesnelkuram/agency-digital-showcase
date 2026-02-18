@@ -1,6 +1,93 @@
 import { Timestamp } from 'firebase/firestore';
 
 // ============================================
+// MEDYA DETAY TIPI
+// ============================================
+
+export interface MediaItem {
+  id: string;
+  url: string;
+  thumbnailUrl?: string;
+  type: 'image' | 'video';
+  mimeType: string;
+  size: number;
+  width?: number;
+  height?: number;
+  duration?: number;
+  order: number;
+}
+
+// ============================================
+// PLATFORM-POST TIPI ESLEMESI
+// ============================================
+
+export const PLATFORM_POST_TYPES: Record<SocialPlatform, PostType[]> = {
+  instagram: ['static', 'carousel', 'reels', 'story'],
+  tiktok: ['video', 'story'],
+  linkedin: ['static', 'carousel', 'video', 'text'],
+  twitter: ['static', 'video', 'text'],
+  facebook: ['static', 'carousel', 'video', 'text', 'story'],
+};
+
+// ============================================
+// ICERIK PLANI (MUSTERI ONAY SISTEMI)
+// ============================================
+
+export type ContentPlanStatus = 'draft' | 'pending_approval' | 'approved' | 'revision_requested';
+
+export interface ContentPlanComment {
+  id: string;
+  postId?: string;
+  text: string;
+  createdBy: string;
+  createdByName: string;
+  createdAt: Timestamp;
+  isClient: boolean;
+}
+
+export interface ContentPlan {
+  id: string;
+  projectId: string;
+  title: string;
+  description?: string;
+  platform: SocialPlatform;
+  postIds: string[];
+  weekStartDate: Timestamp;
+  weekEndDate: Timestamp;
+  status: ContentPlanStatus;
+  shareToken: string;
+  approvedBy?: string;
+  approvedByName?: string;
+  approvedAt?: Timestamp;
+  clientComments: ContentPlanComment[];
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  createdBy: string;
+  createdByName: string;
+}
+
+export interface CreateContentPlanData {
+  projectId: string;
+  title: string;
+  description?: string;
+  platform: SocialPlatform;
+  postIds: string[];
+  weekStartDate: Timestamp;
+  weekEndDate: Timestamp;
+}
+
+export interface ContentPlanSummary {
+  id: string;
+  title: string;
+  platform: SocialPlatform;
+  postCount: number;
+  weekStartDate: Timestamp;
+  weekEndDate: Timestamp;
+  status: ContentPlanStatus;
+  createdAt: Timestamp;
+}
+
+// ============================================
 // SOSYAL MEDYA PLATFORMLARI
 // ============================================
 
@@ -47,6 +134,18 @@ export const POST_TYPE_COLORS: Record<PostType, string> = {
 };
 
 // ============================================
+// PLATFORM KARAKTER LIMITLERI
+// ============================================
+
+export const PLATFORM_CHAR_LIMITS: Record<SocialPlatform, number> = {
+  instagram: 2200,
+  tiktok: 2200,
+  linkedin: 3000,
+  twitter: 280,
+  facebook: 63206,
+};
+
+// ============================================
 // POST DURUMLARI
 // ============================================
 
@@ -79,15 +178,20 @@ export interface SocialMediaPost {
   projectId: string;
 
   // Icerik
-  title: string;
+  title?: string;
   caption?: string;
   hashtags?: string[];
   mediaUrls?: string[];
+  media?: MediaItem[];
+  aiGeneratedCaption?: string;
 
   // Siniflandirma
   postType: PostType;
   platforms: SocialPlatform[];
   status: PostStatus;
+
+  // Plan
+  contentPlanId?: string;
 
   // Zamanlama
   scheduledAt?: Timestamp;
@@ -114,12 +218,15 @@ export interface SocialMediaPost {
 
 export interface CreateSocialPostData {
   projectId: string;
-  title: string;
+  title?: string;
   caption?: string;
   hashtags?: string[];
   mediaUrls?: string[];
+  media?: MediaItem[];
+  aiGeneratedCaption?: string;
   postType: PostType;
   platforms: SocialPlatform[];
+  contentPlanId?: string;
   scheduledAt?: Timestamp;
   tags?: string[];
 }
@@ -129,8 +236,11 @@ export interface UpdateSocialPostData {
   caption?: string;
   hashtags?: string[];
   mediaUrls?: string[];
+  media?: MediaItem[];
+  aiGeneratedCaption?: string;
   postType?: PostType;
   platforms?: SocialPlatform[];
+  contentPlanId?: string;
   status?: PostStatus;
   scheduledAt?: Timestamp;
   tags?: string[];
@@ -143,10 +253,13 @@ export interface UpdateSocialPostData {
 export interface SocialPostSummary {
   id: string;
   projectId: string;
-  title: string;
+  title?: string;
+  caption?: string;
   postType: PostType;
   platforms: SocialPlatform[];
   status: PostStatus;
+  media?: MediaItem[];
+  contentPlanId?: string;
   scheduledAt?: Timestamp;
   createdAt: Timestamp;
 }
