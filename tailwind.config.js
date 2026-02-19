@@ -27,7 +27,7 @@ export default {
       },
       fontFamily: {
         'ramillas': ['TT Ramillas', 'serif'],
-        'grotesk': ['HK Grotesk', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        'grotesk': ['Hanken Grotesk', 'HK Grotesk', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
         'commons': ['TT Commons', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
       },
       boxShadow: {
