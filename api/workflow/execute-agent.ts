@@ -1,8 +1,8 @@
 import type { VercelResponse } from '@vercel/node';
-import { withAuth, AuthenticatedRequest } from '../_lib/withAuth';
-import { runWorkflowAgent } from '../../src/pipeline/workflow/orchestrator';
-import type { WorkflowAgentInput } from '../../src/pipeline/workflow/types';
-import { applyRateLimit, LIMITS } from '../_lib/rateLimit';
+import { withAuth, AuthenticatedRequest } from '../_lib/withAuth.js';
+import { runWorkflowAgent } from '../../src/pipeline/workflow/orchestrator.js';
+import type { WorkflowAgentInput } from '../../src/pipeline/workflow/types.js';
+import { applyRateLimit, LIMITS } from '../_lib/rateLimit.js';
 
 export const config = { maxDuration: 300 };
 

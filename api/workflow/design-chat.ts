@@ -1,9 +1,9 @@
 import type { VercelResponse } from '@vercel/node';
-import { getAdminDb, getFieldValue } from '../_lib/firebaseAdmin';
+import { getAdminDb, getFieldValue } from '../_lib/firebaseAdmin.js';
 // @ts-ignore — pre-bundled by esbuild during vercel-build
 import { generateJSON } from '../_lib/gemini-bundle.mjs';
-import { withAuth, AuthenticatedRequest } from '../_lib/withAuth';
-import { applyRateLimit, LIMITS } from '../_lib/rateLimit';
+import { withAuth, AuthenticatedRequest } from '../_lib/withAuth.js';
+import { applyRateLimit, LIMITS } from '../_lib/rateLimit.js';
 
 export const config = {
   maxDuration: 60,

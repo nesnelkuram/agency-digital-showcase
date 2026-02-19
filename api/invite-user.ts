@@ -1,6 +1,6 @@
 import type { VercelResponse } from '@vercel/node';
 import { Resend } from 'resend';
-import { withAuth, AuthenticatedRequest } from './_lib/withAuth';
+import { withAuth, AuthenticatedRequest } from './_lib/withAuth.js';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 

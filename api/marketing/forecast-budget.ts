@@ -1,6 +1,6 @@
 import type { VercelResponse } from '@vercel/node';
-import { withAuth, AuthenticatedRequest } from '../_lib/withAuth';
-import { getAdminDb } from '../_lib/firebaseAdmin';
+import { withAuth, AuthenticatedRequest } from '../_lib/withAuth.js';
+import { getAdminDb } from '../_lib/firebaseAdmin.js';
 
 export const config = {
   maxDuration: 120,

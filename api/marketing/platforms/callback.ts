@@ -1,5 +1,5 @@
 import type { VercelResponse } from '@vercel/node';
-import { withAuthOptional, OptionalAuthRequest } from '../../_lib/withAuth';
+import { withAuthOptional, OptionalAuthRequest } from '../../_lib/withAuth.js';
 
 export const config = {
   maxDuration: 30,

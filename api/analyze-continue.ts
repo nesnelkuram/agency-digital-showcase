@@ -23,7 +23,7 @@ import {
   completeRun,
   failRun,
 } from './_lib/checkpointManager.js';
-import { withAuthOptional, OptionalAuthRequest } from './_lib/withAuth';
+import { withAuthOptional, OptionalAuthRequest } from './_lib/withAuth.js';
 
 export const config = {
   maxDuration: 300,

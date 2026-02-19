@@ -1,6 +1,6 @@
 import type { VercelResponse } from '@vercel/node';
 import { GoogleGenAI } from '@google/genai';
-import { withAuthOptional, OptionalAuthRequest } from './_lib/withAuth';
+import { withAuthOptional, OptionalAuthRequest } from './_lib/withAuth.js';
 
 // Question ID → { question text, answer options } per sector
 // IDs: 3,4,5 (Stage 0), 9,10,11 (Stage 1), 15,16,17 (Stage 2), 21,22,23 (Stage 3), 27,28,29 (Stage 4)

@@ -1,9 +1,9 @@
 import type { VercelResponse } from '@vercel/node';
 // @ts-ignore — pre-bundled by esbuild during vercel-build
 import { startChat } from '../_lib/persona-bundle.mjs';
-import { getAdminDb } from '../_lib/firebaseAdmin';
+import { getAdminDb } from '../_lib/firebaseAdmin.js';
 import { randomUUID } from 'crypto';
-import { withAuth, AuthenticatedRequest } from '../_lib/withAuth';
+import { withAuth, AuthenticatedRequest } from '../_lib/withAuth.js';
 
 export const config = {
   maxDuration: 10,

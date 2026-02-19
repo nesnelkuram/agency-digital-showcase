@@ -1,11 +1,11 @@
 import type { VercelResponse } from '@vercel/node';
 import { Resend } from 'resend';
-import { withAuth, AuthenticatedRequest } from './_lib/withAuth';
+import { withAuth, AuthenticatedRequest } from './_lib/withAuth.js';
 import {
   contentPlanSubmittedEmail,
   contentPlanApprovedEmail,
   contentPlanRevisionEmail,
-} from './_lib/emailTemplates';
+} from './_lib/emailTemplates.js';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 

@@ -1,7 +1,7 @@
 import type { VercelResponse } from '@vercel/node';
 import { randomUUID } from 'crypto';
-import { getAdminDb } from '../_lib/firebaseAdmin';
-import { withAuth, AuthenticatedRequest } from '../_lib/withAuth';
+import { getAdminDb } from '../_lib/firebaseAdmin.js';
+import { withAuth, AuthenticatedRequest } from '../_lib/withAuth.js';
 
 export const config = {
   maxDuration: 10,

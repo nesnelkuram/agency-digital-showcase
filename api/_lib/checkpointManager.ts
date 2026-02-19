@@ -1,5 +1,5 @@
 import { getAdminDb, getFieldValue } from './firebaseAdmin.js';
-import type { PipelineRunDoc, AgentName, AgentProgress, PIPELINE_AGENTS } from '../../shared/types/pipelineRun';
+import type { PipelineRunDoc, AgentName, AgentProgress, PIPELINE_AGENTS } from '../../shared/types/pipelineRun.js';
 
 const LOCK_DURATION_MS = 360_000; // 6 min — beyond Vercel 300s limit
 

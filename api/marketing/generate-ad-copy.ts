@@ -1,5 +1,5 @@
 import type { VercelResponse } from '@vercel/node';
-import { withAuth, AuthenticatedRequest } from '../_lib/withAuth';
+import { withAuth, AuthenticatedRequest } from '../_lib/withAuth.js';
 
 export const config = {
   maxDuration: 300,

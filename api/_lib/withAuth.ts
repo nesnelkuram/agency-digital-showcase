@@ -52,7 +52,7 @@ interface UserRecord {
 }
 
 async function verifyTokenAndGetUid(token: string): Promise<string> {
-  const { getAdminDb, getFirebaseAuth } = await import('./firebaseAdmin');
+  const { getAdminDb, getFirebaseAuth } = await import('./firebaseAdmin.js');
   // Initialize firebase-admin app, then get auth instance
   getAdminDb();
   const auth = getFirebaseAuth();
@@ -62,7 +62,7 @@ async function verifyTokenAndGetUid(token: string): Promise<string> {
 
 async function lookupUser(uid: string): Promise<UserRecord | null> {
   try {
-    const { getAdminDb } = await import('./firebaseAdmin');
+    const { getAdminDb } = await import('./firebaseAdmin.js');
     const db = getAdminDb();
     const userDoc = await db.collection('users').doc(uid).get();
     if (!userDoc.exists) {

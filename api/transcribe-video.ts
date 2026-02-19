@@ -1,7 +1,7 @@
 import type { VercelResponse } from '@vercel/node';
 import { GoogleGenAI } from '@google/genai';
-import { withAuth, AuthenticatedRequest } from './_lib/withAuth';
-import { applyRateLimit, LIMITS } from './_lib/rateLimit';
+import { withAuth, AuthenticatedRequest } from './_lib/withAuth.js';
+import { applyRateLimit, LIMITS } from './_lib/rateLimit.js';
 
 export const config = {
   maxDuration: 120,
