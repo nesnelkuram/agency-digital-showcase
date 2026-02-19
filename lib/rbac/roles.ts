@@ -24,6 +24,9 @@ export const ROLES: Record<string, RoleConfig> = {
     ),
   },
 
+  // staff rolü artık deprecated — account_manager veya editor kullanılmalı
+  // Geriye dönük uyumluluk için korunuyor
+
   staff: {
     name: 'staff',
     displayName: 'Staff Member',
@@ -104,6 +107,146 @@ export const ROLES: Record<string, RoleConfig> = {
       PERMISSIONS.FILING_VIEW,
       PERMISSIONS.FILING_CREATE,
       PERMISSIONS.FILING_EDIT,
+    ],
+  },
+
+  account_manager: {
+    name: 'account_manager',
+    displayName: 'Account Manager',
+    description: 'Müşteri ilişkileri yöneticisi — finansal detay görmez, sadece satış fiyatı',
+    permissions: [
+      // Leads
+      PERMISSIONS.LEADS_VIEW,
+      PERMISSIONS.LEADS_EDIT,
+      PERMISSIONS.LEADS_ASSIGN,
+      PERMISSIONS.LEADS_AI_ANALYZE,
+
+      // Projects
+      PERMISSIONS.PROJECTS_VIEW,
+      PERMISSIONS.PROJECTS_CREATE,
+      PERMISSIONS.PROJECTS_EDIT,
+      PERMISSIONS.PROJECTS_ARCHIVE,
+
+      // Tasks
+      PERMISSIONS.TASKS_VIEW,
+      PERMISSIONS.TASKS_CREATE,
+      PERMISSIONS.TASKS_EDIT,
+      PERMISSIONS.TASKS_ASSIGN,
+
+      // Approvals
+      PERMISSIONS.APPROVALS_VIEW,
+      PERMISSIONS.APPROVALS_CREATE,
+      PERMISSIONS.APPROVALS_SUBMIT,
+      PERMISSIONS.APPROVALS_REVIEW,
+      PERMISSIONS.APPROVALS_COMMENT,
+      PERMISSIONS.APPROVALS_APPROVE,
+
+      // Assets
+      PERMISSIONS.ASSETS_VIEW,
+      PERMISSIONS.ASSETS_UPLOAD,
+      PERMISSIONS.ASSETS_EDIT,
+      PERMISSIONS.ASSETS_DOWNLOAD,
+      PERMISSIONS.BRAND_KIT_VIEW,
+      PERMISSIONS.BRAND_KIT_EDIT,
+
+      // Training
+      PERMISSIONS.TRAINING_VIEW,
+      PERMISSIONS.TRAINING_COMPLETE,
+
+      // Users (view only)
+      PERMISSIONS.USERS_VIEW,
+
+      // Analytics
+      PERMISSIONS.ANALYTICS_VIEW,
+
+      // Feedback
+      PERMISSIONS.FEEDBACK_VIEW,
+      PERMISSIONS.FEEDBACK_CREATE,
+      PERMISSIONS.FEEDBACK_COMMENT,
+      PERMISSIONS.FEEDBACK_DELETE,
+      PERMISSIONS.FEEDBACK_MANAGE,
+
+      // Marketing
+      PERMISSIONS.MARKETING_VIEW,
+      PERMISSIONS.MARKETING_CREATE,
+      PERMISSIONS.MARKETING_APPROVE,
+      PERMISSIONS.PLATFORMS_MANAGE,
+
+      // Social Media
+      PERMISSIONS.SOCIAL_MEDIA_VIEW,
+      PERMISSIONS.SOCIAL_MEDIA_CREATE,
+      PERMISSIONS.SOCIAL_MEDIA_EDIT,
+      PERMISSIONS.SOCIAL_MEDIA_APPROVE,
+      PERMISSIONS.SOCIAL_MEDIA_DELETE,
+
+      // Workflows
+      PERMISSIONS.WORKFLOWS_VIEW,
+      PERMISSIONS.WORKFLOW_INSTANCES_VIEW,
+      PERMISSIONS.WORKFLOW_INSTANCES_MANAGE,
+      PERMISSIONS.WORKFLOW_INSTANCES_ASSIGN,
+      PERMISSIONS.WORKFLOW_STEPS_COMPLETE,
+      PERMISSIONS.WORKFLOW_STEPS_REVIEW,
+      PERMISSIONS.SOP_VIEW,
+
+      // Filing
+      PERMISSIONS.FILING_VIEW,
+      PERMISSIONS.FILING_CREATE,
+      PERMISSIONS.FILING_EDIT,
+
+      // Pricing — sadece satış fiyatı görür, maliyet/marj görmez
+      PERMISSIONS.PRICING_VIEW_PRICE,
+    ],
+  },
+
+  editor: {
+    name: 'editor',
+    displayName: 'Editor',
+    description: 'Kreatif ekip — fiyatlandırma modüllerini görmez',
+    permissions: [
+      // Projects (sadece atandıkları)
+      PERMISSIONS.PROJECTS_VIEW_OWN,
+      PERMISSIONS.PROJECTS_EDIT,
+
+      // Tasks
+      PERMISSIONS.TASKS_VIEW,
+      PERMISSIONS.TASKS_CREATE,
+      PERMISSIONS.TASKS_EDIT,
+
+      // Approvals
+      PERMISSIONS.APPROVALS_VIEW,
+      PERMISSIONS.APPROVALS_CREATE,
+      PERMISSIONS.APPROVALS_SUBMIT,
+      PERMISSIONS.APPROVALS_COMMENT,
+
+      // Assets
+      PERMISSIONS.ASSETS_VIEW,
+      PERMISSIONS.ASSETS_UPLOAD,
+      PERMISSIONS.ASSETS_EDIT,
+      PERMISSIONS.ASSETS_DOWNLOAD,
+      PERMISSIONS.BRAND_KIT_VIEW,
+
+      // Training
+      PERMISSIONS.TRAINING_VIEW,
+      PERMISSIONS.TRAINING_COMPLETE,
+
+      // Feedback
+      PERMISSIONS.FEEDBACK_VIEW,
+      PERMISSIONS.FEEDBACK_CREATE,
+      PERMISSIONS.FEEDBACK_COMMENT,
+
+      // Social Media
+      PERMISSIONS.SOCIAL_MEDIA_VIEW,
+      PERMISSIONS.SOCIAL_MEDIA_CREATE,
+      PERMISSIONS.SOCIAL_MEDIA_EDIT,
+
+      // Workflows (sadece atandıkları adımlar)
+      PERMISSIONS.WORKFLOW_INSTANCES_VIEW_OWN,
+      PERMISSIONS.WORKFLOW_STEPS_COMPLETE,
+      PERMISSIONS.SOP_VIEW,
+
+      // Filing
+      PERMISSIONS.FILING_VIEW,
+      PERMISSIONS.FILING_CREATE,
     ],
   },
 

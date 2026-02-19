@@ -2,6 +2,7 @@ import type { VercelResponse } from '@vercel/node';
 import { withAuth, AuthenticatedRequest } from '../_lib/withAuth';
 import { runWorkflowAgent } from '../../src/pipeline/workflow/orchestrator';
 import type { WorkflowAgentInput } from '../../src/pipeline/workflow/types';
+import { applyRateLimit, LIMITS } from '../_lib/rateLimit';
 
 export const config = { maxDuration: 300 };
 
@@ -9,6 +10,8 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+
+  if (!applyRateLimit(res, req.userUid, LIMITS.AI_WORKFLOW)) return;
 
   const {
     instanceId,

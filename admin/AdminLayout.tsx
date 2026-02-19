@@ -10,7 +10,6 @@ import {
   Settings,
   Menu,
   X,
-  Bell,
   Search,
   LogOut,
   User,
@@ -47,12 +46,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePermission } from '@/shared/hooks/usePermission';
 import { PERMISSIONS } from '@/lib/rbac/permissions';
 import TenantSwitcher from './components/TenantSwitcher';
+import NotificationDropdown from './components/NotificationDropdown';
 
 interface NavItem {
   label: string;
   path: string;
   icon: React.ElementType;
   permission?: string;
+  /** Bu roller bu item'ı HİÇ göremez */
+  hiddenForRoles?: string[];
   children?: NavItem[];
 }
 
@@ -122,6 +124,7 @@ const navItems: NavItem[] = [
     permission: PERMISSIONS.MARKETING_VIEW,
     children: [
       // Core
+      { label: 'AI Ajan', path: '/admin/marketing/agent', icon: Bot },
       { label: 'Dashboard', path: '/admin/marketing', icon: LayoutDashboard },
       { label: 'Kampanyalar', path: '/admin/marketing/campaigns', icon: FolderKanban },
       { label: 'AI Onerileri', path: '/admin/marketing/proposals', icon: Cpu },
@@ -158,16 +161,19 @@ const navItems: NavItem[] = [
     label: 'Hizmet Katalogu',
     path: '/admin/pricing/catalog',
     icon: BookOpen,
+    hiddenForRoles: ['editor', 'client', 'freelancer'],
   },
   {
     label: 'Teklif Dokumanlari',
     path: '/admin/pricing/proposals',
     icon: FileCheck,
+    hiddenForRoles: ['editor', 'client', 'freelancer'],
   },
   {
     label: 'Finansal Yonetim',
     path: '/admin/pricing/costs',
     icon: Wallet,
+    hiddenForRoles: ['editor', 'account_manager', 'client', 'freelancer'],
     children: [
       { label: 'Genel Bakis', path: '/admin/pricing/costs', icon: LayoutDashboard },
       { label: 'Personel', path: '/admin/pricing/costs/personnel', icon: Users },
@@ -183,6 +189,7 @@ const navItems: NavItem[] = [
     label: 'Fiyat Teklifi',
     path: '/admin/pricing',
     icon: Calculator,
+    hiddenForRoles: ['editor', 'account_manager', 'client', 'freelancer'],
   },
   {
     label: 'Ayarlar',
@@ -224,9 +231,11 @@ const AdminLayout: React.FC = () => {
     });
   }, [location.pathname]);
 
-  const filteredNavItems = navItems.filter(
-    (item) => !item.permission || can(item.permission as any)
-  );
+  const filteredNavItems = navItems.filter((item) => {
+    if (item.permission && !can(item.permission as any)) return false;
+    if (item.hiddenForRoles && user?.role && item.hiddenForRoles.includes(user.role)) return false;
+    return true;
+  });
 
   const handleSignOut = async () => {
     await signOut();
@@ -485,10 +494,7 @@ const AdminLayout: React.FC = () => {
               <TenantSwitcher />
 
               {/* Notifications */}
-              <button className="relative p-2 text-neutral-500 hover:text-neutral-800 hover:bg-white/40 rounded-xl transition-all">
-                <Bell className="w-5 h-5" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-              </button>
+              <NotificationDropdown />
 
               {/* User Menu */}
               <div className="relative">

@@ -10,11 +10,11 @@ import {
   ArrowRight,
   ListChecks,
   ExternalLink,
+  AlertTriangle,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { usePermission } from '@/shared/hooks/usePermission';
 import { useMyWorkflowSteps } from '@/shared/hooks/useWorkflowInstances';
-import type { StepInstanceStatus } from '@/shared/types/workflow';
+import { useDashboardStats } from '@/shared/hooks/useDashboardStats';
 
 const stepStatusConfig: Record<string, { label: string; className: string }> = {
   ready: {
@@ -45,96 +45,49 @@ const stepStatusConfig: Record<string, { label: string; className: string }> = {
 
 const DashboardPage: React.FC = () => {
   const { user } = useAuth();
-  const { isAdmin, isStaff } = usePermission();
   const { steps: mySteps, loading: stepsLoading } = useMyWorkflowSteps(user?.uid);
+  const { stats, recentActivity, pendingApprovals, loading: statsLoading } = useDashboardStats();
 
-  const stats = [
+  const visibleSteps = mySteps.slice(0, 5);
+
+  const statCards = [
     {
       label: 'Aktif Projeler',
-      value: '12',
-      change: '+2',
+      value: statsLoading ? '-' : String(stats.activeProjects),
+      change: null,
       changeType: 'positive' as const,
       icon: <FolderKanban className="w-6 h-6" />,
       color: 'bg-blue-50 text-blue-600',
+      href: '/admin/projects',
     },
     {
       label: 'Bekleyen Onaylar',
-      value: '5',
-      change: '3 acil',
+      value: statsLoading ? '-' : String(stats.pendingApprovals),
+      change: stats.urgentApprovals > 0 ? `${stats.urgentApprovals} acil` : null,
       changeType: 'warning' as const,
       icon: <CheckSquare className="w-6 h-6" />,
       color: 'bg-amber-50 text-amber-600',
+      href: '/admin/approvals',
     },
     {
       label: 'Takim Uyeleri',
-      value: '8',
-      change: '+1 bu ay',
+      value: statsLoading ? '-' : String(stats.teamMembers),
+      change: null,
       changeType: 'positive' as const,
       icon: <Users className="w-6 h-6" />,
       color: 'bg-green-50 text-green-600',
+      href: '/admin/settings/users',
     },
     {
       label: 'Bu Ay Tamamlanan',
-      value: '24',
-      change: '%15 artis',
+      value: statsLoading ? '-' : String(stats.completedThisMonth),
+      change: null,
       changeType: 'positive' as const,
       icon: <TrendingUp className="w-6 h-6" />,
       color: 'bg-purple-50 text-purple-600',
+      href: '/admin/projects',
     },
   ];
-
-  const recentActivity = [
-    {
-      user: 'Ahmet Yilmaz',
-      action: 'yeni proje olusturdu',
-      target: 'ABC Restoran Sosyal Medya',
-      time: '2 saat once',
-    },
-    {
-      user: 'Ayse Demir',
-      action: 'icerik onayladi',
-      target: 'XYZ Cafe Instagram Post',
-      time: '3 saat once',
-    },
-    {
-      user: 'Mehmet Kaya',
-      action: 'dosya yukledi',
-      target: 'Logo Tasarimi v2.png',
-      time: '5 saat once',
-    },
-    {
-      user: 'Fatma Ozturk',
-      action: 'egitimi tamamladi',
-      target: 'Sosyal Medya Yonetimi 101',
-      time: 'dun',
-    },
-  ];
-
-  const pendingApprovals = [
-    {
-      title: 'ABC Restoran - Haftalik Post Plani',
-      type: 'Paylasim Plani',
-      client: 'ABC Restoran',
-      dueDate: 'Yarin',
-      urgent: true,
-    },
-    {
-      title: 'XYZ Cafe - Story Tasarimlari',
-      type: 'Tasarim',
-      client: 'XYZ Cafe',
-      dueDate: '3 gun',
-      urgent: false,
-    },
-    {
-      title: 'DEF Hotel - Reklam Filmi',
-      type: 'Video',
-      client: 'DEF Hotel',
-      dueDate: '1 hafta',
-      urgent: false,
-    },
-  ];
-
-  const visibleSteps = mySteps.slice(0, 5);
 
   return (
     <div className="space-y-8">
@@ -150,7 +103,7 @@ const DashboardPage: React.FC = () => {
         </div>
         <div className="flex gap-2">
           <motion.a
-            href="/admin/projects"
+            href="/admin/projects/new"
             className="inline-flex items-center gap-2 px-4 py-2 bg-[#171717] text-white rounded-full font-grotesk text-sm font-medium hover:bg-neutral-800 transition-colors"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -163,35 +116,42 @@ const DashboardPage: React.FC = () => {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => (
-          <motion.div
+        {statCards.map((stat, index) => (
+          <motion.a
             key={stat.label}
+            href={stat.href}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
-            className="admin-stat-card"
+            className="admin-stat-card block hover:shadow-md transition-shadow"
           >
             <div className="flex items-start justify-between">
               <div className={`p-3 rounded-xl ${stat.color}`}>{stat.icon}</div>
-              <span
-                className={`text-xs font-grotesk font-medium px-2.5 py-1 rounded-full backdrop-blur-sm ${
-                  stat.changeType === 'positive'
-                    ? 'bg-green-500/10 text-green-600'
-                    : stat.changeType === 'warning'
-                    ? 'bg-amber-500/10 text-amber-600'
-                    : 'bg-neutral-500/10 text-neutral-600'
-                }`}
-              >
-                {stat.change}
-              </span>
+              {stat.change && (
+                <span
+                  className={`text-xs font-grotesk font-medium px-2.5 py-1 rounded-full backdrop-blur-sm ${
+                    stat.changeType === 'positive'
+                      ? 'bg-green-500/10 text-green-600'
+                      : stat.changeType === 'warning'
+                      ? 'bg-amber-500/10 text-amber-600'
+                      : 'bg-neutral-500/10 text-neutral-600'
+                  }`}
+                >
+                  {stat.change}
+                </span>
+              )}
             </div>
             <div className="mt-5">
-              <p className="text-3xl font-grotesk font-bold text-[#1a1a2e]">
-                {stat.value}
-              </p>
+              {statsLoading ? (
+                <div className="h-9 w-16 bg-neutral-200 rounded animate-pulse" />
+              ) : (
+                <p className="text-3xl font-grotesk font-bold text-[#1a1a2e]">
+                  {stat.value}
+                </p>
+              )}
               <p className="font-grotesk text-sm text-neutral-500 mt-1">{stat.label}</p>
             </div>
-          </motion.div>
+          </motion.a>
         ))}
       </div>
 
@@ -217,7 +177,6 @@ const DashboardPage: React.FC = () => {
           </Link>
         </div>
 
-        {/* Loading State */}
         {stepsLoading && (
           <div className="divide-y divide-neutral-100">
             {[1, 2, 3].map((i) => (
@@ -234,10 +193,9 @@ const DashboardPage: React.FC = () => {
           </div>
         )}
 
-        {/* Task List */}
         {!stepsLoading && visibleSteps.length > 0 && (
           <div className="divide-y divide-neutral-100">
-            {visibleSteps.map((item, index) => {
+            {visibleSteps.map((item) => {
               const config = stepStatusConfig[item.step.status] || {
                 label: item.step.status,
                 className: 'bg-neutral-100 text-neutral-600',
@@ -273,7 +231,6 @@ const DashboardPage: React.FC = () => {
           </div>
         )}
 
-        {/* Empty State */}
         {!stepsLoading && visibleSteps.length === 0 && (
           <div className="p-10 text-center">
             <ListChecks className="w-10 h-10 text-neutral-300 mx-auto mb-3" />
@@ -299,36 +256,48 @@ const DashboardPage: React.FC = () => {
             </h2>
           </div>
           <div className="divide-y divide-neutral-100">
-            {recentActivity.map((activity, index) => (
-              <div key={index} className="p-5 hover:bg-neutral-50 transition-colors">
+            {statsLoading && (
+              <>
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="p-5 animate-pulse flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-neutral-200 flex-shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-neutral-200 rounded w-3/4" />
+                      <div className="h-3 bg-neutral-100 rounded w-1/4" />
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
+            {!statsLoading && recentActivity.length === 0 && (
+              <div className="p-10 text-center">
+                <p className="font-grotesk text-sm text-neutral-400">Henuz aktivite yok</p>
+              </div>
+            )}
+            {!statsLoading && recentActivity.map((activity) => (
+              <div key={activity.id} className="p-5 hover:bg-neutral-50 transition-colors">
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-full bg-[#fffceb] flex items-center justify-center flex-shrink-0">
                     <span className="font-grotesk font-bold text-[#171717]">
-                      {activity.user.charAt(0)}
+                      {activity.user.charAt(0).toUpperCase()}
                     </span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-grotesk text-sm text-[#171717]">
                       <span className="font-semibold">{activity.user}</span>{' '}
-                      {activity.action}:{' '}
-                      <span className="font-medium text-neutral-700">{activity.target}</span>
+                      {activity.action}
+                      {activity.target && (
+                        <>: <span className="font-medium text-neutral-700">{activity.target}</span></>
+                      )}
                     </p>
                     <p className="font-grotesk text-xs text-neutral-500 mt-1 flex items-center gap-1">
                       <Clock className="w-3 h-3" />
-                      {activity.time}
+                      {activity.timeAgo}
                     </p>
                   </div>
                 </div>
               </div>
             ))}
-          </div>
-          <div className="p-5 border-t border-neutral-100">
-            <a
-              href="/admin/activity"
-              className="font-grotesk text-sm text-neutral-600 hover:text-[#171717] transition-colors"
-            >
-              Tum aktiviteleri gor &rarr;
-            </a>
           </div>
         </motion.div>
 
@@ -339,14 +308,42 @@ const DashboardPage: React.FC = () => {
           transition={{ delay: 0.5 }}
           className="admin-card p-0"
         >
-          <div className="p-7 border-b border-neutral-100">
+          <div className="p-7 border-b border-neutral-100 flex items-center justify-between">
             <h2 className="font-grotesk text-xl font-bold text-[#171717]">
               Bekleyen Onaylar
             </h2>
+            {stats.urgentApprovals > 0 && (
+              <span className="flex items-center gap-1 px-2 py-1 bg-red-50 text-red-600 rounded-full font-grotesk text-xs font-medium">
+                <AlertTriangle className="w-3 h-3" />
+                {stats.urgentApprovals} acil
+              </span>
+            )}
           </div>
           <div className="divide-y divide-neutral-100">
-            {pendingApprovals.map((approval, index) => (
-              <div key={index} className="p-5 hover:bg-neutral-50 transition-colors">
+            {statsLoading && (
+              <>
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="p-5 animate-pulse">
+                    <div className="space-y-2">
+                      <div className="h-4 bg-neutral-200 rounded w-3/4" />
+                      <div className="h-3 bg-neutral-100 rounded w-1/2" />
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
+            {!statsLoading && pendingApprovals.length === 0 && (
+              <div className="p-10 text-center">
+                <CheckSquare className="w-10 h-10 text-neutral-300 mx-auto mb-3" />
+                <p className="font-grotesk text-sm text-neutral-400">Bekleyen onay yok</p>
+              </div>
+            )}
+            {!statsLoading && pendingApprovals.map((approval) => (
+              <Link
+                key={approval.id}
+                to="/admin/approvals"
+                className="block p-5 hover:bg-neutral-50 transition-colors"
+              >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="font-grotesk text-sm font-medium text-[#171717] truncate">
@@ -357,25 +354,25 @@ const DashboardPage: React.FC = () => {
                     </p>
                   </div>
                   <span
-                    className={`text-xs font-grotesk font-medium px-2 py-1 rounded-full whitespace-nowrap ${
+                    className={`text-xs font-grotesk font-medium px-2 py-1 rounded-full whitespace-nowrap flex-shrink-0 ${
                       approval.urgent
                         ? 'bg-red-50 text-red-600'
                         : 'bg-neutral-100 text-neutral-600'
                     }`}
                   >
-                    {approval.dueDate}
+                    {approval.dueDateText}
                   </span>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
           <div className="p-5 border-t border-neutral-100">
-            <a
-              href="/admin/approvals"
+            <Link
+              to="/admin/approvals"
               className="font-grotesk text-sm text-neutral-600 hover:text-[#171717] transition-colors"
             >
               Tum onaylari gor &rarr;
-            </a>
+            </Link>
           </div>
         </motion.div>
       </div>

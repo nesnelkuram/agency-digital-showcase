@@ -47,6 +47,7 @@ export interface ContentPlanComment {
 
 export interface ContentPlan {
   id: string;
+  tenantId: string;
   projectId: string;
   title: string;
   description?: string;

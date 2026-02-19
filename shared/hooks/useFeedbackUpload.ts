@@ -185,7 +185,7 @@ export function useFeedbackUpload(): UseFeedbackUploadReturn {
         // ── PARALLEL: Video upload + AI transcription + Thumbnail ──
 
         // 1. Start video upload to Firebase Storage
-        const videoPath = `feedback/${user.uid}/${timestamp}_${safeTitle}.${ext}`;
+        const videoPath = `feedback/${tenantId}/${user.uid}/${timestamp}_${safeTitle}.${ext}`;
         const videoRef = ref(storage, videoPath);
         setUploadProgress(5);
 
@@ -227,7 +227,7 @@ export function useFeedbackUpload(): UseFeedbackUploadReturn {
         // Upload thumbnail if generated
         let thumbnailUrl: string | undefined;
         if (thumbnailBlob) {
-          const thumbPath = `feedback/${user.uid}/${timestamp}_${safeTitle}_thumb.jpg`;
+          const thumbPath = `feedback/${tenantId}/${user.uid}/${timestamp}_${safeTitle}_thumb.jpg`;
           const thumbRef = ref(storage, thumbPath);
           const thumbTask = uploadBytesResumable(thumbRef, thumbnailBlob, {
             contentType: 'image/jpeg',

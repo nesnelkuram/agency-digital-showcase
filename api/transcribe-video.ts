@@ -1,6 +1,7 @@
 import type { VercelResponse } from '@vercel/node';
 import { GoogleGenAI } from '@google/genai';
 import { withAuth, AuthenticatedRequest } from './_lib/withAuth';
+import { applyRateLimit, LIMITS } from './_lib/rateLimit';
 
 export const config = {
   maxDuration: 120,
@@ -10,6 +11,8 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+
+  if (!applyRateLimit(res, req.userUid, LIMITS.AI_TRANSCRIBE)) return;
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {

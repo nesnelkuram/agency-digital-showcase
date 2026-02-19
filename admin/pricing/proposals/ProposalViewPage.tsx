@@ -39,6 +39,8 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { formatCurrency, Quote } from '@/shared/types/pricing';
+import { usePermission } from '@/shared/hooks/usePermission';
+import { PERMISSIONS } from '@/lib/rbac/permissions';
 import {
   ProposalDocument,
   ProposalServiceLine,
@@ -92,6 +94,9 @@ const ProposalViewPage: React.FC = () => {
   const [editProjectDescription, setEditProjectDescription] = useState('');
   const [editValidityDays, setEditValidityDays] = useState(30);
   const printRef = useRef<HTMLDivElement>(null);
+
+  const { can } = usePermission();
+  const canViewCost = can(PERMISSIONS.PRICING_VIEW_COST);
 
   const isNewProposal = !id && quoteId;
 
@@ -459,8 +464,8 @@ const ProposalViewPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Editing Panel - isNew ise goster */}
-      {isEditing && (
+      {/* Editing Panel - isNew ise goster (sadece admin/cost yetkisi olanlar) */}
+      {isEditing && canViewCost && (
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 print:hidden">
           <h3 className="font-grotesk text-sm font-semibold text-amber-800 mb-4 flex items-center gap-2">
             <Edit3 className="w-4 h-4" />
@@ -860,8 +865,8 @@ const ProposalViewPage: React.FC = () => {
             })}
           </div>
 
-          {/* Economic Basis */}
-          {isRecurring && (
+          {/* Economic Basis - sadece maliyet yetkisi olanlar gorur */}
+          {isRecurring && canViewCost && (
             <div className="mt-6">
               <button
                 onClick={() => setShowEconomicDetails(!showEconomicDetails)}

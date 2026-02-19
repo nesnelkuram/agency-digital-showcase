@@ -2,7 +2,9 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import AdminLayout from './AdminLayout';
 import AuthGuard from './auth/AuthGuard';
+import PermissionGuard from './auth/PermissionGuard';
 import DashboardPage from './dashboard/DashboardPage';
+import { PERMISSIONS } from '@/lib/rbac/permissions';
 
 // Lazy load other pages
 const LeadsPage = React.lazy(() => import('./leads/LeadsPage'));
@@ -66,6 +68,9 @@ const TemplatesPage = React.lazy(() => import('./marketing/TemplatesPage'));
 const ABTestsPage = React.lazy(() => import('./marketing/ABTestsPage'));
 const UTMBuilderPage = React.lazy(() => import('./marketing/UTMBuilderPage'));
 
+// Marketing AI Agent
+const MarketingAgentPage = React.lazy(() => import('./marketing/MarketingAgentPage'));
+
 // Phase 3: Automation & Intelligence Pages
 const AutomatedRulesPage = React.lazy(() => import('./marketing/AutomatedRulesPage'));
 const CampaignCalendarPage = React.lazy(() => import('./marketing/CampaignCalendarPage'));
@@ -88,6 +93,13 @@ const PersonaChatPage = React.lazy(() => import('./persona/PersonaChatPage'));
 
 // Tenant Management (super_admin only)
 const TenantManagementPage = React.lazy(() => import('./settings/TenantManagementPage'));
+
+// Settings Sub-pages
+const ProfilePage = React.lazy(() => import('./settings/ProfilePage'));
+const UserManagementPage = React.lazy(() => import('./settings/UserManagementPage'));
+const NotificationsPage = React.lazy(() => import('./settings/NotificationsPage'));
+const IntegrationsPage = React.lazy(() => import('./settings/IntegrationsPage'));
+const NotificationsListPage = React.lazy(() => import('./notifications/NotificationsListPage'));
 
 // Workflow Pages
 const WorkflowListPage = React.lazy(() => import('./workflows/WorkflowListPage'));
@@ -147,6 +159,15 @@ const AdminApp: React.FC = () => {
             element={
               <React.Suspense fallback={<PageLoader />}>
                 <ProjectDetailPage />
+              </React.Suspense>
+            }
+          />
+          {/* Project-scoped Marketing Agent */}
+          <Route
+            path="projects/:projectId/marketing/agent"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <MarketingAgentPage />
               </React.Suspense>
             }
           />
@@ -442,156 +463,197 @@ const AdminApp: React.FC = () => {
               </React.Suspense>
             }
           />
+          {/* === PRICING ROUTES (permission guarded) === */}
           <Route
             path="pricing"
             element={
-              <React.Suspense fallback={<PageLoader />}>
-                <CostEnginePage />
-              </React.Suspense>
+              <PermissionGuard permission={PERMISSIONS.PRICING_VIEW_COST}>
+                <React.Suspense fallback={<PageLoader />}>
+                  <CostEnginePage />
+                </React.Suspense>
+              </PermissionGuard>
             }
           />
           <Route
             path="pricing/costs"
             element={
-              <React.Suspense fallback={<PageLoader />}>
-                <CostsOverviewPage />
-              </React.Suspense>
+              <PermissionGuard permission={PERMISSIONS.PRICING_VIEW_COST}>
+                <React.Suspense fallback={<PageLoader />}>
+                  <CostsOverviewPage />
+                </React.Suspense>
+              </PermissionGuard>
             }
           />
           <Route
             path="pricing/costs/personnel"
             element={
-              <React.Suspense fallback={<PageLoader />}>
-                <PersonnelCostsPage />
-              </React.Suspense>
+              <PermissionGuard permission={PERMISSIONS.PRICING_VIEW_COST}>
+                <React.Suspense fallback={<PageLoader />}>
+                  <PersonnelCostsPage />
+                </React.Suspense>
+              </PermissionGuard>
             }
           />
           <Route
             path="pricing/costs/office"
             element={
-              <React.Suspense fallback={<PageLoader />}>
-                <OfficeCostsPage />
-              </React.Suspense>
+              <PermissionGuard permission={PERMISSIONS.PRICING_VIEW_COST}>
+                <React.Suspense fallback={<PageLoader />}>
+                  <OfficeCostsPage />
+                </React.Suspense>
+              </PermissionGuard>
             }
           />
           <Route
             path="pricing/costs/equipment"
             element={
-              <React.Suspense fallback={<PageLoader />}>
-                <EquipmentCostsPage />
-              </React.Suspense>
+              <PermissionGuard permission={PERMISSIONS.PRICING_VIEW_COST}>
+                <React.Suspense fallback={<PageLoader />}>
+                  <EquipmentCostsPage />
+                </React.Suspense>
+              </PermissionGuard>
             }
           />
           <Route
             path="pricing/costs/software"
             element={
-              <React.Suspense fallback={<PageLoader />}>
-                <SoftwareCostsPage />
-              </React.Suspense>
+              <PermissionGuard permission={PERMISSIONS.PRICING_VIEW_COST}>
+                <React.Suspense fallback={<PageLoader />}>
+                  <SoftwareCostsPage />
+                </React.Suspense>
+              </PermissionGuard>
             }
           />
           <Route
             path="pricing/costs/marketing"
             element={
-              <React.Suspense fallback={<PageLoader />}>
-                <MarketingCostsPage />
-              </React.Suspense>
+              <PermissionGuard permission={PERMISSIONS.PRICING_VIEW_COST}>
+                <React.Suspense fallback={<PageLoader />}>
+                  <MarketingCostsPage />
+                </React.Suspense>
+              </PermissionGuard>
             }
           />
           <Route
             path="pricing/customers"
             element={
-              <React.Suspense fallback={<PageLoader />}>
-                <CustomersPage />
-              </React.Suspense>
+              <PermissionGuard permission={PERMISSIONS.PRICING_VIEW_COST}>
+                <React.Suspense fallback={<PageLoader />}>
+                  <CustomersPage />
+                </React.Suspense>
+              </PermissionGuard>
             }
           />
           <Route
             path="pricing/customers/:id"
             element={
-              <React.Suspense fallback={<PageLoader />}>
-                <CustomerDetailPage />
-              </React.Suspense>
+              <PermissionGuard permission={PERMISSIONS.PRICING_VIEW_COST}>
+                <React.Suspense fallback={<PageLoader />}>
+                  <CustomerDetailPage />
+                </React.Suspense>
+              </PermissionGuard>
             }
           />
+          {/* Catalog: account_manager görebilir (view_price), editor göremez */}
           <Route
             path="pricing/catalog"
             element={
-              <React.Suspense fallback={<PageLoader />}>
-                <CatalogPage />
-              </React.Suspense>
+              <PermissionGuard permission={PERMISSIONS.PRICING_VIEW_PRICE}>
+                <React.Suspense fallback={<PageLoader />}>
+                  <CatalogPage />
+                </React.Suspense>
+              </PermissionGuard>
             }
           />
           <Route
             path="pricing/catalog/ai-designer"
             element={
-              <React.Suspense fallback={<PageLoader />}>
-                <AIServiceDesigner />
-              </React.Suspense>
+              <PermissionGuard permission={PERMISSIONS.PRICING_VIEW_COST}>
+                <React.Suspense fallback={<PageLoader />}>
+                  <AIServiceDesigner />
+                </React.Suspense>
+              </PermissionGuard>
             }
           />
           <Route
             path="pricing/catalog/new"
             element={
-              <React.Suspense fallback={<PageLoader />}>
-                <ServiceEditorPage />
-              </React.Suspense>
+              <PermissionGuard permission={PERMISSIONS.PRICING_VIEW_COST}>
+                <React.Suspense fallback={<PageLoader />}>
+                  <ServiceEditorPage />
+                </React.Suspense>
+              </PermissionGuard>
             }
           />
           <Route
             path="pricing/catalog/:id/edit"
             element={
-              <React.Suspense fallback={<PageLoader />}>
-                <ServiceEditorPage />
-              </React.Suspense>
+              <PermissionGuard permission={PERMISSIONS.PRICING_VIEW_COST}>
+                <React.Suspense fallback={<PageLoader />}>
+                  <ServiceEditorPage />
+                </React.Suspense>
+              </PermissionGuard>
             }
           />
           <Route
             path="pricing/catalog/:id"
             element={
-              <React.Suspense fallback={<PageLoader />}>
-                <ServiceDetailPage />
-              </React.Suspense>
+              <PermissionGuard permission={PERMISSIONS.PRICING_VIEW_PRICE}>
+                <React.Suspense fallback={<PageLoader />}>
+                  <ServiceDetailPage />
+                </React.Suspense>
+              </PermissionGuard>
             }
           />
           <Route
             path="pricing/quotes/new"
             element={
-              <React.Suspense fallback={<PageLoader />}>
-                <QuoteWizardPage />
-              </React.Suspense>
+              <PermissionGuard permission={PERMISSIONS.PRICING_VIEW_COST}>
+                <React.Suspense fallback={<PageLoader />}>
+                  <QuoteWizardPage />
+                </React.Suspense>
+              </PermissionGuard>
             }
           />
+          {/* Proposals: account_manager view_price ile görebilir */}
           <Route
             path="pricing/proposals"
             element={
-              <React.Suspense fallback={<PageLoader />}>
-                <ProposalListPage />
-              </React.Suspense>
+              <PermissionGuard permission={PERMISSIONS.PRICING_VIEW_PRICE}>
+                <React.Suspense fallback={<PageLoader />}>
+                  <ProposalListPage />
+                </React.Suspense>
+              </PermissionGuard>
             }
           />
           <Route
             path="pricing/proposals/new"
             element={
-              <React.Suspense fallback={<PageLoader />}>
-                <ProposalViewPage />
-              </React.Suspense>
+              <PermissionGuard permission={PERMISSIONS.PRICING_VIEW_PRICE}>
+                <React.Suspense fallback={<PageLoader />}>
+                  <ProposalViewPage />
+                </React.Suspense>
+              </PermissionGuard>
             }
           />
           <Route
             path="pricing/proposals/:id"
             element={
-              <React.Suspense fallback={<PageLoader />}>
-                <ProposalViewPage />
-              </React.Suspense>
+              <PermissionGuard permission={PERMISSIONS.PRICING_VIEW_PRICE}>
+                <React.Suspense fallback={<PageLoader />}>
+                  <ProposalViewPage />
+                </React.Suspense>
+              </PermissionGuard>
             }
           />
           <Route
             path="pricing/projections"
             element={
-              <React.Suspense fallback={<PageLoader />}>
-                <ProjectionsPage />
-              </React.Suspense>
+              <PermissionGuard permission={PERMISSIONS.PRICING_VIEW_COST}>
+                <React.Suspense fallback={<PageLoader />}>
+                  <ProjectionsPage />
+                </React.Suspense>
+              </PermissionGuard>
             }
           />
           <Route
@@ -611,6 +673,14 @@ const AdminApp: React.FC = () => {
             }
           />
           {/* Marketing Routes */}
+          <Route
+            path="marketing/agent"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <MarketingAgentPage />
+              </React.Suspense>
+            }
+          />
           <Route
             path="marketing"
             element={
@@ -876,6 +946,47 @@ const AdminApp: React.FC = () => {
             element={
               <React.Suspense fallback={<PageLoader />}>
                 <FilingDetailPage />
+              </React.Suspense>
+            }
+          />
+          {/* Settings Sub-pages */}
+          <Route
+            path="settings/profile"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <ProfilePage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="settings/users"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <UserManagementPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="notifications"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <NotificationsListPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="settings/notifications"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <NotificationsPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="settings/integrations"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <IntegrationsPage />
               </React.Suspense>
             }
           />

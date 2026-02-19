@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Sparkles, Loader2, Hash } from 'lucide-react';
+import { Sparkles, Loader2, Hash, Minimize2, Maximize2, Smile, AtSign } from 'lucide-react';
 import type { SocialPlatform, PostType } from '@/shared/types/socialMedia';
 import { SOCIAL_PLATFORM_LABELS } from '@/shared/types/socialMedia';
+import { authenticatedFetch } from '@/lib/firebase/apiClient';
 
 interface CaptionEditorProps {
   caption: string;
@@ -24,6 +25,40 @@ const PLATFORM_CHAR_LIMITS: Record<SocialPlatform, number> = {
   facebook: 63206,
 };
 
+type RefinementInstruction = 'daha_kisa' | 'daha_uzun' | 'emoji_ekle' | 'hashtag_oner';
+
+const REFINEMENT_BUTTONS: {
+  instruction: RefinementInstruction;
+  label: string;
+  icon: React.ReactNode;
+  title: string;
+}[] = [
+  {
+    instruction: 'daha_kisa',
+    label: 'Daha Kısa',
+    icon: <Minimize2 className="w-3 h-3" />,
+    title: 'Metni daha kısa yap',
+  },
+  {
+    instruction: 'daha_uzun',
+    label: 'Daha Uzun',
+    icon: <Maximize2 className="w-3 h-3" />,
+    title: 'Metni daha uzun ve detaylı yap',
+  },
+  {
+    instruction: 'emoji_ekle',
+    label: 'Emoji Ekle',
+    icon: <Smile className="w-3 h-3" />,
+    title: 'Uygun emojiler ekle',
+  },
+  {
+    instruction: 'hashtag_oner',
+    label: 'Hashtag Öner',
+    icon: <AtSign className="w-3 h-3" />,
+    title: 'İlgili hashtagler öner',
+  },
+];
+
 const CaptionEditor: React.FC<CaptionEditorProps> = ({
   caption,
   onCaptionChange,
@@ -37,41 +72,35 @@ const CaptionEditor: React.FC<CaptionEditorProps> = ({
   mediaUrls,
 }) => {
   const [generatingAI, setGeneratingAI] = useState(false);
+  const [refiningInstruction, setRefiningInstruction] = useState<RefinementInstruction | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
 
   const charLimit = PLATFORM_CHAR_LIMITS[platform];
   const captionLength = caption.length;
   const isOverLimit = captionLength > charLimit;
 
+  const callCaptionAPI = async (body: Record<string, unknown>) => {
+    const res = await authenticatedFetch('/api/social-media/generate-caption', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error('AI caption olusturulamadi');
+    return res.json();
+  };
+
   const handleGenerateAI = async () => {
     setGeneratingAI(true);
     setAiError(null);
-
     try {
-      const res = await fetch('/api/social-media/generate-caption', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          projectId,
-          platform,
-          postType,
-          mediaUrls,
-          title: title || undefined,
-        }),
+      const data = await callCaptionAPI({
+        projectId,
+        platform,
+        postType,
+        mediaUrls,
+        title: title || undefined,
       });
-
-      if (!res.ok) {
-        throw new Error('AI caption olusturulamadi');
-      }
-
-      const data = await res.json();
-
-      if (data.caption) {
-        onCaptionChange(data.caption);
-      }
-      if (data.hashtags) {
-        onHashtagsChange(data.hashtags);
-      }
+      if (data.caption) onCaptionChange(data.caption);
+      if (data.hashtags) onHashtagsChange(data.hashtags);
     } catch (err) {
       console.error('[CaptionEditor] AI generation error:', err);
       setAiError('AI caption olusturulurken bir hata olustu. Lutfen tekrar deneyin.');
@@ -80,27 +109,51 @@ const CaptionEditor: React.FC<CaptionEditorProps> = ({
     }
   };
 
+  const handleRefine = async (instruction: RefinementInstruction) => {
+    if (!caption.trim()) return;
+    setRefiningInstruction(instruction);
+    setAiError(null);
+    try {
+      const data = await callCaptionAPI({
+        projectId,
+        platform,
+        postType,
+        existingCaption: caption,
+        instruction,
+      });
+      if (data.caption) onCaptionChange(data.caption);
+      if (data.hashtags) onHashtagsChange(data.hashtags);
+    } catch (err) {
+      console.error('[CaptionEditor] Refinement error:', err);
+      setAiError('İşlem sirasinda bir hata olustu. Lutfen tekrar deneyin.');
+    } finally {
+      setRefiningInstruction(null);
+    }
+  };
+
+  const isAnyLoading = generatingAI || refiningInstruction !== null;
+
   return (
     <div className="space-y-4">
       <div>
         <h2 className="text-lg font-grotesk font-semibold text-[#171717]">
-          Caption & Icerik
+          Caption & İçerik
         </h2>
         <p className="font-grotesk text-sm text-neutral-500 mt-1">
-          {SOCIAL_PLATFORM_LABELS[platform]} icin caption ve hashtag yazin
+          {SOCIAL_PLATFORM_LABELS[platform]} için caption ve hashtag yazın
         </p>
       </div>
 
       {/* Title */}
       <div>
         <label className="block font-grotesk text-sm font-medium text-[#171717] mb-1.5">
-          Baslik <span className="text-red-500">*</span>
+          Başlık <span className="text-red-500">*</span>
         </label>
         <input
           type="text"
           value={title}
           onChange={(e) => onTitleChange(e.target.value)}
-          placeholder="Post basligi (dahili kullanim)..."
+          placeholder="Post başlığı (dahili kullanım)..."
           className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 font-grotesk text-sm focus:outline-none focus:ring-2 focus:ring-[#171717]/10 focus:border-[#171717] transition-all"
         />
       </div>
@@ -114,18 +167,18 @@ const CaptionEditor: React.FC<CaptionEditorProps> = ({
           <button
             type="button"
             onClick={handleGenerateAI}
-            disabled={generatingAI}
+            disabled={isAnyLoading}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-lg font-grotesk text-xs font-medium hover:from-purple-600 hover:to-indigo-600 transition-all disabled:opacity-50"
           >
             {generatingAI ? (
               <>
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                Olusturuluyor...
+                Oluşturuluyor...
               </>
             ) : (
               <>
                 <Sparkles className="w-3.5 h-3.5" />
-                AI ile Olustur
+                AI ile Oluştur
               </>
             )}
           </button>
@@ -141,9 +194,37 @@ const CaptionEditor: React.FC<CaptionEditorProps> = ({
               : 'border-neutral-200 focus:border-[#171717]'
           }`}
         />
+
+        {/* Inline AI refinement toolbar */}
+        {caption.trim().length > 0 && (
+          <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+            <span className="font-grotesk text-xs text-neutral-400 mr-1">AI:</span>
+            {REFINEMENT_BUTTONS.map(({ instruction, label, icon, title: btnTitle }) => {
+              const isLoading = refiningInstruction === instruction;
+              return (
+                <button
+                  key={instruction}
+                  type="button"
+                  onClick={() => handleRefine(instruction)}
+                  disabled={isAnyLoading}
+                  title={btnTitle}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-neutral-200 bg-white font-grotesk text-xs text-neutral-600 hover:border-purple-300 hover:text-purple-700 hover:bg-purple-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    icon
+                  )}
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         <div className="flex items-center justify-between mt-1">
           <p className="font-grotesk text-xs text-neutral-400">
-            {platform === 'twitter' ? 'Twitter karakter limiti dusuktur' : ''}
+            {platform === 'twitter' ? 'Twitter karakter limiti düşüktür' : ''}
           </p>
           <p
             className={`font-grotesk text-xs ${
@@ -176,7 +257,7 @@ const CaptionEditor: React.FC<CaptionEditorProps> = ({
           className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 font-grotesk text-sm focus:outline-none focus:ring-2 focus:ring-[#171717]/10 focus:border-[#171717] transition-all"
         />
         <p className="mt-1 font-grotesk text-xs text-neutral-400">
-          Bosluk veya virgul ile ayirarak birden fazla hashtag ekleyebilirsiniz
+          Boşluk veya virgül ile ayırarak birden fazla hashtag ekleyebilirsiniz
         </p>
       </div>
     </div>

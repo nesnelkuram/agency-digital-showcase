@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { useParams, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
-  Share2,
   Copy,
   Check,
   Send,
@@ -12,12 +11,15 @@ import {
   AlertCircle,
   FileText,
   Calendar,
+  Mail,
+  X,
+  Loader2,
 } from 'lucide-react';
 import { useTenantId } from '@/shared/hooks/useTenant';
+import { useAuth } from '@/contexts/AuthContext';
 import type {
   ContentPlan,
   SocialMediaPost,
-  SocialPlatform,
   ContentPlanStatus,
 } from '@/shared/types/socialMedia';
 import { SOCIAL_PLATFORM_LABELS } from '@/shared/types/socialMedia';
@@ -25,24 +27,33 @@ import { getContentPlan, submitForApproval } from '@/shared/services/contentPlan
 import { getSocialPostsForPlan } from '@/shared/services/socialMediaService';
 import ProjectBreadcrumb from '@/admin/projects/components/ProjectBreadcrumb';
 import PlatformPreviewContainer from './components/previews/PlatformPreviewContainer';
+import { authenticatedFetch } from '@/lib/firebase/apiClient';
 
 const STATUS_CONFIG: Record<ContentPlanStatus, { label: string; icon: React.ReactNode; color: string }> = {
   draft: { label: 'Taslak', icon: <FileText className="w-4 h-4" />, color: 'bg-gray-100 text-gray-700' },
   pending_approval: { label: 'Onay Bekliyor', icon: <Clock className="w-4 h-4" />, color: 'bg-amber-100 text-amber-700' },
-  approved: { label: 'Onaylandi', icon: <CheckCircle className="w-4 h-4" />, color: 'bg-emerald-100 text-emerald-700' },
-  revision_requested: { label: 'Revizyon Istendi', icon: <AlertCircle className="w-4 h-4" />, color: 'bg-red-100 text-red-700' },
+  approved: { label: 'Onaylandı', icon: <CheckCircle className="w-4 h-4" />, color: 'bg-emerald-100 text-emerald-700' },
+  revision_requested: { label: 'Revizyon İstendi', icon: <AlertCircle className="w-4 h-4" />, color: 'bg-red-100 text-red-700' },
 };
 
 const ContentPlanView: React.FC = () => {
   const { projectId, planId } = useParams<{ projectId: string; planId: string }>();
   const navigate = useNavigate();
   const tenantId = useTenantId();
+  const { user } = useAuth();
 
   const [plan, setPlan] = useState<ContentPlan | null>(null);
   const [posts, setPosts] = useState<SocialMediaPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [submittingForApproval, setSubmittingForApproval] = useState(false);
+
+  // Email modal state
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [clientEmail, setClientEmail] = useState('');
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     if (!planId) return;
@@ -65,9 +76,12 @@ const ContentPlanView: React.FC = () => {
     loadData();
   }, [loadData]);
 
+  const shareUrl = plan
+    ? `${window.location.origin}/icerik-plani/${plan.shareToken}`
+    : '';
+
   const handleCopyShareLink = () => {
     if (!plan) return;
-    const shareUrl = `${window.location.origin}/icerik-plani/${plan.shareToken}`;
     navigator.clipboard.writeText(shareUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -86,6 +100,44 @@ const ContentPlanView: React.FC = () => {
     }
   };
 
+  const handleSendEmail = async () => {
+    if (!clientEmail.trim() || !plan) return;
+    setSendingEmail(true);
+    setEmailError(null);
+    try {
+      const weekRange = [
+        plan.weekStartDate?.toDate().toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }),
+        plan.weekEndDate?.toDate().toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }),
+      ].filter(Boolean).join(' - ');
+
+      const res = await authenticatedFetch('/api/send-content-plan-notification', {
+        method: 'POST',
+        body: JSON.stringify({
+          type: 'submitted',
+          recipientEmail: clientEmail.trim(),
+          senderName: user?.displayName || 'intiba ekibi',
+          planTitle: plan.title,
+          shareUrl,
+          weekRange,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || 'E-posta gönderilemedi');
+      }
+      setEmailSent(true);
+      setTimeout(() => {
+        setShowEmailModal(false);
+        setEmailSent(false);
+        setClientEmail('');
+      }, 2000);
+    } catch (err: any) {
+      setEmailError(err.message || 'E-posta gönderilemedi');
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -97,7 +149,7 @@ const ContentPlanView: React.FC = () => {
   if (!plan) {
     return (
       <div className="text-center py-16">
-        <p className="font-grotesk text-neutral-500">Icerik plani bulunamadi.</p>
+        <p className="font-grotesk text-neutral-500">İçerik planı bulunamadı.</p>
       </div>
     );
   }
@@ -116,7 +168,7 @@ const ContentPlanView: React.FC = () => {
   return (
     <div className="space-y-6">
       {projectId && (
-        <ProjectBreadcrumb projectId={projectId} currentPage="Icerik Plani" />
+        <ProjectBreadcrumb projectId={projectId} currentPage="İçerik Planı" />
       )}
 
       {/* Header */}
@@ -152,7 +204,7 @@ const ContentPlanView: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 ml-11 md:ml-0">
+        <div className="flex items-center gap-2 ml-11 md:ml-0 flex-wrap">
           <button
             onClick={handleCopyShareLink}
             className="inline-flex items-center gap-2 px-4 py-2 border border-neutral-300 text-neutral-700 rounded-full font-grotesk text-sm font-medium hover:bg-neutral-50 transition-colors"
@@ -160,7 +212,7 @@ const ContentPlanView: React.FC = () => {
             {copied ? (
               <>
                 <Check className="w-4 h-4 text-emerald-600" />
-                Kopyalandi
+                Kopyalandı
               </>
             ) : (
               <>
@@ -169,6 +221,16 @@ const ContentPlanView: React.FC = () => {
               </>
             )}
           </button>
+
+          {(plan.status === 'draft' || plan.status === 'pending_approval') && (
+            <button
+              onClick={() => setShowEmailModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 border border-neutral-300 text-neutral-700 rounded-full font-grotesk text-sm font-medium hover:bg-neutral-50 transition-colors"
+            >
+              <Mail className="w-4 h-4" />
+              E-posta Gönder
+            </button>
+          )}
 
           {plan.status === 'draft' && (
             <motion.button
@@ -179,7 +241,7 @@ const ContentPlanView: React.FC = () => {
               className="inline-flex items-center gap-2 px-4 py-2 bg-[#171717] text-white rounded-full font-grotesk text-sm font-medium hover:bg-neutral-800 transition-colors disabled:opacity-50"
             >
               <Send className="w-4 h-4" />
-              {submittingForApproval ? 'Gonderiliyor...' : 'Musteriye Gonder'}
+              {submittingForApproval ? 'Gönderiliyor...' : 'Onaya Gönder'}
             </motion.button>
           )}
         </div>
@@ -204,7 +266,7 @@ const ContentPlanView: React.FC = () => {
           <div className="bg-white rounded-xl border border-neutral-100 p-4">
             <h3 className="font-grotesk text-sm font-semibold text-[#171717] mb-3 flex items-center gap-2">
               <Calendar className="w-4 h-4" />
-              Icerik Takvimi
+              İçerik Takvimi
             </h3>
             <div className="space-y-1.5">
               {Array.from(postsByDate.entries())
@@ -228,7 +290,7 @@ const ContentPlanView: React.FC = () => {
                 ))}
               {postsByDate.size === 0 && (
                 <p className="font-grotesk text-xs text-neutral-400 text-center py-2">
-                  Henuz planlanmis icerik yok
+                  Henüz planlanmış içerik yok
                 </p>
               )}
             </div>
@@ -249,7 +311,7 @@ const ContentPlanView: React.FC = () => {
                       </span>
                       {comment.isClient && (
                         <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded font-grotesk text-[10px]">
-                          Musteri
+                          Müşteri
                         </span>
                       )}
                     </div>
@@ -265,15 +327,15 @@ const ContentPlanView: React.FC = () => {
           {/* Plan Info */}
           <div className="bg-white rounded-xl border border-neutral-100 p-4">
             <h3 className="font-grotesk text-sm font-semibold text-[#171717] mb-3">
-              Plan Detaylari
+              Plan Detayları
             </h3>
             <div className="space-y-2 font-grotesk text-xs text-neutral-600">
               <div className="flex justify-between">
-                <span>Olusturan:</span>
+                <span>Oluşturan:</span>
                 <span className="font-medium text-[#171717]">{plan.createdByName}</span>
               </div>
               <div className="flex justify-between">
-                <span>Tarih Araligi:</span>
+                <span>Tarih Aralığı:</span>
                 <span className="font-medium text-[#171717]">
                   {plan.weekStartDate?.toDate().toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
                   {' - '}
@@ -290,6 +352,88 @@ const ContentPlanView: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Email Modal */}
+      <AnimatePresence>
+        {showEmailModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={(e) => e.target === e.currentTarget && setShowEmailModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-grotesk text-lg font-bold text-[#171717]">
+                  Müşteriye E-posta Gönder
+                </h3>
+                <button
+                  onClick={() => setShowEmailModal(false)}
+                  className="p-1.5 rounded-lg hover:bg-neutral-100 transition-colors"
+                >
+                  <X className="w-4 h-4 text-neutral-500" />
+                </button>
+              </div>
+
+              <p className="font-grotesk text-sm text-neutral-500 mb-4">
+                <strong>{plan.title}</strong> planının inceleme linkini müşteriye e-posta ile iletebilirsiniz.
+              </p>
+
+              <div className="bg-neutral-50 rounded-xl px-4 py-3 mb-4">
+                <p className="font-grotesk text-xs text-neutral-500 mb-1">Gönderilecek link:</p>
+                <p className="font-grotesk text-xs text-neutral-700 break-all">{shareUrl}</p>
+              </div>
+
+              <div className="mb-4">
+                <label className="block font-grotesk text-sm font-medium text-[#171717] mb-1.5">
+                  Müşteri E-posta Adresi
+                </label>
+                <input
+                  type="email"
+                  value={clientEmail}
+                  onChange={(e) => setClientEmail(e.target.value)}
+                  placeholder="musteri@ornek.com"
+                  onKeyDown={(e) => e.key === 'Enter' && handleSendEmail()}
+                  className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 font-grotesk text-sm focus:outline-none focus:ring-2 focus:ring-[#171717]/10 focus:border-[#171717] transition-all"
+                />
+              </div>
+
+              {emailError && (
+                <p className="font-grotesk text-xs text-red-500 mb-3">{emailError}</p>
+              )}
+
+              <button
+                onClick={handleSendEmail}
+                disabled={sendingEmail || !clientEmail.trim() || emailSent}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-[#171717] text-white rounded-xl font-grotesk text-sm font-medium hover:bg-neutral-800 transition-colors disabled:opacity-50"
+              >
+                {emailSent ? (
+                  <>
+                    <Check className="w-4 h-4 text-emerald-400" />
+                    E-posta Gönderildi!
+                  </>
+                ) : sendingEmail ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Gönderiliyor...
+                  </>
+                ) : (
+                  <>
+                    <Mail className="w-4 h-4" />
+                    E-posta Gönder
+                  </>
+                )}
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

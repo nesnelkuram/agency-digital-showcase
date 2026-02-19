@@ -4,6 +4,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 // @ts-ignore — pre-bundled by esbuild during vercel-build
 import { generateJSON } from '../_lib/gemini-bundle.mjs';
 import { withAuth, AuthenticatedRequest } from '../_lib/withAuth';
+import { applyRateLimit, LIMITS } from '../_lib/rateLimit';
 
 export const config = {
   maxDuration: 60,
@@ -77,6 +78,8 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+
+  if (!applyRateLimit(res, req.userUid, LIMITS.AI_WORKFLOW)) return;
 
   try {
     const { sessionId, message } = req.body || {};

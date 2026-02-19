@@ -1,7 +1,8 @@
 import { Timestamp } from 'firebase/firestore';
 
-export type UserRole = 'super_admin' | 'admin' | 'staff' | 'client' | 'freelancer';
+export type UserRole = 'super_admin' | 'admin' | 'account_manager' | 'editor' | 'staff' | 'client' | 'freelancer';
 export type UserStatus = 'active' | 'invited' | 'suspended';
+export type InvitationStatus = 'pending' | 'accepted' | 'expired' | 'cancelled';
 
 export interface UserMetadata {
   createdAt: Timestamp;
@@ -46,4 +47,18 @@ export interface CreateUserData {
   role: UserRole;
   tenantId: string;
   organizationId?: string;
+}
+
+export interface Invitation {
+  id: string;
+  tenantId: string;
+  email: string;
+  displayName: string;
+  role: UserRole;
+  status: InvitationStatus;
+  invitedBy: string;
+  invitedByName: string;
+  createdAt: Date;
+  expiresAt: Date;
+  acceptedAt?: Date;
 }

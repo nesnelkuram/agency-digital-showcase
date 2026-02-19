@@ -12,7 +12,7 @@ const LoginPage: React.FC = () => {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
 
-  const { signIn, resetPassword, error, clearError } = useAuth();
+  const { signIn, resetPassword, error, clearError, user } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -24,6 +24,8 @@ const LoginPage: React.FC = () => {
 
     try {
       await signIn(email, password);
+      // Redirect clients to portal, everyone else to admin
+      // Note: user state may not be updated yet — rely on onAuthStateChanged redirect below
       navigate('/admin');
     } catch (err) {
       // Error is handled in AuthContext
@@ -31,6 +33,13 @@ const LoginPage: React.FC = () => {
       setIsLoading(false);
     }
   };
+
+  // After successful login, redirect clients to portal
+  React.useEffect(() => {
+    if (user?.role === 'client') {
+      navigate('/portal', { replace: true });
+    }
+  }, [user, navigate]);
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();

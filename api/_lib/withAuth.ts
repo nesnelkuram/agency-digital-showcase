@@ -6,8 +6,10 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 export interface AuthenticatedRequest extends VercelRequest {
   userId: string;
+  userUid: string;  // alias for userId — used by rate limiter and services
   tenantId: string;
   userRole: string;
+  userDisplayName?: string;
 }
 
 export interface OptionalAuthRequest extends VercelRequest {
@@ -46,6 +48,7 @@ interface UserRecord {
   tenantId: string;
   role: string;
   status?: string;
+  displayName?: string;
 }
 
 async function verifyTokenAndGetUid(token: string): Promise<string> {
@@ -70,6 +73,7 @@ async function lookupUser(uid: string): Promise<UserRecord | null> {
       tenantId: data.tenantId || '',
       role: data.role || 'member',
       status: data.status || 'active',
+      displayName: data.displayName || data.name || '',
     };
   } catch {
     return null;
@@ -103,8 +107,10 @@ export function withAuth(handler: AuthenticatedHandler) {
       // Attach auth info to request
       const authReq = req as AuthenticatedRequest;
       authReq.userId = uid;
+      authReq.userUid = uid;
       authReq.tenantId = userRecord.tenantId;
       authReq.userRole = userRecord.role;
+      authReq.userDisplayName = userRecord.displayName;
 
       return await handler(authReq, res);
     } catch (err: any) {

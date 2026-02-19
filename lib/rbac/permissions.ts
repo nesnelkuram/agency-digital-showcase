@@ -125,6 +125,14 @@ export const PERMISSIONS = {
   FILING_EDIT: 'filing:edit',
   FILING_DELETE: 'filing:delete',
   FILING_TEMPLATES_MANAGE: 'filing:templates_manage',
+
+  // Pricing Erişim Seviyeleri (ayrıştırılmış)
+  PRICING_VIEW_PRICE: 'pricing:view_price',     // sadece satış fiyatı
+  PRICING_VIEW_COST: 'pricing:view_cost',       // maliyet detayı
+  PRICING_VIEW_MARGIN: 'pricing:view_margin',   // kar marjı
+  PRICING_VIEW_STAFF: 'pricing:view_staff',     // personel ücretleri
+  PRICING_VIEW_FIXED: 'pricing:view_fixed',     // sabit giderler
+  PRICING_FULL: 'pricing:full',                 // tam erişim (admin)
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users,
@@ -15,24 +15,51 @@ import {
   Clock,
   Ban,
   Send,
+  Search,
+  Copy,
+  CheckCheck,
 } from 'lucide-react';
 import { useUserManagement } from '@/shared/hooks/useUserManagement';
 import { usePermission } from '@/shared/hooks/usePermission';
 import { UserRole } from '@/shared/types/user';
 
 const roleLabels: Record<UserRole, string> = {
+  super_admin: 'Süper Admin',
   admin: 'Admin',
-  staff: 'Calisan',
-  client: 'Musteri',
+  account_manager: 'Hesap Yöneticisi',
+  editor: 'Editör',
+  staff: 'Çalışan',
+  client: 'Müşteri',
   freelancer: 'Freelancer',
 };
 
 const roleColors: Record<UserRole, string> = {
+  super_admin: 'bg-violet-100 text-violet-700',
   admin: 'bg-purple-100 text-purple-700',
+  account_manager: 'bg-indigo-100 text-indigo-700',
+  editor: 'bg-sky-100 text-sky-700',
   staff: 'bg-blue-100 text-blue-700',
   client: 'bg-green-100 text-green-700',
   freelancer: 'bg-amber-100 text-amber-700',
 };
+
+// Roles available for invitation (super_admin assigned server-side only)
+const inviteRoles: UserRole[] = ['admin', 'account_manager', 'editor', 'staff', 'client', 'freelancer'];
+
+function formatLastLogin(lastLoginAt: unknown): string {
+  if (!lastLoginAt) return 'Hiç giriş yapmadı';
+  const date = (lastLoginAt as { toDate?: () => Date }).toDate?.() || new Date(lastLoginAt as string);
+  const diff = Date.now() - date.getTime();
+  const mins = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  if (mins < 1) return 'Az önce';
+  if (mins < 60) return `${mins}dk önce`;
+  if (hours < 24) return `${hours}sa önce`;
+  if (days === 1) return 'Dün';
+  if (days < 30) return `${days}g önce`;
+  return date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' });
+}
 
 const UserManagementPage: React.FC = () => {
   const { isAdmin } = usePermission();
@@ -58,18 +85,31 @@ const UserManagementPage: React.FC = () => {
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState<UserRole | 'all'>('all');
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const filteredUsers = useMemo(() => {
+    return users.filter((u) => {
+      const matchesSearch =
+        !search ||
+        u.displayName?.toLowerCase().includes(search.toLowerCase()) ||
+        u.email.toLowerCase().includes(search.toLowerCase());
+      const matchesRole = roleFilter === 'all' || u.role === roleFilter;
+      return matchesSearch && matchesRole;
+    });
+  }, [users, search, roleFilter]);
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     setInviteLoading(true);
     setInviteError(null);
-
     try {
       await inviteUser(inviteForm.email, inviteForm.displayName, inviteForm.role);
       setShowInviteModal(false);
       setInviteForm({ email: '', displayName: '', role: 'staff' });
-    } catch (err: any) {
-      setInviteError(err.message || 'Davetiye gonderilemedi');
+    } catch (err: unknown) {
+      setInviteError((err as Error).message || 'Davetiye gönderilemedi');
     } finally {
       setInviteLoading(false);
     }
@@ -94,16 +134,24 @@ const UserManagementPage: React.FC = () => {
     }
   };
 
+  const handleCopyInviteLink = (invitationId: string) => {
+    const link = `${window.location.origin}/join?token=${invitationId}`;
+    navigator.clipboard.writeText(link).then(() => {
+      setCopiedId(invitationId);
+      setTimeout(() => setCopiedId(null), 2000);
+    });
+  };
+
   if (!isAdmin()) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <Shield className="w-12 h-12 text-neutral-300 mx-auto" />
           <h3 className="font-grotesk text-xl font-bold text-[#171717] mt-4">
-            Erisim Engellendi
+            Erişim Engellendi
           </h3>
           <p className="font-grotesk text-neutral-600 mt-2">
-            Bu sayfaya erisim icin admin yetkisi gereklidir.
+            Bu sayfaya erişim için admin yetkisi gereklidir.
           </p>
         </div>
       </div>
@@ -115,7 +163,7 @@ const UserManagementPage: React.FC = () => {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin text-neutral-400 mx-auto" />
-          <p className="font-grotesk text-neutral-500 mt-3">Yukleniyor...</p>
+          <p className="font-grotesk text-neutral-500 mt-3">Yükleniyor...</p>
         </div>
       </div>
     );
@@ -153,10 +201,10 @@ const UserManagementPage: React.FC = () => {
           </a>
           <div>
             <h1 className="text-2xl md:text-3xl font-grotesk font-bold text-[#1a1a2e]">
-              Kullanici Yonetimi
+              Kullanıcı Yönetimi
             </h1>
             <p className="font-grotesk text-neutral-500 mt-1">
-              Ekip uyelerini davet edin ve yonetin.
+              Ekip üyelerini davet edin ve yönetin.
             </p>
           </div>
         </div>
@@ -208,18 +256,29 @@ const UserManagementPage: React.FC = () => {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => handleCopyInviteLink(invitation.id)}
+                    className="p-2 text-neutral-500 hover:bg-neutral-100 rounded-lg transition-colors"
+                    title="Davet linkini kopyala"
+                  >
+                    {copiedId === invitation.id ? (
+                      <CheckCheck className="w-4 h-4 text-green-600" />
+                    ) : (
+                      <Copy className="w-4 h-4" />
+                    )}
+                  </button>
                   <button
                     onClick={() => resendInvitation(invitation.id)}
                     className="p-2 text-amber-600 hover:bg-amber-100 rounded-lg transition-colors"
-                    title="Tekrar Gonder"
+                    title="Tekrar Gönder"
                   >
                     <Send className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => cancelInvitation(invitation.id)}
                     className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    title="Iptal Et"
+                    title="İptal Et"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -232,37 +291,87 @@ const UserManagementPage: React.FC = () => {
 
       {/* Users List */}
       <div className="bg-white rounded-xl border border-neutral-100 overflow-hidden">
-        <div className="p-4 border-b border-neutral-100">
-          <div className="flex items-center gap-2">
-            <Users className="w-5 h-5 text-neutral-600" />
-            <h2 className="font-grotesk text-lg font-bold text-[#171717]">
-              Kullanicilar ({users.length})
-            </h2>
+        {/* List Header — search + role filter */}
+        <div className="p-4 border-b border-neutral-100 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-neutral-600" />
+              <h2 className="font-grotesk text-lg font-bold text-[#171717]">
+                Kullanıcılar ({filteredUsers.length}/{users.length})
+              </h2>
+            </div>
+          </div>
+
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="İsim veya email ile ara..."
+              className="w-full pl-9 pr-4 py-2 border border-neutral-200 rounded-lg font-grotesk text-sm focus:outline-none focus:border-neutral-400 bg-neutral-50 transition-colors"
+            />
+          </div>
+
+          {/* Role filter chips */}
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setRoleFilter('all')}
+              className={`px-3 py-1 rounded-full font-grotesk text-xs font-medium transition-colors ${
+                roleFilter === 'all'
+                  ? 'bg-[#171717] text-white'
+                  : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+              }`}
+            >
+              Tümü
+            </button>
+            {(Object.keys(roleLabels) as UserRole[]).map((role) => {
+              const count = users.filter((u) => u.role === role).length;
+              if (count === 0) return null;
+              return (
+                <button
+                  key={role}
+                  onClick={() => setRoleFilter(role === roleFilter ? 'all' : role)}
+                  className={`px-3 py-1 rounded-full font-grotesk text-xs font-medium transition-colors ${
+                    roleFilter === role
+                      ? 'bg-[#171717] text-white'
+                      : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                  }`}
+                >
+                  {roleLabels[role]} ({count})
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {users.length === 0 ? (
+        {filteredUsers.length === 0 ? (
           <div className="p-8 text-center">
             <Users className="w-10 h-10 text-neutral-300 mx-auto" />
-            <p className="font-grotesk text-neutral-500 mt-3">Henuz kullanici yok</p>
-            <button
-              onClick={() => setShowInviteModal(true)}
-              className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#171717] text-white rounded-full font-grotesk text-sm"
-            >
-              <UserPlus className="w-4 h-4" />
-              Ilk Kullaniciyi Davet Et
-            </button>
+            <p className="font-grotesk text-neutral-500 mt-3">
+              {search || roleFilter !== 'all' ? 'Eşleşen kullanıcı bulunamadı' : 'Henüz kullanıcı yok'}
+            </p>
+            {!search && roleFilter === 'all' && (
+              <button
+                onClick={() => setShowInviteModal(true)}
+                className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#171717] text-white rounded-full font-grotesk text-sm"
+              >
+                <UserPlus className="w-4 h-4" />
+                İlk Kullanıcıyı Davet Et
+              </button>
+            )}
           </div>
         ) : (
           <div className="divide-y divide-neutral-100">
-            {users.map((user) => (
+            {filteredUsers.map((user) => (
               <div
                 key={user.uid}
                 className="p-4 hover:bg-neutral-50 transition-colors"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-[#fffceb] flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-full bg-[#fffceb] flex items-center justify-center flex-shrink-0">
                       {user.photoURL ? (
                         <img
                           src={user.photoURL}
@@ -276,18 +385,21 @@ const UserManagementPage: React.FC = () => {
                       )}
                     </div>
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-grotesk font-medium text-[#171717]">
                           {user.displayName || user.email}
                         </p>
                         {user.status === 'suspended' && (
                           <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-grotesk rounded-full">
-                            Askiya Alinmis
+                            Askıya Alınmış
                           </span>
                         )}
                       </div>
                       <p className="font-grotesk text-sm text-neutral-500">
                         {user.email}
+                      </p>
+                      <p className="font-grotesk text-xs text-neutral-400 mt-0.5">
+                        Son giriş: {formatLastLogin(user.metadata?.lastLoginAt)}
                       </p>
                     </div>
                   </div>
@@ -295,10 +407,10 @@ const UserManagementPage: React.FC = () => {
                   <div className="flex items-center gap-3">
                     <span
                       className={`px-3 py-1 text-xs font-grotesk font-medium rounded-full ${
-                        roleColors[user.role]
+                        roleColors[user.role] || 'bg-neutral-100 text-neutral-600'
                       }`}
                     >
-                      {roleLabels[user.role]}
+                      {roleLabels[user.role] || user.role}
                     </span>
 
                     <div className="relative">
@@ -319,25 +431,27 @@ const UserManagementPage: React.FC = () => {
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.95 }}
-                            className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-neutral-200 py-1 z-10"
+                            className="absolute right-0 top-full mt-1 w-52 bg-white rounded-lg shadow-lg border border-neutral-200 py-1 z-10"
                           >
                             <div className="px-3 py-2 border-b border-neutral-100">
-                              <p className="font-grotesk text-xs text-neutral-500 uppercase">
-                                Rol Degistir
+                              <p className="font-grotesk text-xs text-neutral-500 uppercase tracking-wide">
+                                Rol Değiştir
                               </p>
                             </div>
-                            {(Object.keys(roleLabels) as UserRole[]).map((role) => (
-                              <button
-                                key={role}
-                                onClick={() => handleRoleChange(user.uid, role)}
-                                className="w-full px-3 py-2 text-left font-grotesk text-sm hover:bg-neutral-50 flex items-center justify-between"
-                              >
-                                {roleLabels[role]}
-                                {user.role === role && (
-                                  <Check className="w-4 h-4 text-green-600" />
-                                )}
-                              </button>
-                            ))}
+                            {(Object.keys(roleLabels) as UserRole[])
+                              .filter((r) => r !== 'super_admin')
+                              .map((role) => (
+                                <button
+                                  key={role}
+                                  onClick={() => handleRoleChange(user.uid, role)}
+                                  className="w-full px-3 py-2 text-left font-grotesk text-sm hover:bg-neutral-50 flex items-center justify-between"
+                                >
+                                  {roleLabels[role]}
+                                  {user.role === role && (
+                                    <Check className="w-4 h-4 text-green-600" />
+                                  )}
+                                </button>
+                              ))}
                             <div className="border-t border-neutral-100 mt-1 pt-1">
                               <button
                                 onClick={() =>
@@ -347,7 +461,7 @@ const UserManagementPage: React.FC = () => {
                               >
                                 <Ban className="w-4 h-4" />
                                 {user.status === 'active'
-                                  ? 'Askiya Al'
+                                  ? 'Askıya Al'
                                   : 'Aktif Et'}
                               </button>
                             </div>
@@ -382,7 +496,7 @@ const UserManagementPage: React.FC = () => {
             >
               <div className="flex items-center justify-between mb-6">
                 <h3 className="font-grotesk text-xl font-bold text-[#171717]">
-                  Kullanici Davet Et
+                  Kullanıcı Davet Et
                 </h3>
                 <button
                   onClick={() => setShowInviteModal(false)}
@@ -403,7 +517,7 @@ const UserManagementPage: React.FC = () => {
                     onChange={(e) =>
                       setInviteForm({ ...inviteForm, displayName: e.target.value })
                     }
-                    placeholder="Ornek: Ahmet Yilmaz"
+                    placeholder="Örnek: Ahmet Yılmaz"
                     className="w-full px-4 py-3 border-2 border-neutral-200 rounded-lg font-grotesk bg-[#fffceb] focus:border-[#171717] focus:outline-none transition-colors"
                     required
                   />
@@ -439,10 +553,11 @@ const UserManagementPage: React.FC = () => {
                     }
                     className="w-full px-4 py-3 border-2 border-neutral-200 rounded-lg font-grotesk bg-[#fffceb] focus:border-[#171717] focus:outline-none transition-colors"
                   >
-                    <option value="staff">Calisan</option>
-                    <option value="client">Musteri</option>
-                    <option value="freelancer">Freelancer</option>
-                    <option value="admin">Admin</option>
+                    {inviteRoles.map((role) => (
+                      <option key={role} value={role}>
+                        {roleLabels[role]}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -458,7 +573,7 @@ const UserManagementPage: React.FC = () => {
                     onClick={() => setShowInviteModal(false)}
                     className="flex-1 px-4 py-3 border-2 border-neutral-200 rounded-full font-grotesk font-medium hover:bg-neutral-50 transition-colors"
                   >
-                    Iptal
+                    İptal
                   </button>
                   <button
                     type="submit"
@@ -468,12 +583,12 @@ const UserManagementPage: React.FC = () => {
                     {inviteLoading ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        Gonderiliyor...
+                        Gönderiliyor...
                       </>
                     ) : (
                       <>
                         <Send className="w-4 h-4" />
-                        Davet Gonder
+                        Davet Gönder
                       </>
                     )}
                   </button>

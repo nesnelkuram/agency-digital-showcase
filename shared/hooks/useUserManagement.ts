@@ -6,13 +6,13 @@ import {
   doc,
   setDoc,
   updateDoc,
-  deleteDoc,
   orderBy,
   where,
   serverTimestamp,
   Timestamp,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
+import { getAuth } from 'firebase/auth';
 import { User, UserRole, Invitation, InvitationStatus } from '@/shared/types/user';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTenantId } from '@/shared/hooks/useTenant';
@@ -157,8 +157,27 @@ export function useUserManagement(): UseUserManagementReturn {
         expiresAt: Timestamp.fromDate(expiresAt),
       });
 
-      // TODO: Send invitation email using Resend API
-      console.log('[UserManagement] Invitation created:', invitationRef.id);
+      // Send invitation email via API
+      try {
+        const token = await getAuth().currentUser?.getIdToken();
+        await fetch('/api/invite-user', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({
+            invitationId: invitationRef.id,
+            email: email.toLowerCase(),
+            displayName,
+            role,
+            invitedByName: currentUser.displayName || currentUser.email,
+          }),
+        });
+      } catch (emailErr) {
+        // Email failure should not block invitation creation
+        console.warn('[UserManagement] Email send failed:', emailErr);
+      }
 
       // Refetch to update the list
       await fetchData();
@@ -226,12 +245,34 @@ export function useUserManagement(): UseUserManagementReturn {
         createdAt: serverTimestamp(),
       });
 
-      // TODO: Resend invitation email
+      // Find the invitation to get email/role details
+      const invitation = invitations.find((i) => i.id === invitationId);
+      if (invitation) {
+        try {
+          const token = await getAuth().currentUser?.getIdToken();
+          await fetch('/api/invite-user', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({
+              invitationId,
+              email: invitation.email,
+              displayName: invitation.displayName,
+              role: invitation.role,
+              invitedByName: currentUser?.displayName || currentUser?.email,
+            }),
+          });
+        } catch (emailErr) {
+          console.warn('[UserManagement] Resend email failed:', emailErr);
+        }
+      }
 
       // Refetch to update the list
       await fetchData();
     },
-    [db, fetchData]
+    [db, invitations, currentUser, fetchData]
   );
 
   return {

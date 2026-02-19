@@ -22,6 +22,8 @@ const LandingPage = lazy(() => import('./components/LandingPage'));
 // Admin Panel (lazy loaded)
 const AdminApp = lazy(() => import('./admin/AdminApp'));
 const LoginPage = lazy(() => import('./admin/auth/LoginPage'));
+const JoinPage = lazy(() => import('./admin/auth/JoinPage'));
+const PortalApp = lazy(() => import('./portal/PortalApp'));
 const FeedbackSharePage = lazy(() => import('./components/FeedbackSharePage'));
 const AnalysisReportPage = lazy(() => import('./components/AnalysisReportPage'));
 const ContentPlanSharePage = lazy(() => import('./components/ContentPlanSharePage'));
@@ -326,6 +328,28 @@ const App: React.FC = () => {
           element={
             <Suspense fallback={<div className="min-h-screen" style={{ backgroundColor: '#ebeef8' }} />}>
               <LandingPage />
+            </Suspense>
+          }
+        />
+
+        {/* Invitation Accept Page - Public */}
+        <Route
+          path="/join"
+          element={
+            <Suspense fallback={<div className="min-h-screen bg-neutral-50" />}>
+              <JoinPage />
+            </Suspense>
+          }
+        />
+
+        {/* Client Portal */}
+        <Route
+          path="/portal/*"
+          element={
+            <Suspense fallback={<div className="min-h-screen bg-neutral-50" />}>
+              <TenantProvider>
+                <PortalApp />
+              </TenantProvider>
             </Suspense>
           }
         />

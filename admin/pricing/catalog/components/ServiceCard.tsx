@@ -4,6 +4,8 @@ import { ChevronRight, Zap, FileCheck, Copy, ShoppingCart } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import type { ServiceTemplate, ServiceCostResult } from '@/shared/types/pricing';
 import { SERVICE_CATEGORY_LABELS, formatCurrency } from '@/shared/types/pricing';
+import { usePermission } from '@/shared/hooks/usePermission';
+import { PERMISSIONS } from '@/lib/rbac/permissions';
 
 interface ServiceCardProps {
   template: ServiceTemplate;
@@ -24,6 +26,10 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   onCopy,
   onAddToCart,
 }) => {
+  const { can } = usePermission();
+  const canViewCost = can(PERMISSIONS.PRICING_VIEW_COST);
+  const canViewMargin = can(PERMISSIONS.PRICING_VIEW_MARGIN);
+
   // Get the icon component dynamically
   const IconComponent = template.icon
     ? (LucideIcons as Record<string, React.FC<{ className?: string }>>)[template.icon] || LucideIcons.FileText
@@ -67,24 +73,28 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
         {/* Cost Display */}
         {costResult ? (
           <div className="space-y-2 mb-4">
-            <div className="flex justify-between items-center">
-              <span className="font-commons text-xs text-neutral-500">Maliyet</span>
-              <span className="font-commons text-sm font-medium text-neutral-700">
-                {formatCurrency(costResult.totalCost)} TL
-              </span>
-            </div>
+            {canViewCost && (
+              <div className="flex justify-between items-center">
+                <span className="font-commons text-xs text-neutral-500">Maliyet</span>
+                <span className="font-commons text-sm font-medium text-neutral-700">
+                  {formatCurrency(costResult.totalCost)} TL
+                </span>
+              </div>
+            )}
             <div className="flex justify-between items-center">
               <span className="font-commons text-xs text-neutral-500">Teklif Fiyati</span>
               <span className="font-commons text-lg font-bold text-[#171717]">
                 {formatCurrency(costResult.suggestedPrice)} TL
               </span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="font-commons text-xs text-neutral-500">Kar</span>
-              <span className="font-commons text-sm font-medium text-green-600">
-                {formatCurrency(costResult.profit)} TL (%{costResult.profitPercentage.toFixed(0)})
-              </span>
-            </div>
+            {canViewMargin && (
+              <div className="flex justify-between items-center">
+                <span className="font-commons text-xs text-neutral-500">Kar</span>
+                <span className="font-commons text-sm font-medium text-green-600">
+                  {formatCurrency(costResult.profit)} TL (%{costResult.profitPercentage.toFixed(0)})
+                </span>
+              </div>
+            )}
           </div>
         ) : (
           <div className="h-20 flex items-center justify-center text-neutral-400 text-sm mb-4">

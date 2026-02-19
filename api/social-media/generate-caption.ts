@@ -3,6 +3,7 @@ import type { VercelResponse } from '@vercel/node';
 import { generateJSON } from '../_lib/gemini-bundle.mjs';
 import { getAdminDb } from '../_lib/firebaseAdmin';
 import { withAuth, AuthenticatedRequest } from '../_lib/withAuth';
+import { applyRateLimit, LIMITS } from '../_lib/rateLimit';
 
 export const config = {
   maxDuration: 30,
@@ -51,6 +52,16 @@ async function fetchImageAsInlinePart(
   }
 }
 
+// Instruction types for caption refinement
+type RefinementInstruction = 'daha_kisa' | 'daha_uzun' | 'emoji_ekle' | 'hashtag_oner';
+
+const REFINEMENT_PROMPTS: Record<RefinementInstruction, string> = {
+  daha_kisa: 'Asagidaki caption\'i daha kisa ve oz hale getir. Ana mesaji koru, gereksiz kelimeleri cikar.',
+  daha_uzun: 'Asagidaki caption\'i daha uzun ve detayli hale getir. Hikayeyi zenginlestir, daha fazla deger kat.',
+  emoji_ekle: 'Asagidaki caption\'e uygun emojiler ekle. Platform tonuna uygun, fazla olmayacak sekilde yerlestiyr.',
+  hashtag_oner: 'Asagidaki caption icin en etkili hashtag\'leri oner. Populer, niş ve marka hashtaglerini dengele.',
+};
+
 export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) => {
   res.setHeader('Content-Type', 'application/json');
 
@@ -58,8 +69,11 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // Rate limit: 20 caption generations per user per minute
+  if (!applyRateLimit(res, req.userUid, LIMITS.AI_CAPTION)) return;
+
   try {
-    const { projectId, platform, postType, mediaUrls, title } = req.body || {};
+    const { projectId, platform, postType, mediaUrls, title, instruction, existingCaption } = req.body || {};
 
     if (!projectId || !platform) {
       return res.status(400).json({ error: 'Missing required fields: projectId, platform' });
@@ -84,6 +98,52 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
 
     const toneGuide = PLATFORM_TONE_GUIDE[platform] || 'Profesyonel ve etkileyici.';
 
+    // ── Refinement mode: modify existing caption ──────────────────────────────
+    if (instruction && existingCaption) {
+      const refinementPrompt = REFINEMENT_PROMPTS[instruction as RefinementInstruction];
+      if (!refinementPrompt) {
+        return res.status(400).json({ error: 'Invalid instruction' });
+      }
+
+      const isHashtagOnly = instruction === 'hashtag_oner';
+
+      const promptText = `Sen bir sosyal medya icerik uzmanisin.
+
+## Gorev
+${refinementPrompt}
+
+## Platform
+${platform} - ${toneGuide}
+
+${brandContext ? `## Marka Bilgisi\n${brandContext}\n` : ''}
+
+## Mevcut Caption
+${existingCaption}
+
+## Kurallar
+- Turkce kalmali
+- Platform tonuna uygun olmali
+${isHashtagOnly ? '- Sadece hashtag\'leri dondur, caption\'i degistirme' : '- Caption\'i koru ve gelistir'}
+
+Lutfen su JSON formatinda yanit ver:
+{
+  "caption": "${isHashtagOnly ? 'mevcut caption aynen' : 'duzenlenmiş caption'}",
+  "hashtags": "#hashtag1 #hashtag2 #hashtag3 ...",
+  "alternateCaption": ""
+}`;
+
+      const result = await generateJSON('flash', [{ text: promptText }], 'refine-caption', {
+        maxOutputTokens: 1024,
+      });
+
+      return res.status(200).json({
+        caption: isHashtagOnly ? existingCaption : (result?.caption || existingCaption),
+        hashtags: result?.hashtags || '',
+        alternateCaption: '',
+      });
+    }
+
+    // ── Generation mode: create new caption from scratch ──────────────────────
     // Fetch images to send to Gemini for visual analysis
     const imageParts: { inlineData: { data: string; mimeType: string } }[] = [];
     if (mediaUrls?.length) {

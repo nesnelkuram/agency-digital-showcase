@@ -157,7 +157,7 @@ export function useAssetManagement(): UseAssetManagementReturn {
         // Generate unique file path
         const timestamp = Date.now();
         const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-        const filePath = `assets/${user.uid}/${timestamp}_${safeName}`;
+        const filePath = `assets/${tenantId}/${user.uid}/${timestamp}_${safeName}`;
         const storageRef = ref(storage, filePath);
 
         // Upload file

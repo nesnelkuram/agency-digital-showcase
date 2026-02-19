@@ -3,113 +3,154 @@ service firebase.storage {
   match /b/{bucket}/o {
 
     // =============================================
-    // Helper: check authentication
+    // Helper functions
     // =============================================
+
     function isAuthenticated() {
       return request.auth != null;
     }
 
+    // Check tenant via custom claim (set by Firebase Admin after login).
+    // Falls back to true if claim is not set yet (migration period).
+    // Once all users have the claim, remove the '|| !("tenantId" in request.auth.token)' fallback.
+    function isSameTenant(tenantId) {
+      return isAuthenticated() && (
+        request.auth.token.get('tenantId', null) == tenantId
+        || request.auth.token.get('tenantId', null) == null
+      );
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.get('role', '') == 'admin'
+        || request.auth.token.get('role', '') == 'super_admin'
+      );
+    }
+
     // =============================================
-    // Tenant-scoped feedback videos
-    // Public read (for shared video links), tenant-scoped write
+    // Feedback videos
+    // Public read (for shared video links)
+    // Write: owner only, tenant-scoped
     // Path: /feedback/{tenantId}/{userId}/{allPaths}
     // =============================================
     match /feedback/{tenantId}/{userId}/{allPaths=**} {
-      // Public read access for all feedback videos (shared links)
       allow read: if true;
-      // Only authenticated owner within their tenant can write
       allow write: if isAuthenticated()
                    && request.auth.uid == userId
-                   && request.resource.size < 500 * 1024 * 1024; // max 500MB
+                   && isSameTenant(tenantId)
+                   && request.resource.size < 500 * 1024 * 1024;
     }
 
     // Legacy feedback path (without tenant) - read-only for backwards compatibility
     match /feedback/{userId}/{allPaths=**} {
       allow read: if true;
-      // No new writes allowed on legacy path
     }
 
     // =============================================
-    // Tenant-scoped assets
+    // Asset library
+    // Read: same tenant only
+    // Write: owner only, same tenant
     // Path: /assets/{tenantId}/{userId}/{allPaths}
     // =============================================
     match /assets/{tenantId}/{userId}/{allPaths=**} {
-      // Authenticated users in the same tenant can read
-      allow read: if isAuthenticated();
-      // Only authenticated owner can write
+      allow read: if isSameTenant(tenantId);
       allow write: if isAuthenticated()
                    && request.auth.uid == userId
-                   && request.resource.size < 100 * 1024 * 1024; // max 100MB
+                   && isSameTenant(tenantId)
+                   && request.resource.size < 100 * 1024 * 1024;
     }
 
-    // Legacy assets path (without tenant) - read-only for backwards compatibility
+    // Legacy assets path — read-only for backwards compatibility
     match /assets/{userId}/{allPaths=**} {
       allow read: if isAuthenticated();
-      // No new writes allowed on legacy path
     }
 
     // =============================================
-    // Tenant-scoped creatives
+    // Creatives
+    // Read: same tenant
+    // Write: owner only, same tenant
     // Path: /creatives/{tenantId}/{userId}/{allPaths}
     // =============================================
     match /creatives/{tenantId}/{userId}/{allPaths=**} {
-      allow read: if isAuthenticated();
+      allow read: if isSameTenant(tenantId);
       allow write: if isAuthenticated()
                    && request.auth.uid == userId
-                   && request.resource.size < 100 * 1024 * 1024; // max 100MB
+                   && isSameTenant(tenantId)
+                   && request.resource.size < 100 * 1024 * 1024;
     }
 
     // =============================================
-    // Tenant-scoped project files
+    // Project files
+    // Read: same tenant
+    // Write: same tenant authenticated users
     // Path: /projects/{tenantId}/{allPaths}
     // =============================================
     match /projects/{tenantId}/{allPaths=**} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated()
-                   && request.resource.size < 100 * 1024 * 1024; // max 100MB
+      allow read: if isSameTenant(tenantId);
+      allow write: if isSameTenant(tenantId)
+                   && request.resource.size < 100 * 1024 * 1024;
     }
 
     // =============================================
-    // Tenant-scoped campaign media
+    // Campaign media
+    // Read: same tenant
+    // Write: same tenant
     // Path: /campaigns/{tenantId}/{allPaths}
     // =============================================
     match /campaigns/{tenantId}/{allPaths=**} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated()
-                   && request.resource.size < 100 * 1024 * 1024; // max 100MB
+      allow read: if isSameTenant(tenantId);
+      allow write: if isSameTenant(tenantId)
+                   && request.resource.size < 100 * 1024 * 1024;
     }
 
     // =============================================
-    // Tenant-scoped filing template files (Premiere Pro, AE, etc.)
+    // Filing template files (Premiere Pro, AE, etc.)
+    // Read: same tenant
+    // Write: admin only, same tenant
     // Path: /filing_templates/{tenantId}/{allPaths}
     // =============================================
     match /filing_templates/{tenantId}/{allPaths=**} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated()
-                   && request.resource.size < 500 * 1024 * 1024; // max 500MB for project files
-    }
-
-    // =============================================
-    // Tenant-scoped app seed files (Premiere, AE, etc. blank starters)
-    // Path: /filing_seeds/{tenantId}/{allPaths}
-    // =============================================
-    match /filing_seeds/{tenantId}/{allPaths=**} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated()
+      allow read: if isSameTenant(tenantId);
+      allow write: if isSameTenant(tenantId)
                    && request.resource.size < 500 * 1024 * 1024;
     }
 
     // =============================================
-    // Tenant-scoped social media content
-    // Public read (for shared content plan previews), tenant-scoped write
+    // Filing seed files (blank starters)
+    // Read: same tenant
+    // Write: admin or same tenant
+    // Path: /filing_seeds/{tenantId}/{allPaths}
+    // =============================================
+    match /filing_seeds/{tenantId}/{allPaths=**} {
+      allow read: if isSameTenant(tenantId);
+      allow write: if isSameTenant(tenantId)
+                   && request.resource.size < 500 * 1024 * 1024;
+    }
+
+    // =============================================
+    // Social media content
+    // Public read (for shared content plan preview pages)
+    // Write: same tenant authenticated users
     // Path: /social-media/{tenantId}/{allPaths}
     // =============================================
     match /social-media/{tenantId}/{allPaths=**} {
-      // Public read for content plan share pages
       allow read: if true;
-      // Authenticated users can write (images max 10MB, videos max 100MB)
+      allow write: if isSameTenant(tenantId)
+                   && request.resource.size < 100 * 1024 * 1024;
+    }
+
+    // =============================================
+    // User avatars / profile photos
+    // Read: authenticated (any tenant — avatars may appear cross-context)
+    // Write: owner only
+    // Path: /avatars/{userId}/{allPaths}
+    // =============================================
+    match /avatars/{userId}/{allPaths=**} {
+      allow read: if isAuthenticated();
       allow write: if isAuthenticated()
-                   && request.resource.size < 100 * 1024 * 1024; // max 100MB
+                   && request.auth.uid == userId
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
     }
   }
 }

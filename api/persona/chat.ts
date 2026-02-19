@@ -4,6 +4,7 @@ import { chat } from '../_lib/persona-bundle.mjs';
 import { getAdminDb } from '../_lib/firebaseAdmin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { withAuth, AuthenticatedRequest } from '../_lib/withAuth';
+import { applyRateLimit, LIMITS } from '../_lib/rateLimit';
 
 export const config = {
   maxDuration: 30,
@@ -15,6 +16,8 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+
+  if (!applyRateLimit(res, req.userUid, LIMITS.AI_CHAT)) return;
 
   try {
     const { sessionId, message } = req.body || {};

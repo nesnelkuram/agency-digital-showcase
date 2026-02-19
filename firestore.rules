@@ -34,6 +34,24 @@ service cloud.firestore {
       return isAuthenticated() && (getUserRole() == 'admin' || getUserRole() == 'super_admin');
     }
 
+    function isAccountManager() {
+      return isAuthenticated() && getUserRole() == 'account_manager';
+    }
+
+    function isClient() {
+      return isAuthenticated() && getUserRole() == 'client';
+    }
+
+    // Can access pricing catalog prices (but NOT cost/margin)
+    function canViewPricing() {
+      return isAdmin() || isAccountManager();
+    }
+
+    // Can access cost/margin data — admin only
+    function canViewCost() {
+      return isAdmin();
+    }
+
     // =============================================
     // Tenant collection
     // =============================================
@@ -91,10 +109,12 @@ service cloud.firestore {
     }
 
     // =============================================
-    // Projects
+    // Projects — clients can read their own projects
     // =============================================
     match /projects/{projectId} {
-      allow read: if isSuperAdmin() || belongsToTenant();
+      allow read: if isSuperAdmin()
+                  || belongsToTenant()
+                  || (isClient() && resource.data.clientId == request.auth.uid);
       allow create: if isSuperAdmin() || creatingForOwnTenant();
       allow update, delete: if isSuperAdmin() || belongsToTenant();
     }
@@ -331,6 +351,95 @@ service cloud.firestore {
     // Asset folders
     // =============================================
     match /assetFolders/{folderId} {
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update, delete: if isSuperAdmin() || belongsToTenant();
+    }
+
+    // =============================================
+    // Pricing: catalog, proposals, quotes
+    // Only admin/account_manager can access pricing
+    // Editor and client roles have NO access
+    // =============================================
+    match /pricing_services/{serviceId} {
+      allow read: if isSuperAdmin() || (belongsToTenant() && canViewPricing());
+      allow create: if isSuperAdmin() || (creatingForOwnTenant() && canViewCost());
+      allow update, delete: if isSuperAdmin() || (belongsToTenant() && canViewCost());
+    }
+
+    match /pricing_proposals/{proposalId} {
+      allow read: if isSuperAdmin() || (belongsToTenant() && canViewPricing());
+      allow create: if isSuperAdmin() || (creatingForOwnTenant() && canViewPricing());
+      allow update, delete: if isSuperAdmin() || (belongsToTenant() && canViewPricing());
+    }
+
+    match /pricing_quotes/{quoteId} {
+      allow read: if isSuperAdmin() || (belongsToTenant() && canViewCost());
+      allow create: if isSuperAdmin() || (creatingForOwnTenant() && canViewCost());
+      allow update, delete: if isSuperAdmin() || (belongsToTenant() && canViewCost());
+    }
+
+    // =============================================
+    // Content plans — public read via shareToken,
+    // clients can read/update (for approvals)
+    // =============================================
+    match /content_plans/{planId} {
+      allow read: if isSuperAdmin()
+                  || belongsToTenant()
+                  || isClient()
+                  || resource.data.shareToken != null;
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update: if isSuperAdmin()
+                    || belongsToTenant()
+                    || isClient(); // Clients can approve/comment
+      allow delete: if isSuperAdmin() || belongsToTenant();
+    }
+
+    // =============================================
+    // Notifications — users can only read their own
+    // =============================================
+    match /notifications/{notificationId} {
+      allow read: if isSuperAdmin()
+                  || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update: if isSuperAdmin()
+                    || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow delete: if isSuperAdmin() || belongsToTenant();
+    }
+
+    // =============================================
+    // Filing system
+    // =============================================
+    match /filing_templates/{templateId} {
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update, delete: if isSuperAdmin() || belongsToTenant();
+    }
+
+    match /filing_projects/{projectId} {
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update, delete: if isSuperAdmin() || belongsToTenant();
+    }
+
+    // =============================================
+    // Marketing AI agent sessions
+    // =============================================
+    match /marketing_agent_sessions/{sessionId} {
+      allow read, write: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+    }
+
+    // =============================================
+    // Workflow instances and templates
+    // =============================================
+    match /workflow_instances/{instanceId} {
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update, delete: if isSuperAdmin() || belongsToTenant();
+    }
+
+    match /workflow_templates/{templateId} {
       allow read: if isSuperAdmin() || belongsToTenant();
       allow create: if isSuperAdmin() || creatingForOwnTenant();
       allow update, delete: if isSuperAdmin() || belongsToTenant();

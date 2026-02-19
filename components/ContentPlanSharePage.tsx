@@ -30,6 +30,10 @@ import {
   addClientComment,
 } from '@/shared/services/contentPlanService';
 import { getSocialPostsForPlan } from '@/shared/services/socialMediaService';
+import {
+  notifyContentPlanApproved,
+  notifyContentPlanRevisionRequested,
+} from '@/shared/services/notificationService';
 
 const ContentPlanSharePage: React.FC = () => {
   const { shareToken } = useParams<{ shareToken: string }>();
@@ -79,6 +83,15 @@ const ContentPlanSharePage: React.FC = () => {
     try {
       await approveContentPlan(plan.id, 'client', clientName.trim());
       setPlan((prev) => prev ? { ...prev, status: 'approved', approvedByName: clientName.trim() } : prev);
+      // Notify plan creator and team
+      if (plan.tenantId && plan.createdBy) {
+        notifyContentPlanApproved({
+          tenantId: plan.tenantId,
+          recipientUserIds: [plan.createdBy],
+          planTitle: plan.title,
+          approvedByName: clientName.trim(),
+        }).catch(() => {});
+      }
     } catch (err) {
       console.error('[ContentPlanSharePage] Error approving:', err);
     } finally {
@@ -92,6 +105,16 @@ const ContentPlanSharePage: React.FC = () => {
     try {
       await requestRevision(plan.id, revisionComment.trim(), 'client', clientName.trim(), true);
       setPlan((prev) => prev ? { ...prev, status: 'revision_requested' } : prev);
+      // Notify plan creator
+      if (plan.tenantId && plan.createdBy) {
+        notifyContentPlanRevisionRequested({
+          tenantId: plan.tenantId,
+          recipientUserIds: [plan.createdBy],
+          planTitle: plan.title,
+          requestedByName: clientName.trim(),
+          comment: revisionComment.trim(),
+        }).catch(() => {});
+      }
       setRevisionComment('');
       setShowRevisionForm(false);
     } catch (err) {
