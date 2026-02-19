@@ -94,6 +94,13 @@
     "api/social-media/generate-caption.ts": {
       "maxDuration": 30,
       "includeFiles": "api/_lib/**"
+    },
+    "api/marketing/agent-start.ts": {
+      "maxDuration": 10
+    },
+    "api/marketing/agent-chat.ts": {
+      "maxDuration": 60,
+      "includeFiles": "api/_lib/**"
     }
   },
   "crons": [
