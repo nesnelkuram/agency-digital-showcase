@@ -1,8 +1,7 @@
 import type { VercelResponse } from '@vercel/node';
 // @ts-ignore — pre-bundled by esbuild during vercel-build
 import { chat } from '../_lib/persona-bundle.mjs';
-import { getAdminDb } from '../_lib/firebaseAdmin';
-import { FieldValue } from 'firebase-admin/firestore';
+import { getAdminDb, getFieldValue } from '../_lib/firebaseAdmin';
 import { withAuth, AuthenticatedRequest } from '../_lib/withAuth';
 import { applyRateLimit, LIMITS } from '../_lib/rateLimit';
 
@@ -71,6 +70,7 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
     };
 
     try {
+      const FieldValue = getFieldValue();
       const db = getAdminDb();
       const articleIds = result.articlesReferenced.map((a: any) => a.id);
       await db.collection('persona_sessions').doc(sessionId).update({

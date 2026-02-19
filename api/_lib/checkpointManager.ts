@@ -1,5 +1,4 @@
-import { getAdminDb } from './firebaseAdmin.js';
-import { FieldValue } from 'firebase-admin/firestore';
+import { getAdminDb, getFieldValue } from './firebaseAdmin.js';
 import type { PipelineRunDoc, AgentName, AgentProgress, PIPELINE_AGENTS } from '../../shared/types/pipelineRun';
 
 const LOCK_DURATION_MS = 360_000; // 6 min — beyond Vercel 300s limit
@@ -194,7 +193,7 @@ export async function markAgentFailed(
         durationMs,
         error: errorMessage,
       },
-      [`pipelineRun.errors`]: FieldValue.arrayUnion({ agent: agentName, error: errorMessage, timestamp: now }),
+      [`pipelineRun.errors`]: getFieldValue().arrayUnion({ agent: agentName, error: errorMessage, timestamp: now }),
       'pipelineRun.updatedAt': now,
     });
   } catch (error) {
@@ -269,7 +268,7 @@ export async function failRun(leadId: string, runId: string, errorMessage: strin
     await db.collection('brand_leads').doc(leadId).update({
       'pipelineRun.status': 'failed',
       'pipelineRun.updatedAt': now,
-      [`pipelineRun.errors`]: FieldValue.arrayUnion({ agent: 'pipeline', error: errorMessage, timestamp: now }),
+      [`pipelineRun.errors`]: getFieldValue().arrayUnion({ agent: 'pipeline', error: errorMessage, timestamp: now }),
     });
   } catch (error) {
     console.error('[checkpoint] failRun failed:', error);

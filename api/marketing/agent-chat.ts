@@ -1,6 +1,5 @@
 import type { VercelResponse } from '@vercel/node';
-import { getAdminDb } from '../_lib/firebaseAdmin';
-import { FieldValue } from 'firebase-admin/firestore';
+import { getAdminDb, getFieldValue } from '../_lib/firebaseAdmin';
 // @ts-ignore — pre-bundled by esbuild during vercel-build
 import { generateJSON } from '../_lib/gemini-bundle.mjs';
 import { withAuth, AuthenticatedRequest } from '../_lib/withAuth';
@@ -280,6 +279,7 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
       timestamp: Date.now(),
     };
 
+    const FieldValue = getFieldValue();
     await db.collection('marketing_agent_sessions').doc(sessionId).update({
       messages: FieldValue.arrayUnion(userMsg, assistantMsg),
       updatedAt: Date.now(),

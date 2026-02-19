@@ -1,6 +1,5 @@
 import type { VercelResponse } from '@vercel/node';
-import { getAdminDb } from '../_lib/firebaseAdmin';
-import { FieldValue } from 'firebase-admin/firestore';
+import { getAdminDb, getFieldValue } from '../_lib/firebaseAdmin';
 // @ts-ignore — pre-bundled by esbuild during vercel-build
 import { generateJSON } from '../_lib/gemini-bundle.mjs';
 import { withAuth, AuthenticatedRequest } from '../_lib/withAuth';
@@ -265,6 +264,7 @@ ONEMLI: Sadece gecerli JSON don. Baska bir sey yazma.`);
       hasDraft: !!draft,
     };
 
+    const FieldValue = getFieldValue();
     const updateData: Record<string, any> = {
       messages: FieldValue.arrayUnion(userMsg, assistantMsg),
       updatedAt: Date.now(),

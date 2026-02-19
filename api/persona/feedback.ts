@@ -1,6 +1,5 @@
 import type { VercelResponse } from '@vercel/node';
-import { getAdminDb } from '../_lib/firebaseAdmin';
-import { FieldValue } from 'firebase-admin/firestore';
+import { getAdminDb, getFieldValue } from '../_lib/firebaseAdmin';
 import { withAuth, AuthenticatedRequest } from '../_lib/withAuth';
 
 export const config = {
@@ -42,6 +41,7 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
     });
 
     // Update session feedback counters
+    const FieldValue = getFieldValue();
     const counterField = feedback === 'positive' ? 'feedbackCount.positive' : 'feedbackCount.negative';
     await db.collection('persona_sessions').doc(sessionId).update({
       [counterField]: FieldValue.increment(1),
