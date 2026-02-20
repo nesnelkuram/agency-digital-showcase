@@ -1,13 +1,29 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Loader2, Bot } from 'lucide-react';
+import { Send, Loader2, Bot, CheckCircle, ExternalLink } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { authenticatedFetch } from '@/lib/firebase/apiClient';
 import DesignMessageBubble from './DesignMessageBubble';
 import DesignSuggestedOptions from './DesignSuggestedOptions';
 import type { WorkflowDraft } from '@/shared/types/workflowDesign';
 
+interface AgentAction {
+  type: 'save_template' | 'publish_template' | 'update_template' | 'create_instance' | 'none';
+  templateId?: string;
+  projectId?: string;
+}
+
+interface ActionResult {
+  type: string;
+  success: boolean;
+  data?: { templateId?: string; name?: string; status?: string; instanceId?: string };
+  error?: string;
+}
+
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  actions?: AgentAction[];
+  results?: ActionResult[];
 }
 
 interface CategoryOption {
@@ -21,6 +37,7 @@ interface Props {
 }
 
 const WorkflowDesignChat: React.FC<Props> = ({ onDraftUpdate }) => {
+  const navigate = useNavigate();
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [suggestedCategories, setSuggestedCategories] = useState<CategoryOption[]>([]);
@@ -92,6 +109,8 @@ const WorkflowDesignChat: React.FC<Props> = ({ onDraftUpdate }) => {
       const assistantMessage: Message = {
         role: 'assistant',
         content: data.reply,
+        actions: data.actions,
+        results: data.results,
       };
       setMessages(prev => [...prev, assistantMessage]);
 
@@ -157,11 +176,45 @@ const WorkflowDesignChat: React.FC<Props> = ({ onDraftUpdate }) => {
         )}
 
         {messages.map((msg, i) => (
-          <DesignMessageBubble
-            key={i}
-            role={msg.role}
-            content={msg.content}
-          />
+          <React.Fragment key={i}>
+            <DesignMessageBubble
+              role={msg.role}
+              content={msg.content}
+            />
+            {msg.results && msg.results.map((result, j) => {
+              if (!result.success || result.type === 'none') return null;
+              const isSave = result.type === 'save_template';
+              const isPublish = result.type === 'publish_template';
+              const isInstance = result.type === 'create_instance';
+              if (!isSave && !isPublish && !isInstance) return null;
+              return (
+                <div key={j} className="flex justify-start">
+                  <div className={`flex items-start gap-3 px-4 py-3 rounded-xl border text-sm max-w-xs ${
+                    isPublish
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                      : 'bg-violet-50 border-violet-200 text-violet-800'
+                  }`}>
+                    <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-grotesk font-semibold text-xs">
+                        {isPublish ? 'Workflow yayınlandı' : isInstance ? 'Instance oluşturuldu' : 'Workflow kaydedildi'}
+                      </p>
+                      <p className="font-grotesk text-xs mt-0.5 opacity-80">{result.data?.name}</p>
+                      {result.data?.templateId && (
+                        <button
+                          onClick={() => navigate('/admin/workflows')}
+                          className="mt-1.5 flex items-center gap-1 text-xs underline underline-offset-2 opacity-70 hover:opacity-100"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          Şablonlara git
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </React.Fragment>
         ))}
 
         {loading && (
