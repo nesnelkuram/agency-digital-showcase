@@ -29,20 +29,6 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
     const sessionId = randomUUID();
     const db = getAdminDb();
 
-    // Load existing templates for context
-    const templatesSnap = await db
-      .collection('workflow_templates')
-      .where('tenantId', '==', req.tenantId)
-      .where('isLatest', '==', true)
-      .orderBy('createdAt', 'desc')
-      .limit(10)
-      .get();
-
-    const existingTemplates = templatesSnap.docs.map((d: any) => {
-      const data = d.data();
-      return { id: d.id, name: data.name, serviceCategory: data.serviceCategory, status: data.status };
-    });
-
     await db.collection('workflow_design_sessions').doc(sessionId).set({
       id: sessionId,
       tenantId: req.tenantId || '',
@@ -58,7 +44,6 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
     return res.status(200).json({
       sessionId,
       suggestedCategories: SUGGESTED_CATEGORIES,
-      existingTemplates,
     });
   } catch (error: any) {
     console.error('workflow/design-start error:', error?.message, error?.stack);

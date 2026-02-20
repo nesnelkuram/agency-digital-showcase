@@ -131,30 +131,8 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
     const history = sessionData.messages || [];
     const currentDraft: WorkflowDraft | null = sessionData.currentDraft || null;
 
-    // Load existing templates for context (last 10)
-    const templatesSnap = await db
-      .collection('workflow_templates')
-      .where('tenantId', '==', req.tenantId)
-      .where('isLatest', '==', true)
-      .orderBy('createdAt', 'desc')
-      .limit(10)
-      .get();
-
-    const existingTemplates = templatesSnap.docs.map((d) => {
-      const data = d.data();
-      return { id: d.id, name: data.name, serviceCategory: data.serviceCategory, status: data.status };
-    });
-
     // Build prompt
     const parts: string[] = [SYSTEM_PROMPT, ''];
-
-    if (existingTemplates.length > 0) {
-      parts.push('## Mevcut Workflow Şablonları');
-      parts.push('```json');
-      parts.push(JSON.stringify(existingTemplates, null, 2));
-      parts.push('```');
-      parts.push('');
-    }
 
     if (currentDraft) {
       parts.push('## Mevcut Draft');
