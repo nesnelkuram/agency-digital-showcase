@@ -86,6 +86,18 @@ async function lookupUser(uid: string): Promise<UserRecord | null> {
 
 export function withAuth(handler: AuthenticatedHandler) {
   return async (req: VercelRequest, res: VercelResponse) => {
+    // ── Local dev bypass (never active in production) ──────────────────────
+    if (process.env.DEV_BYPASS_AUTH === 'true' && process.env.NODE_ENV !== 'production') {
+      const authReq = req as AuthenticatedRequest;
+      authReq.userId = 'dev-user';
+      authReq.userUid = 'dev-user';
+      authReq.tenantId = (req.headers['x-dev-tenant-id'] as string) || 'dev-tenant';
+      authReq.userRole = 'admin';
+      authReq.userDisplayName = 'Dev User';
+      return await handler(authReq, res);
+    }
+    // ──────────────────────────────────────────────────────────────────────
+
     const token = extractBearerToken(req);
     if (!token) {
       return res.status(401).json({ error: 'Missing or invalid Authorization header' });
