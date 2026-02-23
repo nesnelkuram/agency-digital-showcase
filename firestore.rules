@@ -357,6 +357,18 @@ service cloud.firestore {
     }
 
     // =============================================
+    // Pricing data (pricing/data/* subcollections)
+    // pricing/data/serviceCatalog, staff, equipment,
+    // overhead, software, marketing, personnel
+    // pricing/config/cache/*, pricing/settings
+    // Only admin/account_manager — no tenantId field here
+    // =============================================
+    match /pricing/{document=**} {
+      allow read: if isSuperAdmin() || (isAuthenticated() && canViewPricing());
+      allow write: if isSuperAdmin() || (isAuthenticated() && canViewCost());
+    }
+
+    // =============================================
     // Pricing: catalog, proposals, quotes
     // Only admin/account_manager can access pricing
     // Editor and client roles have NO access
@@ -476,6 +488,40 @@ service cloud.firestore {
     match /ai_agents/{agentId} {
       allow read: if isSuperAdmin() || belongsToTenant();
       allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update, delete: if isSuperAdmin() || belongsToTenant();
+    }
+
+    // =============================================
+    // Quotes — fiyat teklifleri (quotes collection)
+    // admin + account_manager erişimi
+    // =============================================
+    match /quotes/{quoteId} {
+      allow read: if isSuperAdmin() || (belongsToTenant() && canViewPricing());
+      allow create: if isSuperAdmin() || (isAuthenticated() && canViewPricing());
+      allow update, delete: if isSuperAdmin() || (belongsToTenant() && canViewPricing());
+    }
+
+    // =============================================
+    // Settings — uygulama ayarları (settings/financials vb.)
+    // admin + account_manager okuyabilir, admin yazabilir
+    // =============================================
+    match /settings/{docId} {
+      allow read: if isSuperAdmin() || (isAuthenticated() && canViewPricing());
+      allow write: if isSuperAdmin() || (isAuthenticated() && canViewCost());
+    }
+
+    // =============================================
+    // Training — eğitim kaynakları ve tamamlamalar
+    // =============================================
+    match /training_resources/{resourceId} {
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update, delete: if isSuperAdmin() || (belongsToTenant() && isAdmin());
+    }
+
+    match /training_completions/{completionId} {
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || isAuthenticated();
       allow update, delete: if isSuperAdmin() || belongsToTenant();
     }
   }
