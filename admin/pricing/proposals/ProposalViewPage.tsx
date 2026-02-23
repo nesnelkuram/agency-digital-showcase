@@ -73,7 +73,7 @@ const COMPANY_INFO = {
   title: 'intiba Dijital Medya',
   address: 'Istanbul, Turkiye',
   phone: '+90 xxx xxx xx xx',
-  email: 'info@intiba.co',
+  email: 'info@intiba.co.uk',
   taxId: '',
   taxOffice: '',
 };
