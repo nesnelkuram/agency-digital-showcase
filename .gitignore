@@ -16,6 +16,13 @@ dist-ssr
 .env.vercel
 .env.vercel-pulled
 
+# Vercel build cache & output (large, no need in git)
+.vercel/cache/
+.vercel/output/
+
+# Claude worktrees
+.claude/worktrees/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
