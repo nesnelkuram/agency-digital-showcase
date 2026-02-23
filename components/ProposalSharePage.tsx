@@ -20,7 +20,11 @@ import {
 import { db } from '@/lib/firebase/config';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { formatCurrency } from '@/shared/types/pricing';
-import type { ProposalDocument, ProposalServiceLine } from '@/shared/types/pricing/proposal';
+import type { ProposalDocument, ProposalServiceLine, PrepaymentTier } from '@/shared/types/pricing/proposal';
+import {
+  calculateAllPaymentPlans,
+  calculateLumpSumDiscount,
+} from '@/shared/services/pricing/prepaymentCalculator';
 
 // ─────────────────────────────────────────────
 // Types
@@ -128,7 +132,44 @@ const ProposalSharePage: React.FC = () => {
     const grandTotal = subtotal + kdvAmount;
     const savings = proposal.grandTotal - grandTotal;
 
-    return { lineItems, subtotal, kdvAmount, grandTotal, savings };
+    // Ödeme planlarını güncel fiyata göre yeniden hesapla
+    const isRecurring = proposal.paymentPlans.length > 2;
+    const params = proposal.economicParameters;
+    let paymentPlans: PrepaymentTier[];
+
+    if (isRecurring) {
+      paymentPlans = calculateAllPaymentPlans(subtotal, params);
+    } else {
+      const lump = calculateLumpSumDiscount(grandTotal, params);
+      paymentPlans = [
+        {
+          period: 1,
+          label: 'Standart Ödeme',
+          discountPercent: 0,
+          fairDiscount: 0,
+          incentiveExtra: 0,
+          monthlyAmount: grandTotal,
+          totalWithoutDiscount: grandTotal,
+          discountAmount: 0,
+          totalWithDiscount: grandTotal,
+          savingsDescription: 'Fatura tarihinden itibaren 7 iş günü içerisinde ödeme.',
+        },
+        {
+          period: 3,
+          label: 'Peşin Ödeme',
+          discountPercent: lump.discountPercent,
+          fairDiscount: lump.discountPercent * 0.6,
+          incentiveExtra: lump.discountPercent * 0.4,
+          monthlyAmount: 0,
+          totalWithoutDiscount: grandTotal,
+          discountAmount: lump.discountAmount,
+          totalWithDiscount: lump.discountedPrice,
+          savingsDescription: lump.description,
+        },
+      ] as PrepaymentTier[];
+    }
+
+    return { lineItems, subtotal, kdvAmount, grandTotal, savings, paymentPlans, isRecurring };
   }, [lines, proposal]);
 
   const handleQuantityChange = (index: number, qty: number) => {
@@ -492,6 +533,149 @@ const ProposalSharePage: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* ── Payment Plans ────────────────────── */}
+        {calculated.paymentPlans.length > 0 && (
+          <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
+            <div className="p-6 border-b border-neutral-100">
+              <h2 className="font-grotesk text-base font-bold text-[#171717]">
+                Ödeme Seçenekleri
+              </h2>
+              <p className="font-grotesk text-xs text-neutral-500 mt-0.5">
+                {calculated.isRecurring
+                  ? 'Toplu ödeme seçenekleriyle tasarruf elde edebilirsiniz.'
+                  : 'Ödeme seçeneğinizi belirleyin.'}
+              </p>
+            </div>
+
+            <div className={`p-6 grid gap-4 ${calculated.paymentPlans.length <= 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'}`}>
+              {calculated.paymentPlans.map((plan, index) => {
+                const isPopular = plan.period === 12;
+                const hasDiscount = plan.discountPercent > 0;
+
+                return (
+                  <motion.div
+                    key={plan.period}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25, delay: index * 0.06 }}
+                    className={`relative rounded-2xl border-2 p-5 ${
+                      isPopular
+                        ? 'border-[#171717] bg-[#171717] text-white'
+                        : hasDiscount
+                        ? 'border-green-200 bg-green-50/50'
+                        : 'border-neutral-200 bg-neutral-50'
+                    }`}
+                  >
+                    {isPopular && (
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                        <span className="bg-green-500 text-white text-xs font-grotesk font-semibold px-3 py-1 rounded-full whitespace-nowrap">
+                          En Avantajlı
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="text-center mb-3">
+                      <p className={`font-grotesk text-xs font-semibold uppercase tracking-wider mb-1.5 ${
+                        isPopular ? 'text-neutral-400' : 'text-neutral-500'
+                      }`}>
+                        {plan.label}
+                      </p>
+                      {hasDiscount && (
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-grotesk font-bold ${
+                          isPopular ? 'bg-green-500 text-white' : 'bg-green-100 text-green-700'
+                        }`}>
+                          %{(plan.discountPercent * 100).toFixed(0)} indirim
+                        </span>
+                      )}
+                    </div>
+
+                    {calculated.isRecurring ? (
+                      plan.period === 1 ? (
+                        <div className="text-center">
+                          <AnimatePresence mode="wait">
+                            <motion.p key={plan.monthlyAmount} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                              className={`font-grotesk text-2xl font-bold ${isPopular ? 'text-white' : 'text-[#171717]'}`}>
+                              {formatCurrency(plan.monthlyAmount)} TL
+                            </motion.p>
+                          </AnimatePresence>
+                          <p className={`font-grotesk text-xs ${isPopular ? 'text-neutral-400' : 'text-neutral-500'}`}>
+                            / ay (KDV hariç)
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="text-center">
+                          <p className={`font-grotesk text-xs line-through ${isPopular ? 'text-neutral-500' : 'text-neutral-400'}`}>
+                            {formatCurrency(plan.totalWithoutDiscount)} TL
+                          </p>
+                          <AnimatePresence mode="wait">
+                            <motion.p key={plan.totalWithDiscount} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                              className={`font-grotesk text-2xl font-bold ${isPopular ? 'text-white' : 'text-[#171717]'}`}>
+                              {formatCurrency(plan.totalWithDiscount)} TL
+                            </motion.p>
+                          </AnimatePresence>
+                          <p className={`font-grotesk text-xs ${isPopular ? 'text-neutral-400' : 'text-neutral-500'}`}>
+                            / {plan.period} ay toplam (KDV hariç)
+                          </p>
+                          <p className={`font-grotesk text-xs mt-1 ${isPopular ? 'text-green-400' : 'text-green-600'}`}>
+                            {formatCurrency(plan.discountAmount)} TL tasarruf
+                          </p>
+                        </div>
+                      )
+                    ) : (
+                      <div className="text-center">
+                        {hasDiscount ? (
+                          <>
+                            <p className={`font-grotesk text-xs line-through ${isPopular ? 'text-neutral-500' : 'text-neutral-400'}`}>
+                              {formatCurrency(plan.totalWithoutDiscount)} TL
+                            </p>
+                            <AnimatePresence mode="wait">
+                              <motion.p key={plan.totalWithDiscount} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                                className={`font-grotesk text-2xl font-bold ${isPopular ? 'text-white' : 'text-[#171717]'}`}>
+                                {formatCurrency(plan.totalWithDiscount)} TL
+                              </motion.p>
+                            </AnimatePresence>
+                            <p className={`font-grotesk text-xs mt-1 ${isPopular ? 'text-green-400' : 'text-green-600'}`}>
+                              {formatCurrency(plan.discountAmount)} TL tasarruf
+                            </p>
+                          </>
+                        ) : (
+                          <AnimatePresence mode="wait">
+                            <motion.p key={plan.totalWithDiscount} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                              className={`font-grotesk text-2xl font-bold ${isPopular ? 'text-white' : 'text-[#171717]'}`}>
+                              {formatCurrency(plan.totalWithDiscount)} TL
+                            </motion.p>
+                          </AnimatePresence>
+                        )}
+                      </div>
+                    )}
+
+                    <p className={`font-grotesk text-xs text-center leading-relaxed mt-3 ${
+                      isPopular ? 'text-neutral-400' : 'text-neutral-500'
+                    }`}>
+                      {plan.savingsDescription}
+                    </p>
+
+                    {hasDiscount && (
+                      <div className={`mt-3 pt-3 border-t ${isPopular ? 'border-white/10' : 'border-neutral-200'}`}>
+                        <p className={`flex items-center gap-1.5 font-grotesk text-xs ${isPopular ? 'text-neutral-300' : 'text-neutral-600'}`}>
+                          <CheckCircle className={`w-3 h-3 flex-shrink-0 ${isPopular ? 'text-green-400' : 'text-green-500'}`} />
+                          Öncelikli hizmet
+                        </p>
+                        {plan.period >= 12 && (
+                          <p className={`flex items-center gap-1.5 font-grotesk text-xs mt-1 ${isPopular ? 'text-neutral-300' : 'text-neutral-600'}`}>
+                            <CheckCircle className={`w-3 h-3 flex-shrink-0 ${isPopular ? 'text-green-400' : 'text-green-500'}`} />
+                            Yıllık strateji planlaması
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* ── Terms (collapsible) ───────────────── */}
         <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
