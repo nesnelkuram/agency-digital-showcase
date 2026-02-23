@@ -373,6 +373,19 @@ service cloud.firestore {
       allow update, delete: if isSuperAdmin() || (belongsToTenant() && canViewPricing());
     }
 
+    // =============================================
+    // Proposals (teklif belgesi) — public read via
+    // shareToken for /teklif/:shareToken pages
+    // =============================================
+    match /proposals/{proposalId} {
+      // Public access when proposal has been explicitly shared (shareToken exists)
+      allow read: if resource.data.shareToken != null
+                  || isSuperAdmin()
+                  || (belongsToTenant() && canViewPricing());
+      allow create: if isSuperAdmin() || (creatingForOwnTenant() && canViewPricing());
+      allow update, delete: if isSuperAdmin() || (belongsToTenant() && canViewPricing());
+    }
+
     match /pricing_quotes/{quoteId} {
       allow read: if isSuperAdmin() || (belongsToTenant() && canViewCost());
       allow create: if isSuperAdmin() || (creatingForOwnTenant() && canViewCost());
@@ -437,9 +450,30 @@ service cloud.firestore {
       allow read: if isSuperAdmin() || belongsToTenant();
       allow create: if isSuperAdmin() || creatingForOwnTenant();
       allow update, delete: if isSuperAdmin() || belongsToTenant();
+
+      // Subcollections: append-only for tenant members
+      match /audit_log/{entryId} {
+        allow read: if isSuperAdmin() || belongsToTenant();
+        allow create: if isSuperAdmin() || belongsToTenant();
+        allow update, delete: if false;
+      }
+      match /ai_outputs/{outputId} {
+        allow read: if isSuperAdmin() || belongsToTenant();
+        allow create: if isSuperAdmin() || belongsToTenant();
+        allow update, delete: if false;
+      }
     }
 
     match /workflow_templates/{templateId} {
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update, delete: if isSuperAdmin() || belongsToTenant();
+    }
+
+    // =============================================
+    // AI Agent Registry
+    // =============================================
+    match /ai_agents/{agentId} {
       allow read: if isSuperAdmin() || belongsToTenant();
       allow create: if isSuperAdmin() || creatingForOwnTenant();
       allow update, delete: if isSuperAdmin() || belongsToTenant();

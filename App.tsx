@@ -27,6 +27,7 @@ const PortalApp = lazy(() => import('./portal/PortalApp'));
 const FeedbackSharePage = lazy(() => import('./components/FeedbackSharePage'));
 const AnalysisReportPage = lazy(() => import('./components/AnalysisReportPage'));
 const ContentPlanSharePage = lazy(() => import('./components/ContentPlanSharePage'));
+const ProposalSharePage = lazy(() => import('./components/ProposalSharePage'));
 
 const HomePage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -318,6 +319,16 @@ const App: React.FC = () => {
           element={
             <Suspense fallback={<div className="min-h-screen bg-[#fafafa]" />}>
               <ContentPlanSharePage />
+            </Suspense>
+          }
+        />
+
+        {/* Proposal Share - Public interactive proposal page */}
+        <Route
+          path="/teklif/:shareToken"
+          element={
+            <Suspense fallback={<div className="min-h-screen bg-neutral-50" />}>
+              <ProposalSharePage />
             </Suspense>
           }
         />

@@ -175,6 +175,9 @@ export interface ProposalDocument {
   rejectedAt?: Timestamp;
   acceptedPlan?: PrepaymentPeriod;  // Kabul edilen odeme plani
 
+  // Public share
+  shareToken?: string;            // Token for public share link
+
   // Meta
   createdAt: Timestamp;
   updatedAt: Timestamp;
