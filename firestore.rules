@@ -390,12 +390,13 @@ service cloud.firestore {
     // shareToken for /teklif/:shareToken pages
     // =============================================
     match /proposals/{proposalId} {
-      // Public access when proposal has been explicitly shared (shareToken exists)
+      // Public access when explicitly shared; proposals have no tenantId field
+      // so use role-based auth instead of belongsToTenant()
       allow read: if resource.data.shareToken != null
                   || isSuperAdmin()
-                  || (belongsToTenant() && canViewPricing());
-      allow create: if isSuperAdmin() || (creatingForOwnTenant() && canViewPricing());
-      allow update, delete: if isSuperAdmin() || (belongsToTenant() && canViewPricing());
+                  || (isAuthenticated() && canViewPricing());
+      allow create: if isSuperAdmin() || (isAuthenticated() && canViewPricing());
+      allow update, delete: if isSuperAdmin() || (isAuthenticated() && canViewPricing());
     }
 
     match /pricing_quotes/{quoteId} {
@@ -496,9 +497,10 @@ service cloud.firestore {
     // admin + account_manager erişimi
     // =============================================
     match /quotes/{quoteId} {
-      allow read: if isSuperAdmin() || (belongsToTenant() && canViewPricing());
+      // Quotes may not have tenantId (CostEngine), use role-based auth
+      allow read: if isSuperAdmin() || (isAuthenticated() && canViewPricing());
       allow create: if isSuperAdmin() || (isAuthenticated() && canViewPricing());
-      allow update, delete: if isSuperAdmin() || (belongsToTenant() && canViewPricing());
+      allow update, delete: if isSuperAdmin() || (isAuthenticated() && canViewPricing());
     }
 
     // =============================================
