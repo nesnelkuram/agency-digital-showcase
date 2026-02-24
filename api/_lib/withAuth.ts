@@ -1,3 +1,4 @@
+import './env';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 // ============================================
@@ -91,7 +92,9 @@ export function withAuth(handler: AuthenticatedHandler) {
       const authReq = req as AuthenticatedRequest;
       authReq.userId = 'dev-user';
       authReq.userUid = 'dev-user';
-      authReq.tenantId = (req.headers['x-dev-tenant-id'] as string) || 'dev-tenant';
+      authReq.tenantId = (req.headers['x-dev-tenant-id'] as string)
+        || process.env.DEV_TENANT_ID
+        || 'dev-tenant';
       authReq.userRole = 'admin';
       authReq.userDisplayName = 'Dev User';
       return await handler(authReq, res);

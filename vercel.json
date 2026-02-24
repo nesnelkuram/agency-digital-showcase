@@ -101,12 +101,62 @@
     "api/marketing/agent-chat.ts": {
       "maxDuration": 60,
       "includeFiles": "api/_lib/**"
+    },
+    "api/marketing/agent-execute-action.ts": {
+      "maxDuration": 120,
+      "includeFiles": "api/_lib/**"
+    },
+    "api/marketing/agent-chat-v2.ts": {
+      "maxDuration": 120,
+      "includeFiles": "api/_lib/**"
+    },
+    "api/agents/generate-agent.ts": {
+      "maxDuration": 60,
+      "includeFiles": "api/_lib/**"
+    },
+    "api/workflow/complete-step.ts": {
+      "maxDuration": 120,
+      "includeFiles": "api/_lib/**"
+    },
+    "api/workflow/execute-step-internal.ts": {
+      "maxDuration": 300,
+      "includeFiles": "src/pipeline/**"
+    },
+    "api/cron/spawn-recurring-workflows.ts": {
+      "maxDuration": 60
+    },
+    "api/tasks/analyze-task.ts": {
+      "maxDuration": 30,
+      "includeFiles": "api/_lib/**"
+    },
+    "api/tasks/create-intake-session.ts": {
+      "maxDuration": 10,
+      "includeFiles": "api/_lib/**"
+    },
+    "api/tasks/intake-chat.ts": {
+      "maxDuration": 60,
+      "includeFiles": "api/_lib/**"
+    },
+    "api/tasks/update-task.ts": {
+      "maxDuration": 10,
+      "includeFiles": "api/_lib/**"
+    },
+    "api/cron/sync-meta-campaigns.ts": {
+      "maxDuration": 300
     }
   },
   "crons": [
     {
       "path": "/api/cron/marketing-optimize",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/spawn-recurring-workflows",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/sync-meta-campaigns",
+      "schedule": "0 */6 * * *"
     }
   ],
   "headers": [
@@ -153,13 +203,5 @@
         }
       ]
     }
-  ],
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/fonts/(.*)", "destination": "/fonts/$1" },
-    { "source": "/videos/(.*)", "destination": "/videos/$1" },
-    { "source": "/assets/(.*)", "destination": "/assets/$1" },
-    { "source": "/images/(.*)", "destination": "/images/$1" },
-    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

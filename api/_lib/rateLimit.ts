@@ -93,6 +93,9 @@ export const LIMITS = {
 
   /** Marketing AI agent: 20 req / minute per user */
   MARKETING_AGENT: { limit: 20, windowMs: 60_000 },
+
+  /** Task AI intake chat: 20 req / minute per user */
+  AI_TASK_INTAKE: { limit: 20, windowMs: 60_000 },
 } as const;
 
 /**

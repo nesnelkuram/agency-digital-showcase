@@ -457,6 +457,14 @@ service cloud.firestore {
     }
 
     // =============================================
+    // Marketing Plans (AI-generated plans)
+    // =============================================
+    match /marketing_plans/{planId} {
+      allow read, write: if isSuperAdmin() || (belongsToTenant() && isAuthenticated());
+      allow create: if isSuperAdmin() || (creatingForOwnTenant() && isAuthenticated());
+    }
+
+    // =============================================
     // Workflow instances and templates
     // =============================================
     match /workflow_instances/{instanceId} {
@@ -525,6 +533,37 @@ service cloud.firestore {
       allow read: if isSuperAdmin() || belongsToTenant();
       allow create: if isSuperAdmin() || isAuthenticated();
       allow update, delete: if isSuperAdmin() || belongsToTenant();
+    }
+
+    // =============================================
+    // Workflow design sessions
+    // =============================================
+    match /workflow_design_sessions/{sessionId} {
+      allow read, write: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+    }
+
+    // =============================================
+    // Tasks — standalone görev yönetimi
+    // Tenant members can read/write tasks assigned to them or created by them
+    // =============================================
+    match /tasks/{taskId} {
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update, delete: if isSuperAdmin() || belongsToTenant();
+    }
+
+    // =============================================
+    // Task Intake Sessions — AI görev sohbet oturumları
+    // Only the creator can read/write their own session
+    // =============================================
+    match /task_intake_sessions/{sessionId} {
+      allow read: if isSuperAdmin()
+                  || (isAuthenticated() && resource.data.tenantId == getUserTenantId());
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update: if isSuperAdmin()
+                    || (isAuthenticated() && resource.data.tenantId == getUserTenantId());
+      allow delete: if isSuperAdmin() || belongsToTenant();
     }
   }
 }

@@ -6,7 +6,7 @@ mkdirSync('api/_lib', { recursive: true });
 // ESM banner: create a CJS-compatible require() for dynamic require() calls
 // that esbuild can't convert to import() (e.g. cheerio's require("buffer"))
 // Also polyfill File for Node.js 18 (undici/cheerio needs it, available natively in Node.js 20+)
-const esmBanner = `import { createRequire } from 'module'; const require = createRequire(import.meta.url); if (typeof globalThis.File === 'undefined') { const { Blob: _B } = await import('buffer'); globalThis.File = function File(bits, name, opts) { const b = new _B(bits, opts); b.name = name; return b; }; globalThis.File.prototype = _B.prototype; }`;
+const esmBanner = `import { createRequire } from 'module'; import { Blob as _NodeBlob } from 'buffer'; const require = createRequire(import.meta.url); if (typeof globalThis.File === 'undefined') { globalThis.File = function File(bits, name, opts) { const b = new _NodeBlob(bits, opts); b.name = name; return b; }; globalThis.File.prototype = _NodeBlob.prototype; }`;
 
 // Pipeline bundle (existing)
 await build({

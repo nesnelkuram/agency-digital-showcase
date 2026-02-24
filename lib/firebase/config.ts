@@ -1,6 +1,6 @@
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
-import { getFirestore, Firestore } from 'firebase/firestore';
+import { getFirestore, Firestore, terminate } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 
 const firebaseConfig = {
@@ -53,3 +53,11 @@ if (isFirebaseConfigured) {
 }
 
 export { app, auth, db, storage, isFirebaseConfigured };
+
+// Terminate Firestore on Vite HMR to prevent internal assertion failures
+// (ID: ca9 / b815 — watch stream viewCount going negative during hot reload)
+if (import.meta.hot && db) {
+  import.meta.hot.dispose(() => {
+    if (db) terminate(db).catch(() => {});
+  });
+}
