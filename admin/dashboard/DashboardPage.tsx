@@ -8,47 +8,16 @@ import {
   TrendingUp,
   Clock,
   ArrowRight,
-  ListChecks,
-  ExternalLink,
   AlertTriangle,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useMyWorkflowSteps } from '@/shared/hooks/useWorkflowInstances';
 import { useDashboardStats } from '@/shared/hooks/useDashboardStats';
+import DashboardTaskWidget from '@/admin/tasks/components/DashboardTaskWidget';
 
-const stepStatusConfig: Record<string, { label: string; className: string }> = {
-  ready: {
-    label: 'Hazir',
-    className: 'bg-blue-50 text-blue-700',
-  },
-  in_progress: {
-    label: 'Devam Ediyor',
-    className: 'bg-amber-50 text-amber-700',
-  },
-  awaiting_review: {
-    label: 'Onay Bekliyor',
-    className: 'bg-purple-50 text-purple-700',
-  },
-  revision_needed: {
-    label: 'Revizyon',
-    className: 'bg-red-50 text-red-700',
-  },
-  ai_processing: {
-    label: 'AI Isliyor',
-    className: 'bg-indigo-50 text-indigo-700',
-  },
-  ai_review: {
-    label: 'AI Inceleme',
-    className: 'bg-violet-50 text-violet-700',
-  },
-};
 
 const DashboardPage: React.FC = () => {
   const { user } = useAuth();
-  const { steps: mySteps, loading: stepsLoading } = useMyWorkflowSteps(user?.uid);
   const { stats, recentActivity, pendingApprovals, loading: statsLoading } = useDashboardStats();
-
-  const visibleSteps = mySteps.slice(0, 5);
 
   const statCards = [
     {
@@ -155,91 +124,8 @@ const DashboardPage: React.FC = () => {
         ))}
       </div>
 
-      {/* My Active Tasks */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.35 }}
-        className="admin-card p-0"
-      >
-        <div className="p-7 border-b border-neutral-100 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-indigo-50 text-indigo-600">
-              <ListChecks className="w-5 h-5" />
-            </div>
-            <h2 className="font-grotesk text-xl font-bold text-[#171717]">Gorevlerim</h2>
-          </div>
-          <Link
-            to="/admin/workflows"
-            className="font-grotesk text-sm text-indigo-600 hover:text-indigo-800 transition-colors"
-          >
-            Tumu &rarr;
-          </Link>
-        </div>
-
-        {stepsLoading && (
-          <div className="divide-y divide-neutral-100">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="p-5 animate-pulse">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-neutral-200 rounded w-2/3" />
-                    <div className="h-3 bg-neutral-100 rounded w-1/3" />
-                  </div>
-                  <div className="h-6 w-20 bg-neutral-200 rounded-full" />
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {!stepsLoading && visibleSteps.length > 0 && (
-          <div className="divide-y divide-neutral-100">
-            {visibleSteps.map((item) => {
-              const config = stepStatusConfig[item.step.status] || {
-                label: item.step.status,
-                className: 'bg-neutral-100 text-neutral-600',
-              };
-
-              return (
-                <Link
-                  key={`${item.instance.id}-${item.nodeId}`}
-                  to={`/admin/workflows/instance/${item.instance.id}`}
-                  className="block p-5 hover:bg-neutral-50 transition-colors group"
-                >
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-grotesk text-sm font-medium text-[#171717] truncate group-hover:text-indigo-600 transition-colors">
-                        {item.nodeId}
-                      </p>
-                      <p className="font-grotesk text-xs text-neutral-500 mt-0.5 truncate">
-                        {item.instance.projectName} &middot; {item.instance.clientName}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-grotesk font-medium ${config.className}`}
-                      >
-                        {config.label}
-                      </span>
-                      <ExternalLink className="w-3.5 h-3.5 text-neutral-400 group-hover:text-indigo-600 transition-colors" />
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        )}
-
-        {!stepsLoading && visibleSteps.length === 0 && (
-          <div className="p-10 text-center">
-            <ListChecks className="w-10 h-10 text-neutral-300 mx-auto mb-3" />
-            <p className="font-grotesk text-sm text-neutral-400">
-              Aktif gorev yok
-            </p>
-          </div>
-        )}
-      </motion.div>
+      {/* My Tasks — AI Unified Widget */}
+      <DashboardTaskWidget />
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

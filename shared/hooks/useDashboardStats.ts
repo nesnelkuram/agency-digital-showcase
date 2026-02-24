@@ -17,6 +17,7 @@ interface DashboardStats {
   urgentApprovals: number;
   teamMembers: number;
   completedThisMonth: number;
+  activeTasks: number;
 }
 
 interface ActivityItem {
@@ -97,6 +98,7 @@ export function useDashboardStats(): UseDashboardStatsReturn {
     urgentApprovals: 0,
     teamMembers: 0,
     completedThisMonth: 0,
+    activeTasks: 0,
   });
   const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
   const [pendingApprovals, setPendingApprovals] = useState<PendingApproval[]>([]);
@@ -125,6 +127,7 @@ export function useDashboardStats(): UseDashboardStatsReturn {
         usersSnapshot,
         completedSnapshot,
         activitySnapshot,
+        tasksSnapshot,
       ] = await Promise.all([
         // Active projects
         getDocs(
@@ -154,6 +157,14 @@ export function useDashboardStats(): UseDashboardStatsReturn {
             where('tenantId', '==', tenantId),
             orderBy('createdAt', 'desc'),
             limit(10)
+          )
+        ),
+        // Active tasks (standalone)
+        getDocs(
+          query(
+            collection(db, 'tasks'),
+            where('tenantId', '==', tenantId),
+            where('status', 'in', ['open', 'in_progress', 'awaiting_review', 'blocked'])
           )
         ),
       ]);
@@ -208,6 +219,7 @@ export function useDashboardStats(): UseDashboardStatsReturn {
         urgentApprovals: urgentCount,
         teamMembers: usersSnapshot.size,
         completedThisMonth: completedSnapshot.size,
+        activeTasks: tasksSnapshot.size,
       });
 
       setPendingApprovals(approvalsList.slice(0, 5));
