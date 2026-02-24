@@ -13,12 +13,14 @@ import {
 } from '@/shared/types/marketing';
 import { getCampaigns, deepSyncFromMeta } from '@/shared/services/marketingService';
 import { useProjectScope } from '@/shared/hooks/useProjectScope';
+import { useTenantId } from '@/shared/hooks/useTenant';
 import SyncStatusBadge from './components/SyncStatusBadge';
 
 type SortKey = 'name' | 'status' | 'totalBudget' | 'totalSpend' | 'impressions' | 'clicks' | 'ctr' | 'conversions';
 type SortDir = 'asc' | 'desc';
 
 const CampaignsPage: React.FC = () => {
+  const tenantId = useTenantId();
   const { projectId, basePath } = useProjectScope();
   const navigate = useNavigate();
   const [campaigns, setCampaigns] = useState<CampaignSummary[]>([]);
@@ -45,7 +47,7 @@ const CampaignsPage: React.FC = () => {
     setLoading(true);
     try {
       const filters = statusFilter ? { status: [statusFilter], projectId } : projectId ? { projectId } : undefined;
-      const result = await getCampaigns(filters);
+      const result = await getCampaigns(tenantId, filters);
       setCampaigns(result.campaigns);
     } catch (err) {
       console.error('Failed to load campaigns:', err);
@@ -58,7 +60,7 @@ const CampaignsPage: React.FC = () => {
     if (!projectId || syncingId) return;
     setSyncingId(campaignId);
     try {
-      await deepSyncFromMeta(projectId);
+      await deepSyncFromMeta(tenantId, projectId);
       await loadCampaigns();
     } catch (err) {
       console.error('Sync failed:', err);

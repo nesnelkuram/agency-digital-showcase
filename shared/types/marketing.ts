@@ -274,6 +274,9 @@ export interface AdSet {
   frequencyControlSpecs?: any[];
   dailyMinSpendTarget?: number;
   dailySpendCap?: number;
+  learningStageInfo?: { status: string; time_from_last_significant_edit?: string };
+  destinationType?: string;        // WEBSITE, APP, MESSENGER
+  isDynamicCreative?: boolean;
 }
 
 export interface Ad {
@@ -301,6 +304,8 @@ export interface Ad {
     message: string;
     code: string;
   }>;
+  adReviewFeedback?: Record<string, any>;  // Red nedenleri
+  issuesInfo?: Array<{ level: string; error_summary: string }>;
 }
 
 export interface AdCreative {
@@ -615,6 +620,9 @@ export interface MarketingCampaign {
   // Etiketler
   tags: string[];
 
+  // Hangi platform hesabına ait (Firestore platform_accounts doc ID)
+  platformAccountId?: string;
+
   // Meta sync durum bilgileri
   lastSyncAt?: Timestamp;
   syncStatus?: 'idle' | 'syncing' | 'success' | 'error';
@@ -622,10 +630,19 @@ export interface MarketingCampaign {
 
   // Extended Meta campaign fields
   effectiveStatus?: string;        // ACTIVE, IN_PROCESS, WITH_ISSUES, etc.
+  configuredStatus?: string;       // Kullanıcının set ettiği durum (active/paused/archived)
   buyingType?: string;             // AUCTION, RESERVED
   spendCap?: number;
   budgetRemaining?: number;
   specialAdCategories?: string[];
+  dailyBudget?: number;            // Günlük bütçe (TL, Meta cents'den dönüştürülmüş)
+  lifetimeBudget?: number;         // Toplam bütçe (TL)
+  issuesInfo?: Array<{ level: string; error_summary: string }>;
+  recommendations?: Array<{ title: string; message: string; code: string }>;
+  pacingType?: string[];
+  promotedObject?: Record<string, any>;
+  metaCreatedTime?: string;        // Meta'daki oluşturma tarihi (ISO 8601)
+  metaUpdatedTime?: string;        // Meta'daki güncelleme tarihi
 
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -740,3 +757,183 @@ export interface MarketingDashboardStats {
   }>;
   connectedPlatforms: AdPlatform[];
 }
+
+// ============================================
+// PLATFORM AKSIYONLARI (Agent Onay Akışı)
+// ============================================
+
+export type PlatformActionType =
+  | 'publish_plan'
+  | 'pause_campaign'
+  | 'resume_campaign'
+  | 'delete_campaign'
+  | 'update_meta_budget'
+  | 'update_campaign_budget'
+  | 'create_meta_ad'
+  | 'upload_image'
+  | 'pause_adset'
+  | 'resume_adset'
+  | 'update_adset_targeting'
+  | 'fetch_performance';
+
+export type PendingActionStatus =
+  | 'pending_approval'
+  | 'executing'
+  | 'completed'
+  | 'failed'
+  | 'rejected';
+
+export interface PendingPlatformAction {
+  id: string;
+  type: PlatformActionType;
+  status: PendingActionStatus;
+  platform: AdPlatform;
+  payload: Record<string, any>;
+  description: string;
+  impact: string;
+  result?: Record<string, any>;
+  createdAt: number;
+  resolvedAt?: number;
+}
+
+export const PLATFORM_ACTION_LABELS: Record<PlatformActionType, string> = {
+  publish_plan: 'Planı Yayınla',
+  pause_campaign: 'Kampanyayı Duraklat',
+  resume_campaign: 'Kampanyayı Devam Ettir',
+  delete_campaign: 'Kampanyayı Sil/Arşivle',
+  update_meta_budget: 'Reklam Seti Bütçe Güncelle',
+  update_campaign_budget: 'Kampanya Bütçe Güncelle',
+  create_meta_ad: 'Reklam Oluştur',
+  upload_image: 'Görsel Yükle',
+  pause_adset: 'Reklam Setini Duraklat',
+  resume_adset: 'Reklam Setini Devam Ettir',
+  update_adset_targeting: 'Hedefleme Güncelle',
+  fetch_performance: 'Performans Getir',
+};
+
+export const PENDING_ACTION_STATUS_LABELS: Record<PendingActionStatus, string> = {
+  pending_approval: 'Onay Bekliyor',
+  executing: 'Yürütülüyor',
+  completed: 'Tamamlandı',
+  failed: 'Başarısız',
+  rejected: 'Reddedildi',
+};
+
+// ============================================
+// PAZARLAMA PLANI (AI Agent tarafindan uretilen)
+// ============================================
+
+export interface MarketingPlanAdSet {
+  name: string;
+  targeting: string;
+  dailyBudget: number;
+  adFormat: string;
+  creativeNotes: string;
+}
+
+export interface MarketingPlanCampaign {
+  name: string;
+  objective: string;
+  platform: AdPlatform;
+  metaObjective: string;
+  budget: number;
+  adSets: MarketingPlanAdSet[];
+}
+
+export interface MarketingPlanData {
+  name: string;
+  brand: {
+    name: string;
+    description: string;
+    industry: string;
+  };
+  objectives: string[];
+  audience: {
+    ageMin: number;
+    ageMax: number;
+    genders: string[];
+    interests: string[];
+    locations: string[];
+  };
+  budget: {
+    total: number;
+    currency: string;
+    dailyBudget: number;
+  };
+  platforms: AdPlatform[];
+  timeline: {
+    startDate: string;
+    endDate: string;
+  };
+  campaigns: MarketingPlanCampaign[];
+  kpis: {
+    impressions: number;
+    clicks: number;
+    conversions: number;
+  };
+}
+
+export interface MarketingPlan {
+  id: string;
+  tenantId: string;
+  sessionId: string;
+  status: 'draft' | 'published';
+  planData: MarketingPlanData;
+  metaResults?: Record<string, { campaignId: string; adSetIds: string[] }>;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+// ============================================
+// MARKETING AGENT V2 TYPES (SSE Streaming)
+// ============================================
+
+export interface MarketingAgentSession {
+  id: string;
+  tenantId: string;
+  userId: string;
+  projectId: string | null;
+  strategyContext: string | null;
+  title?: string | null;
+  messages: AgentV2Message[];
+  contentHistory?: unknown;
+  pendingActions?: unknown;
+  version?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export type AgentV2SSEEventType =
+  | 'text_delta'
+  | 'tool_call'
+  | 'tool_result'
+  | 'approval_required'
+  | 'done'
+  | 'error';
+
+export interface AgentV2SSEEvent {
+  type: AgentV2SSEEventType;
+  content?: string;
+  id?: string;
+  name?: string;
+  args?: Record<string, unknown>;
+  data?: unknown;
+  component?: string;
+  actionId?: string;
+  action?: PendingPlatformAction;
+  messageId?: string;
+  message?: string;
+}
+
+export interface AgentV2Message {
+  id: string;
+  role: 'user' | 'assistant';
+  parts: AgentV2MessagePart[];
+  timestamp: number;
+}
+
+export type AgentV2MessagePart =
+  | { type: 'text'; content: string }
+  | { type: 'tool_call'; id: string; name: string; args: Record<string, unknown> }
+  | { type: 'tool_result'; id: string; name: string; data: unknown; component?: string }
+  | { type: 'approval_required'; actionId: string; action: PendingPlatformAction };

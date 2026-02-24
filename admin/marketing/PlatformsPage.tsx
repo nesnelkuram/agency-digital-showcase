@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Zap, Check, AlertCircle, RefreshCw, Loader2, X, Building2 } from 'lucide-react';
+import { Zap, Check, AlertCircle, RefreshCw, Loader2, X, Building2, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { PlatformAccount, AdPlatform } from '@/shared/types/marketing';
 import { PLATFORM_LABELS, PLATFORM_COLORS } from '@/shared/types/marketing';
@@ -8,9 +8,11 @@ import {
   getPlatformAccounts,
   savePlatformAccount,
   disconnectPlatformAccount,
-  syncCampaignsFromMeta,
+  deepSyncFromMeta,
+  syncCampaignsForAccount,
 } from '@/shared/services/marketingService';
 import { useProjectScope } from '@/shared/hooks/useProjectScope';
+import { useTenantId } from '@/shared/hooks/useTenant';
 import ProjectBreadcrumb from '@/admin/projects/components/ProjectBreadcrumb';
 
 // ── Types ──
@@ -96,6 +98,7 @@ const ALL_PLATFORMS: { platform: AdPlatform; description: string; setupSteps: st
 // ── Component ──
 
 const PlatformsPage: React.FC = () => {
+  const tenantId = useTenantId();
   const { projectId, basePath, isProjectScoped } = useProjectScope();
   const [searchParams, setSearchParams] = useSearchParams();
   const [accounts, setAccounts] = useState<PlatformAccount[]>([]);
@@ -104,29 +107,30 @@ const PlatformsPage: React.FC = () => {
 
   // Account picker state
   const [pickerData, setPickerData] = useState<AccountPickerData | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [pickerSaving, setPickerSaving] = useState(false);
 
   // Sync state
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
+  const [syncingAccountId, setSyncingAccountId] = useState<string | null>(null);
 
   const fetchAccounts = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getPlatformAccounts(projectId);
+      const data = await getPlatformAccounts(tenantId, projectId);
       setAccounts(data);
     } catch (err) {
       console.error('Failed to load platform accounts:', err);
     } finally {
       setLoading(false);
     }
-  }, [projectId]);
+  }, [tenantId, projectId]);
 
-  // Load accounts on mount and when projectId changes
   useEffect(() => {
     fetchAccounts();
   }, [fetchAccounts]);
 
-  // Handle OAuth callback redirect — save connected account (single account)
+  // Handle OAuth callback redirect — single account auto-saved
   useEffect(() => {
     const connectedParam = searchParams.get('connected');
     if (!connectedParam) return;
@@ -135,21 +139,18 @@ const PlatformsPage: React.FC = () => {
       try {
         const accountData = JSON.parse(decodeURIComponent(connectedParam));
         const resolvedProjectId = accountData.projectId || projectId;
-        await savePlatformAccount({
+        await savePlatformAccount(tenantId, {
           ...accountData,
           ...(resolvedProjectId ? { projectId: resolvedProjectId } : {}),
         });
         await fetchAccounts();
-        // Trigger campaign sync in background
-        if (resolvedProjectId) {
-          setSyncStatus('Kampanyalar senkronize ediliyor...');
-          syncCampaignsFromMeta(resolvedProjectId, accountData.platform || 'meta')
-            .then((result) => {
-              setSyncStatus(result.error || `${result.synced} kampanya senkronize edildi`);
-              setTimeout(() => setSyncStatus(null), 5000);
-            })
-            .catch(() => setSyncStatus(null));
-        }
+        setSyncStatus('Kampanyalar senkronize ediliyor (detayli)...');
+        deepSyncFromMeta(tenantId, resolvedProjectId || undefined, accountData.platform || 'meta')
+          .then((result) => {
+            setSyncStatus(result.error || `${result.synced} kampanya senkronize edildi (adSets + ads dahil)`);
+            setTimeout(() => setSyncStatus(null), 5000);
+          })
+          .catch(() => setSyncStatus(null));
       } catch (err) {
         console.error('Failed to save connected account:', err);
       } finally {
@@ -168,17 +169,18 @@ const PlatformsPage: React.FC = () => {
     try {
       const data: AccountPickerData = JSON.parse(decodeURIComponent(selectParam));
       setPickerData(data);
+      setSelectedIds(new Set());
     } catch (err) {
       console.error('Failed to parse account picker data:', err);
     }
 
-    // Clear param immediately
     searchParams.delete('selectAccount');
     setSearchParams(searchParams, { replace: true });
   }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const getAccountForPlatform = (platform: AdPlatform) =>
-    accounts.find(a => a.platform === platform && a.status === 'connected');
+  // Returns all connected accounts for a platform
+  const getAccountsForPlatform = (platform: AdPlatform) =>
+    accounts.filter(a => a.platform === platform && a.status === 'connected');
 
   const handleConnect = (platform: AdPlatform) => {
     const currentPath = isProjectScoped
@@ -197,7 +199,7 @@ const PlatformsPage: React.FC = () => {
   const handleDisconnect = async (account: PlatformAccount) => {
     setActionLoading(account.id);
     try {
-      await disconnectPlatformAccount(account.id);
+      await disconnectPlatformAccount(tenantId, account.id);
       setAccounts(prev =>
         prev.map(a => a.id === account.id ? { ...a, status: 'disconnected' as const } : a)
       );
@@ -212,40 +214,73 @@ const PlatformsPage: React.FC = () => {
     await fetchAccounts();
   };
 
-  const handlePickAccount = async (account: AdAccountOption) => {
-    if (!pickerData || account.status !== 1) return;
+  const toggleAccount = (id: string, isActive: boolean) => {
+    if (!isActive) return;
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (!pickerData) return;
+    const activeIds = pickerData.accounts.filter(a => a.status === 1).map(a => a.id);
+    if (selectedIds.size === activeIds.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(activeIds));
+    }
+  };
+
+  const handleSaveSelected = async () => {
+    if (!pickerData || selectedIds.size === 0) return;
 
     const resolvedProjectId = pickerData.projectId || projectId;
     setPickerSaving(true);
     try {
-      await savePlatformAccount({
-        platform: pickerData.platform,
-        accountId: account.id,
-        accountName: account.name,
-        status: 'connected',
-        permissions: pickerData.permissions || ['ads_management', 'ads_read', 'business_management'],
-        metadata: {
-          accessToken: pickerData.accessToken,
-          adAccountId: account.id,
-          userId: pickerData.userId,
-          userName: pickerData.userName,
-        },
-        ...(resolvedProjectId ? { projectId: resolvedProjectId } : {}),
-      });
-      setPickerData(null);
-      await fetchAccounts();
-      // Trigger campaign sync in background
-      if (resolvedProjectId) {
-        setSyncStatus('Kampanyalar senkronize ediliyor...');
-        syncCampaignsFromMeta(resolvedProjectId, pickerData.platform)
-          .then((result) => {
-            setSyncStatus(result.error || `${result.synced} kampanya senkronize edildi`);
-            setTimeout(() => setSyncStatus(null), 5000);
+      const selectedAccounts = pickerData.accounts.filter(a => selectedIds.has(a.id));
+
+      // Save all selected accounts in parallel, collect their Firestore IDs
+      const savedAccountIds = await Promise.all(
+        selectedAccounts.map(acc =>
+          savePlatformAccount(tenantId, {
+            platform: pickerData.platform,
+            accountId: acc.id,
+            accountName: acc.name,
+            status: 'connected',
+            permissions: pickerData.permissions || ['ads_management', 'ads_read', 'business_management'],
+            metadata: {
+              accessToken: pickerData.accessToken,
+              adAccountId: acc.id,
+              userId: pickerData.userId,
+              userName: pickerData.userName,
+              ...((pickerData as any).pageId ? { pageId: (pickerData as any).pageId, pageName: (pickerData as any).pageName } : {}),
+            },
+            ...(resolvedProjectId ? { projectId: resolvedProjectId } : {}),
           })
-          .catch(() => setSyncStatus(null));
-      }
+        )
+      );
+
+      setPickerData(null);
+      setSelectedIds(new Set());
+      await fetchAccounts();
+
+      // Sync each saved account individually with deepSync
+      setSyncStatus('Kampanyalar senkronize ediliyor (detayli)...');
+      Promise.all(
+        savedAccountIds.map(accId => syncCampaignsForAccount(tenantId, accId, { deepSync: true }))
+      )
+        .then((results) => {
+          const totalSynced = results.reduce((sum, r) => sum + r.synced, 0);
+          const errors = results.filter(r => r.error).map(r => r.error);
+          setSyncStatus(errors.length > 0 ? errors.join('; ') : `${totalSynced} kampanya senkronize edildi (adSets + ads dahil)`);
+          setTimeout(() => setSyncStatus(null), 5000);
+        })
+        .catch(() => setSyncStatus(null));
     } catch (err) {
-      console.error('Failed to save selected account:', err);
+      console.error('Failed to save selected accounts:', err);
     } finally {
       setPickerSaving(false);
     }
@@ -292,9 +327,8 @@ const PlatformsPage: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {ALL_PLATFORMS.map(({ platform, description, setupSteps }) => {
-            const account = getAccountForPlatform(platform);
-            const isConnected = !!account;
-            const isDisconnecting = account && actionLoading === account.id;
+            const connectedAccounts = getAccountsForPlatform(platform);
+            const isConnected = connectedAccounts.length > 0;
 
             return (
               <div
@@ -311,7 +345,8 @@ const PlatformsPage: React.FC = () => {
                       </span>
                       {isConnected ? (
                         <span className="inline-flex items-center gap-1 text-xs text-green-600">
-                          <Check className="w-3 h-3" /> Bagli
+                          <Check className="w-3 h-3" />
+                          {connectedAccounts.length} hesap bagli
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 text-xs text-neutral-400">
@@ -324,21 +359,66 @@ const PlatformsPage: React.FC = () => {
                 </div>
 
                 {isConnected ? (
-                  <div className="space-y-3">
-                    <div className="bg-green-50 rounded-lg p-3">
-                      <p className="text-sm font-commons text-green-700">
-                        {account.accountName}
-                      </p>
-                      <p className="text-xs font-commons text-green-600 mt-1">
-                        ID: {account.accountId}
-                      </p>
-                      {account.lastSyncAt && (
-                        <p className="text-xs font-commons text-green-500 mt-1">
-                          Son senkronizasyon: {account.lastSyncAt.toDate().toLocaleDateString('tr-TR')}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex gap-2">
+                  <div className="space-y-2">
+                    {/* List all connected accounts */}
+                    {connectedAccounts.map(account => (
+                      <div key={account.id} className="bg-green-50 rounded-lg p-3 flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-commons font-medium text-green-800 truncate">
+                            {account.accountName}
+                          </p>
+                          <p className="text-xs font-commons text-green-600 mt-0.5">
+                            ID: {account.accountId}
+                          </p>
+                          {account.lastSyncAt && (
+                            <p className="text-xs font-commons text-green-500 mt-0.5">
+                              Son sync: {account.lastSyncAt.toDate().toLocaleDateString('tr-TR')}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          <button
+                            onClick={async () => {
+                              setSyncingAccountId(account.id);
+                              try {
+                                const result = await syncCampaignsForAccount(tenantId, account.id);
+                                setSyncStatus(result.error || `${result.synced} kampanya senkronize edildi`);
+                                setTimeout(() => setSyncStatus(null), 5000);
+                              } catch {
+                                setSyncStatus('Senkronizasyon basarisiz');
+                                setTimeout(() => setSyncStatus(null), 5000);
+                              } finally {
+                                setSyncingAccountId(null);
+                              }
+                            }}
+                            disabled={syncingAccountId === account.id}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-green-200 text-green-700 hover:bg-green-50 transition-colors font-commons text-xs disabled:opacity-50"
+                          >
+                            {syncingAccountId === account.id ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <RefreshCw className="w-3 h-3" />
+                            )}
+                            Sync
+                          </button>
+                          <button
+                            onClick={() => handleDisconnect(account)}
+                            disabled={actionLoading === account.id}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-red-200 text-red-600 hover:bg-red-50 transition-colors font-commons text-xs disabled:opacity-50"
+                          >
+                            {actionLoading === account.id ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <X className="w-3 h-3" />
+                            )}
+                            Kes
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Add more accounts button */}
+                    <div className="flex gap-2 mt-3">
                       <button
                         onClick={handleRefresh}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-colors font-commons text-xs"
@@ -347,12 +427,11 @@ const PlatformsPage: React.FC = () => {
                         Yenile
                       </button>
                       <button
-                        onClick={() => handleDisconnect(account)}
-                        disabled={!!isDisconnecting}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors font-commons text-xs disabled:opacity-50"
+                        onClick={() => handleConnect(platform)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-colors font-commons text-xs"
                       >
-                        {isDisconnecting ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
-                        Baglantiayi Kes
+                        <Plus className="w-3 h-3" />
+                        Hesap Ekle
                       </button>
                     </div>
                   </div>
@@ -384,7 +463,7 @@ const PlatformsPage: React.FC = () => {
         </div>
       )}
 
-      {/* ── Account Picker Modal ── */}
+      {/* ── Account Picker Modal (multi-select) ── */}
       <AnimatePresence>
         {pickerData && (
           <motion.div
@@ -392,7 +471,7 @@ const PlatformsPage: React.FC = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-            onClick={() => setPickerData(null)}
+            onClick={() => !pickerSaving && setPickerData(null)}
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
@@ -405,47 +484,76 @@ const PlatformsPage: React.FC = () => {
               <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-100">
                 <div>
                   <h2 className="font-grotesk text-lg font-bold text-[#171717]">
-                    Reklam Hesabi Secin
+                    Reklam Hesaplarini Secin
                   </h2>
                   <p className="font-grotesk text-xs text-neutral-500 mt-0.5">
                     {pickerData.userName} &mdash; {pickerData.accounts.length} hesap bulundu
                   </p>
                 </div>
                 <button
-                  onClick={() => setPickerData(null)}
-                  className="p-1.5 rounded-lg hover:bg-neutral-100 transition-colors"
+                  onClick={() => !pickerSaving && setPickerData(null)}
+                  disabled={pickerSaving}
+                  className="p-1.5 rounded-lg hover:bg-neutral-100 transition-colors disabled:opacity-50"
                 >
                   <X className="w-4 h-4 text-neutral-500" />
                 </button>
               </div>
 
+              {/* Select All */}
+              {pickerData.accounts.filter(a => a.status === 1).length > 1 && (
+                <div className="px-6 pt-3 pb-1">
+                  <button
+                    onClick={handleSelectAll}
+                    disabled={pickerSaving}
+                    className="text-xs font-commons text-indigo-600 hover:text-indigo-800 transition-colors"
+                  >
+                    {selectedIds.size === pickerData.accounts.filter(a => a.status === 1).length
+                      ? 'Secimi Kaldir'
+                      : 'Tumunu Sec'}
+                  </button>
+                </div>
+              )}
+
               {/* Account List */}
-              <div className="flex-1 overflow-y-auto px-6 py-4 space-y-2">
+              <div className="flex-1 overflow-y-auto px-6 py-3 space-y-2">
                 {pickerData.accounts.map((acc) => {
                   const statusInfo = AD_ACCOUNT_STATUS[acc.status] || AD_ACCOUNT_STATUS[2];
                   const isActive = acc.status === 1;
+                  const isSelected = selectedIds.has(acc.id);
 
                   return (
                     <button
                       key={acc.id}
-                      onClick={() => handlePickAccount(acc)}
+                      onClick={() => toggleAccount(acc.id, isActive)}
                       disabled={!isActive || pickerSaving}
                       className={`w-full text-left p-4 rounded-xl border transition-all ${
                         isActive
-                          ? 'border-neutral-200 hover:border-[#171717] hover:shadow-sm cursor-pointer'
-                          : 'border-neutral-100 opacity-50 cursor-not-allowed'
-                      } ${pickerSaving ? 'pointer-events-none' : ''}`}
+                          ? isSelected
+                            ? 'border-indigo-400 bg-indigo-50 shadow-sm'
+                            : 'border-neutral-200 hover:border-neutral-300 cursor-pointer'
+                          : 'border-neutral-100 opacity-40 cursor-not-allowed'
+                      }`}
                     >
                       <div className="flex items-center gap-3">
+                        {/* Checkbox */}
+                        <div className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 border-2 transition-all ${
+                          isSelected
+                            ? 'bg-indigo-600 border-indigo-600'
+                            : 'border-neutral-300 bg-white'
+                        }`}>
+                          {isSelected && <Check className="w-3 h-3 text-white" />}
+                        </div>
+
                         <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
                           <Building2 className="w-5 h-5 text-blue-600" />
                         </div>
+
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <p className="font-grotesk text-sm font-medium text-[#171717] truncate">
                               {acc.name}
                             </p>
-                            <span className={`text-[10px] font-grotesk font-medium px-1.5 py-0.5 rounded-full ${statusInfo.color}`}>
+                            <span className={`text-[10px] font-grotesk font-medium px-1.5 py-0.5 rounded-full flex-shrink-0 ${statusInfo.color}`}>
                               {statusInfo.label}
                             </span>
                           </div>
@@ -453,9 +561,6 @@ const PlatformsPage: React.FC = () => {
                             {acc.id}
                           </p>
                         </div>
-                        {pickerSaving && isActive && (
-                          <Loader2 className="w-4 h-4 text-neutral-400 animate-spin flex-shrink-0" />
-                        )}
                       </div>
                     </button>
                   );
@@ -463,10 +568,29 @@ const PlatformsPage: React.FC = () => {
               </div>
 
               {/* Footer */}
-              <div className="px-6 py-3 border-t border-neutral-100 bg-neutral-50 rounded-b-2xl">
-                <p className="font-grotesk text-[11px] text-neutral-400 text-center">
-                  Sadece aktif reklam hesaplari secilebilir
+              <div className="px-6 py-4 border-t border-neutral-100 bg-neutral-50 rounded-b-2xl flex items-center justify-between gap-3">
+                <p className="font-grotesk text-xs text-neutral-400">
+                  {selectedIds.size > 0
+                    ? `${selectedIds.size} hesap secildi`
+                    : 'Baglamak istediginiz hesaplari secin'}
                 </p>
+                <button
+                  onClick={handleSaveSelected}
+                  disabled={selectedIds.size === 0 || pickerSaving}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#171717] text-white font-commons text-sm hover:bg-[#2a2a2a] disabled:bg-neutral-200 disabled:text-neutral-400 transition-all"
+                >
+                  {pickerSaving ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Kaydediliyor...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-3.5 h-3.5" />
+                      {selectedIds.size > 0 ? `${selectedIds.size} Hesabi Bagla` : 'Hesap Sec'}
+                    </>
+                  )}
+                </button>
               </div>
             </motion.div>
           </motion.div>

@@ -1,5 +1,5 @@
-import type { VercelResponse } from '@vercel/node';
-import { withAuth, AuthenticatedRequest } from '../../_lib/withAuth.js';
+import '../../_lib/env';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 export const config = {
   maxDuration: 10,
@@ -12,12 +12,14 @@ const META_API_VERSION = 'v21.0';
  *
  * Initiates the OAuth flow for a given ad platform.
  * Redirects the user to the platform's OAuth authorization page.
+ * No auth header needed — this is a browser redirect, security is
+ * enforced by the OAuth state parameter and the callback endpoint.
  *
  * Query params:
  *  - platform: 'meta' | 'google' | 'tiktok' | 'linkedin'
  *  - state: JSON-encoded { platform, redirectPath, projectId? }
  */
-export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) => {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -122,4 +124,4 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
     console.error('[platform-connect] Error:', error.message);
     return res.status(500).json({ error: error.message || 'Failed to initiate OAuth' });
   }
-});
+}

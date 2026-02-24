@@ -17,6 +17,7 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
+import { authenticatedFetch } from '@/lib/firebase/apiClient';
 import type {
   MarketingCampaign,
   CampaignSummary,
@@ -34,6 +35,8 @@ import type {
   OptimizationSuggestion,
   MarketingDashboardStats,
   AdPlatform,
+  MarketingPlan,
+  MarketingPlanData,
 } from '@/shared/types/marketing';
 import type { CampaignBreakdown, CampaignAIAnalysis, BreakdownType } from '@/shared/types/breakdown';
 
@@ -504,18 +507,27 @@ export async function getPlatformAccounts(tenantId: string, projectId?: string):
     })) as PlatformAccount[];
   } catch (err: any) {
     // Composite index may not exist yet — fallback to unordered query
-    if (projectId && err?.code === 'failed-precondition') {
+    if (err?.code === 'failed-precondition') {
       console.warn('[getPlatformAccounts] Index missing, falling back to unordered query');
+      const fallbackConstraints: QueryConstraint[] = [where('tenantId', '==', tenantId)];
+      if (projectId) {
+        fallbackConstraints.push(where('projectId', '==', projectId));
+      }
       const fallbackQ = query(
         collection(db, PLATFORM_ACCOUNTS_COLLECTION),
-        where('tenantId', '==', tenantId),
-        where('projectId', '==', projectId)
+        ...fallbackConstraints
       );
       const snapshot = await getDocs(fallbackQ);
-      return snapshot.docs.map((doc) => ({
+      const results = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       })) as PlatformAccount[];
+      // Sort client-side since we can't use orderBy without index
+      return results.sort((a, b) => {
+        const aTime = a.createdAt?.toMillis?.() || 0;
+        const bTime = b.createdAt?.toMillis?.() || 0;
+        return bTime - aTime;
+      });
     }
     throw err;
   }
@@ -555,10 +567,11 @@ export async function savePlatformAccount(
 ): Promise<string> {
   if (!db) throw new Error('Firebase not initialized');
 
-  // Upsert: check if account already exists for this platform (+projectId)
+  // Upsert: check if this specific accountId already exists for this platform
   const constraints: QueryConstraint[] = [
     where('tenantId', '==', tenantId),
     where('platform', '==', data.platform),
+    where('accountId', '==', data.accountId),
   ];
   if (data.projectId) {
     constraints.push(where('projectId', '==', data.projectId));
@@ -813,29 +826,75 @@ export async function getMarketingStats(tenantId: string, projectId?: string): P
 // ============================================
 
 /**
- * Syncs campaigns from Meta API → Firestore.
- * Calls the sync-campaigns API, then upserts results to Firestore.
+ * Syncs campaigns from Meta API → Firestore for ALL connected accounts.
+ * Iterates every connected account matching the platform (and optionally projectId),
+ * calling syncCampaignsForAccount for each.
  */
 export async function syncCampaignsFromMeta(
   tenantId: string,
-  projectId: string,
+  projectId?: string,
   platform: AdPlatform = 'meta'
 ): Promise<{ synced: number; error?: string }> {
   if (!db) throw new Error('Firebase not initialized');
 
-  // 1. Get platform account (accessToken + adAccountId)
-  const account = await getPlatformAccount(tenantId, platform, projectId);
-  if (!account || !account.metadata?.accessToken || !account.metadata?.adAccountId) {
-    return { synced: 0, error: 'Platform hesabi bulunamadi veya token eksik' };
+  const allAccounts = await getPlatformAccounts(tenantId, projectId);
+  const filteredAccounts = allAccounts.filter(
+    a => a.platform === platform && a.status === 'connected'
+  );
+
+  if (filteredAccounts.length === 0) {
+    return { synced: 0, error: 'Bagli platform hesabi bulunamadi' };
   }
 
-  // 2. Call sync API
-  const res = await fetch('/api/marketing/sync-campaigns', {
+  let totalSynced = 0;
+  const errors: string[] = [];
+
+  for (const account of filteredAccounts) {
+    const result = await syncCampaignsForAccount(tenantId, account.id);
+    totalSynced += result.synced;
+    if (result.error) {
+      errors.push(`${account.accountName || account.accountId}: ${result.error}`);
+    }
+  }
+
+  return {
+    synced: totalSynced,
+    ...(errors.length > 0 ? { error: errors.join('; ') } : {}),
+  };
+}
+
+/**
+ * Sync campaigns for a SPECIFIC platform account (by Firestore doc ID).
+ * Loads the account, verifies tenant, calls Meta API, upserts campaigns.
+ */
+export async function syncCampaignsForAccount(
+  tenantId: string,
+  accountId: string,
+  options?: { deepSync?: boolean }
+): Promise<{ synced: number; error?: string }> {
+  if (!db) throw new Error('Firebase not initialized');
+
+  const accountDoc = await getDoc(doc(db, PLATFORM_ACCOUNTS_COLLECTION, accountId));
+  if (!accountDoc.exists()) {
+    return { synced: 0, error: 'Platform hesabi bulunamadi' };
+  }
+
+  const account = { id: accountDoc.id, ...accountDoc.data() } as PlatformAccount & { tenantId?: string; projectId?: string };
+
+  if (account.tenantId !== tenantId) {
+    return { synced: 0, error: 'Yetkisiz erisim' };
+  }
+
+  if (!account.metadata?.accessToken || !account.metadata?.adAccountId) {
+    return { synced: 0, error: 'Token veya hesap ID eksik' };
+  }
+
+  const res = await authenticatedFetch('/api/marketing/sync-campaigns', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       accessToken: account.metadata.accessToken,
       adAccountId: account.metadata.adAccountId,
+      ...(options?.deepSync ? { deepSync: true } : {}),
     }),
   });
 
@@ -847,15 +906,31 @@ export async function syncCampaignsFromMeta(
     return { synced: 0, error: data.error || 'Sync basarisiz' };
   }
 
-  // 3. Upsert each campaign to Firestore
   let synced = 0;
+  const platform: AdPlatform = (account.platform as AdPlatform) || 'meta';
+
   for (const camp of data.campaigns) {
     await upsertCampaignByPlatformId(tenantId, platform, camp.metaCampaignId, {
-      projectId,
+      platformAccountId: accountId,
+      ...(account.projectId ? { projectId: account.projectId } : {}),
       name: camp.name,
       objective: camp.objective,
       platforms: camp.platforms,
       status: camp.status,
+      effectiveStatus: camp.effectiveStatus,
+      configuredStatus: camp.configuredStatus,
+      buyingType: camp.buyingType,
+      spendCap: camp.spendCap,
+      budgetRemaining: camp.budgetRemaining,
+      specialAdCategories: camp.specialAdCategories,
+      dailyBudget: camp.dailyBudget,
+      lifetimeBudget: camp.lifetimeBudget,
+      issuesInfo: camp.issuesInfo,
+      recommendations: camp.recommendations,
+      pacingType: camp.pacingType,
+      promotedObject: camp.promotedObject,
+      metaCreatedTime: camp.metaCreatedTime || camp.createdTime,
+      metaUpdatedTime: camp.metaUpdatedTime || camp.updatedTime,
       budget: camp.budget,
       schedule: camp.schedule,
       performance: camp.performance ? {
@@ -864,6 +939,7 @@ export async function syncCampaignsFromMeta(
       } : undefined,
       platformCampaignIds: { [platform]: camp.metaCampaignId },
       ...(camp.adSets ? { adSets: camp.adSets } : {}),
+      ...(options?.deepSync ? { lastSyncAt: Timestamp.now(), syncStatus: 'success' as const } : {}),
     });
     synced++;
   }
@@ -969,84 +1045,77 @@ export async function addNoteToCampaign(
 // ============================================
 
 /**
- * Deep sync campaigns from Meta API.
+ * Deep sync campaigns from Meta API for ALL connected accounts.
  * Like syncCampaignsFromMeta but passes deepSync: true to fetch full details.
  */
 export async function deepSyncFromMeta(
   tenantId: string,
-  projectId: string,
+  projectId?: string,
   platform: AdPlatform = 'meta'
 ): Promise<{ synced: number; error?: string }> {
   if (!db) throw new Error('Firebase not initialized');
 
-  const account = await getPlatformAccount(tenantId, platform, projectId);
-  if (!account || !account.metadata?.accessToken || !account.metadata?.adAccountId) {
-    return { synced: 0, error: 'Platform hesabi bulunamadi veya token eksik' };
+  const allAccounts = await getPlatformAccounts(tenantId, projectId);
+  const filteredAccounts = allAccounts.filter(
+    a => a.platform === platform && a.status === 'connected'
+  );
+
+  if (filteredAccounts.length === 0) {
+    return { synced: 0, error: 'Bagli platform hesabi bulunamadi' };
   }
 
-  const res = await fetch('/api/marketing/sync-campaigns', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      accessToken: account.metadata.accessToken,
-      adAccountId: account.metadata.adAccountId,
-      deepSync: true,
-    }),
-  });
+  let totalSynced = 0;
+  const errors: string[] = [];
 
-  if (!res.ok) {
-    return { synced: 0, error: `API hatasi: ${res.status} ${res.statusText}` };
-  }
-  const data = await res.json();
-  if (!data.success) {
-    return { synced: 0, error: data.error || 'Deep sync basarisiz' };
+  for (const account of filteredAccounts) {
+    const result = await syncCampaignsForAccount(tenantId, account.id, { deepSync: true });
+    totalSynced += result.synced;
+    if (result.error) {
+      errors.push(`${account.accountName || account.accountId}: ${result.error}`);
+    }
   }
 
-  let synced = 0;
-  for (const camp of data.campaigns) {
-    await upsertCampaignByPlatformId(tenantId, platform, camp.metaCampaignId, {
-      projectId,
-      name: camp.name,
-      objective: camp.objective,
-      platforms: camp.platforms,
-      status: camp.status,
-      budget: camp.budget,
-      schedule: camp.schedule,
-      performance: camp.performance ? {
-        ...camp.performance,
-        lastUpdated: Timestamp.now(),
-      } : undefined,
-      platformCampaignIds: { [platform]: camp.metaCampaignId },
-      adSets: camp.adSets || [],
-      lastSyncAt: Timestamp.now(),
-      syncStatus: 'success' as const,
-    });
-    synced++;
-  }
-
-  return { synced };
+  return {
+    synced: totalSynced,
+    ...(errors.length > 0 ? { error: errors.join('; ') } : {}),
+  };
 }
 
 /**
  * Sync performance data at adset or ad level for a single campaign.
+ * First tries to load account via campaign's platformAccountId, then falls back to projectId lookup.
  */
 export async function syncPerformanceLevel(
   tenantId: string,
   projectId: string,
   campaignId: string,
   metaCampaignId: string,
-  level: 'adset' | 'ad'
+  level: 'adset' | 'ad',
+  platformAccountId?: string
 ): Promise<void> {
   if (!db) throw new Error('Firebase not initialized');
 
-  const account = await getPlatformAccount(tenantId, 'meta', projectId);
+  let account: PlatformAccount | null = null;
+
+  // Try specific account first (from campaign's platformAccountId)
+  if (platformAccountId) {
+    const accountDoc = await getDoc(doc(db, PLATFORM_ACCOUNTS_COLLECTION, platformAccountId));
+    if (accountDoc.exists()) {
+      account = { id: accountDoc.id, ...accountDoc.data() } as PlatformAccount;
+    }
+  }
+
+  // Fallback to projectId-based lookup
+  if (!account || !account.metadata?.accessToken) {
+    account = await getPlatformAccount(tenantId, 'meta', projectId);
+  }
+
   if (!account || !account.metadata?.accessToken || !account.metadata?.adAccountId) {
     throw new Error('Platform hesabi bulunamadi veya token eksik');
   }
 
-  const res = await fetch('/api/marketing/sync-performance', {
+  const res = await authenticatedFetch('/api/marketing/sync-performance', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       accessToken: account.metadata.accessToken,
       adAccountId: account.metadata.adAccountId,
@@ -1096,9 +1165,8 @@ export async function syncBreakdown(
     throw new Error('Platform hesabi bulunamadi veya token eksik');
   }
 
-  const res = await fetch('/api/marketing/sync-breakdowns', {
+  const res = await authenticatedFetch('/api/marketing/sync-breakdowns', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       accessToken: account.metadata.accessToken,
       adAccountId: account.metadata.adAccountId,
@@ -1185,9 +1253,8 @@ export async function runSetupAnalysis(
 ): Promise<CampaignAIAnalysis> {
   if (!db) throw new Error('Firebase not initialized');
 
-  const res = await fetch('/api/marketing/analyze-campaign', {
+  const res = await authenticatedFetch('/api/marketing/analyze-campaign', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ campaignId }),
   });
 
@@ -1208,9 +1275,8 @@ export async function runOptimizationAnalysis(
 ): Promise<CampaignAIAnalysis> {
   if (!db) throw new Error('Firebase not initialized');
 
-  const res = await fetch('/api/marketing/ai-optimize', {
+  const res = await authenticatedFetch('/api/marketing/ai-optimize', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ campaignId }),
   });
 
@@ -1287,6 +1353,55 @@ export async function updateCampaignSyncStatus(
     syncStatus: status,
     syncError: error || null,
     ...(status === 'success' ? { lastSyncAt: Timestamp.now() } : {}),
+    updatedAt: serverTimestamp(),
+  }));
+}
+
+// ============================================
+// PAZARLAMA PLANLARI CRUD
+// ============================================
+
+const MARKETING_PLANS_COLLECTION = 'marketing_plans';
+
+export async function createMarketingPlan(
+  tenantId: string,
+  sessionId: string,
+  planData: MarketingPlanData
+): Promise<string> {
+  if (!db) throw new Error('Firebase not initialized');
+
+  const docRef = await addDoc(
+    collection(db, MARKETING_PLANS_COLLECTION),
+    stripUndefined({
+      tenantId,
+      sessionId,
+      status: 'draft',
+      planData,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    })
+  );
+  return docRef.id;
+}
+
+export async function getMarketingPlan(planId: string): Promise<MarketingPlan | null> {
+  if (!db) throw new Error('Firebase not initialized');
+
+  const docRef = doc(db, MARKETING_PLANS_COLLECTION, planId);
+  const snap = await getDoc(docRef);
+  if (!snap.exists()) return null;
+  return { id: snap.id, ...snap.data() } as MarketingPlan;
+}
+
+export async function updateMarketingPlan(
+  planId: string,
+  updates: Partial<Pick<MarketingPlan, 'status' | 'metaResults' | 'planData'>>
+): Promise<void> {
+  if (!db) throw new Error('Firebase not initialized');
+
+  const docRef = doc(db, MARKETING_PLANS_COLLECTION, planId);
+  await updateDoc(docRef, stripUndefined({
+    ...updates,
     updatedAt: serverTimestamp(),
   }));
 }

@@ -16,6 +16,7 @@ import TargetingDisplay from './components/TargetingDisplay';
 import DeliveryInsights from './components/DeliveryInsights';
 import {
   syncCampaignsFromMeta,
+  syncCampaignsForAccount,
   updateCampaignSyncStatus,
   syncPerformanceLevel,
 } from '@/shared/services/marketingService';
@@ -48,6 +49,7 @@ import {
   getPerformanceSnapshots,
 } from '@/shared/services/marketingService';
 import { useProjectScope } from '@/shared/hooks/useProjectScope';
+import { useTenantId } from '@/shared/hooks/useTenant';
 import SpendTrendChart from './components/charts/SpendTrendChart';
 import FunnelChart from './components/charts/FunnelChart';
 import AIAnalysisPanel from './components/ai/AIAnalysisPanel';
@@ -55,6 +57,7 @@ import AIAnalysisPanel from './components/ai/AIAnalysisPanel';
 const CampaignDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const tenantId = useTenantId();
   const { basePath } = useProjectScope();
   const [campaign, setCampaign] = useState<MarketingCampaign | null>(null);
   const [snapshots, setSnapshots] = useState<PerformanceSnapshot[]>([]);
@@ -73,24 +76,26 @@ const CampaignDetailPage: React.FC = () => {
   const [syncingLevel, setSyncingLevel] = useState(false);
 
   const handleSync = async () => {
-    if (!campaign?.projectId || syncing) return;
+    if (!campaign || syncing) return;
     setSyncing(true);
     try {
-      await updateCampaignSyncStatus(campaign.id, 'syncing');
-      const result = await syncCampaignsFromMeta(campaign.projectId);
+      await updateCampaignSyncStatus(tenantId, campaign.id, 'syncing');
+      const result = campaign.platformAccountId
+        ? await syncCampaignsForAccount(tenantId, campaign.platformAccountId)
+        : await syncCampaignsFromMeta(tenantId, campaign.projectId);
       if (result.error) {
-        await updateCampaignSyncStatus(campaign.id, 'error', result.error);
+        await updateCampaignSyncStatus(tenantId, campaign.id, 'error', result.error);
       } else {
-        await updateCampaignSyncStatus(campaign.id, 'success');
+        await updateCampaignSyncStatus(tenantId, campaign.id, 'success');
       }
-      const updated = await getCampaign(campaign.id);
+      const updated = await getCampaign(tenantId, campaign.id);
       setCampaign(updated);
       if (updated) {
-        const snaps = await getPerformanceSnapshots(updated.id);
+        const snaps = await getPerformanceSnapshots(tenantId, updated.id);
         setSnapshots(snaps);
       }
     } catch (err: any) {
-      await updateCampaignSyncStatus(campaign.id, 'error', err.message);
+      await updateCampaignSyncStatus(tenantId, campaign.id, 'error', err.message);
     } finally {
       setSyncing(false);
     }
@@ -99,20 +104,20 @@ const CampaignDetailPage: React.FC = () => {
   useEffect(() => {
     if (id) {
       Promise.all([
-        getCampaign(id),
-        getPerformanceSnapshots(id),
+        getCampaign(tenantId, id),
+        getPerformanceSnapshots(tenantId, id),
       ]).then(([camp, snaps]) => {
         setCampaign(camp);
         setSnapshots(snaps);
       }).catch(console.error)
         .finally(() => setLoading(false));
     }
-  }, [id]);
+  }, [id, tenantId]);
 
   const handleToggleStatus = async () => {
     if (!campaign || !id) return;
     const newStatus = campaign.status === 'active' ? 'paused' : 'active';
-    await updateCampaign(id, { status: newStatus }, 'admin', 'Admin');
+    await updateCampaign(tenantId, id, { status: newStatus }, 'admin', 'Admin');
     setCampaign(prev => prev ? { ...prev, status: newStatus } : null);
   };
 
@@ -120,8 +125,8 @@ const CampaignDetailPage: React.FC = () => {
     if (!id || !noteText.trim()) return;
     setAddingNote(true);
     try {
-      await addNoteToCampaign(id, noteText.trim(), 'admin', 'Admin');
-      const updated = await getCampaign(id);
+      await addNoteToCampaign(tenantId, id, noteText.trim(), 'admin', 'Admin');
+      const updated = await getCampaign(tenantId, id);
       setCampaign(updated);
       setNoteText('');
     } finally {
@@ -135,8 +140,8 @@ const CampaignDetailPage: React.FC = () => {
     if (level === 'campaign' || !campaign?.projectId || !campaign?.platformCampaignIds?.meta) return;
     setSyncingLevel(true);
     try {
-      await syncPerformanceLevel(campaign.projectId, campaign.id, campaign.platformCampaignIds.meta, level);
-      const snaps = await getPerformanceSnapshots(campaign.id);
+      await syncPerformanceLevel(tenantId, campaign.projectId, campaign.id, campaign.platformCampaignIds.meta, level, campaign.platformAccountId);
+      const snaps = await getPerformanceSnapshots(tenantId, campaign.id);
       setSnapshots(snaps);
     } catch (err) {
       console.error('Level sync failed:', err);

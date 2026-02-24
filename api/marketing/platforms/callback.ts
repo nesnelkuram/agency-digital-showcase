@@ -109,14 +109,21 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
       console.log(`[platform-callback] Successfully connected Meta account: ${userName}`);
 
       // 4. Fetch all ad accounts from Business Manager
-      const adAccountsRes = await fetch(
-        `${META_API_BASE}/me/adaccounts?access_token=${accessToken}&fields=name,account_id,account_status&limit=100`
-      );
+      const [adAccountsRes, pagesRes] = await Promise.all([
+        fetch(`${META_API_BASE}/me/adaccounts?access_token=${accessToken}&fields=name,account_id,account_status&limit=100`),
+        fetch(`${META_API_BASE}/me/accounts?access_token=${accessToken}&fields=id,name,access_token&limit=50`),
+      ]);
       const adAccountsData = await adAccountsRes.json();
       const adAccounts: Array<{ id: string; name: string; account_id: string; account_status: number }> =
         adAccountsData.data || [];
 
-      console.log(`[platform-callback] Found ${adAccounts.length} Meta ad account(s)`);
+      // Extract first page ID for ad creation (required for object_story_spec)
+      const pagesData = await pagesRes.json();
+      const pages: Array<{ id: string; name: string; access_token?: string }> = pagesData.data || [];
+      const firstPageId = pages[0]?.id || null;
+      const firstPageName = pages[0]?.name || null;
+
+      console.log(`[platform-callback] Found ${adAccounts.length} Meta ad account(s), ${pages.length} page(s)${firstPageId ? ` (primary: ${firstPageName})` : ''}`);
 
       if (adAccounts.length === 0) {
         return res.redirect(
@@ -139,6 +146,7 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
             adAccountId: singleAccount.account_id,
             userId,
             userName,
+            ...(firstPageId ? { pageId: firstPageId, pageName: firstPageName } : {}),
           },
         }));
 
@@ -154,6 +162,7 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
         userId,
         permissions: ['ads_management', 'ads_read', 'business_management'],
         ...(projectId ? { projectId } : {}),
+        ...(firstPageId ? { pageId: firstPageId, pageName: firstPageName } : {}),
         accounts: adAccounts.map(acc => ({
           id: acc.account_id,
           name: acc.name || acc.account_id,

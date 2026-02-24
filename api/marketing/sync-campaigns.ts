@@ -32,7 +32,7 @@ const STATUS_MAP: Record<string, string> = {
   DELETED: 'completed',
   ARCHIVED: 'completed',
   IN_PROCESS: 'draft',
-  WITH_ISSUES: 'active',
+  WITH_ISSUES: 'issues',
 };
 
 // Map Meta effective_status to internal lowercase format
@@ -82,17 +82,23 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
 
     console.log(`[sync-campaigns] Fetching campaigns for ${accountId}`);
 
-    // 1. Fetch campaigns from Meta
-    const campaignsUrl = `${META_API_BASE}/${accountId}/campaigns?access_token=${accessToken}&fields=id,name,objective,status,effective_status,buying_type,spend_cap,bid_strategy,special_ad_categories,budget_remaining,daily_budget,lifetime_budget,start_time,stop_time,created_time,updated_time&limit=50`;
+    // 1. Fetch campaigns from Meta (with pagination)
+    const campaignFields = 'id,name,objective,status,effective_status,configured_status,buying_type,spend_cap,bid_strategy,special_ad_categories,budget_remaining,daily_budget,lifetime_budget,start_time,stop_time,created_time,updated_time,issues_info,recommendations,pacing_type,promoted_object';
+    let campaignsNextUrl: string | null = `${META_API_BASE}/${accountId}/campaigns?access_token=${accessToken}&fields=${campaignFields}&limit=100`;
+    const metaCampaigns: any[] = [];
 
-    const campaignsRes = await fetch(campaignsUrl);
-    const campaignsData = await campaignsRes.json();
+    while (campaignsNextUrl) {
+      const campaignsRes = await fetch(campaignsNextUrl);
+      const campaignsData = await campaignsRes.json();
 
-    if (campaignsData.error) {
-      throw new Error(`Meta API error: ${campaignsData.error.message}`);
+      if (campaignsData.error) {
+        throw new Error(`Meta API error: ${campaignsData.error.message}`);
+      }
+
+      metaCampaigns.push(...(campaignsData.data || []));
+      campaignsNextUrl = campaignsData.paging?.next || null;
     }
 
-    const metaCampaigns = campaignsData.data || [];
     console.log(`[sync-campaigns] Found ${metaCampaigns.length} campaigns`);
 
     // 2. For each campaign, fetch lifetime insights
@@ -108,7 +114,7 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
         // Fetch insights for this campaign
         let insights = null;
         try {
-          const insightsUrl = `${META_API_BASE}/${mc.id}/insights?access_token=${accessToken}&fields=impressions,reach,clicks,ctr,spend,actions,cost_per_action_type,cpc,cpm,frequency,unique_clicks,unique_ctr,cost_per_unique_click,quality_ranking,engagement_rate_ranking,conversion_rate_ranking&time_range=${encodeURIComponent(timeRange)}`;
+          const insightsUrl = `${META_API_BASE}/${mc.id}/insights?access_token=${accessToken}&fields=impressions,reach,clicks,ctr,spend,actions,cost_per_action_type,cpc,cpm,frequency,unique_clicks,unique_ctr,cost_per_unique_click,quality_ranking,engagement_rate_ranking,conversion_rate_ranking,inline_link_clicks,outbound_clicks,purchase_roas,video_thruplay_watched_actions&time_range=${encodeURIComponent(timeRange)}`;
           const insightsRes = await fetch(insightsUrl);
           const insightsData = await insightsRes.json();
           insights = insightsData.data?.[0] || null;
@@ -132,14 +138,26 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
         if (deepSync) {
           try {
             console.log(`[sync-campaigns] Fetching ad sets for campaign ${mc.id}`);
-            const adSetsUrl = `${META_API_BASE}/${mc.id}/adsets?access_token=${accessToken}&fields=id,name,status,effective_status,daily_budget,lifetime_budget,bid_strategy,targeting,start_time,end_time,optimization_goal,billing_event,pacing_type,attribution_spec,promoted_object,frequency_control_specs,daily_min_spend_target,daily_spend_cap&limit=100`;
-            const adSetsRes = await fetch(adSetsUrl);
-            const adSetsData = await adSetsRes.json();
+            const adSetFields = 'id,name,status,effective_status,daily_budget,lifetime_budget,bid_strategy,targeting,start_time,end_time,optimization_goal,billing_event,pacing_type,attribution_spec,promoted_object,frequency_control_specs,daily_min_spend_target,daily_spend_cap,learning_stage_info,destination_type,is_dynamic_creative';
+            let adSetsNextUrl: string | null = `${META_API_BASE}/${mc.id}/adsets?access_token=${accessToken}&fields=${adSetFields}&limit=100`;
+            const rawAdSets: any[] = [];
+            let adSetsError = false;
 
-            if (adSetsData.error) {
-              console.warn(`[sync-campaigns] Meta API error fetching ad sets for campaign ${mc.id}: ${adSetsData.error.message}`);
-            } else {
-              const rawAdSets = adSetsData.data || [];
+            while (adSetsNextUrl) {
+              const adSetsRes = await fetch(adSetsNextUrl);
+              const adSetsData = await adSetsRes.json();
+
+              if (adSetsData.error) {
+                console.warn(`[sync-campaigns] Meta API error fetching ad sets for campaign ${mc.id}: ${adSetsData.error.message}`);
+                adSetsError = true;
+                break;
+              }
+
+              rawAdSets.push(...(adSetsData.data || []));
+              adSetsNextUrl = adSetsData.paging?.next || null;
+            }
+
+            if (!adSetsError) {
 
               // For each ad set, fetch its ads (in parallel)
               adSets = await Promise.all(
@@ -147,14 +165,20 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
                   let ads: any[] = [];
                   try {
                     console.log(`[sync-campaigns] Fetching ads for ad set ${as.id}`);
-                    const adsUrl = `${META_API_BASE}/${as.id}/ads?access_token=${accessToken}&fields=id,name,status,effective_status,preview_shareable_link,recommendations,creative{id,name,title,body,image_url,image_hash,video_id,thumbnail_url,object_story_spec}&limit=100`;
-                    const adsRes = await fetch(adsUrl);
-                    const adsData = await adsRes.json();
+                    const adFields = 'id,name,status,effective_status,preview_shareable_link,recommendations,creative{id,name,title,body,image_url,image_hash,video_id,thumbnail_url,object_story_spec},ad_review_feedback,issues_info';
+                    let adsNextUrl: string | null = `${META_API_BASE}/${as.id}/ads?access_token=${accessToken}&fields=${adFields}&limit=100`;
 
-                    if (adsData.error) {
-                      console.warn(`[sync-campaigns] Meta API error fetching ads for ad set ${as.id}: ${adsData.error.message}`);
-                    } else {
-                      ads = adsData.data || [];
+                    while (adsNextUrl) {
+                      const adsRes = await fetch(adsNextUrl);
+                      const adsData = await adsRes.json();
+
+                      if (adsData.error) {
+                        console.warn(`[sync-campaigns] Meta API error fetching ads for ad set ${as.id}: ${adsData.error.message}`);
+                        break;
+                      }
+
+                      ads.push(...(adsData.data || []));
+                      adsNextUrl = adsData.paging?.next || null;
                     }
                   } catch (adErr: any) {
                     console.warn(`[sync-campaigns] Failed to fetch ads for ad set ${as.id}:`, adErr.message);
@@ -183,6 +207,10 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
                       startDate: as.start_time || '',
                       endDate: as.end_time || undefined,
                     },
+                    // New Meta fields
+                    learningStageInfo: as.learning_stage_info,
+                    destinationType: as.destination_type,
+                    isDynamicCreative: as.is_dynamic_creative,
                     ads: ads.map((ad: any) => ({
                       metaAdId: ad.id,
                       name: ad.name,
@@ -205,6 +233,9 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
                         metaImageHash: ad.creative?.image_hash,
                         metaPreviewUrl: undefined,
                       },
+                      // New Meta fields
+                      adReviewFeedback: ad.ad_review_feedback,
+                      issuesInfo: ad.issues_info,
                     })),
                   };
                 })
@@ -221,10 +252,19 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
           objective,
           status,
           effectiveStatus: EFFECTIVE_STATUS_MAP[mc.effective_status] || mc.effective_status?.toLowerCase(),
+          configuredStatus: mc.configured_status?.toLowerCase(),
           buyingType: mc.buying_type,
           spendCap: mc.spend_cap ? parseInt(mc.spend_cap) / 100 : undefined,
           budgetRemaining: mc.budget_remaining ? parseInt(mc.budget_remaining) / 100 : undefined,
           specialAdCategories: mc.special_ad_categories,
+          dailyBudget,
+          lifetimeBudget,
+          issuesInfo: mc.issues_info,
+          recommendations: mc.recommendations?.data,
+          pacingType: mc.pacing_type,
+          promotedObject: mc.promoted_object,
+          metaCreatedTime: mc.created_time,
+          metaUpdatedTime: mc.updated_time,
           platforms: ['meta'],
           budget: {
             totalBudget,
@@ -243,7 +283,10 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
             totalConversions: conversions,
             averageCTR: parseFloat(insights.ctr || '0'),
             averageCPA: cpa,
-            overallROAS: 0, // Requires revenue tracking
+            overallROAS: extractRoas(insights.purchase_roas),
+            inlineLinkClicks: parseInt(insights.inline_link_clicks || '0'),
+            videoThruplay: extractVideoThruplay(insights.video_thruplay_watched_actions),
+            actionBreakdown: parseActionBreakdown(insights.actions),
             platformBreakdown: {
               meta: {
                 spend: parseFloat(insights.spend || '0'),
@@ -282,6 +325,29 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
     });
   }
 });
+
+function extractRoas(purchaseRoas: any[] | undefined): number {
+  if (!purchaseRoas || purchaseRoas.length === 0) return 0;
+  const entry = purchaseRoas.find((r: any) => r.action_type === 'omni_purchase' || r.action_type === 'purchase');
+  return entry ? parseFloat(entry.value || '0') : 0;
+}
+
+function extractVideoThruplay(videoActions: any[] | undefined): number {
+  if (!videoActions || videoActions.length === 0) return 0;
+  const entry = videoActions.find((a: any) => a.action_type === 'video_view');
+  return entry ? parseInt(entry.value || '0') : 0;
+}
+
+function parseActionBreakdown(actions: any[] | undefined): Record<string, number> | undefined {
+  if (!actions || actions.length === 0) return undefined;
+  const breakdown: Record<string, number> = {};
+  for (const action of actions) {
+    if (action.action_type && action.value) {
+      breakdown[action.action_type] = parseInt(action.value || '0');
+    }
+  }
+  return Object.keys(breakdown).length > 0 ? breakdown : undefined;
+}
 
 function extractConversions(actions: any[]): number {
   if (!actions) return 0;

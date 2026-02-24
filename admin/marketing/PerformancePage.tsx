@@ -22,6 +22,7 @@ import {
   getPerformanceSnapshots,
 } from '@/shared/services/marketingService';
 import { useProjectScope } from '@/shared/hooks/useProjectScope';
+import { useTenantId } from '@/shared/hooks/useTenant';
 import ProjectBreadcrumb from '@/admin/projects/components/ProjectBreadcrumb';
 import { aggregateByDate } from '@/shared/utils/performanceAggregator';
 import SpendTrendChart from './components/charts/SpendTrendChart';
@@ -29,6 +30,7 @@ import ROASTrendChart from './components/charts/ROASTrendChart';
 import FunnelChart from './components/charts/FunnelChart';
 
 const PerformancePage: React.FC = () => {
+  const tenantId = useTenantId();
   const { projectId, basePath, isProjectScoped } = useProjectScope();
   const [stats, setStats] = useState<MarketingDashboardStats | null>(null);
   const [campaigns, setCampaigns] = useState<CampaignSummary[]>([]);
@@ -93,7 +95,7 @@ const PerformancePage: React.FC = () => {
     setSyncMessage('Kampanyalar senkronize ediliyor...');
     try {
       // 1. Sync campaigns from Meta (includes aggregated performance)
-      const campResult = await syncCampaignsFromMeta(projectId);
+      const campResult = await syncCampaignsFromMeta(tenantId, projectId);
       if (campResult.error) {
         setSyncMessage(`Hata: ${campResult.error}`);
         return;
@@ -102,7 +104,7 @@ const PerformancePage: React.FC = () => {
       setSyncMessage(`${campResult.synced} kampanya senkronize edildi. Gunluk veriler aliniyor...`);
 
       // 2. Sync daily performance snapshots
-      const accounts = await getPlatformAccounts(projectId);
+      const accounts = await getPlatformAccounts(tenantId, projectId);
       const metaAccount = accounts.find(a => a.platform === 'meta' && a.status === 'connected');
       if (metaAccount?.metadata?.accessToken) {
         // Get campaigns that have Meta IDs

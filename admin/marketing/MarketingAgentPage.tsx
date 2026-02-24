@@ -11,9 +11,27 @@ import {
   LayoutDashboard,
   CheckCircle,
   RefreshCw,
+  Globe,
+  Target,
+  Users,
+  DollarSign,
+  Calendar,
+  BarChart3,
+  AlertCircle,
+  ExternalLink,
+  Upload,
+  Pause,
+  Play,
+  TrendingUp,
+  XCircle,
+  Clock,
+  Trash2,
+  Image,
+  Crosshair,
 } from 'lucide-react';
 import { authenticatedFetch } from '@/lib/firebase/apiClient';
 import { useProjectScope } from '@/shared/hooks/useProjectScope';
+import type { MarketingPlanData, PendingPlatformAction, PlatformActionType } from '@/shared/types/marketing';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -30,11 +48,352 @@ interface ActionResult {
 }
 
 const SUGGESTED_PROMPTS = [
+  'Merhaba, bir pazarlama planı oluşturmak istiyorum',
   'TOFU kampanyası oluştur, 28K TL awareness Meta',
-  'Mevcut kampanyaları listele ve performansı özetle',
   'MOFU retargeting kampanyası öner, 21K TL bütçe',
   'BOFU dönüşüm kampanyası oluştur Instagram ve Facebook',
 ];
+
+// ============================================
+// Marketing Plan Card Component
+// ============================================
+
+interface MarketingPlanCardProps {
+  planId: string;
+  planData: MarketingPlanData;
+  onPublish: () => void;
+  publishing: boolean;
+  publishResult: { success: boolean; metaResults?: Record<string, any>; errors?: any[] } | null;
+}
+
+const MarketingPlanCard: React.FC<MarketingPlanCardProps> = ({
+  planId,
+  planData,
+  onPublish,
+  publishing,
+  publishResult,
+}) => {
+  const [expanded, setExpanded] = useState(false);
+  const hasMetaPlatform = planData.platforms?.includes('meta');
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="mt-4 rounded-2xl bg-white border border-indigo-100 shadow-sm overflow-hidden"
+    >
+      {/* Plan Header */}
+      <div className="px-5 py-4 bg-gradient-to-r from-indigo-50 to-purple-50 border-b border-indigo-100">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center flex-shrink-0">
+              <BarChart3 className="w-4.5 h-4.5 text-white" />
+            </div>
+            <div>
+              <p className="text-xs font-commons font-medium text-indigo-500 uppercase tracking-wide mb-0.5">Pazarlama Planı Hazır</p>
+              <h3 className="text-base font-commons font-bold text-[#171717]">{planData.name}</h3>
+              <p className="text-xs font-commons text-neutral-500">{planData.brand?.name} · {planData.brand?.industry}</p>
+            </div>
+          </div>
+          {hasMetaPlatform && !publishResult && (
+            <button
+              onClick={onPublish}
+              disabled={publishing}
+              className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-neutral-200 disabled:text-neutral-400 text-white font-commons text-sm font-medium transition-all"
+            >
+              {publishing ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  Yayınlanıyor...
+                </>
+              ) : (
+                <>
+                  <Globe className="w-3.5 h-3.5" />
+                  Meta'da Yayınla
+                </>
+              )}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Summary Row */}
+      <div className="px-5 py-3 grid grid-cols-2 sm:grid-cols-4 gap-3 border-b border-neutral-100">
+        <div className="flex items-center gap-2">
+          <DollarSign className="w-4 h-4 text-neutral-400 flex-shrink-0" />
+          <div>
+            <p className="text-xs text-neutral-400 font-commons">Bütçe</p>
+            <p className="text-sm font-commons font-semibold text-[#171717]">
+              {planData.budget?.total?.toLocaleString('tr-TR')} {planData.budget?.currency}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Target className="w-4 h-4 text-neutral-400 flex-shrink-0" />
+          <div>
+            <p className="text-xs text-neutral-400 font-commons">Hedef</p>
+            <p className="text-sm font-commons font-semibold text-[#171717] capitalize">
+              {planData.objectives?.join(', ')}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Users className="w-4 h-4 text-neutral-400 flex-shrink-0" />
+          <div>
+            <p className="text-xs text-neutral-400 font-commons">Kitle</p>
+            <p className="text-sm font-commons font-semibold text-[#171717]">
+              {planData.audience?.ageMin}–{planData.audience?.ageMax} yaş
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Calendar className="w-4 h-4 text-neutral-400 flex-shrink-0" />
+          <div>
+            <p className="text-xs text-neutral-400 font-commons">Süre</p>
+            <p className="text-sm font-commons font-semibold text-[#171717]">
+              {planData.timeline?.startDate} – {planData.timeline?.endDate}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Campaigns */}
+      <div className="px-5 py-3">
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="flex items-center gap-1.5 text-sm font-commons font-medium text-indigo-600 hover:text-indigo-800 transition-colors mb-2"
+        >
+          <ChevronRight className={`w-4 h-4 transition-transform ${expanded ? 'rotate-90' : ''}`} />
+          {planData.campaigns?.length || 0} Kampanya · {planData.campaigns?.reduce((s, c: any) => s + (c.adSets?.length || 0), 0)} Reklam Seti
+        </button>
+
+        <AnimatePresence>
+          {expanded && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="space-y-3 overflow-hidden"
+            >
+              {planData.campaigns?.map((campaign: any, ci: number) => (
+                <div key={ci} className="rounded-xl border border-neutral-100 bg-neutral-50 p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <p className="text-sm font-commons font-semibold text-[#171717]">{campaign.name}</p>
+                      <p className="text-xs font-commons text-neutral-500 capitalize">
+                        {campaign.platform} · {campaign.objective} · {campaign.budget?.toLocaleString('tr-TR')} TL
+                      </p>
+                    </div>
+                    {publishResult?.metaResults?.[campaign.name] && (
+                      <div className="flex items-center gap-1 px-2 py-1 bg-green-50 border border-green-200 rounded-lg">
+                        <CheckCircle className="w-3.5 h-3.5 text-green-600" />
+                        <span className="text-xs font-commons text-green-700">Yayınlandı</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    {campaign.adSets?.map((adSet: any, ai: number) => (
+                      <div key={ai} className="flex items-start gap-2 text-xs font-commons text-neutral-600 pl-2 border-l-2 border-neutral-200">
+                        <div>
+                          <span className="font-medium">{adSet.name}</span>
+                          <span className="text-neutral-400"> · {adSet.adFormat} · {adSet.dailyBudget?.toLocaleString('tr-TR')} TL/gün</span>
+                          {adSet.creativeNotes && (
+                            <p className="text-neutral-400 mt-0.5">{adSet.creativeNotes}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* KPIs */}
+      {planData.kpis && (
+        <div className="px-5 py-3 bg-neutral-50 border-t border-neutral-100 flex items-center gap-6 text-xs font-commons text-neutral-500">
+          <span>Hedef Gösterim: <strong className="text-neutral-700">{planData.kpis.impressions?.toLocaleString('tr-TR')}</strong></span>
+          <span>Tıklama: <strong className="text-neutral-700">{planData.kpis.clicks?.toLocaleString('tr-TR')}</strong></span>
+          <span>Dönüşüm: <strong className="text-neutral-700">{planData.kpis.conversions?.toLocaleString('tr-TR')}</strong></span>
+        </div>
+      )}
+
+      {/* Publish Result */}
+      {publishResult && (
+        <div className={`px-5 py-3 border-t ${publishResult.success ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'}`}>
+          {publishResult.success ? (
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-commons font-medium text-green-800">
+                  {Object.keys(publishResult.metaResults || {}).length} kampanya Meta'da oluşturuldu (PAUSED)
+                </p>
+                <p className="text-xs font-commons text-green-600 mt-0.5">
+                  Meta Business Manager'da kampanyaları aktif hale getirebilirsiniz.
+                </p>
+              </div>
+              <a
+                href="https://business.facebook.com/adsmanager"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs font-commons hover:bg-green-700 transition-colors"
+              >
+                <ExternalLink className="w-3 h-3" />
+                Ads Manager
+              </a>
+            </div>
+          ) : (
+            <div className="flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-commons font-medium text-red-800">Yayınlama hatası</p>
+                {publishResult.errors?.map((e: any, i: number) => (
+                  <p key={i} className="text-xs font-commons text-red-600 mt-0.5">{e.campaign}: {e.error}</p>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </motion.div>
+  );
+};
+
+// ============================================
+// Pending Action Card Component
+// ============================================
+
+const ACTION_ICONS: Record<PlatformActionType, React.FC<{ className?: string }>> = {
+  publish_plan: Upload,
+  pause_campaign: Pause,
+  resume_campaign: Play,
+  delete_campaign: Trash2,
+  update_meta_budget: DollarSign,
+  update_campaign_budget: DollarSign,
+  create_meta_ad: Target,
+  upload_image: Image,
+  pause_adset: Pause,
+  resume_adset: Play,
+  update_adset_targeting: Crosshair,
+  fetch_performance: TrendingUp,
+};
+
+const ACTION_TYPE_LABELS: Record<PlatformActionType, string> = {
+  publish_plan: 'Plan Yayinla',
+  pause_campaign: 'Kampanya Duraklat',
+  resume_campaign: 'Kampanya Devam',
+  delete_campaign: 'Kampanya Sil',
+  update_meta_budget: 'AdSet Butce',
+  update_campaign_budget: 'Kampanya Butce',
+  create_meta_ad: 'Reklam Olustur',
+  upload_image: 'Gorsel Yukle',
+  pause_adset: 'AdSet Duraklat',
+  resume_adset: 'AdSet Devam',
+  update_adset_targeting: 'Hedefleme',
+  fetch_performance: 'Performans',
+};
+
+interface PendingActionCardProps {
+  action: PendingPlatformAction;
+  onDecision: (actionId: string, decision: 'approve' | 'reject') => void;
+  executing: boolean;
+}
+
+const PendingActionCard: React.FC<PendingActionCardProps> = ({ action, onDecision, executing }) => {
+  const Icon = ACTION_ICONS[action.type] || Target;
+  const isResolved = action.status !== 'pending_approval';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`my-2 rounded-xl border p-3 ${
+        action.status === 'completed'
+          ? 'bg-green-50 border-green-200'
+          : action.status === 'failed'
+          ? 'bg-red-50 border-red-200'
+          : action.status === 'rejected'
+          ? 'bg-neutral-50 border-neutral-200'
+          : action.status === 'executing'
+          ? 'bg-blue-50 border-blue-200'
+          : 'bg-amber-50 border-amber-200'
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+          action.status === 'completed' ? 'bg-green-100' :
+          action.status === 'failed' ? 'bg-red-100' :
+          action.status === 'rejected' ? 'bg-neutral-100' :
+          'bg-amber-100'
+        }`}>
+          <Icon className={`w-4 h-4 ${
+            action.status === 'completed' ? 'text-green-600' :
+            action.status === 'failed' ? 'text-red-600' :
+            action.status === 'rejected' ? 'text-neutral-500' :
+            'text-amber-600'
+          }`} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className="text-xs font-commons font-semibold uppercase tracking-wide text-amber-600">
+              {ACTION_TYPE_LABELS[action.type] || action.type}
+            </span>
+            {action.status === 'completed' && (
+              <span className="flex items-center gap-1 text-xs font-commons text-green-600">
+                <CheckCircle className="w-3 h-3" /> Tamamlandi
+              </span>
+            )}
+            {action.status === 'failed' && (
+              <span className="flex items-center gap-1 text-xs font-commons text-red-600">
+                <AlertCircle className="w-3 h-3" /> Basarisiz
+              </span>
+            )}
+            {action.status === 'rejected' && (
+              <span className="flex items-center gap-1 text-xs font-commons text-neutral-500">
+                <XCircle className="w-3 h-3" /> Reddedildi
+              </span>
+            )}
+            {action.status === 'executing' && (
+              <span className="flex items-center gap-1 text-xs font-commons text-blue-600">
+                <Loader2 className="w-3 h-3 animate-spin" /> Yurutuluyor
+              </span>
+            )}
+          </div>
+          {action.description && (
+            <p className="text-sm font-commons text-[#171717] mb-1">{action.description}</p>
+          )}
+          {action.impact && (
+            <p className="text-xs font-commons text-neutral-500 mb-2">{action.impact}</p>
+          )}
+          {action.result?.error && (
+            <p className="text-xs font-commons text-red-600 mb-2">Hata: {action.result.error}</p>
+          )}
+          {!isResolved && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => onDecision(action.id, 'approve')}
+                disabled={executing}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 disabled:bg-neutral-300 text-white text-xs font-commons font-medium transition-colors"
+              >
+                {executing ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />}
+                Onayla
+              </button>
+              <button
+                onClick={() => onDecision(action.id, 'reject')}
+                disabled={executing}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 disabled:bg-neutral-50 text-neutral-600 text-xs font-commons font-medium transition-colors"
+              >
+                Reddet
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+};
 
 const MarketingAgentPage: React.FC = () => {
   const { projectId, basePath } = useProjectScope();
@@ -50,6 +409,15 @@ const MarketingAgentPage: React.FC = () => {
   const [strategyText, setStrategyText] = useState('');
   const [savedStrategy, setSavedStrategy] = useState('');
   const [savingStrategy, setSavingStrategy] = useState(false);
+
+  // Marketing plan state
+  const [currentPlan, setCurrentPlan] = useState<{ planId: string; planData: MarketingPlanData } | null>(null);
+  const [publishing, setPublishing] = useState(false);
+  const [publishResult, setPublishResult] = useState<{ success: boolean; metaResults?: Record<string, any>; errors?: any[] } | null>(null);
+
+  // Pending platform actions
+  const [pendingActions, setPendingActions] = useState<PendingPlatformAction[]>([]);
+  const [executingActionId, setExecutingActionId] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -125,6 +493,20 @@ const MarketingAgentPage: React.FC = () => {
         timestamp: Date.now(),
       };
       setMessages((prev) => [...prev, assistantMsg]);
+
+      // Check for marketing plan in action results
+      const planResult = (data.results || []).find(
+        (r: ActionResult) => r.type === 'marketing_plan_created' && r.success && r.data?.planId
+      );
+      if (planResult) {
+        setCurrentPlan({ planId: planResult.data.planId, planData: planResult.data.planData });
+        setPublishResult(null);
+      }
+
+      // Collect new pending actions
+      if (data.pendingActions && data.pendingActions.length > 0) {
+        setPendingActions((prev) => [...prev, ...data.pendingActions]);
+      }
     } catch (err: any) {
       setError(err.message || 'İstek başarısız');
     } finally {
@@ -149,6 +531,77 @@ const MarketingAgentPage: React.FC = () => {
     setSessionId(null);
     await startSession(strategyText);
     setSavingStrategy(false);
+  };
+
+  const handlePublishPlan = async () => {
+    if (!currentPlan || publishing) return;
+    setPublishing(true);
+    setPublishResult(null);
+    try {
+      const res = await authenticatedFetch('/api/marketing/publish-plan', {
+        method: 'POST',
+        body: JSON.stringify({ planId: currentPlan.planId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || `Yayınlama başarısız (${res.status})`);
+      }
+      setPublishResult({
+        success: data.success,
+        metaResults: data.metaResults,
+        errors: data.errors,
+      });
+    } catch (err: any) {
+      setPublishResult({ success: false, errors: [{ campaign: 'Genel', error: err.message }] });
+    } finally {
+      setPublishing(false);
+    }
+  };
+
+  const handleActionDecision = async (actionId: string, decision: 'approve' | 'reject') => {
+    if (!sessionId || executingActionId) return;
+    setExecutingActionId(actionId);
+
+    // Optimistically update to executing / rejected
+    setPendingActions((prev) =>
+      prev.map((a) => a.id === actionId ? { ...a, status: decision === 'approve' ? 'executing' : 'rejected' } as PendingPlatformAction : a)
+    );
+
+    try {
+      const res = await authenticatedFetch('/api/marketing/agent-execute-action', {
+        method: 'POST',
+        body: JSON.stringify({ sessionId, actionId, decision }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || `Istek basarisiz (${res.status})`);
+      }
+
+      // Update action status from server response
+      setPendingActions((prev) =>
+        prev.map((a) =>
+          a.id === actionId ? { ...a, status: data.status, result: data.result, resolvedAt: Date.now() } as PendingPlatformAction : a
+        )
+      );
+
+      // Add result message to chat
+      if (data.message) {
+        setMessages((prev) => [...prev, {
+          role: 'assistant',
+          content: data.message,
+          timestamp: Date.now(),
+        }]);
+      }
+    } catch (err: any) {
+      setPendingActions((prev) =>
+        prev.map((a) =>
+          a.id === actionId ? { ...a, status: 'failed', result: { error: err.message } } as PendingPlatformAction : a
+        )
+      );
+    } finally {
+      setExecutingActionId(null);
+    }
   };
 
   const proposalResults = messages
@@ -268,6 +721,20 @@ const MarketingAgentPage: React.FC = () => {
           </motion.div>
         ))}
 
+        {/* Pending Action Cards */}
+        {pendingActions.length > 0 && (
+          <div className="space-y-1">
+            {pendingActions.map((action) => (
+              <PendingActionCard
+                key={action.id}
+                action={action}
+                onDecision={handleActionDecision}
+                executing={executingActionId === action.id}
+              />
+            ))}
+          </div>
+        )}
+
         {loading && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -298,6 +765,19 @@ const MarketingAgentPage: React.FC = () => {
           {error}
         </div>
       )}
+
+      {/* Marketing Plan Card */}
+      <AnimatePresence>
+        {currentPlan && (
+          <MarketingPlanCard
+            planId={currentPlan.planId}
+            planData={currentPlan.planData as MarketingPlanData}
+            onPublish={handlePublishPlan}
+            publishing={publishing}
+            publishResult={publishResult}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Suggested Prompts (only when empty) */}
       {!starting && messages.length <= 1 && !loading && (
