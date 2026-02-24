@@ -288,7 +288,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         onClick={togglePlay}
         playsInline
         preload="metadata"
-        crossOrigin="anonymous"
       />
 
       {/* Buffering overlay */}

@@ -25,7 +25,7 @@ import {
   SAMPLE_CEKIM_GUNU_TEMPLATE,
   formatCurrency,
 } from '@/shared/types/pricing';
-import { ServiceCatalogEngine, getOrCalculateFixedCostsSummary } from '@/shared/services/pricing';
+import { ServiceCatalogEngine, getOrCalculateFixedCostsSummary, getPricingConfig } from '@/shared/services/pricing';
 import ServiceCard from './components/ServiceCard';
 import QuickQuoteModal from './components/QuickQuoteModal';
 import CartSidebar, { CartItem } from './components/CartSidebar';
@@ -50,8 +50,15 @@ const CatalogPage: React.FC = () => {
   const [quoteBillingPeriod, setQuoteBillingPeriod] = useState<BillingPeriod>(12);
   const [savingQuote, setSavingQuote] = useState(false);
 
-  // Cart state
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  // Cart state — localStorage'da kalıcı
+  const [cartItems, setCartItems] = useState<CartItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('pricing_cart');
+      return saved ? (JSON.parse(saved) as CartItem[]) : [];
+    } catch {
+      return [];
+    }
+  });
   const [cartOpen, setCartOpen] = useState(false);
   const [cartQuoteModalOpen, setCartQuoteModalOpen] = useState(false);
   const [cartClientName, setCartClientName] = useState('');
@@ -130,11 +137,14 @@ const CatalogPage: React.FC = () => {
         }));
 
         // Build live rates - get actual costs from Firestore
-        const fixedCostsSummary = await getOrCalculateFixedCostsSummary(db, true);
+        const [fixedCostsSummary, pricingConfig] = await Promise.all([
+          getOrCalculateFixedCostsSummary(db, true),
+          getPricingConfig(db),
+        ]);
         const dailyShopCost = fixedCostsSummary.dailyShopCost;
         const hourlyShopCost = fixedCostsSummary.hourlyShopCost;
 
-        engine.buildLiveRates(staff, equipment, dailyShopCost, hourlyShopCost);
+        engine.buildLiveRates(staff, equipment, dailyShopCost, hourlyShopCost, undefined, pricingConfig.overheadRate ?? 0.30);
         setRatesLoaded(true);
       } catch (err) {
         console.error('Error fetching catalog data:', err);
@@ -163,6 +173,11 @@ const CatalogPage: React.FC = () => {
 
     setCostResults(results);
   }, [ratesLoaded, templates, engine]);
+
+  // Sepeti localStorage'a kaydet
+  useEffect(() => {
+    localStorage.setItem('pricing_cart', JSON.stringify(cartItems));
+  }, [cartItems]);
 
   // Filtered templates
   const filteredTemplates = useMemo(() => {
@@ -358,19 +373,17 @@ const CatalogPage: React.FC = () => {
       const validUntilDate = new Date();
       validUntilDate.setDate(validUntilDate.getDate() + 30);
 
-      const serviceLines = cartItems.flatMap((item) =>
-        item.costResult.components.map((comp) => ({
-          name: `[${item.name}] ${comp.componentName}`,
-          componentId: comp.componentId,
-          quantity: comp.quantity * item.quantity,
-          unitCost: comp.unitCost,
-          totalCost: comp.totalCost * item.quantity,
-          laborCost: comp.laborCost,
-          equipmentCost: comp.equipmentCost,
-          overheadCost: comp.overheadCost,
-          manualCost: comp.manualCost,
-        }))
-      );
+      // Her sepet kalemi tek satır — component detayına değil, servis bazında
+      const serviceLines = cartItems.map((item) => ({
+        name: item.name,
+        quantity: item.quantity,
+        unitCost: item.costResult.totalCost,
+        totalCost: item.costResult.totalCost * item.quantity,
+        laborCost: (item.costResult.employeeLaborCost + item.costResult.ownerLaborCost + item.costResult.freelancerCost) * item.quantity,
+        equipmentCost: item.costResult.equipmentCost * item.quantity,
+        overheadCost: (item.costResult.overheadCost + item.costResult.autoOverheadCost) * item.quantity,
+        manualCost: item.costResult.manualCost * item.quantity,
+      }));
 
       const totalCost = cartItems.reduce(
         (sum, item) => sum + item.costResult.totalCost * item.quantity,

@@ -39,6 +39,7 @@ import {
 export class ServiceCatalogEngine {
   private config: PricingConfig;
   private liveRates: LiveRates | null = null;
+  private overheadRate: number = 0.30;
 
   constructor(config: Partial<PricingConfig> = {}) {
     this.config = { ...DEFAULT_PRICING_CONFIG, ...config };
@@ -56,8 +57,10 @@ export class ServiceCatalogEngine {
     equipment: Equipment[],
     dailyShopCost: number,
     hourlyShopCost: number,
-    monthlyShopCost?: number
+    monthlyShopCost?: number,
+    overheadRate?: number,
   ): LiveRates {
+    this.overheadRate = overheadRate ?? 0.30;
     const activeStaff = staff.filter(s => s.isActive);
     const activeEquipment = equipment.filter(e => e.isActive);
 
@@ -487,9 +490,10 @@ export class ServiceCatalogEngine {
       });
     });
 
-    // Calculate auto overhead: non-freelancer hours × hourlyShopCost
-    const hourlyShopCostUsed = this.liveRates.overhead.hourlyShopCost;
-    const autoOverheadCost = Math.round(nonFreelancerHours * hourlyShopCostUsed);
+    // Calculate auto overhead: direkt maliyet × overheadRate (%30 düz hesap)
+    const hourlyShopCostUsed = this.liveRates.overhead.hourlyShopCost; // geriye uyumluluk için
+    const directCostBeforeOverhead = totalLaborCost + totalEquipmentCost + totalOverheadCost + totalManualCost;
+    const autoOverheadCost = Math.round(directCostBeforeOverhead * this.overheadRate);
 
     // Auto overhead is always deductible (represents real fixed costs)
     totalDeductibleCost += autoOverheadCost;

@@ -8,7 +8,8 @@ import {
   Loader2,
   Filter,
 } from 'lucide-react';
-import { useNotifications, getNotificationIcon, NotificationType } from '@/shared/hooks/useNotifications';
+import { getNotificationIcon, NotificationType } from '@/shared/hooks/useNotifications';
+import { useNotificationsContext } from '@/admin/contexts/NotificationsContext';
 
 function getTimeAgo(date: Date): string {
   const diffMs = Date.now() - date.getTime();
@@ -35,7 +36,7 @@ type ReadFilter = 'all' | 'unread' | 'read';
 type TypeFilter = NotificationType | 'all';
 
 const NotificationsListPage: React.FC = () => {
-  const { notifications, unreadCount, loading, markAsRead, markAllAsRead } = useNotifications();
+  const { notifications, unreadCount, loading, markAsRead, markAllAsRead } = useNotificationsContext();
   const navigate = useNavigate();
   const [readFilter, setReadFilter] = useState<ReadFilter>('all');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');

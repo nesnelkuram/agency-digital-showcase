@@ -283,34 +283,48 @@ const TrainingPage: React.FC = () => {
   useEffect(() => {
     if (!db || !tenantId) { setLoading(false); return; }
 
-    const q = query(
-      collection(db, 'training_resources'),
-      where('tenantId', '==', tenantId),
-      orderBy('createdAt', 'desc')
-    );
+    // Defer subscription by one tick — prevents React 18 StrictMode's
+    // double-mount from creating a rapid subscribe/unsubscribe pair that
+    // corrupts the Firestore SDK's internal watch-stream state (ve=-1).
+    let cancelled = false;
+    let unsubFn: (() => void) | undefined;
 
-    const unsub = onSnapshot(q, (snap) => {
-      const items: TrainingResource[] = [];
-      snap.forEach((d) => {
-        const data = d.data();
-        items.push({
-          id: d.id,
-          type: data.type || 'document',
-          title: data.title || '',
-          description: data.description || '',
-          category: data.category || 'diger',
-          isRequired: data.isRequired ?? false,
-          durationMinutes: data.durationMinutes,
-          url: data.url || '#',
-          createdAt: data.createdAt?.toDate?.() || new Date(),
-          createdBy: data.createdBy || '',
+    const timer = setTimeout(() => {
+      if (cancelled) return;
+
+      const q = query(
+        collection(db, 'training_resources'),
+        where('tenantId', '==', tenantId),
+        orderBy('createdAt', 'desc')
+      );
+
+      unsubFn = onSnapshot(q, (snap) => {
+        const items: TrainingResource[] = [];
+        snap.forEach((d) => {
+          const data = d.data();
+          items.push({
+            id: d.id,
+            type: data.type || 'document',
+            title: data.title || '',
+            description: data.description || '',
+            category: data.category || 'diger',
+            isRequired: data.isRequired ?? false,
+            durationMinutes: data.durationMinutes,
+            url: data.url || '#',
+            createdAt: data.createdAt?.toDate?.() || new Date(),
+            createdBy: data.createdBy || '',
+          });
         });
-      });
-      setResources(items);
-      setLoading(false);
-    }, () => setLoading(false));
+        setResources(items);
+        setLoading(false);
+      }, () => setLoading(false));
+    }, 0);
 
-    return () => unsub();
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      unsubFn?.();
+    };
   }, [tenantId]);
 
   // Load user completions

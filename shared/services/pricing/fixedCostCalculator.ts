@@ -11,6 +11,8 @@ import type {
   SoftwareSubscription,
   MarketingCost,
   Equipment,
+  ServiceCategory,
+  PricingConfig,
 } from '@/shared/types/pricing';
 import { DEFAULT_PRICING_CONFIG } from '@/shared/types/pricing';
 
@@ -51,6 +53,20 @@ export interface FixedCostsSummary {
 // ============================================
 
 /**
+ * Bir gider kaleminin belirtilen servis kategorisine uygulanıp uygulanmadığını kontrol et
+ * - applyToCategories null veya boş ise: tüm kategorilere dahil
+ * - serviceCategory sağlanmamışsa: dahil (kategorisiz hesaplama)
+ */
+function matchesCategory(
+  item: { applyToCategories?: ServiceCategory[] | null },
+  serviceCategory?: ServiceCategory
+): boolean {
+  if (!serviceCategory) return true;
+  if (!item.applyToCategories || item.applyToCategories.length === 0) return true;
+  return item.applyToCategories.includes(serviceCategory);
+}
+
+/**
  * Ekipman için aylık maliyet hesapla
  * - Amortisman: purchasePrice / usefulLifeMonths
  * - Kiralama değeri: rentalValueDaily * workingDays
@@ -73,10 +89,12 @@ function calculateEquipmentMonthlyCost(
 // ============================================
 
 /**
- * Firestore'dan tüm sabit giderleri çek ve topla
+ * Firestore'dan sabit giderleri çek ve topla
+ * @param serviceCategory - Belirtilirse sadece o kategoriye ait giderleri dahil eder
  */
 export async function calculateFixedCostsSummary(
-  db: Firestore
+  db: Firestore,
+  serviceCategory?: ServiceCategory
 ): Promise<FixedCostsSummary> {
   const workingDays = DEFAULT_PRICING_CONFIG.workingDaysPerMonth;
   const workingHours = DEFAULT_PRICING_CONFIG.hoursPerDay;
@@ -89,10 +107,10 @@ export async function calculateFixedCostsSummary(
     getDocs(collection(db, 'pricing', 'data', 'equipment')),
   ]);
 
-  // Ofis giderleri - sadece aktif ve reel olanları al
+  // Ofis giderleri - sadece aktif, reel ve kategoriyle eşleşenleri al
   const officeItems = officeSnapshot.docs
     .map((d) => d.data() as OverheadCost)
-    .filter((item) => item.isActive && item.status === 'real');
+    .filter((item) => item.isActive && item.status === 'real' && matchesCategory(item, serviceCategory));
   const monthlyOffice = officeItems.reduce((sum, item) => sum + (item.monthlyCost || 0), 0);
   const deductibleOffice = officeItems
     .filter((item) => item.isDeductible !== false)
@@ -101,7 +119,7 @@ export async function calculateFixedCostsSummary(
   // Yazılım giderleri
   const softwareItems = softwareSnapshot.docs
     .map((d) => d.data() as SoftwareSubscription)
-    .filter((item) => item.isActive && item.status === 'real');
+    .filter((item) => item.isActive && item.status === 'real' && matchesCategory(item, serviceCategory));
   const monthlySoftware = softwareItems.reduce((sum, item) => sum + (item.monthlyCost || 0), 0);
   const deductibleSoftware = softwareItems
     .filter((item) => item.isDeductible !== false)
@@ -110,7 +128,7 @@ export async function calculateFixedCostsSummary(
   // Pazarlama giderleri
   const marketingItems = marketingSnapshot.docs
     .map((d) => d.data() as MarketingCost)
-    .filter((item) => item.isActive && item.status === 'real');
+    .filter((item) => item.isActive && item.status === 'real' && matchesCategory(item, serviceCategory));
   const monthlyMarketing = marketingItems.reduce((sum, item) => sum + (item.monthlyCost || 0), 0);
   const deductibleMarketing = marketingItems
     .filter((item) => item.isDeductible !== false)
@@ -119,7 +137,7 @@ export async function calculateFixedCostsSummary(
   // Ekipman amortismanı/kiralama değeri
   const equipmentItems = equipmentSnapshot.docs
     .map((d) => d.data() as Equipment)
-    .filter((item) => item.isActive && item.status === 'real');
+    .filter((item) => item.isActive && item.status === 'real' && matchesCategory(item, serviceCategory));
   const monthlyEquipment = equipmentItems.reduce(
     (sum, item) => sum + calculateEquipmentMonthlyCost(item, workingDays),
     0
@@ -206,14 +224,15 @@ export async function getCachedFixedCostsSummary(
 
 /**
  * Ana fonksiyon: Cache'den oku veya hesapla
- * Her zaman güncel veri döner
+ * serviceCategory belirtildiğinde cache bypass edilir (kategori-özgün hesaplama)
  */
 export async function getOrCalculateFixedCostsSummary(
   db: Firestore,
-  forceRecalculate: boolean = false
+  forceRecalculate: boolean = false,
+  serviceCategory?: ServiceCategory
 ): Promise<FixedCostsSummary> {
-  // Force recalculate değilse, cache'i kontrol et
-  if (!forceRecalculate) {
+  // Kategori belirtildiyse her zaman taze hesapla (cache kullanma)
+  if (!forceRecalculate && !serviceCategory) {
     const cached = await getCachedFixedCostsSummary(db);
     if (cached) {
       return cached;
@@ -221,14 +240,45 @@ export async function getOrCalculateFixedCostsSummary(
   }
 
   // Hesapla
-  const summary = await calculateFixedCostsSummary(db);
+  const summary = await calculateFixedCostsSummary(db, serviceCategory);
 
-  // Cache'e kaydet (arka planda, bekleme)
-  saveFixedCostsSummary(db, summary).catch((err) => {
-    console.error('Error saving fixed costs summary to cache:', err);
-  });
+  // Yalnızca kategorisiz hesaplamayı cache'e kaydet
+  if (!serviceCategory) {
+    saveFixedCostsSummary(db, summary).catch((err) => {
+      console.error('Error saving fixed costs summary to cache:', err);
+    });
+  }
 
   return summary;
+}
+
+// ============================================
+// PRICING CONFIG (Fiyatlama Yapılandırması)
+// ============================================
+
+/**
+ * Firestore'dan fiyatlama yapılandırmasını oku
+ */
+export async function getPricingConfig(db: Firestore): Promise<PricingConfig> {
+  try {
+    const snap = await getDoc(doc(db, 'pricing', 'settings'));
+    if (snap.exists()) {
+      return { ...DEFAULT_PRICING_CONFIG, ...snap.data() } as PricingConfig;
+    }
+  } catch {
+    // ignore
+  }
+  return { ...DEFAULT_PRICING_CONFIG };
+}
+
+/**
+ * Fiyatlama yapılandırmasını Firestore'a kaydet
+ */
+export async function savePricingConfig(db: Firestore, config: Partial<PricingConfig>): Promise<void> {
+  await setDoc(doc(db, 'pricing', 'settings'), {
+    ...config,
+    updatedAt: Timestamp.now(),
+  }, { merge: true });
 }
 
 /**

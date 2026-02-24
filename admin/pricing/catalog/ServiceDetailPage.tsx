@@ -24,7 +24,7 @@ import {
   SERVICE_CATEGORY_LABELS,
   formatCurrency,
 } from '@/shared/types/pricing';
-import { ServiceCatalogEngine, getOrCalculateFixedCostsSummary } from '@/shared/services/pricing';
+import { ServiceCatalogEngine, getOrCalculateFixedCostsSummary, getPricingConfig } from '@/shared/services/pricing';
 import CostBreakdownTable from './components/CostBreakdownTable';
 import QuickQuoteModal from './components/QuickQuoteModal';
 
@@ -98,11 +98,14 @@ const ServiceDetailPage: React.FC = () => {
         }));
 
         // Build live rates - get actual costs from Firestore
-        const fixedCostsSummary = await getOrCalculateFixedCostsSummary(db, true);
+        const [fixedCostsSummary, pricingConfig] = await Promise.all([
+          getOrCalculateFixedCostsSummary(db, true),
+          getPricingConfig(db),
+        ]);
         const dailyShopCost = fixedCostsSummary.dailyShopCost;
         const hourlyShopCost = fixedCostsSummary.hourlyShopCost;
 
-        engine.buildLiveRates(staff, equipment, dailyShopCost, hourlyShopCost);
+        engine.buildLiveRates(staff, equipment, dailyShopCost, hourlyShopCost, undefined, pricingConfig.overheadRate ?? 0.30);
         setRatesLoaded(true);
       } catch (err) {
         console.error('Error fetching service:', err);

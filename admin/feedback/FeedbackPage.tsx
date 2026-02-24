@@ -16,6 +16,9 @@ import {
   Filter,
   Loader2,
   FileText,
+  AlertCircle,
+  Globe,
+  Lock,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermission } from '@/shared/hooks/usePermission';
@@ -24,6 +27,7 @@ import { PERMISSIONS } from '@/lib/rbac/permissions';
 import {
   getFeedbackVideos,
   getFeedbackStats,
+  updateFeedbackVideo,
 } from '@/shared/services/feedbackService';
 import type {
   FeedbackVideoSummary,
@@ -48,6 +52,7 @@ const FeedbackPage: React.FC = () => {
 
   const [videos, setVideos] = useState<FeedbackVideoSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<FeedbackVideoFilters>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [showRecordModal, setShowRecordModal] = useState(false);
@@ -62,10 +67,16 @@ const FeedbackPage: React.FC = () => {
   const loadVideos = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       const result = await getFeedbackVideos(tenantId, filters, 24);
       setVideos(result.videos);
-    } catch (err) {
+    } catch (err: any) {
       console.error('[FeedbackPage] Error loading videos:', err);
+      if (err?.message?.includes('index')) {
+        setError('Firestore index oluşturuluyor, birkaç dakika sonra tekrar deneyin.');
+      } else {
+        setError('Videolar yüklenirken hata oluştu.');
+      }
     } finally {
       setLoading(false);
     }
@@ -96,6 +107,25 @@ const FeedbackPage: React.FC = () => {
     setFilters((prev) => ({
       ...prev,
       recordingMode: prev.recordingMode === mode ? undefined : mode,
+    }));
+  };
+
+  const handleTogglePublic = async (e: React.MouseEvent, video: FeedbackVideoSummary) => {
+    e.stopPropagation();
+    try {
+      await updateFeedbackVideo(tenantId, video.id, { isPublic: !video.isPublic });
+      setVideos((prev) =>
+        prev.map((v) => (v.id === video.id ? { ...v, isPublic: !v.isPublic } : v))
+      );
+    } catch (err) {
+      console.error('[FeedbackPage] Toggle public error:', err);
+    }
+  };
+
+  const handleFilterPublic = (value: boolean | undefined) => {
+    setFilters((prev) => ({
+      ...prev,
+      isPublic: prev.isPublic === value ? undefined : value,
     }));
   };
 
@@ -210,9 +240,42 @@ const FeedbackPage: React.FC = () => {
                 </button>
               );
             })}
+
+            <div className="w-px h-6 bg-neutral-200" />
+
+            <button
+              onClick={() => handleFilterPublic(true)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg font-commons text-xs font-medium transition-colors ${
+                filters.isPublic === true
+                  ? 'bg-green-100 text-green-700'
+                  : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+              }`}
+            >
+              <Globe className="w-3.5 h-3.5" />
+              Herkese Acik
+            </button>
+            <button
+              onClick={() => handleFilterPublic(false)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg font-commons text-xs font-medium transition-colors ${
+                filters.isPublic === false
+                  ? 'bg-amber-100 text-amber-700'
+                  : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+              }`}
+            >
+              <Lock className="w-3.5 h-3.5" />
+              Gizli
+            </button>
           </div>
         </div>
       </div>
+
+      {/* Error */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+          <p className="text-sm font-commons text-red-700">{error}</p>
+        </div>
+      )}
 
       {/* Video Grid */}
       {loading ? (
@@ -294,9 +357,26 @@ const FeedbackPage: React.FC = () => {
 
                 {/* Info */}
                 <div className="p-4">
-                  <h3 className="font-commons font-medium text-[#171717] text-sm truncate">
-                    {video.title}
-                  </h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-commons font-medium text-[#171717] text-sm truncate flex-1">
+                      {video.title}
+                    </h3>
+                    <button
+                      onClick={(e) => handleTogglePublic(e, video)}
+                      className={`shrink-0 p-1 rounded-md transition-colors ${
+                        video.isPublic
+                          ? 'text-green-600 hover:bg-green-50'
+                          : 'text-neutral-400 hover:bg-neutral-100'
+                      }`}
+                      title={video.isPublic ? 'Herkese acik — gizli yap' : 'Gizli — herkese acik yap'}
+                    >
+                      {video.isPublic ? (
+                        <Globe className="w-4 h-4" />
+                      ) : (
+                        <Lock className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
                   <p className="text-xs font-commons text-neutral-500 mt-1">
                     {video.createdByName}
                   </p>
@@ -313,20 +393,29 @@ const FeedbackPage: React.FC = () => {
                       </span>
                     </div>
 
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleCopyLink(video.shareToken, video.id);
-                      }}
-                      className="p-1.5 rounded-lg hover:bg-neutral-100 transition-colors"
-                      title="Linki kopyala"
-                    >
-                      {copiedId === video.id ? (
-                        <Check className="w-4 h-4 text-green-600" />
-                      ) : (
-                        <Copy className="w-4 h-4 text-neutral-400" />
-                      )}
-                    </button>
+                    {video.isPublic ? (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCopyLink(video.shareToken, video.id);
+                        }}
+                        className="p-1.5 rounded-lg hover:bg-neutral-100 transition-colors"
+                        title="Linki kopyala"
+                      >
+                        {copiedId === video.id ? (
+                          <Check className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <Copy className="w-4 h-4 text-neutral-400" />
+                        )}
+                      </button>
+                    ) : (
+                      <span
+                        className="p-1.5 rounded-lg cursor-default"
+                        title="Once herkese acik yapin"
+                      >
+                        <Copy className="w-4 h-4 text-neutral-200" />
+                      </span>
+                    )}
                   </div>
 
                   <p className="text-xs font-commons text-neutral-300 mt-2">

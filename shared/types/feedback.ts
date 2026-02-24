@@ -108,6 +108,7 @@ export interface FeedbackVideoFilters {
   projectId?: string;
   createdBy?: string;
   status?: FeedbackVideoStatus;
+  isPublic?: boolean;
 }
 
 export interface FeedbackComment {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -53,7 +53,7 @@ import {
   formatCurrency,
 } from '@/shared/types/pricing';
 import type { StaffRole, EquipmentCategory, LiveRates, BillingType, BillingPeriod } from '@/shared/types/pricing';
-import { ServiceCatalogEngine, getOrCalculateFixedCostsSummary } from '@/shared/services/pricing';
+import { ServiceCatalogEngine, getOrCalculateFixedCostsSummary, getPricingConfig } from '@/shared/services/pricing';
 
 // Available icons for selection
 const ICON_OPTIONS = [
@@ -91,6 +91,9 @@ const ServiceEditorPage: React.FC = () => {
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [liveRates, setLiveRates] = useState<LiveRates | null>(null);
   const [engine] = useState(() => new ServiceCatalogEngine());
+
+  // Genel gider oranı: direkt maliyet × bu oran = overhead (Firestore'dan yüklenir)
+  const [overheadRate, setOverheadRate] = useState(0.30);
 
   // Form state
   const [formData, setFormData] = useState<Partial<ServiceTemplate>>({
@@ -140,11 +143,13 @@ const ServiceEditorPage: React.FC = () => {
         setStaffMembers(fetchedStaff);
         setEquipment(fetchedEquipment);
 
-        // Build live rates for cost display - get actual costs from Firestore
+        // Genel gider oranını config'den yükle
+        const pricingConfig = await getPricingConfig(db);
+        setOverheadRate(pricingConfig.overheadRate ?? 0.30);
+
+        // Build live rates for cost display (staff & equipment rates)
         const fixedCostsSummary = await getOrCalculateFixedCostsSummary(db, true);
-        const dailyShopCost = fixedCostsSummary.dailyShopCost;
-        const hourlyShopCost = fixedCostsSummary.hourlyShopCost;
-        const rates = engine.buildLiveRates(fetchedStaff, fetchedEquipment, dailyShopCost, hourlyShopCost);
+        const rates = engine.buildLiveRates(fetchedStaff, fetchedEquipment, fixedCostsSummary.dailyShopCost, fixedCostsSummary.hourlyShopCost);
         setLiveRates(rates);
 
         // Fetch template if editing
@@ -169,6 +174,7 @@ const ServiceEditorPage: React.FC = () => {
 
     fetchData();
   }, [id, isEditing, engine]);
+
 
   // Handle basic field changes
   const handleFieldChange = useCallback(
@@ -461,7 +467,8 @@ const ServiceEditorPage: React.FC = () => {
         });
       });
 
-      const autoOverhead = Math.round(nonFreelancerHours * liveRates.overhead.hourlyShopCost);
+      const directCostTotal = employeeLaborCost + equipmentCost + ownerLaborCost;
+      const autoOverhead = Math.round(directCostTotal * overheadRate);
 
       // Dış Maliyet = Çalışan İşçilik + Ekipman + Overhead (Başkan Payı HARİÇ)
       const externalCost = employeeLaborCost + equipmentCost + autoOverhead;
@@ -679,7 +686,7 @@ const ServiceEditorPage: React.FC = () => {
                               }
                             });
                           });
-                          const autoOverhead = Math.round(nonFreelancerHours * liveRates.overhead.hourlyShopCost);
+                          const autoOverhead = Math.round(directCost * overheadRate);
                           const totalCost = directCost + autoOverhead;
                           const margin = formData.defaultMargin || 0.3;
                           return formatCurrency(Math.round(totalCost / (1 - margin)));
@@ -1069,7 +1076,7 @@ const ServiceEditorPage: React.FC = () => {
                 });
 
                 // Calculate auto overhead: non-freelancer hours × hourly shop cost
-                const autoOverhead = Math.round(nonFreelancerHours * liveRates.overhead.hourlyShopCost);
+                const autoOverhead = Math.round(directCost * overheadRate);
                 const totalCost = directCost + autoOverhead;
                 const margin = formData.defaultMargin || 0.3;
                 const suggestedPrice = totalCost / (1 - margin);
@@ -1083,9 +1090,9 @@ const ServiceEditorPage: React.FC = () => {
                     </div>
                     <div>
                       <p className="text-white/70 text-xs font-commons mb-1">
-                        Sabit Giderler
+                        Genel Gider
                         <span className="text-white/50 text-[10px] block">
-                          ({nonFreelancerHours} saat × {formatCurrency(liveRates.overhead.hourlyShopCost)} TL)
+                          (%{Math.round(overheadRate * 100)} × direkt maliyet)
                         </span>
                       </p>
                       <p className="text-2xl font-bold font-commons">{formatCurrency(autoOverhead)} TL</p>
@@ -1138,7 +1145,7 @@ const ServiceEditorPage: React.FC = () => {
                 }
               });
             });
-            const autoOverhead = Math.round(nonFreelancerHours * liveRates.overhead.hourlyShopCost);
+            const autoOverhead = Math.round(directCost * overheadRate);
             const totalCost = directCost + autoOverhead;
             const margin = formData.defaultMargin || 0.3;
             const suggestedPrice = totalCost / (1 - margin);

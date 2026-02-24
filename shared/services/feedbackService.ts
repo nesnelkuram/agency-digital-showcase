@@ -69,7 +69,7 @@ export async function createFeedbackVideo(
     projectId: data.projectId || null,
     tags: data.tags || [],
     shareToken: generateShareToken(),
-    isPublic: data.isPublic ?? true,
+    isPublic: data.isPublic ?? false,
     allowedUsers: [],
     viewCount: 0,
     commentCount: 0,
@@ -106,7 +106,7 @@ export async function createTextFeedback(
     projectId: data.projectId || null,
     tags: data.tags || [],
     shareToken: generateShareToken(),
-    isPublic: data.isPublic ?? true,
+    isPublic: data.isPublic ?? false,
     allowedUsers: [],
     viewCount: 0,
     commentCount: 0,
@@ -172,6 +172,9 @@ export async function getFeedbackVideos(
   }
   if (filters.status) {
     constraints.push(where('status', '==', filters.status));
+  }
+  if (filters.isPublic !== undefined) {
+    constraints.push(where('isPublic', '==', filters.isPublic));
   }
 
   constraints.push(orderBy('createdAt', 'desc'));

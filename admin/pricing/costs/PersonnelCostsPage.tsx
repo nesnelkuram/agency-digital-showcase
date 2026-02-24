@@ -5,8 +5,9 @@ import CostSummaryCards from './components/CostSummaryCards';
 import CostTable, { Column } from './components/CostTable';
 import { db } from '@/lib/firebase/config';
 import { collection, getDocs, doc, setDoc, deleteDoc, addDoc, Timestamp } from 'firebase/firestore';
-import type { StaffMember, StaffRole, CostStatus } from '@/shared/types/pricing';
+import type { StaffMember, StaffRole, CostStatus, ServiceCategory } from '@/shared/types/pricing';
 import { STAFF_ROLE_LABELS, DEFAULT_PRICING_CONFIG, calculateStaffRates } from '@/shared/types/pricing';
+import CategoryPickerCell from './components/CategoryPickerCell';
 
 // Extended type for UI display
 interface PersonnelRow extends StaffMember {
@@ -309,6 +310,19 @@ const PersonnelCostsPage: React.FC = () => {
       hideForRoles: ['freelancer'], // Freelancer için gösterme
     },
     { key: 'status', label: 'Durum', type: 'status', width: '8%' },
+    {
+      key: 'applyToCategories',
+      label: 'Hizmet Kapsamı',
+      type: 'text',
+      editable: false,
+      width: '12%',
+      render: (value, row) => (
+        <CategoryPickerCell
+          value={value as ServiceCategory[] | null}
+          onChange={(cats) => handleUpdate(row.id, 'applyToCategories' as keyof PersonnelRow, cats)}
+        />
+      ),
+    },
   ];
 
   // Handle add new row

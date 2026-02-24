@@ -3,9 +3,10 @@ import { Loader2, Save, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import CostSummaryCards from './components/CostSummaryCards';
 import CostTable, { Column } from './components/CostTable';
+import CategoryPickerCell from './components/CategoryPickerCell';
 import { db } from '@/lib/firebase/config';
 import { collection, getDocs, doc, setDoc, addDoc, Timestamp } from 'firebase/firestore';
-import type { Equipment, EquipmentCategory, CostStatus } from '@/shared/types/pricing';
+import type { Equipment, EquipmentCategory, CostStatus, ServiceCategory } from '@/shared/types/pricing';
 import { EQUIPMENT_CATEGORY_LABELS, EQUIPMENT_COST_METHOD_LABELS, DEFAULT_PRICING_CONFIG } from '@/shared/types/pricing';
 import { seedRentalEquipment } from '../catalog/seedRentalEquipment';
 
@@ -110,6 +111,19 @@ const EquipmentCostsPage: React.FC = () => {
       editable: false,
     },
     { key: 'status', label: 'Durum', type: 'status', width: '10%' },
+    {
+      key: 'applyToCategories',
+      label: 'Hizmet Kapsamı',
+      type: 'text',
+      editable: false,
+      width: '12%',
+      render: (value, row) => (
+        <CategoryPickerCell
+          value={value as ServiceCategory[] | null}
+          onChange={(cats) => handleUpdate(row.id, 'applyToCategories' as keyof EquipmentRow, cats)}
+        />
+      ),
+    },
   ];
 
   // Handle add new row

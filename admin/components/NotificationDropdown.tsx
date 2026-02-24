@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, Check, CheckCheck, Loader2, BellOff } from 'lucide-react';
-import { useNotifications, getNotificationIcon } from '@/shared/hooks/useNotifications';
+import { getNotificationIcon } from '@/shared/hooks/useNotifications';
+import { useNotificationsContext } from '@/admin/contexts/NotificationsContext';
 
 function getTimeAgo(date: Date): string {
   const diffMs = Date.now() - date.getTime();
@@ -18,7 +19,7 @@ function getTimeAgo(date: Date): string {
 }
 
 const NotificationDropdown: React.FC = () => {
-  const { notifications, unreadCount, loading, markAsRead, markAllAsRead } = useNotifications();
+  const { notifications, unreadCount, loading, markAsRead, markAllAsRead } = useNotificationsContext();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();

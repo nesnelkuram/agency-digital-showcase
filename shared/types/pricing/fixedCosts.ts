@@ -1,4 +1,5 @@
 import { Timestamp } from 'firebase/firestore';
+import type { ServiceCategory } from './services';
 
 // ============================================
 // COST STATUS (Maliyet Durumu)
@@ -68,6 +69,9 @@ export interface StaffMember {
   // Fatura durumu (vergi hesabi icin)
   hasInvoice?: boolean;           // Fatura kesiyor mu? (varsayilan: calisan=true, freelancer=false)
 
+  // Hangi servis kategorilerine dahil (null = hepsine dahil)
+  applyToCategories?: ServiceCategory[] | null;
+
   // Calculated (frontend'de hesaplanir)
   totalMonthlyCost?: number;    // maas + SGK
   totalBurdenedCost?: number;   // maas + SGK + yan haklar (FBLR)
@@ -124,6 +128,9 @@ export interface Equipment {
   isActive: boolean;
   notes?: string;
 
+  // Hangi servis kategorilerine dahil (null = hepsine dahil)
+  applyToCategories?: ServiceCategory[] | null;
+
   // Calculated
   monthlyDepreciation?: number;
   dailyRate?: number;
@@ -160,6 +167,9 @@ export interface SoftwareSubscription {
 
   // Gider gösterme durumu (vergi hesabı için)
   isDeductible?: boolean;       // Fatura var mı / gider gösterilebilir mi? (varsayılan: true)
+
+  // Hangi servis kategorilerine dahil (null = hepsine dahil)
+  applyToCategories?: ServiceCategory[] | null;
 
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
@@ -232,6 +242,9 @@ export interface OverheadCost {
   // Gider gösterme durumu (vergi hesabı için)
   isDeductible?: boolean;       // Fatura var mı / gider gösterilebilir mi? (varsayılan: true)
 
+  // Hangi servis kategorilerine dahil (null = hepsine dahil)
+  applyToCategories?: ServiceCategory[] | null;
+
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 }
@@ -265,6 +278,9 @@ export interface MarketingCost {
   // Gider gösterme durumu (vergi hesabı için)
   isDeductible?: boolean;       // Fatura var mı / gider gösterilebilir mi? (varsayılan: true)
 
+  // Hangi servis kategorilerine dahil (null = hepsine dahil)
+  applyToCategories?: ServiceCategory[] | null;
+
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 }
@@ -284,6 +300,9 @@ export interface PricingConfig {
   // Vergi hesabi icin
   estimatedAnnualIncome?: number;  // Tahmini yillik gelir (vergi dilimi icin)
 
+  // Genel gider oranı: her direkt maliyetin üstüne eklenen sabit % (örn: 0.30 = %30)
+  overheadRate?: number;
+
   updatedAt?: Timestamp;
   updatedBy?: string;
 }
@@ -296,6 +315,7 @@ export const DEFAULT_PRICING_CONFIG: PricingConfig = {
   currency: 'TRY',
   quoteValidityDays: 30,
   estimatedAnnualIncome: 400000,   // 400K TL varsayilan (%27 vergi dilimi)
+  overheadRate: 0.30,              // %30 varsayilan genel gider oranı
 };
 
 // ============================================

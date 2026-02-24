@@ -41,12 +41,14 @@ import {
   GitBranch,
   HardDrive,
   Share2,
+  ClipboardList,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermission } from '@/shared/hooks/usePermission';
 import { PERMISSIONS } from '@/lib/rbac/permissions';
 import TenantSwitcher from './components/TenantSwitcher';
 import NotificationDropdown from './components/NotificationDropdown';
+import { NotificationsProvider } from './contexts/NotificationsContext';
 
 interface NavItem {
   label: string;
@@ -116,6 +118,18 @@ const navItems: NavItem[] = [
     path: '/admin/workflows',
     icon: GitBranch,
     permission: PERMISSIONS.WORKFLOWS_VIEW,
+  },
+  {
+    label: 'Görevlerim',
+    path: '/admin/tasks',
+    icon: ClipboardList,
+    hiddenForRoles: ['client'],
+  },
+  {
+    label: 'AI Ajanlar',
+    path: '/admin/agents',
+    icon: Bot,
+    hiddenForRoles: ['client', 'freelancer'],
   },
   {
     label: 'Pazarlama',
@@ -267,6 +281,7 @@ const AdminLayout: React.FC = () => {
   };
 
   return (
+    <NotificationsProvider>
     <div className="min-h-screen flex admin-bg">
       {/* Mobile Sidebar Overlay */}
       <AnimatePresence>
@@ -571,6 +586,7 @@ const AdminLayout: React.FC = () => {
         </main>
       </div>
     </div>
+    </NotificationsProvider>
   );
 };
 

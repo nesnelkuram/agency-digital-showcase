@@ -3,9 +3,10 @@ import { Loader2, Save } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import CostSummaryCards from './components/CostSummaryCards';
 import CostTable, { Column } from './components/CostTable';
+import CategoryPickerCell from './components/CategoryPickerCell';
 import { db } from '@/lib/firebase/config';
 import { collection, getDocs, doc, setDoc, addDoc, Timestamp } from 'firebase/firestore';
-import type { OverheadCost, CostStatus, RentTaxType, PriceEntryType } from '@/shared/types/pricing';
+import type { OverheadCost, CostStatus, RentTaxType, PriceEntryType, ServiceCategory } from '@/shared/types/pricing';
 import {
   DEFAULT_PRICING_CONFIG,
   RENT_TAX_TYPE_LABELS,
@@ -305,6 +306,19 @@ const OfficeCostsPage: React.FC = () => {
       width: '6%',
     },
     { key: 'status', label: 'Durum', type: 'status', width: '6%' },
+    {
+      key: 'applyToCategories',
+      label: 'Hizmet Kapsamı',
+      type: 'text',
+      editable: false,
+      width: '12%',
+      render: (value, row) => (
+        <CategoryPickerCell
+          value={value as ServiceCategory[] | null}
+          onChange={(cats) => handleUpdate(row.id, 'applyToCategories' as keyof OverheadCost, cats)}
+        />
+      ),
+    },
   ];
 
   // Handle add new row

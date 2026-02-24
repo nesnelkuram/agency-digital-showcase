@@ -25,21 +25,35 @@ export function useAnalysisProgress(leadId: string | null | undefined): UseAnaly
       return;
     }
 
-    const docRef = doc(db, 'brand_leads', leadId);
-    const unsubscribe = onSnapshot(
-      docRef,
-      (snapshot) => {
-        const data = snapshot.data();
-        const pipelineRun = data?.pipelineRun as PipelineRunDoc | undefined;
-        setProgress(pipelineRun || null);
-      },
-      (error) => {
-        console.error('[useAnalysisProgress] Listener error:', error);
-        // Don't set progress to null on error — keep last known state
-      },
-    );
+    // Defer subscription by one tick — prevents React 18 StrictMode's
+    // double-mount from creating a rapid subscribe/unsubscribe pair that
+    // corrupts the Firestore SDK's internal watch-stream state (ve=-1).
+    let cancelled = false;
+    let unsubFn: (() => void) | undefined;
 
-    return () => unsubscribe();
+    const timer = setTimeout(() => {
+      if (cancelled) return;
+
+      const docRef = doc(db, 'brand_leads', leadId);
+      unsubFn = onSnapshot(
+        docRef,
+        (snapshot) => {
+          const data = snapshot.data();
+          const pipelineRun = data?.pipelineRun as PipelineRunDoc | undefined;
+          setProgress(pipelineRun || null);
+        },
+        (error) => {
+          console.error('[useAnalysisProgress] Listener error:', error);
+          // Don't set progress to null on error — keep last known state
+        },
+      );
+    }, 0);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      unsubFn?.();
+    };
   }, [leadId]);
 
   const now = Date.now();

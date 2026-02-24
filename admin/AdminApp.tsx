@@ -70,6 +70,7 @@ const UTMBuilderPage = React.lazy(() => import('./marketing/UTMBuilderPage'));
 
 // Marketing AI Agent
 const MarketingAgentPage = React.lazy(() => import('./marketing/MarketingAgentPage'));
+const MarketingAgentV2Page = React.lazy(() => import('./marketing/MarketingAgentV2Page'));
 
 // Phase 3: Automation & Intelligence Pages
 const AutomatedRulesPage = React.lazy(() => import('./marketing/AutomatedRulesPage'));
@@ -101,12 +102,20 @@ const NotificationsPage = React.lazy(() => import('./settings/NotificationsPage'
 const IntegrationsPage = React.lazy(() => import('./settings/IntegrationsPage'));
 const NotificationsListPage = React.lazy(() => import('./notifications/NotificationsListPage'));
 
+// Agent Registry Pages
+const AgentRegistryPage = React.lazy(() => import('./agents/AgentRegistryPage'));
+const AgentFormPage = React.lazy(() => import('./agents/AgentFormPage'));
+
+// Task Pages
+const TasksPage = React.lazy(() => import('./tasks/TasksPage'));
+
 // Workflow Pages
 const WorkflowListPage = React.lazy(() => import('./workflows/WorkflowListPage'));
 const WorkflowBuilderPage = React.lazy(() => import('./workflows/WorkflowBuilderPage'));
 const WorkflowInstancePage = React.lazy(() => import('./workflows/WorkflowInstancePage'));
 const WorkflowStepDetailPage = React.lazy(() => import('./workflows/WorkflowStepDetailPage'));
 const AIWorkflowDesigner = React.lazy(() => import('./workflows/AIWorkflowDesigner'));
+const MyTasksPage = React.lazy(() => import('./workflows/MyTasksPage'));
 const AIServiceDesigner = React.lazy(() => import('./pricing/catalog/AIServiceDesigner'));
 
 // Filing Pages
@@ -167,7 +176,7 @@ const AdminApp: React.FC = () => {
             path="projects/:projectId/marketing/agent"
             element={
               <React.Suspense fallback={<PageLoader />}>
-                <MarketingAgentPage />
+                <MarketingAgentV2Page />
               </React.Suspense>
             }
           />
@@ -677,7 +686,7 @@ const AdminApp: React.FC = () => {
             path="marketing/agent"
             element={
               <React.Suspense fallback={<PageLoader />}>
-                <MarketingAgentPage />
+                <MarketingAgentV2Page />
               </React.Suspense>
             }
           />
@@ -851,12 +860,54 @@ const AdminApp: React.FC = () => {
               </React.Suspense>
             }
           />
+          {/* Agent Registry Routes */}
+          <Route
+            path="agents"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <AgentRegistryPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="agents/new"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <AgentFormPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="agents/:id/edit"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <AgentFormPage />
+              </React.Suspense>
+            }
+          />
+          {/* Task Routes */}
+          <Route
+            path="tasks"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <TasksPage />
+              </React.Suspense>
+            }
+          />
           {/* Workflow Routes */}
           <Route
             path="workflows"
             element={
               <React.Suspense fallback={<PageLoader />}>
                 <WorkflowListPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="workflows/my-tasks"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <MyTasksPage />
               </React.Suspense>
             }
           />

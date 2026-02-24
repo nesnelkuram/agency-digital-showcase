@@ -68,39 +68,52 @@ export function useNotifications(): UseNotificationsReturn {
       return;
     }
 
-    // Real-time listener for the latest 20 notifications for this user
-    const q = query(
-      collection(db, 'notifications'),
-      where('tenantId', '==', tenantId),
-      where('userId', '==', user.uid),
-      orderBy('createdAt', 'desc'),
-      limit(20)
-    );
+    // Defer subscription by one tick so React 18 StrictMode's synchronous
+    // mount→cleanup→mount cycle cancels the first timer before it fires,
+    // preventing the rapid subscribe/unsubscribe that corrupts Firestore's
+    // internal watch-stream target state (SDK bug: ID b815/ca9, ve=-1).
+    let cancelled = false;
+    let unsubFn: (() => void) | undefined;
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const items: AppNotification[] = [];
-      snapshot.forEach((docSnap) => {
-        const data = docSnap.data();
-        items.push({
-          id: docSnap.id,
-          tenantId: data.tenantId,
-          userId: data.userId,
-          type: data.type || 'system',
-          title: data.title || '',
-          message: data.message || '',
-          link: data.link,
-          read: data.read ?? false,
-          createdAt: data.createdAt?.toDate?.() || new Date(),
+    const timer = setTimeout(() => {
+      if (cancelled) return;
+
+      const q = query(
+        collection(db, 'notifications'),
+        where('tenantId', '==', tenantId),
+        where('userId', '==', user.uid),
+        orderBy('createdAt', 'desc'),
+        limit(20)
+      );
+
+      unsubFn = onSnapshot(q, (snapshot) => {
+        const items: AppNotification[] = [];
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          items.push({
+            id: docSnap.id,
+            tenantId: data.tenantId,
+            userId: data.userId,
+            type: data.type || 'system',
+            title: data.title || '',
+            message: data.message || '',
+            link: data.link,
+            read: data.read ?? false,
+            createdAt: data.createdAt?.toDate?.() || new Date(),
+          });
         });
+        setNotifications(items);
+        setLoading(false);
+      }, () => {
+        setLoading(false);
       });
-      setNotifications(items);
-      setLoading(false);
-    }, () => {
-      // Listener error (e.g. missing index) — fail silently
-      setLoading(false);
-    });
+    }, 0);
 
-    return () => unsubscribe();
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      unsubFn?.();
+    };
   }, [user?.uid, tenantId]);
 
   const markAsRead = useCallback(async (id: string) => {

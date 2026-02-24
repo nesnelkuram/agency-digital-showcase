@@ -3,9 +3,10 @@ import { Loader2, Save } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import CostSummaryCards from './components/CostSummaryCards';
 import CostTable, { Column } from './components/CostTable';
+import CategoryPickerCell from './components/CategoryPickerCell';
 import { db } from '@/lib/firebase/config';
 import { collection, getDocs, doc, setDoc, addDoc, Timestamp } from 'firebase/firestore';
-import type { SoftwareSubscription, SoftwareCategory, CostStatus } from '@/shared/types/pricing';
+import type { SoftwareSubscription, SoftwareCategory, CostStatus, ServiceCategory } from '@/shared/types/pricing';
 import { SOFTWARE_CATEGORY_LABELS, DEFAULT_PRICING_CONFIG } from '@/shared/types/pricing';
 
 const WORKING_DAYS = DEFAULT_PRICING_CONFIG.workingDaysPerMonth;
@@ -90,6 +91,19 @@ const SoftwareCostsPage: React.FC = () => {
       width: '8%',
     },
     { key: 'status', label: 'Durum', type: 'status', width: '10%' },
+    {
+      key: 'applyToCategories',
+      label: 'Hizmet Kapsamı',
+      type: 'text',
+      editable: false,
+      width: '12%',
+      render: (value, row) => (
+        <CategoryPickerCell
+          value={value as ServiceCategory[] | null}
+          onChange={(cats) => handleUpdate(row.id, 'applyToCategories' as keyof SoftwareSubscription, cats)}
+        />
+      ),
+    },
   ];
 
   // Handle add new row

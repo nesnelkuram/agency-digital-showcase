@@ -18,5 +18,7 @@ export {
   calculateFixedCostsSummary,
   getOrCalculateFixedCostsSummary,
   invalidateFixedCostsSummary,
+  getPricingConfig,
+  savePricingConfig,
   type FixedCostsSummary,
 } from './fixedCostCalculator';

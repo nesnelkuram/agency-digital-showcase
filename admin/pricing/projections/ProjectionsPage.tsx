@@ -31,7 +31,7 @@ import {
   StaffMember,
   Equipment,
 } from '@/shared/types/pricing';
-import { ServiceCatalogEngine, getOrCalculateFixedCostsSummary } from '@/shared/services/pricing';
+import { ServiceCatalogEngine, getOrCalculateFixedCostsSummary, getPricingConfig } from '@/shared/services/pricing';
 
 type ProjectionPeriod = 6 | 12 | 24;
 
@@ -335,9 +335,12 @@ const ProjectionsPage: React.FC = () => {
       }));
 
       // Build rates
-      const fixedCostsSummary = await getOrCalculateFixedCostsSummary(db, true);
+      const [fixedCostsSummary, pricingConfig] = await Promise.all([
+        getOrCalculateFixedCostsSummary(db, true),
+        getPricingConfig(db),
+      ]);
       const engine = new ServiceCatalogEngine();
-      engine.buildLiveRates(staff, equipment, fixedCostsSummary.dailyShopCost, fixedCostsSummary.hourlyShopCost);
+      engine.buildLiveRates(staff, equipment, fixedCostsSummary.dailyShopCost, fixedCostsSummary.hourlyShopCost, undefined, pricingConfig.overheadRate ?? 0.30);
 
       let updatedCount = 0;
       const updatedQuotes: Quote[] = [];
