@@ -12,6 +12,7 @@ import {
   arrayUnion,
   Timestamp,
   QueryConstraint,
+  addDoc,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import type { WorkflowInstance, StepInstance } from '@/shared/types/workflow/instance';
@@ -95,6 +96,9 @@ export async function createWorkflowInstance(
     tenantId,
     status: 'pending',
     progress: 0,
+    activeAssigneeIds: [],
+    activeStepLabels: [],
+    lastActivityAt: now,
     auditLog: [],
     ...data,
     createdAt: now,
@@ -159,16 +163,42 @@ export async function addAuditLogEntry(
   const current = await getWorkflowInstance(tenantId, instanceId);
   if (!current) throw new Error('Workflow instance not found');
 
+  const now = Timestamp.now();
   const auditEntry = {
     id: `audit-${Date.now()}`,
     ...entry,
-    timestamp: Timestamp.now(),
+    timestamp: now,
   };
 
+  // Write to subcollection for permanent storage (no size limit)
+  const subcollectionRef = collection(db, COLLECTION_NAME, instanceId, 'audit_log');
+  await addDoc(subcollectionRef, auditEntry);
+
+  // Keep rolling window of last 20 entries on the main doc for quick display
+  const currentLog = current.auditLog || [];
+  const updatedLog = [...currentLog, auditEntry].slice(-20);
+
   await updateDoc(docRef, {
-    auditLog: arrayUnion(auditEntry),
+    auditLog: updatedLog,
+    lastActivityAt: now,
     updatedAt: serverTimestamp(),
   });
+}
+
+export async function getAuditLog(
+  instanceId: string,
+  limitCount = 50
+): Promise<Array<{ id: string; action: string; description: string; userId: string; timestamp: Timestamp }>> {
+  if (!db) throw new Error('Firebase not initialized');
+
+  const subcollectionRef = collection(db, COLLECTION_NAME, instanceId, 'audit_log');
+  const q = query(subcollectionRef, orderBy('timestamp', 'desc'));
+  const snapshot = await getDocs(q);
+
+  return snapshot.docs.slice(0, limitCount).map((d) => ({
+    id: d.id,
+    ...d.data(),
+  })) as any[];
 }
 
 export async function getInstancesByProject(
@@ -190,6 +220,28 @@ export async function getInstancesByProject(
     id: d.id,
     ...d.data(),
   })) as WorkflowInstance[];
+}
+
+/**
+ * Kanban query: fetches active instances where the user has ready/in_progress steps.
+ * Uses denormalized activeAssigneeIds for a single indexed Firestore query.
+ */
+export async function getInstancesByAssignee(
+  tenantId: string,
+  userId: string
+): Promise<WorkflowInstance[]> {
+  if (!db) throw new Error('Firebase not initialized');
+
+  const q = query(
+    collection(db, COLLECTION_NAME),
+    where('tenantId', '==', tenantId),
+    where('status', 'in', ['active', 'pending']),
+    where('activeAssigneeIds', 'array-contains', userId),
+    orderBy('lastActivityAt', 'desc')
+  );
+
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() })) as WorkflowInstance[];
 }
 
 export async function getActiveStepsForUser(

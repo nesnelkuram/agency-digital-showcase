@@ -13,12 +13,17 @@ function resolveModelTier(model: string): ModelTier {
 }
 
 /**
+ * Resolves a dot-notation context key from a nested context object.
+ * E.g. "step_clientIntake.clientName" → context["step_clientIntake"]["clientName"]
+ */
+function resolveContextKey(context: Record<string, any>, dotKey: string): any {
+  return dotKey.split('.').reduce((obj: any, key: string) => obj?.[key], context);
+}
+
+/**
  * Builds the final prompt by replacing {{key}} placeholders in the template
  * with values from the context, resolved through the inputMapping.
- *
- * inputMapping maps template keys to context keys:
- *   { "clientName": "client.name" }
- * means {{clientName}} in the template is replaced with context["client.name"].
+ * Supports dot-notation context keys: { "clientName": "step_intake.clientName" }
  */
 function buildPrompt(
   template: string,
@@ -28,15 +33,33 @@ function buildPrompt(
   let prompt = template;
 
   for (const [templateKey, contextKey] of Object.entries(inputMapping)) {
-    const value = context[contextKey] ?? '';
+    const value = resolveContextKey(context, contextKey) ?? '';
     const placeholder = `{{${templateKey}}}`;
-    prompt = prompt.split(placeholder).join(String(value));
+    const stringValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
+    prompt = prompt.split(placeholder).join(stringValue);
   }
 
   // Replace any remaining unmapped placeholders with empty string
   prompt = prompt.replace(/\{\{[^}]+\}\}/g, '');
 
   return prompt;
+}
+
+/**
+ * Appends a JSON output format instruction to the prompt based on outputMapping keys.
+ * This tells Gemini exactly what keys to return so downstream steps can read them.
+ */
+function appendOutputInstruction(
+  prompt: string,
+  outputMapping: Record<string, string>
+): string {
+  const keys = Object.keys(outputMapping);
+  if (keys.length === 0) return prompt;
+  const schema = Object.fromEntries(keys.map((k) => [k, `<string: ${k} değeri>`]));
+  return (
+    prompt +
+    `\n\n## Beklenen JSON Çıktı Formatı\nYalnızca aşağıdaki yapıda geçerli JSON döndür, başka metin veya açıklama ekleme:\n${JSON.stringify(schema, null, 2)}`
+  );
 }
 
 /**
@@ -87,7 +110,11 @@ function estimateTokens(prompt: string, output: Record<string, any>): { input: n
  */
 export async function runWorkflowAgent(input: WorkflowAgentInput): Promise<WorkflowAgentOutput> {
   const tier = resolveModelTier(input.model);
-  const prompt = buildPrompt(input.promptTemplate, input.context, input.inputMapping);
+  const baseTemplate = input.systemPrompt
+    ? `${input.systemPrompt}\n\n---\n\n${input.promptTemplate}`
+    : input.promptTemplate;
+  const templateWithOutput = appendOutputInstruction(baseTemplate, input.outputMapping);
+  const prompt = buildPrompt(templateWithOutput, input.context, input.inputMapping);
   const agentName = `workflow-${input.agentType}`;
 
   let lastError: string | undefined;

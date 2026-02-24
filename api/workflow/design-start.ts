@@ -26,6 +26,9 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
 
   try {
     console.log('[design-start] userId:', req.userId, 'tenantId:', req.tenantId);
+    const { parentContext } = req.body || {};
+    // parentContext?: { parentSessionId, nodeId, nodeLabel, parentWorkflowName }
+
     const sessionId = randomUUID();
     const db = getAdminDb();
 
@@ -33,17 +36,19 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
       id: sessionId,
       tenantId: req.tenantId || '',
       userId: req.userId || '',
+      title: null,
       createdAt: Date.now(),
       updatedAt: Date.now(),
       messages: [],
       currentDraft: null,
       savedTemplateId: null,
+      parentContext: parentContext || null,
     });
 
-    console.log('[design-start] Session created:', sessionId);
+    console.log('[design-start] Session created:', sessionId, parentContext ? '(subprocess)' : '(root)');
     return res.status(200).json({
       sessionId,
-      suggestedCategories: SUGGESTED_CATEGORIES,
+      suggestedCategories: parentContext ? [] : SUGGESTED_CATEGORIES,
     });
   } catch (error: any) {
     console.error('workflow/design-start error:', error?.message, error?.stack);

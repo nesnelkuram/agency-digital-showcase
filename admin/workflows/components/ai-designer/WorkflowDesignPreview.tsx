@@ -9,7 +9,7 @@ import {
   ReactFlowProvider,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Layers, Clock, GitBranch } from 'lucide-react';
+import { Layers, Clock, GitBranch, Network, Pencil, CheckCircle2 } from 'lucide-react';
 import WorkflowNode from '../canvas/WorkflowNode';
 import type { WorkflowDraft } from '@/shared/types/workflowDesign';
 
@@ -23,13 +23,20 @@ const SERVICE_CATEGORY_LABELS: Record<string, string> = {
   graphic_design: 'Grafik Tasarim',
 };
 
+export interface SubprocessSuggestion {
+  nodeId: string;
+  nodeLabel: string;
+}
+
 interface Props {
   draft: WorkflowDraft | null;
+  subprocessSuggestions?: SubprocessSuggestion[];
+  onSubprocessDesign?: (nodeId: string, nodeLabel: string) => void;
 }
 
 const nodeTypes = { default: WorkflowNode };
 
-function PreviewCanvas({ draft }: Props) {
+function PreviewCanvas({ draft, subprocessSuggestions, onSubprocessDesign }: Props) {
   const { fitView } = useReactFlow();
 
   const rfNodes = useMemo(() => {
@@ -39,8 +46,8 @@ function PreviewCanvas({ draft }: Props) {
       type: 'default',
       position: node.position || { x: 300, y: 0 },
       data: {
-        label: node.label,
-        nodeType: node.type,
+        label: node.label || (node as any).name || (node as any).title || 'Adsız Adım',
+        nodeType: node.type || (node as any).nodeType || 'task',
       },
     }));
   }, [draft?.nodes]);
@@ -82,6 +89,29 @@ function PreviewCanvas({ draft }: Props) {
     }
   }, [nodes.length, fitView]);
 
+  // Compute subprocess node states from draft
+  const subprocessNodes = useMemo(() => {
+    if (!draft?.nodes) return [];
+    return draft.nodes
+      .filter((n: any) => n.type === 'subprocess')
+      .map((n: any) => ({
+        nodeId: n.id,
+        nodeLabel: n.label || n.id,
+        hasChild: !!n.subprocessConfig?.childTemplateId,
+        childTemplateName: n.subprocessConfig?.childTemplateName,
+      }));
+  }, [draft?.nodes]);
+
+  // Merge suggestions from AI response (may know about nodes not yet in draft)
+  const needsDesign = useMemo(() => {
+    const fromDraft = subprocessNodes.filter(n => !n.hasChild);
+    if (!subprocessSuggestions?.length) return fromDraft;
+    // Merge: prefer draft data, add any suggestions not yet in draft
+    const ids = new Set(fromDraft.map(n => n.nodeId));
+    const extras = subprocessSuggestions.filter(s => !ids.has(s.nodeId));
+    return [...fromDraft, ...extras.map(s => ({ nodeId: s.nodeId, nodeLabel: s.nodeLabel, hasChild: false, childTemplateName: undefined }))];
+  }, [subprocessNodes, subprocessSuggestions]);
+
   if (!draft) {
     return (
       <div className="flex flex-col items-center justify-center h-full bg-neutral-50/50 rounded-2xl border border-dashed border-neutral-200">
@@ -100,7 +130,7 @@ function PreviewCanvas({ draft }: Props) {
         <h3 className="font-grotesk text-base font-bold text-neutral-800 truncate">
           {draft.name || 'Isimsiz Workflow'}
         </h3>
-        <div className="flex items-center gap-3 mt-1 text-xs font-grotesk text-neutral-500">
+        <div className="flex items-center gap-3 mt-1 text-xs font-grotesk text-neutral-500 flex-wrap">
           <span className="bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded">
             {SERVICE_CATEGORY_LABELS[draft.serviceCategory] || draft.serviceCategory}
           </span>
@@ -115,11 +145,17 @@ function PreviewCanvas({ draft }: Props) {
           {draft.phases?.length > 0 && (
             <span>{draft.phases.length} faz</span>
           )}
+          {subprocessNodes.length > 0 && (
+            <span className="flex items-center gap-1 text-cyan-600">
+              <Network className="w-3 h-3" />
+              {subprocessNodes.length} alt surec
+            </span>
+          )}
         </div>
       </div>
 
       {/* React Flow Canvas */}
-      <div className="flex-1">
+      <div className="flex-1 min-h-0">
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -139,16 +175,45 @@ function PreviewCanvas({ draft }: Props) {
           <Controls showInteractive={false} />
         </ReactFlow>
       </div>
+
+      {/* Subprocess panel — shown when there are subprocess nodes */}
+      {subprocessNodes.length > 0 && (
+        <div className="border-t border-neutral-100 px-5 py-3 bg-neutral-50/80">
+          <p className="font-grotesk text-[11px] font-semibold text-neutral-500 uppercase tracking-wider mb-2">
+            Alt Süreçler
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {subprocessNodes.map((sp) => (
+              <div key={sp.nodeId} className="flex items-center gap-1.5">
+                {sp.hasChild ? (
+                  <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-50 border border-cyan-200 text-cyan-700 text-xs font-grotesk font-medium">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-cyan-500" />
+                    {sp.nodeLabel}
+                    <span className="text-[10px] opacity-60 ml-1">{sp.childTemplateName}</span>
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => onSubprocessDesign?.(sp.nodeId, sp.nodeLabel)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-dashed border-cyan-400 text-cyan-700 text-xs font-grotesk font-medium hover:bg-cyan-50 transition-colors"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                    {sp.nodeLabel}
+                    <span className="text-[10px] opacity-60 ml-1">AI ile Tasarla →</span>
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-const WorkflowDesignPreview: React.FC<Props> = (props) => {
-  return (
-    <ReactFlowProvider>
-      <PreviewCanvas {...props} />
-    </ReactFlowProvider>
-  );
-};
+const WorkflowDesignPreview: React.FC<Props> = (props) => (
+  <ReactFlowProvider>
+    <PreviewCanvas {...props} />
+  </ReactFlowProvider>
+);
 
 export default WorkflowDesignPreview;

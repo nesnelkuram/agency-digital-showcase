@@ -5,7 +5,8 @@ export type WorkflowAgentType =
   | 'qa_check'
   | 'campaign_strategy'
   | 'hashtag_researcher'
-  | 'seo_optimizer';
+  | 'seo_optimizer'
+  | 'custom';
 
 export interface WorkflowAgentInput {
   agentType: WorkflowAgentType;
@@ -20,6 +21,8 @@ export interface WorkflowAgentInput {
   timeoutMs: number;
   requiresHumanReview: boolean;
   confidenceThreshold?: number;
+  agentId?: string;
+  systemPrompt?: string;
 }
 
 export interface WorkflowAgentOutput {

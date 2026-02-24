@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, GitBranch, Clock, Layers, Loader2 } from 'lucide-react';
+import { X, GitBranch, Clock, Layers, Loader2, AlertCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import type { WorkflowTemplate } from '@/shared/types/workflow/template';
 import type { ServiceCategory } from '@/shared/types/pricing/services';
 
@@ -89,12 +90,33 @@ const StartWorkflowModal: React.FC<StartWorkflowModalProps> = ({
 
               {/* Content */}
               <div className="px-6 py-4 space-y-4">
+                {/* Empty state */}
+                {templates.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <GitBranch className="w-10 h-10 text-neutral-300 mb-3" />
+                    <p className="font-grotesk text-sm font-semibold text-neutral-600">
+                      Henüz iş akışı şablonu yok
+                    </p>
+                    <p className="font-grotesk text-xs text-neutral-400 mt-1 mb-4">
+                      Workflow Builder'dan bir şablon oluşturun.
+                    </p>
+                    <Link
+                      to="/admin/workflows/builder"
+                      onClick={() => {}}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-[#171717] text-white rounded-lg font-grotesk text-xs font-medium hover:bg-neutral-800 transition-colors"
+                    >
+                      <GitBranch className="w-3.5 h-3.5" />
+                      Şablon Oluştur
+                    </Link>
+                  </div>
+                ) : (
+                <>
                 {/* Template selection */}
                 <div>
                   <label className="font-grotesk text-xs font-medium text-neutral-600 mb-2 block">
-                    Is akisi sablonu secin
+                    İş akışı şablonu seçin
                   </label>
-                  <div className="space-y-2">
+                  <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
                     {templates.map((template) => {
                       const nodeCount = template.nodes.filter(
                         n => n.type !== 'start' && n.type !== 'end'
@@ -103,6 +125,7 @@ const StartWorkflowModal: React.FC<StartWorkflowModalProps> = ({
                         (sum, n) => sum + (n.estimatedDurationHours || 0), 0
                       );
                       const isSelected = selectedTemplateId === template.id;
+                      const isDraft = template.status === 'draft';
 
                       return (
                         <label
@@ -127,6 +150,11 @@ const StartWorkflowModal: React.FC<StartWorkflowModalProps> = ({
                               <span className="font-grotesk text-sm font-medium text-[#171717]">
                                 {template.name}
                               </span>
+                              {isDraft && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-700">
+                                  Taslak
+                                </span>
+                              )}
                             </div>
                             {template.description && (
                               <p className="font-grotesk text-xs text-neutral-500 mt-0.5 line-clamp-2">
@@ -136,7 +164,7 @@ const StartWorkflowModal: React.FC<StartWorkflowModalProps> = ({
                             <div className="flex items-center gap-3 mt-1.5">
                               <span className="inline-flex items-center gap-1 font-grotesk text-[10px] text-neutral-400">
                                 <Layers className="w-3 h-3" />
-                                {nodeCount} adim
+                                {nodeCount} adım
                               </span>
                               {totalHours > 0 && (
                                 <span className="inline-flex items-center gap-1 font-grotesk text-[10px] text-neutral-400">
@@ -152,19 +180,31 @@ const StartWorkflowModal: React.FC<StartWorkflowModalProps> = ({
                   </div>
                 </div>
 
+                {/* Draft warning */}
+                {selectedTemplateId && templates.find(t => t.id === selectedTemplateId)?.status === 'draft' && (
+                  <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                    <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <p className="font-grotesk text-xs text-amber-700">
+                      Bu şablon henüz taslak durumunda. Başlatılabilir ama daha sonra Workflows sayfasından yayınlamanız önerilir.
+                    </p>
+                  </div>
+                )}</>)}
+
                 {/* Custom name */}
+                {templates.length > 0 && (
                 <div>
                   <label className="font-grotesk text-xs font-medium text-neutral-600 mb-1.5 block">
-                    Produksiyon adi (opsiyonel)
+                    Produksiyon adı (opsiyonel)
                   </label>
                   <input
                     type="text"
                     value={customName}
                     onChange={(e) => setCustomName(e.target.value)}
-                    placeholder="Ornek: Kurumsal Tanitim Filmi"
+                    placeholder="Örnek: Kurumsal Tanıtım Filmi"
                     className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-neutral-50 font-grotesk text-sm focus:outline-none focus:border-neutral-400 transition-colors"
                   />
                 </div>
+                )}
               </div>
 
               {/* Footer */}
@@ -176,22 +216,24 @@ const StartWorkflowModal: React.FC<StartWorkflowModalProps> = ({
                   disabled={loading}
                   className="px-4 py-2 rounded-xl border border-neutral-200 bg-white text-neutral-700 font-grotesk text-sm font-medium hover:bg-neutral-50 transition-colors"
                 >
-                  Iptal
+                  {templates.length === 0 ? 'Kapat' : 'İptal'}
                 </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleStart}
-                  disabled={loading || !selectedTemplateId}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#171717] text-white font-grotesk text-sm font-medium hover:bg-neutral-800 disabled:opacity-50 transition-colors"
-                >
-                  {loading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <GitBranch className="w-4 h-4" />
-                  )}
-                  Baslat
-                </motion.button>
+                {templates.length > 0 && (
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleStart}
+                    disabled={loading || !selectedTemplateId}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#171717] text-white font-grotesk text-sm font-medium hover:bg-neutral-800 disabled:opacity-50 transition-colors"
+                  >
+                    {loading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <GitBranch className="w-4 h-4" />
+                    )}
+                    Başlat
+                  </motion.button>
+                )}
               </div>
             </motion.div>
           </motion.div>

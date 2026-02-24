@@ -7,7 +7,62 @@ import {
   addAuditLogEntry,
 } from './workflowInstanceService';
 import { getWorkflowTemplate } from './workflowTemplateService';
-import type { StepInstance, StepInstanceStatus } from '@/shared/types/workflow';
+import type { StepInstance, StepInstanceStatus, WorkflowTemplate } from '@/shared/types/workflow';
+
+/**
+ * Flattens subprocess nodes from child templates into a flat steps map.
+ * Subprocess node steps are keyed as "subprocessNodeId::childNodeId".
+ */
+async function flattenTemplateNodes(
+  tenantId: string,
+  template: WorkflowTemplate
+): Promise<Record<string, StepInstance>> {
+  const steps: Record<string, StepInstance> = {};
+
+  for (const node of template.nodes) {
+    if (node.type === 'subprocess') {
+      // Add the subprocess container step itself
+      steps[node.id] = {
+        nodeId: node.id,
+        label: node.label || node.id,
+        status: 'pending' as StepInstanceStatus,
+        currentRevision: 0,
+        revisions: [],
+        isSubProcess: true,
+      };
+
+      // If this subprocess node has a linked child template, flatten its nodes
+      const childTemplateId = node.subprocessConfig?.childTemplateId;
+      if (childTemplateId) {
+        const childTemplate = await getWorkflowTemplate(tenantId, childTemplateId);
+        if (childTemplate) {
+          for (const childNode of childTemplate.nodes) {
+            const flatKey = `${node.id}::${childNode.id}`;
+            steps[flatKey] = {
+              nodeId: flatKey,
+              label: childNode.label || childNode.id,
+              status: 'pending' as StepInstanceStatus,
+              currentRevision: 0,
+              revisions: [],
+              parentStepId: node.id,
+              isSubStep: true,
+            };
+          }
+        }
+      }
+    } else {
+      steps[node.id] = {
+        nodeId: node.id,
+        label: node.label || node.id,
+        status: 'pending' as StepInstanceStatus,
+        currentRevision: 0,
+        revisions: [],
+      };
+    }
+  }
+
+  return steps;
+}
 
 /**
  * Instantiates a new workflow from a template
@@ -28,16 +83,8 @@ export async function instantiateWorkflow(
       throw new Error(`Workflow template ${templateId} not found`);
     }
 
-    // Initialize all steps as Record<string, StepInstance> keyed by nodeId
-    const steps: Record<string, StepInstance> = {};
-    for (const node of template.nodes) {
-      steps[node.id] = {
-        nodeId: node.id,
-        status: 'pending' as StepInstanceStatus,
-        currentRevision: 0,
-        revisions: [],
-      };
-    }
+    // Initialize all steps, flattening subprocess nodes
+    const steps = await flattenTemplateNodes(tenantId, template);
 
     // Find and mark the start node as completed
     const startNode = template.nodes.find(n => n.type === 'start');
@@ -86,12 +133,15 @@ export async function instantiateWorkflow(
 /**
  * Advances the workflow by checking prerequisites and updating step statuses
  */
-export async function advanceWorkflow(tenantId: string, instanceId: string): Promise<void> {
+export async function advanceWorkflow(tenantId: string, instanceId: string): Promise<string[]> {
   try {
     // Fetch the instance and template
     const instance = await getWorkflowInstance(tenantId, instanceId);
     if (!instance) {
       throw new Error(`Workflow instance ${instanceId} not found`);
+    }
+    if (instance.status === 'completed' || instance.status === 'cancelled') {
+      return [];
     }
 
     const template = await getWorkflowTemplate(tenantId, instance.templateId);
@@ -207,11 +257,33 @@ export async function advanceWorkflow(tenantId: string, instanceId: string): Pro
         };
         hasChanges = true;
       }
+
+      // Auto-complete subprocess node when all its child sub-steps are completed
+      if (node.type === 'subprocess' && (step.status === 'ready' || step.status === 'in_progress')) {
+        const childSteps = Object.values(updatedSteps).filter(
+          (s) => s.isSubStep && s.parentStepId === node.id
+        );
+        if (childSteps.length > 0) {
+          const allChildrenDone = childSteps.every(
+            (s) => s.status === 'completed' || s.status === 'skipped'
+          );
+          if (allChildrenDone) {
+            updatedSteps[node.id] = {
+              ...updatedSteps[node.id],
+              status: 'completed',
+              completedAt: Timestamp.now(),
+            };
+            hasChanges = true;
+          }
+        }
+      }
     }
 
-    // Calculate progress (exclude start and end nodes)
+    // Calculate progress (exclude start, end, and sub-steps — use subprocess container for progress)
     const allStepEntries = Object.entries(updatedSteps);
-    const nonStartEndSteps = allStepEntries.filter(([nodeId]) => {
+    const nonStartEndSteps = allStepEntries.filter(([nodeId, step]) => {
+      // Exclude flattened sub-steps from progress calculation (subprocess container counts instead)
+      if (step.isSubStep) return false;
       const node = template.nodes.find(n => n.id === nodeId);
       return node && node.type !== 'start' && node.type !== 'end';
     });
@@ -229,6 +301,23 @@ export async function advanceWorkflow(tenantId: string, instanceId: string): Pro
       .filter(([, step]) => step.status === 'ready' || step.status === 'in_progress' || step.status === 'ai_review')
       .map(([nodeId]) => nodeId);
 
+    // Compute denormalized Kanban fields
+    const activeAssigneeIds = Array.from(new Set(
+      allStepEntries
+        .filter(([, step]) =>
+          (step.status === 'ready' || step.status === 'in_progress') &&
+          step.assignment?.userId
+        )
+        .map(([, step]) => step.assignment!.userId)
+    ));
+
+    const activeStepLabels = allStepEntries
+      .filter(([, step]) => step.status === 'ready' || step.status === 'in_progress')
+      .map(([nodeId]) => {
+        const node = template.nodes.find(n => n.id === nodeId);
+        return node?.label || nodeId;
+      });
+
     // Check if all steps are completed
     const allStepsCompleted = allStepEntries.every(
       ([, step]) => step.status === 'completed' || step.status === 'skipped'
@@ -236,16 +325,29 @@ export async function advanceWorkflow(tenantId: string, instanceId: string): Pro
 
     const status = allStepsCompleted ? 'completed' : instance.status;
 
+    // Collect newly-ready AI task node IDs for auto-triggering (returned to caller)
+    const newlyReadyAiNodeIds = allStepEntries
+      .filter(([nodeId, step]) => {
+        if (step.status !== 'ready') return false;
+        const node = template.nodes.find(n => n.id === nodeId);
+        return node?.type === 'ai_task';
+      })
+      .map(([nodeId]) => nodeId);
+
     // Update the instance if there were changes
     if (hasChanges || progress !== instance.progress || activeNodeIds.join(',') !== instance.activeNodeIds.join(',') || status !== instance.status) {
       await updateWorkflowInstance(tenantId, instanceId, {
         steps: updatedSteps,
         progress,
         activeNodeIds,
+        activeAssigneeIds,
+        activeStepLabels,
         status,
         ...(status === 'completed' && { completedAt: Timestamp.now() }),
       });
     }
+
+    return newlyReadyAiNodeIds;
   } catch (error) {
     console.error('Error advancing workflow:', error);
     throw new Error(`Failed to advance workflow: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -351,11 +453,12 @@ export async function completeStep(
 
     await updateStepStatus(tenantId, instanceId, nodeId, updateData);
 
-    // Merge output data into instance context
+    // Merge output data into instance context under a namespaced key to prevent collisions
     if (outputData) {
+      const ctxKey = `step_${nodeId.replace(/[.:]/g, '_')}`;
       const updatedContext = {
         ...instance.context,
-        ...outputData,
+        [ctxKey]: outputData,
       };
 
       await updateWorkflowInstance(tenantId, instanceId, {

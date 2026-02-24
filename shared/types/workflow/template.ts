@@ -13,6 +13,7 @@ export type WorkflowNodeType =
   | 'parallel_split'
   | 'parallel_join'
   | 'notification'
+  | 'subprocess'
   | 'end';
 
 export type WorkflowEdgeType =
@@ -55,6 +56,8 @@ export interface WorkflowNodeTemplate {
   assigneeRole?: string;
   estimatedDurationHours?: number;
   sopResources: SOPResource[];
+  agentId?: string;    // agent registry reference
+  agentName?: string;  // denormalized for display in builder
   aiAgentConfig?: AIAgentConfig;
   conditionConfig?: {
     field: string;
@@ -79,7 +82,26 @@ export interface WorkflowNodeTemplate {
       type: 'text' | 'textarea' | 'number' | 'select' | 'file_upload' | 'date' | 'checkbox' | 'rating';
       required: boolean;
       options?: Array<{ value: string; label: string }>;
+      placeholder?: string;
     }>;
+  };
+  // Data flow: which context keys this step reads (for UI display + future validation)
+  inputSchema?: Array<{
+    key: string;           // dot-notation context key, e.g. "step_clientIntake.clientName"
+    label: string;
+    type: 'string' | 'url' | 'json' | 'file_url' | 'number' | 'boolean';
+    required?: boolean;
+    sourceNodeId?: string; // which preceding node produces this value
+  }>;
+  // Data flow: which context keys this step writes (used for output instruction to AI)
+  outputSchema?: Array<{
+    key: string;
+    label: string;
+    type: 'string' | 'url' | 'json' | 'file_url' | 'number' | 'boolean';
+  }>;
+  subprocessConfig?: {
+    childTemplateId?: string;
+    childTemplateName?: string;
   };
   metadata?: Record<string, any>;
 }
@@ -102,6 +124,16 @@ export interface WorkflowPhase {
   color?: string;
 }
 
+export interface RecurringConfig {
+  enabled: boolean;
+  cronExpression: string;  // e.g. "0 9 * * 1" = every Monday 09:00
+  timezone: string;        // e.g. "Europe/Istanbul"
+  autoStartOnCreate: boolean;  // immediately activate spawned instance
+  nextRunAt?: Timestamp;
+  lastRunAt?: Timestamp;
+  lastInstanceId?: string;  // ID of most recently spawned instance
+}
+
 export interface WorkflowTemplate {
   id: string;
   tenantId: string;
@@ -118,6 +150,12 @@ export interface WorkflowTemplate {
   isLatest: boolean;
   previousVersionId?: string;
   status: 'draft' | 'published' | 'archived';
+  // Hierarchy fields
+  depth: number;               // 0 = root template (default)
+  parentTemplateId?: string;   // ID of the parent template
+  parentNodeId?: string;       // Node ID in parent template that references this
+  // Recurring workflow config (optional)
+  recurringConfig?: RecurringConfig;
   createdAt: Timestamp;
   updatedAt: Timestamp;
   createdBy: string;

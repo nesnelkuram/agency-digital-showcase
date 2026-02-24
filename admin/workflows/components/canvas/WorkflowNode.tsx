@@ -11,6 +11,7 @@ import {
   Bell,
   Square,
   Workflow,
+  Network,
 } from 'lucide-react';
 
 const nodeConfig: Record<
@@ -73,6 +74,13 @@ const nodeConfig: Record<
     text: 'text-pink-800',
     iconColor: 'text-pink-600',
   },
+  subprocess: {
+    icon: Network,
+    bg: 'bg-cyan-50',
+    border: 'border-cyan-400 border-dashed',
+    text: 'text-cyan-800',
+    iconColor: 'text-cyan-600',
+  },
   end: {
     icon: Square,
     bg: 'bg-red-50',
@@ -95,11 +103,12 @@ const WorkflowNode: React.FC<NodeProps> = ({ data, selected }) => {
   const config = nodeConfig[nodeType] || defaultConfig;
   const Icon = config.icon;
   const label = (data?.label as string) || 'Dugum';
+  const childTemplateName = (data?.subprocessConfig as any)?.childTemplateName as string | undefined;
 
   return (
     <div
       className={`
-        px-3 py-2 rounded-lg border-2 min-w-[140px] max-w-[180px]
+        px-3 py-2 rounded-lg border-2 min-w-[140px] max-w-[200px]
         ${config.bg} ${config.border}
         ${selected ? 'ring-2 ring-indigo-500 ring-offset-1' : ''}
         shadow-sm transition-shadow hover:shadow-md
@@ -118,6 +127,19 @@ const WorkflowNode: React.FC<NodeProps> = ({ data, selected }) => {
           {label}
         </span>
       </div>
+      {nodeType === 'subprocess' && (
+        <div className="mt-1">
+          {childTemplateName ? (
+            <span className="font-commons text-[10px] text-cyan-600 truncate block">
+              ↳ {childTemplateName}
+            </span>
+          ) : (
+            <span className="font-commons text-[10px] text-neutral-400 italic">
+              Bagli sablon yok
+            </span>
+          )}
+        </div>
+      )}
       <Handle
         type="source"
         position={Position.Bottom}

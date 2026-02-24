@@ -10,7 +10,7 @@ import {
   addEdge,
   Connection,
 } from '@xyflow/react';
-import type { WorkflowTemplate, WorkflowNodeType } from '@/shared/types/workflow';
+import type { WorkflowTemplate, WorkflowNodeType, RecurringConfig } from '@/shared/types/workflow';
 
 const NODE_DEFAULTS: Record<string, { label: string; nodeType: WorkflowNodeType }> = {
   start: { label: 'Baslangic', nodeType: 'start' },
@@ -21,6 +21,7 @@ const NODE_DEFAULTS: Record<string, { label: string; nodeType: WorkflowNodeType 
   milestone: { label: 'Milestone', nodeType: 'milestone' },
   condition: { label: 'Kosul', nodeType: 'condition' },
   notification: { label: 'Bildirim', nodeType: 'notification' },
+  subprocess: { label: 'Alt Surec', nodeType: 'subprocess' },
   end: { label: 'Bitis', nodeType: 'end' },
 };
 
@@ -33,6 +34,12 @@ interface WorkflowBuilderState {
   templateDescription: string;
   serviceCategory: string;
   defaultEstimatedDays: number;
+  // Hierarchy meta (for child templates)
+  parentTemplateId: string | null;
+  parentNodeId: string | null;
+  depth: number;
+  // Recurring config
+  recurringConfig: RecurringConfig | null;
 
   // Actions
   setNodes: (nodes: Node[]) => void;
@@ -49,6 +56,7 @@ interface WorkflowBuilderState {
     description?: string;
     serviceCategory?: string;
     defaultEstimatedDays?: number;
+    recurringConfig?: RecurringConfig | null;
   }) => void;
   reset: () => void;
   loadFromTemplate: (template: WorkflowTemplate) => void;
@@ -63,6 +71,10 @@ const initialState = {
   templateDescription: '',
   serviceCategory: 'other',
   defaultEstimatedDays: 7,
+  parentTemplateId: null as string | null,
+  parentNodeId: null as string | null,
+  depth: 0,
+  recurringConfig: null as RecurringConfig | null,
 };
 
 export const useWorkflowBuilderStore = create<WorkflowBuilderState>((set, get) => ({
@@ -129,6 +141,14 @@ export const useWorkflowBuilderStore = create<WorkflowBuilderState>((set, get) =
           type === 'notification'
             ? { recipients: ['assignee'], template: '', channel: ['in_app'] }
             : undefined,
+        // Subprocess config
+        subprocessConfig:
+          type === 'subprocess'
+            ? { childTemplateId: '', childTemplateName: '' }
+            : undefined,
+        // Agent registry
+        agentId: undefined,
+        agentName: undefined,
       },
     };
 
@@ -164,6 +184,7 @@ export const useWorkflowBuilderStore = create<WorkflowBuilderState>((set, get) =
       ...(info.defaultEstimatedDays !== undefined && {
         defaultEstimatedDays: info.defaultEstimatedDays,
       }),
+      ...(info.recurringConfig !== undefined && { recurringConfig: info.recurringConfig }),
       isDirty: true,
     });
   },
@@ -176,14 +197,17 @@ export const useWorkflowBuilderStore = create<WorkflowBuilderState>((set, get) =
       type: 'workflowNode',
       position: n.position || { x: 0, y: 0 },
       data: {
-        nodeType: n.type,
-        label: n.label,
+        nodeType: n.type || (n as any).nodeType || 'task',
+        label: n.label || (n as any).name || (n as any).title || 'Adsız Adım',
         description: n.description || '',
         assigneeRole: n.assigneeRole || '',
         estimatedDurationHours: n.estimatedDurationHours || 0,
+        agentId: n.agentId || undefined,
+        agentName: n.agentName || undefined,
         reviewConfig: n.reviewConfig,
         conditionConfig: n.conditionConfig,
         notificationConfig: n.notificationConfig,
+        subprocessConfig: n.subprocessConfig,
       },
     }));
 
@@ -209,6 +233,10 @@ export const useWorkflowBuilderStore = create<WorkflowBuilderState>((set, get) =
       templateDescription: template.description,
       serviceCategory: template.serviceCategory,
       defaultEstimatedDays: template.defaultEstimatedDays,
+      parentTemplateId: template.parentTemplateId || null,
+      parentNodeId: template.parentNodeId || null,
+      depth: template.depth || 0,
+      recurringConfig: template.recurringConfig || null,
     });
   },
 }));

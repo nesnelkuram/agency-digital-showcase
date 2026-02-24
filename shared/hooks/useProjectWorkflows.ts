@@ -13,6 +13,8 @@ import type { ServiceCategory } from '@/shared/types/pricing/services';
 interface UseProjectWorkflowsReturn {
   instancesByCategory: Record<string, WorkflowInstance[]>;
   templatesByCategory: Record<string, WorkflowTemplate[]>;
+  allInstances: WorkflowInstance[];
+  allTemplates: WorkflowTemplate[];
   loading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
@@ -39,8 +41,14 @@ export function useProjectWorkflows(projectId: string, project: Project | null):
       setTemplatesLoading(true);
       setTemplatesError(null);
 
-      const data = await getWorkflowTemplates(tenantId, { status: 'published' });
-      setTemplates(data);
+      // Fetch all root templates (depth=0) without a status filter.
+      // Filtering by status in the Firestore query requires a composite index
+      // (tenantId + isLatest + status + createdAt) that may not be deployed yet.
+      // Instead we fetch all and filter client-side to include both published and
+      // draft templates so that teams can start workflows without first publishing.
+      const data = await getWorkflowTemplates(tenantId, {});
+      // Root-level only (exclude child/subprocess templates)
+      setTemplates(data.filter(t => (t.depth ?? 0) === 0 && t.status !== 'archived'));
     } catch (err) {
       setTemplatesError(err instanceof Error ? err.message : 'Failed to fetch workflow templates');
       console.error('Error fetching workflow templates:', err);
@@ -122,6 +130,8 @@ export function useProjectWorkflows(projectId: string, project: Project | null):
   return {
     instancesByCategory,
     templatesByCategory,
+    allInstances: instances,
+    allTemplates: templates,
     loading: instancesLoading || templatesLoading,
     error: instancesError || templatesError,
     refetch,

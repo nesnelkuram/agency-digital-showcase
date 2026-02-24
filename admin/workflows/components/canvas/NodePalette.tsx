@@ -9,6 +9,7 @@ import {
   GitBranch,
   Bell,
   Square,
+  Network,
 } from 'lucide-react';
 
 interface PaletteItem {
@@ -28,6 +29,7 @@ const paletteItems: PaletteItem[] = [
   { type: 'milestone', label: 'Milestone', icon: Flag, bg: 'bg-indigo-100', text: 'text-indigo-700' },
   { type: 'condition', label: 'Kosul', icon: GitBranch, bg: 'bg-orange-100', text: 'text-orange-700' },
   { type: 'notification', label: 'Bildirim', icon: Bell, bg: 'bg-pink-100', text: 'text-pink-700' },
+  { type: 'subprocess', label: 'Alt Surec', icon: Network, bg: 'bg-cyan-100', text: 'text-cyan-700' },
   { type: 'end', label: 'Bitis', icon: Square, bg: 'bg-red-100', text: 'text-red-700' },
 ];
 

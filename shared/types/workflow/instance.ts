@@ -32,7 +32,12 @@ export interface AIExecutionRecord {
 
 export interface StepInstance {
   nodeId: string;
+  label?: string;          // Human-readable label copied from template node at instantiation time
   status: StepInstanceStatus;
+  // Subprocess fields (populated when step is a flattened sub-step)
+  parentStepId?: string;   // e.g. "node_canva" — the subprocess node this belongs to
+  isSubStep?: boolean;
+  isSubProcess?: boolean;  // true if this step represents a subprocess container
   assignment?: {
     userId: string;
     userName: string;
@@ -90,11 +95,20 @@ export interface WorkflowInstance {
   currentPhase?: string;
   steps: Record<string, StepInstance>;
   activeNodeIds: string[];
+  // Denormalized for Kanban queries: array-contains('userId') → instances with active tasks for that user
+  activeAssigneeIds: string[];
+  // Denormalized labels of ready/in_progress steps for quick display
+  activeStepLabels: string[];
+  lastActivityAt?: Timestamp;
   context: Record<string, any>;
   teamAssignments?: Record<string, string>;
   startedAt?: Timestamp;
   estimatedCompletionAt?: Timestamp;
   completedAt?: Timestamp;
+  // Recurring: set when spawned from a recurring template
+  recurringTemplateId?: string;
+  isRecurringInstance?: boolean;
+  // auditLog: embedded for quick access (last ~20 entries); older entries in subcollection audit_log
   auditLog: Array<{
     id: string;
     action: string;

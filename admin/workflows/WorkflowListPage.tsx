@@ -5,15 +5,13 @@ import {
   GitBranch,
   Plus,
   Search,
-  Filter,
   MoreVertical,
   Edit3,
   Trash2,
-  Copy,
-  Eye,
   CheckCircle,
   Archive,
   Sparkles,
+  Network,
 } from 'lucide-react';
 import { useWorkflowTemplates } from '@/shared/hooks/useWorkflowTemplates';
 import { usePermission } from '@/shared/hooks/usePermission';
@@ -41,7 +39,7 @@ const WorkflowListPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('');
   const { can } = usePermission();
   const { templates, loading, error, deleteTemplate, publishTemplate, archiveTemplate } =
-    useWorkflowTemplates({ status: statusFilter || undefined });
+    useWorkflowTemplates({ status: statusFilter || undefined, rootOnly: true });
 
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
 
@@ -245,13 +243,22 @@ const WorkflowListPage: React.FC = () => {
                 </p>
 
                 {/* Meta */}
-                <div className="flex items-center gap-3 text-xs font-commons text-neutral-400">
+                <div className="flex items-center gap-3 text-xs font-commons text-neutral-400 flex-wrap">
                   <span className="bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded">
                     {categoryLabels[template.serviceCategory] || template.serviceCategory}
                   </span>
                   <span>v{template.version}</span>
                   <span>{template.nodes?.length || 0} adim</span>
                   <span>~{template.defaultEstimatedDays} gun</span>
+                  {(() => {
+                    const subCount = (template.nodes || []).filter((n: any) => n.type === 'subprocess').length;
+                    return subCount > 0 ? (
+                      <span className="flex items-center gap-1 bg-cyan-50 text-cyan-600 px-2 py-0.5 rounded">
+                        <Network className="w-3 h-3" />
+                        {subCount} alt surec
+                      </span>
+                    ) : null;
+                  })()}
                 </div>
               </motion.div>
             );

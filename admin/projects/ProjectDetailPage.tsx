@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -17,6 +17,9 @@ import {
   UserCheck,
   LinkIcon,
   FolderKanban,
+  LayoutList,
+  ChevronRight,
+  CheckCircle2,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTenantId } from '@/shared/hooks/useTenant';
@@ -59,10 +62,13 @@ const ProjectDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [noteText, setNoteText] = useState('');
   const [submittingNote, setSubmittingNote] = useState(false);
+  const [activeTab, setActiveTab] = useState<'overview' | 'workflows' | 'timeline'>('overview');
 
   // Workflow modal state
   const [workflowModalOpen, setWorkflowModalOpen] = useState(false);
   const [workflowModalCategory, setWorkflowModalCategory] = useState<ServiceCategory | null>(null);
+  // General workflow start modal (not tied to a specific service)
+  const [generalWorkflowModalOpen, setGeneralWorkflowModalOpen] = useState(false);
 
   const loadProject = useCallback(async () => {
     if (!id) return;
@@ -85,6 +91,8 @@ const ProjectDetailPage: React.FC = () => {
   const {
     instancesByCategory,
     templatesByCategory,
+    allInstances,
+    allTemplates,
     startWorkflow,
     refetch: refetchWorkflows,
   } = useProjectWorkflows(id || '', project);
@@ -98,6 +106,10 @@ const ProjectDetailPage: React.FC = () => {
     setWorkflowModalOpen(false);
     setWorkflowModalCategory(null);
   }, []);
+
+  const handleViewDetail = useCallback((instanceId: string) => {
+    navigate(`/admin/projects/${id}/workflow/${instanceId}`);
+  }, [navigate, id]);
 
   const formatCurrency = (amount: number | undefined) => {
     if (!amount) return '-';
@@ -209,8 +221,14 @@ const ProjectDetailPage: React.FC = () => {
     ? SERVICE_MODULE_CONFIG[workflowModalCategory]?.label || ''
     : '';
 
+  const TABS = [
+    { key: 'overview' as const, label: 'Genel Bakış', icon: FolderKanban },
+    { key: 'workflows' as const, label: `Workflow'lar`, icon: GitBranch, count: allInstances.length },
+    { key: 'timeline' as const, label: 'Zaman Çizelgesi', icon: Clock, count: sortedTimeline.length },
+  ];
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Breadcrumb */}
       <ProjectBreadcrumb
         projectId={project.id}
@@ -334,77 +352,231 @@ const ProjectDetailPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Services & Workflows Section */}
-      <div>
-        <h2 className="font-grotesk text-xl font-bold text-[#171717] mb-4">
-          Hizmetler ve Is Akislari
-        </h2>
-        {project.services.length === 0 ? (
-          <div className="bg-white rounded-xl border border-neutral-100 p-8 text-center">
-            <FolderKanban className="w-10 h-10 text-neutral-300 mx-auto mb-3" />
-            <p className="font-grotesk text-sm text-neutral-500">
-              Bu projeye henuz hizmet eklenmemis.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {/* Service Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {project.services.map((service) => {
-                const config = SERVICE_MODULE_CONFIG[service.category];
-                const categoryInstances = instancesByCategory[service.category] || [];
-                return (
-                  <ServiceCard
-                    key={service.category}
-                    category={service.category}
-                    status={service.status}
-                    projectId={project.id}
-                    onStartWorkflow={config?.supportsWorkflow ? handleOpenWorkflowModal : undefined}
-                    workflowCount={categoryInstances.length}
-                  />
-                );
-              })}
-            </div>
-
-            {/* Workflow sections for each workflow-enabled service */}
-            {workflowServices.map((service) => {
-              const config = SERVICE_MODULE_CONFIG[service.category];
-              const categoryInstances = instancesByCategory[service.category] || [];
-              const categoryTemplates = templatesByCategory[service.category] || [];
-
-              if (!config?.supportsWorkflow) return null;
-
-              return (
-                <div key={`wf-${service.category}`} className="bg-white rounded-xl border border-neutral-100 p-5">
-                  <div className="flex items-center gap-2 mb-1">
-                    <div
-                      className="w-6 h-6 rounded-md flex items-center justify-center"
-                      style={{ backgroundColor: `${config.color}15` }}
-                    >
-                      <config.icon className="w-3.5 h-3.5" style={{ color: config.color }} />
-                    </div>
-                    <h3 className="font-grotesk text-sm font-semibold text-[#171717]">
-                      {config.label} - Is Akislari
-                    </h3>
-                  </div>
-                  <ServiceWorkflowSection
-                    instances={categoryInstances}
-                    hasTemplates={categoryTemplates.length > 0}
-                    onAddWorkflow={() => handleOpenWorkflowModal(service.category)}
-                    onRefetch={refetchWorkflows}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        )}
+      {/* Tab Bar */}
+      <div className="flex items-center gap-1 border-b border-neutral-200">
+        {TABS.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-grotesk font-medium border-b-2 transition-colors -mb-px ${
+              activeTab === tab.key
+                ? 'border-[#171717] text-[#171717]'
+                : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'
+            }`}
+          >
+            <tab.icon className="w-4 h-4" />
+            {tab.label}
+            {tab.count !== undefined && tab.count > 0 && (
+              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-medium ${
+                activeTab === tab.key ? 'bg-[#171717] text-white' : 'bg-neutral-100 text-neutral-600'
+              }`}>
+                {tab.count}
+              </span>
+            )}
+          </button>
+        ))}
       </div>
 
-      {/* Timeline */}
-      <div>
-        <h2 className="font-grotesk text-xl font-bold text-[#171717] mb-4">
-          Zaman Cizelgesi
-        </h2>
+      {/* ── OVERVIEW TAB ── */}
+      {activeTab === 'overview' && (
+        <div className="space-y-6">
+          <div>
+            <h2 className="font-grotesk text-lg font-bold text-[#171717] mb-4">
+              Hizmetler ve İş Akışları
+            </h2>
+            {project.services.length === 0 ? (
+              <div className="bg-white rounded-xl border border-neutral-100 p-8 text-center">
+                <FolderKanban className="w-10 h-10 text-neutral-300 mx-auto mb-3" />
+                <p className="font-grotesk text-sm text-neutral-500">
+                  Bu projeye henüz hizmet eklenmemiş.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Service Cards Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {project.services.map((service) => {
+                    const config = SERVICE_MODULE_CONFIG[service.category];
+                    const categoryInstances = instancesByCategory[service.category] || [];
+                    return (
+                      <ServiceCard
+                        key={service.category}
+                        category={service.category}
+                        status={service.status}
+                        projectId={project.id}
+                        onStartWorkflow={config?.supportsWorkflow ? handleOpenWorkflowModal : undefined}
+                        workflowCount={categoryInstances.length}
+                      />
+                    );
+                  })}
+                </div>
+
+                {/* Workflow sections for each workflow-enabled service */}
+                {workflowServices.map((service) => {
+                  const config = SERVICE_MODULE_CONFIG[service.category];
+                  const categoryInstances = instancesByCategory[service.category] || [];
+                  const categoryTemplates = templatesByCategory[service.category] || [];
+                  if (!config?.supportsWorkflow) return null;
+                  return (
+                    <div key={`wf-${service.category}`} className="bg-white rounded-xl border border-neutral-100 p-5">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ backgroundColor: `${config.color}15` }}>
+                          <config.icon className="w-3.5 h-3.5" style={{ color: config.color }} />
+                        </div>
+                        <h3 className="font-grotesk text-sm font-semibold text-[#171717]">
+                          {config.label} - İş Akışları
+                        </h3>
+                      </div>
+                      <ServiceWorkflowSection
+                        instances={categoryInstances}
+                        hasTemplates={categoryTemplates.length > 0}
+                        onAddWorkflow={() => handleOpenWorkflowModal(service.category)}
+                        onRefetch={refetchWorkflows}
+                        onViewDetail={handleViewDetail}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── WORKFLOWS TAB ── */}
+      {activeTab === 'workflows' && (
+        <div className="space-y-4">
+          {/* Header row */}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-grotesk text-sm text-neutral-500">
+                Bu projeye bağlı tüm iş akışları
+              </p>
+            </div>
+            <button
+              onClick={() => setGeneralWorkflowModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-[#171717] text-white rounded-xl font-grotesk text-sm font-medium hover:bg-neutral-800 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Workflow Başlat
+            </button>
+          </div>
+
+          {/* Stats row */}
+          {allInstances.length > 0 && (
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: 'Aktif', count: allInstances.filter(i => i.status === 'active').length, color: 'text-green-600', bg: 'bg-green-50' },
+                { label: 'Beklemede', count: allInstances.filter(i => i.status === 'pending' || i.status === 'paused').length, color: 'text-amber-600', bg: 'bg-amber-50' },
+                { label: 'Tamamlandı', count: allInstances.filter(i => i.status === 'completed').length, color: 'text-blue-600', bg: 'bg-blue-50' },
+              ].map(stat => (
+                <div key={stat.label} className={`${stat.bg} rounded-xl px-4 py-3`}>
+                  <p className={`font-grotesk text-2xl font-bold ${stat.color}`}>{stat.count}</p>
+                  <p className="font-grotesk text-xs text-neutral-500 mt-0.5">{stat.label}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Instance list */}
+          {allInstances.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 bg-white rounded-xl border border-dashed border-neutral-200">
+              <GitBranch className="w-10 h-10 text-neutral-300 mb-3" />
+              <p className="font-grotesk text-sm font-medium text-neutral-500">Henüz iş akışı yok</p>
+              <p className="font-grotesk text-xs text-neutral-400 mt-1 mb-4">
+                "Workflow Başlat" ile bu projeye bir akış ekleyin
+              </p>
+              <button
+                onClick={() => setGeneralWorkflowModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-[#171717] text-white rounded-xl font-grotesk text-sm font-medium hover:bg-neutral-800 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                Workflow Başlat
+              </button>
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl border border-neutral-100 overflow-hidden">
+              <div className="divide-y divide-neutral-100">
+                {allInstances
+                  .sort((a, b) => {
+                    const order = { active: 0, pending: 1, paused: 2, completed: 3, cancelled: 4 };
+                    return (order[a.status] ?? 9) - (order[b.status] ?? 9);
+                  })
+                  .map((instance) => {
+                    const config = SERVICE_MODULE_CONFIG[instance.serviceCategory as ServiceCategory];
+                    const statusStyle: Record<string, { label: string; cls: string }> = {
+                      active: { label: 'Aktif', cls: 'bg-green-100 text-green-700' },
+                      pending: { label: 'Bekliyor', cls: 'bg-yellow-100 text-yellow-700' },
+                      paused: { label: 'Duraklatıldı', cls: 'bg-neutral-100 text-neutral-600' },
+                      completed: { label: 'Tamamlandı', cls: 'bg-blue-100 text-blue-700' },
+                      cancelled: { label: 'İptal', cls: 'bg-red-100 text-red-600' },
+                    };
+                    const s = statusStyle[instance.status] || statusStyle.pending;
+
+                    return (
+                      <motion.div
+                        key={instance.id}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="flex items-center gap-4 px-5 py-4 hover:bg-neutral-50 transition-colors group"
+                      >
+                        {/* Icon */}
+                        <div
+                          className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+                          style={{ backgroundColor: config ? `${config.color}15` : '#f5f5f5' }}
+                        >
+                          {config ? (
+                            <config.icon className="w-4 h-4" style={{ color: config.color }} />
+                          ) : (
+                            <GitBranch className="w-4 h-4 text-neutral-400" />
+                          )}
+                        </div>
+
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-grotesk text-sm font-semibold text-[#171717] truncate">
+                              {instance.templateName}
+                            </p>
+                            <span className={`shrink-0 px-2 py-0.5 rounded-full font-grotesk text-[10px] font-medium ${s.cls}`}>
+                              {s.label}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            {config && (
+                              <span className="font-grotesk text-xs text-neutral-400">{config.label}</span>
+                            )}
+                            <div className="flex items-center gap-1.5 flex-1">
+                              <div className="flex-1 bg-neutral-100 rounded-full h-1.5 max-w-[120px]">
+                                <div
+                                  className="bg-indigo-500 h-1.5 rounded-full transition-all"
+                                  style={{ width: `${instance.progress}%` }}
+                                />
+                              </div>
+                              <span className="font-grotesk text-[10px] text-neutral-400">%{instance.progress}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Action */}
+                        <button
+                          onClick={() => handleViewDetail(instance.id)}
+                          className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-grotesk text-xs font-medium transition-colors opacity-0 group-hover:opacity-100"
+                        >
+                          Detayı Gör
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
+                      </motion.div>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── TIMELINE TAB ── */}
+      {activeTab === 'timeline' && (
         <div className="admin-card p-0 overflow-hidden">
           {/* Add Note Input */}
           <div className="px-5 py-4 border-b border-neutral-100">
@@ -437,9 +609,7 @@ const ProjectDetailPage: React.FC = () => {
             {sortedTimeline.length === 0 ? (
               <div className="px-5 py-8 text-center">
                 <Clock className="w-8 h-8 text-neutral-300 mx-auto" />
-                <p className="mt-2 text-sm font-grotesk text-neutral-400">
-                  Henuz etkinlik yok
-                </p>
+                <p className="mt-2 text-sm font-grotesk text-neutral-400">Henüz etkinlik yok</p>
               </div>
             ) : (
               sortedTimeline.map((event) => {
@@ -456,22 +626,14 @@ const ProjectDetailPage: React.FC = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="font-grotesk text-sm font-medium text-[#171717]">
-                          {event.title}
-                        </p>
-                        <span className="font-grotesk text-xs text-neutral-400">
-                          {formatRelativeDate(event.createdAt)}
-                        </span>
+                        <p className="font-grotesk text-sm font-medium text-[#171717]">{event.title}</p>
+                        <span className="font-grotesk text-xs text-neutral-400">{formatRelativeDate(event.createdAt)}</span>
                       </div>
                       {event.description && (
-                        <p className="font-grotesk text-sm text-neutral-500 mt-0.5">
-                          {event.description}
-                        </p>
+                        <p className="font-grotesk text-sm text-neutral-500 mt-0.5">{event.description}</p>
                       )}
                       {event.createdByName && (
-                        <p className="font-grotesk text-xs text-neutral-400 mt-1">
-                          {event.createdByName}
-                        </p>
+                        <p className="font-grotesk text-xs text-neutral-400 mt-1">{event.createdByName}</p>
                       )}
                     </div>
                   </motion.div>
@@ -480,9 +642,9 @@ const ProjectDetailPage: React.FC = () => {
             )}
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Start Workflow Modal */}
+      {/* Start Workflow Modal (service-specific) */}
       {workflowModalCategory && (
         <StartWorkflowModal
           isOpen={workflowModalOpen}
@@ -491,6 +653,22 @@ const ProjectDetailPage: React.FC = () => {
           category={workflowModalCategory}
           categoryLabel={modalCategoryLabel}
           onStart={startWorkflow}
+        />
+      )}
+
+      {/* General Workflow Start Modal (all templates) */}
+      {generalWorkflowModalOpen && (
+        <StartWorkflowModal
+          isOpen={generalWorkflowModalOpen}
+          onClose={() => setGeneralWorkflowModalOpen(false)}
+          templates={allTemplates}
+          category={allTemplates[0]?.serviceCategory || 'social_media' as ServiceCategory}
+          categoryLabel="Tüm Şablonlar"
+          onStart={async (templateId, _cat, customName) => {
+            const tpl = allTemplates.find(t => t.id === templateId);
+            if (!tpl) return null;
+            return startWorkflow(templateId, tpl.serviceCategory, customName);
+          }}
         />
       )}
     </div>

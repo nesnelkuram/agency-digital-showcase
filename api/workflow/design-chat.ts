@@ -25,6 +25,7 @@ Kullanıcının isteklerine göre iş süreci (workflow) tasarla ve gereken aksi
 - parallel_split: Paralel işler başlangıcı
 - parallel_join: Paralel işler birleşimi
 - notification: Bildirim gönderme
+- subprocess: Başka bir workflow şablonunu temsil eden alt süreç (hiyerarşik)
 - end: Süreç sonu (her workflow'da 1 tane)
 
 ## Edge Tipleri
@@ -53,6 +54,51 @@ Her workflow mantıksal fazlara bölünmeli. Her faz'ın bir rengi olsun: #3B82F
 - create_instance: Şablondan proje instance'ı oluştur (projectId gerekli)
 - none: Sadece yanıt ver, aksiyon yok
 
+## Node JSON Yapısı (ZORUNLU ALAN ADLARI)
+Her node aşağıdaki yapıda olmalı — alan adları birebir bu şekilde kullanılmalı:
+{
+  "id": "node_1",
+  "type": "task",
+  "label": "Lokasyon Keşfi",
+  "description": "Çekim lokasyonları belirlenir ve onaylanır",
+  "position": { "x": 300, "y": 50 },
+  "assigneeRole": "project_manager",
+  "estimatedDurationHours": 8,
+  "sopResources": []
+}
+
+ÖNEMLİ: Düğüm adı mutlaka "label" alanında olmalı. "name", "title" veya başka alan adı kullanma.
+
+## Edge JSON Yapısı
+{ "id": "edge_1", "source": "node_1", "target": "node_2", "type": "default", "label": "" }
+
+## Phase JSON Yapısı
+{ "id": "phase_1", "name": "Ön Üretim", "nodeIds": ["node_1", "node_2"], "sortOrder": 0, "color": "#3B82F6" }
+
+## Subprocess Kuralları
+- subprocess node JSON örneği:
+  { "id":"node_5", "type":"subprocess", "label":"İçerik Üretimi", "position":{"x":300,"y":360}, "sopResources":[] }
+- subWorkflowDrafts dizisi ile alt workflow taslakları tanımla:
+  [{ "parentNodeId":"node_5", "draft": { tam WorkflowDraft objesi } }]
+- Alt draft'ın node id'leri: "sub_{parentNodeId}_node_1" formatında
+- Depth limiti: maksimum 3 seviye (subprocess içinde subprocess olabilir, ama 3'ten fazla değil)
+- subprocess node'u ana workflow'un edge'leriyle bağlanabilir
+
+## Yanıt Formatı (subprocess dahil)
+{
+  "reply": "...",
+  "actions": [...],
+  "draft": {
+    ...mevcut alanlar...,
+    "subWorkflowDrafts": [
+      {
+        "parentNodeId": "node_5",
+        "draft": { "name":"...", "nodes":[...], "edges":[...], "phases":[...], ... }
+      }
+    ]
+  }
+}
+
 ## Kurallar
 - Tasarım tamamlanınca kullanıcıya "save_template" veya "publish_template" öner
 - Kullanıcı "kaydet", "tamam", "güzel", "bitir" derse save_template çalıştır
@@ -73,6 +119,10 @@ interface WorkflowDraft {
   nodes: any[];
   edges: any[];
   phases: any[];
+  subWorkflowDrafts?: Array<{
+    parentNodeId: string;
+    draft: WorkflowDraft;
+  }>;
 }
 
 interface AgentAction {
@@ -97,6 +147,80 @@ interface ActionResult {
   success: boolean;
   data?: any;
   error?: string;
+}
+
+/**
+ * Recursively saves a workflow draft and its sub-workflow drafts to Firestore.
+ * Returns the Firestore document ID of the saved template.
+ */
+async function saveTemplateRecursive(
+  db: any,
+  draft: WorkflowDraft,
+  tenantId: string,
+  userId: string,
+  userDisplayName: string,
+  status: 'draft' | 'published',
+  parentTemplateId?: string,
+  parentNodeId?: string,
+  depth = 0
+): Promise<string> {
+  if (depth > 3) throw new Error('Max subprocess depth (3) exceeded');
+
+  const templateRef = db.collection('workflow_templates').doc();
+  const childIdMap: Record<string, string> = {};
+
+  // 1. Recursively save child templates first
+  for (const swd of (draft.subWorkflowDrafts || [])) {
+    const childId = await saveTemplateRecursive(
+      db, swd.draft, tenantId, userId, userDisplayName, status,
+      templateRef.id, swd.parentNodeId, depth + 1
+    );
+    childIdMap[swd.parentNodeId] = childId;
+  }
+
+  // 2. Patch subprocess nodes with their child template IDs
+  const finalNodes = (draft.nodes || []).map((n: any) => {
+    if (n.type === 'subprocess' && childIdMap[n.id]) {
+      return {
+        ...n,
+        subprocessConfig: {
+          childTemplateId: childIdMap[n.id],
+          childTemplateName: n.label || n.subprocessConfig?.childTemplateName || '',
+        },
+      };
+    }
+    return n;
+  });
+
+  // 3. Save this template to Firestore
+  const templateData: Record<string, any> = {
+    id: templateRef.id,
+    tenantId,
+    name: draft.name || 'AI Workflow',
+    description: draft.description || '',
+    serviceCategory: draft.serviceCategory || 'general',
+    nodes: finalNodes,
+    edges: draft.edges || [],
+    phases: draft.phases || [],
+    defaultEstimatedDays: draft.defaultEstimatedDays || 7,
+    version: 1,
+    isLatest: true,
+    status,
+    depth,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    createdBy: userId,
+    createdByName: userDisplayName,
+    source: 'ai_agent',
+  };
+
+  if (parentTemplateId) {
+    templateData.parentTemplateId = parentTemplateId;
+    templateData.parentNodeId = parentNodeId;
+  }
+
+  await templateRef.set(templateData);
+  return templateRef.id;
 }
 
 export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) => {
@@ -130,9 +254,24 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
 
     const history = sessionData.messages || [];
     const currentDraft: WorkflowDraft | null = sessionData.currentDraft || null;
+    const parentContext = sessionData.parentContext || null;
+    // parentContext?: { parentSessionId, nodeId, nodeLabel, parentWorkflowName }
 
     // Build prompt
     const parts: string[] = [SYSTEM_PROMPT, ''];
+
+    // Sub-session context injection
+    if (parentContext) {
+      parts.push('## Alt Süreç Bağlamı');
+      parts.push(`Sen "${parentContext.parentWorkflowName}" adlı ana workflow'un "${parentContext.nodeLabel}" adlı subprocess node'unu tasarlıyorsun.`);
+      parts.push('Bu alt süreç:');
+      parts.push('- Ana workflow içindeki bir subprocess node\'u temsil eder');
+      parts.push('- Kendi başına çalışabilir ama ana akışa entegre olur');
+      parts.push('- start ve end node\'larıyla başlamalı ve bitmeli');
+      parts.push('- subWorkflowDrafts kullanma — bu ZATen bir sub-workflow');
+      parts.push('- Sadece bu alt sürece odaklan, ana workflow\'u değiştirme');
+      parts.push('');
+    }
 
     if (currentDraft) {
       parts.push('## Mevcut Draft');
@@ -190,39 +329,66 @@ Yanıtını aşağıdaki JSON formatında dön:
       try {
         if ((action.type === 'save_template' || action.type === 'publish_template') && draft) {
           const status = action.type === 'publish_template' ? 'published' : 'draft';
-          const templateRef = db.collection('workflow_templates').doc();
 
-          const templateData = {
-            id: templateRef.id,
-            tenantId: req.tenantId,
+          // Use override name/description if provided
+          const draftToSave: WorkflowDraft = {
+            ...draft,
             name: action.name || draft.name || 'AI Workflow',
             description: action.description || draft.description || '',
-            serviceCategory: draft.serviceCategory || 'general',
-            nodes: draft.nodes || [],
-            edges: draft.edges || [],
-            phases: draft.phases || [],
-            defaultEstimatedDays: draft.defaultEstimatedDays || 7,
-            version: 1,
-            isLatest: true,
-            status,
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
-            createdBy: req.userId,
-            createdByName: req.userDisplayName || '',
-            source: 'ai_agent',
           };
 
-          await templateRef.set(templateData);
+          const parentTemplateId = parentContext ? undefined : undefined; // root save
+          const rootTemplateId = await saveTemplateRecursive(
+            db, draftToSave, req.tenantId, req.userId,
+            req.userDisplayName || '', status
+          );
 
           // Save templateId back to session for future update_template calls
           await db.collection('workflow_design_sessions').doc(sessionId).update({
-            savedTemplateId: templateRef.id,
+            savedTemplateId: rootTemplateId,
           });
+
+          // If this is a sub-session, link the saved template back to the parent session's draft
+          if (parentContext?.parentSessionId && parentContext?.nodeId) {
+            try {
+              const parentSessionRef = db.collection('workflow_design_sessions').doc(parentContext.parentSessionId);
+              const parentSessionDoc = await parentSessionRef.get();
+              if (parentSessionDoc.exists) {
+                const parentDraft = parentSessionDoc.data()?.currentDraft;
+                if (parentDraft?.nodes) {
+                  const updatedNodes = parentDraft.nodes.map((n: any) =>
+                    n.id === parentContext.nodeId
+                      ? {
+                          ...n,
+                          subprocessConfig: {
+                            childTemplateId: rootTemplateId,
+                            childTemplateName: draftToSave.name,
+                          },
+                        }
+                      : n
+                  );
+                  await parentSessionRef.update({
+                    currentDraft: { ...parentDraft, nodes: updatedNodes },
+                    updatedAt: Date.now(),
+                  });
+                }
+              }
+            } catch (linkErr: any) {
+              console.warn('[design-chat] Parent session link failed:', linkErr?.message);
+            }
+          }
 
           actionResults.push({
             type: action.type,
             success: true,
-            data: { templateId: templateRef.id, name: templateData.name, status },
+            data: {
+              templateId: rootTemplateId,
+              name: draftToSave.name,
+              status,
+              // For sub-sessions: tell frontend which parent node was linked
+              linkedParentNodeId: parentContext?.nodeId || null,
+              linkedParentSessionId: parentContext?.parentSessionId || null,
+            },
           });
         } else if (action.type === 'update_template' && action.templateId && draft) {
           await db.collection('workflow_templates').doc(action.templateId).update({
@@ -293,13 +459,44 @@ Yanıtını aşağıdaki JSON formatında dön:
       updatedAt: Date.now(),
     };
 
+    // Auto-set title from first user message or draft name
+    if (!sessionData.title) {
+      const autoTitle = draft?.name || String(message).slice(0, 60);
+      updateData.title = autoTitle;
+    }
+
     if (draft) {
       updateData.currentDraft = draft;
     }
 
     await db.collection('workflow_design_sessions').doc(sessionId).update(updateData);
 
-    return res.status(200).json({ reply, draft, actions, results: actionResults });
+    // Compute subprocess nodes that still need child template design
+    const subprocessSuggestions = (draft?.nodes || [])
+      .filter((n: any) => n.type === 'subprocess' && !n.subprocessConfig?.childTemplateId)
+      .map((n: any) => ({ nodeId: n.id, nodeLabel: n.label || n.id }));
+
+    // Find if any save action linked back to a parent node
+    const linkedParentResult = actionResults.find(
+      (r) => r.success && r.data?.linkedParentNodeId
+    );
+    const linkedParentNode = linkedParentResult
+      ? {
+          nodeId: linkedParentResult.data.linkedParentNodeId,
+          childTemplateId: linkedParentResult.data.templateId,
+          childTemplateName: linkedParentResult.data.name,
+          parentSessionId: linkedParentResult.data.linkedParentSessionId,
+        }
+      : null;
+
+    return res.status(200).json({
+      reply,
+      draft,
+      actions,
+      results: actionResults,
+      subprocessSuggestions,
+      linkedParentNode,
+    });
   } catch (error: any) {
     console.error('workflow/design-chat error:', error);
     return res.status(500).json({

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTenantId } from '@/shared/hooks/useTenant';
 import {
   getWorkflowTemplates,
+  getRootTemplates,
   getWorkflowTemplate,
   createWorkflowTemplate,
   updateWorkflowTemplate,
@@ -33,6 +34,7 @@ interface UseWorkflowTemplateReturn {
 interface UseWorkflowTemplatesFilters {
   serviceCategory?: string;
   status?: string;
+  rootOnly?: boolean;
 }
 
 export function useWorkflowTemplates(filters?: UseWorkflowTemplatesFilters): UseWorkflowTemplatesReturn {
@@ -50,7 +52,9 @@ export function useWorkflowTemplates(filters?: UseWorkflowTemplatesFilters): Use
     try {
       setLoading(true);
       setError(null);
-      const data = await getWorkflowTemplates(tenantId, filters);
+      const data = filters?.rootOnly
+        ? await getRootTemplates(tenantId, filters)
+        : await getWorkflowTemplates(tenantId, filters);
       setTemplates(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch workflow templates');
@@ -58,7 +62,7 @@ export function useWorkflowTemplates(filters?: UseWorkflowTemplatesFilters): Use
     } finally {
       setLoading(false);
     }
-  }, [tenantId, filters?.serviceCategory, filters?.status]);
+  }, [tenantId, filters?.serviceCategory, filters?.status, filters?.rootOnly]);
 
   useEffect(() => {
     fetchTemplates();

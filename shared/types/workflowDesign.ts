@@ -9,6 +9,10 @@ export interface WorkflowDraft {
   nodes: WorkflowNodeTemplate[];
   edges: WorkflowEdgeTemplate[];
   phases: WorkflowPhase[];
+  subWorkflowDrafts?: Array<{
+    parentNodeId: string;
+    draft: WorkflowDraft;
+  }>;
 }
 
 export interface WorkflowDesignMessage {

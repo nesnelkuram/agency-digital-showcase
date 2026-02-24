@@ -97,6 +97,7 @@ export async function createWorkflowTemplate(
   const templateData: Omit<WorkflowTemplate, 'id'> = {
     ...data,
     tenantId,
+    depth: data.depth ?? 0,
     version: 1,
     isLatest: true,
     status: 'draft',
@@ -106,6 +107,65 @@ export async function createWorkflowTemplate(
 
   await setDoc(docRef, stripUndefined(templateData));
   return docRef.id;
+}
+
+/**
+ * Returns only root-level templates (depth=0)
+ */
+export async function getRootTemplates(
+  tenantId: string,
+  filters?: { serviceCategory?: string; status?: string }
+): Promise<WorkflowTemplate[]> {
+  if (!db) throw new Error('Firebase not initialized');
+
+  const constraints: QueryConstraint[] = [
+    where('tenantId', '==', tenantId),
+    where('depth', '==', 0),
+    where('isLatest', '==', true),
+  ];
+
+  if (filters?.serviceCategory) {
+    constraints.push(where('serviceCategory', '==', filters.serviceCategory));
+  }
+
+  if (filters?.status) {
+    constraints.push(where('status', '==', filters.status));
+  }
+
+  constraints.push(orderBy('createdAt', 'desc'));
+
+  const q = query(collection(db, COLLECTION_NAME), ...constraints);
+  const snapshot = await getDocs(q);
+
+  return snapshot.docs.map((d) => ({
+    id: d.id,
+    ...d.data(),
+  })) as WorkflowTemplate[];
+}
+
+/**
+ * Returns child templates for a given parent template
+ */
+export async function getChildTemplates(
+  tenantId: string,
+  parentTemplateId: string
+): Promise<WorkflowTemplate[]> {
+  if (!db) throw new Error('Firebase not initialized');
+
+  const constraints: QueryConstraint[] = [
+    where('tenantId', '==', tenantId),
+    where('parentTemplateId', '==', parentTemplateId),
+    where('isLatest', '==', true),
+    orderBy('createdAt', 'asc'),
+  ];
+
+  const q = query(collection(db, COLLECTION_NAME), ...constraints);
+  const snapshot = await getDocs(q);
+
+  return snapshot.docs.map((d) => ({
+    id: d.id,
+    ...d.data(),
+  })) as WorkflowTemplate[];
 }
 
 export async function updateWorkflowTemplate(

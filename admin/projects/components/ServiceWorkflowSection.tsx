@@ -10,19 +10,22 @@ interface ServiceWorkflowSectionProps {
   hasTemplates: boolean;
   onAddWorkflow: () => void;
   onRefetch: () => Promise<void>;
+  onViewDetail?: (instanceId: string) => void;
 }
 
 // Wrapper to get template for each instance
 const InstanceWithTemplate: React.FC<{
   instance: WorkflowInstance;
   onRefetch: () => Promise<void>;
-}> = ({ instance, onRefetch }) => {
+  onViewDetail?: (instanceId: string) => void;
+}> = ({ instance, onRefetch, onViewDetail }) => {
   const { template } = useWorkflowTemplate(instance.templateId);
   return (
     <WorkflowInstanceCard
       instance={instance}
       template={template}
       onRefetch={onRefetch}
+      onViewDetail={onViewDetail ? (instanceId) => onViewDetail(instanceId) : undefined}
     />
   );
 };
@@ -32,6 +35,7 @@ const ServiceWorkflowSection: React.FC<ServiceWorkflowSectionProps> = ({
   hasTemplates,
   onAddWorkflow,
   onRefetch,
+  onViewDetail,
 }) => {
   const [showCompleted, setShowCompleted] = useState(false);
 
@@ -74,6 +78,7 @@ const ServiceWorkflowSection: React.FC<ServiceWorkflowSectionProps> = ({
               key={instance.id}
               instance={instance}
               onRefetch={onRefetch}
+              onViewDetail={onViewDetail}
             />
           ))}
         </div>
@@ -117,6 +122,7 @@ const ServiceWorkflowSection: React.FC<ServiceWorkflowSectionProps> = ({
                       key={instance.id}
                       instance={instance}
                       onRefetch={onRefetch}
+                      onViewDetail={onViewDetail}
                     />
                   ))}
                 </div>
