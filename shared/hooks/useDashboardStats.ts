@@ -6,7 +6,6 @@ import {
   getDocs,
   orderBy,
   limit,
-  Timestamp,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { useTenantId } from '@/shared/hooks/useTenant';
@@ -120,7 +119,9 @@ export function useDashboardStats(): UseDashboardStatsReturn {
       const now = new Date();
       const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-      // Fetch counts in parallel
+      // Fetch counts in parallel — each wrapped so one failure doesn't break the dashboard
+      const safe = <T,>(p: Promise<T>, fallback: T) => p.catch((err) => { console.warn('[Dashboard] query failed:', err.message); return fallback; });
+
       const [
         projectsSnapshot,
         approvalsSnapshot,
@@ -130,44 +131,53 @@ export function useDashboardStats(): UseDashboardStatsReturn {
         tasksSnapshot,
       ] = await Promise.all([
         // Active projects
-        getDocs(
+        safe(getDocs(
           query(collection(db, 'projects'), where('tenantId', '==', tenantId), where('status', '==', 'active'))
-        ),
+        ), null),
         // Pending approvals
-        getDocs(
+        safe(getDocs(
           query(collection(db, 'approvals'), where('tenantId', '==', tenantId), where('status', '==', 'pending'))
-        ),
+        ), null),
         // Team members (active users)
-        getDocs(
+        safe(getDocs(
           query(collection(db, 'users'), where('tenantId', '==', tenantId), where('status', '==', 'active'))
-        ),
-        // Completed this month
-        getDocs(
+        ), null),
+        // Completed this month — two equality filters + client-side date filter
+        safe(getDocs(
           query(
             collection(db, 'projects'),
             where('tenantId', '==', tenantId),
-            where('status', '==', 'completed'),
-            where('completedAt', '>=', Timestamp.fromDate(firstDayOfMonth))
+            where('status', '==', 'completed')
           )
-        ),
+        ), null),
         // Recent activity
-        getDocs(
+        safe(getDocs(
           query(
             collection(db, 'activityLog'),
             where('tenantId', '==', tenantId),
             orderBy('createdAt', 'desc'),
             limit(10)
           )
-        ),
+        ), null),
         // Active tasks (standalone)
-        getDocs(
+        safe(getDocs(
           query(
             collection(db, 'tasks'),
             where('tenantId', '==', tenantId),
             where('status', 'in', ['open', 'in_progress', 'awaiting_review', 'blocked'])
           )
-        ),
+        ), null),
       ]);
+
+      // Count completed this month (client-side date filter)
+      let completedThisMonth = 0;
+      completedSnapshot?.forEach((doc) => {
+        const data = doc.data();
+        const completedAt = data.completedAt?.toDate?.() || data.completedAt;
+        if (completedAt && completedAt >= firstDayOfMonth) {
+          completedThisMonth++;
+        }
+      });
 
       // Count urgent approvals (due within 2 days)
       const twoDaysFromNow = new Date();
@@ -176,7 +186,7 @@ export function useDashboardStats(): UseDashboardStatsReturn {
       let urgentCount = 0;
       const approvalsList: PendingApproval[] = [];
 
-      approvalsSnapshot.forEach((doc) => {
+      approvalsSnapshot?.forEach((doc) => {
         const data = doc.data();
         const dueDate = data.dueDate?.toDate?.() || new Date();
         const isUrgent = dueDate <= twoDaysFromNow;
@@ -199,7 +209,7 @@ export function useDashboardStats(): UseDashboardStatsReturn {
 
       // Process activity log
       const activityList: ActivityItem[] = [];
-      activitySnapshot.forEach((doc) => {
+      activitySnapshot?.forEach((doc) => {
         const data = doc.data();
         const time = data.createdAt?.toDate?.() || new Date();
 
@@ -214,12 +224,12 @@ export function useDashboardStats(): UseDashboardStatsReturn {
       });
 
       setStats({
-        activeProjects: projectsSnapshot.size,
-        pendingApprovals: approvalsSnapshot.size,
+        activeProjects: projectsSnapshot?.size || 0,
+        pendingApprovals: approvalsSnapshot?.size || 0,
         urgentApprovals: urgentCount,
-        teamMembers: usersSnapshot.size,
-        completedThisMonth: completedSnapshot.size,
-        activeTasks: tasksSnapshot.size,
+        teamMembers: usersSnapshot?.size || 0,
+        completedThisMonth,
+        activeTasks: tasksSnapshot?.size || 0,
       });
 
       setPendingApprovals(approvalsList.slice(0, 5));

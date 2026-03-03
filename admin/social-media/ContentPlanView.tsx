@@ -14,6 +14,8 @@ import {
   Mail,
   X,
   Loader2,
+  Eye,
+  ShieldCheck,
 } from 'lucide-react';
 import { useTenantId } from '@/shared/hooks/useTenant';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,19 +23,31 @@ import type {
   ContentPlan,
   SocialMediaPost,
   ContentPlanStatus,
+  ApprovalAction,
 } from '@/shared/types/socialMedia';
-import { SOCIAL_PLATFORM_LABELS } from '@/shared/types/socialMedia';
-import { getContentPlan, submitForApproval } from '@/shared/services/contentPlanService';
+import { SOCIAL_PLATFORM_LABELS, DEFAULT_APPROVAL_CONFIG } from '@/shared/types/socialMedia';
+import {
+  getContentPlan,
+  submitForApproval,
+  updateApprovalConfig,
+} from '@/shared/services/contentPlanService';
 import { getSocialPostsForPlan } from '@/shared/services/socialMediaService';
 import ProjectBreadcrumb from '@/admin/projects/components/ProjectBreadcrumb';
 import PlatformPreviewContainer from './components/previews/PlatformPreviewContainer';
 import { authenticatedFetch } from '@/lib/firebase/apiClient';
+import ApprovalFlowIndicator from './components/ApprovalFlowIndicator';
+import PostApprovalBadge from './components/PostApprovalBadge';
+import PostApprovalActions from './components/PostApprovalActions';
+import ApprovalAuditTrail from './components/ApprovalAuditTrail';
+import ApprovalConfigSection from './components/ApprovalConfigSection';
 
 const STATUS_CONFIG: Record<ContentPlanStatus, { label: string; icon: React.ReactNode; color: string }> = {
   draft: { label: 'Taslak', icon: <FileText className="w-4 h-4" />, color: 'bg-gray-100 text-gray-700' },
-  pending_approval: { label: 'Onay Bekliyor', icon: <Clock className="w-4 h-4" />, color: 'bg-amber-100 text-amber-700' },
-  approved: { label: 'Onaylandı', icon: <CheckCircle className="w-4 h-4" />, color: 'bg-emerald-100 text-emerald-700' },
-  revision_requested: { label: 'Revizyon İstendi', icon: <AlertCircle className="w-4 h-4" />, color: 'bg-red-100 text-red-700' },
+  internal_review: { label: 'Dahili Inceleme', icon: <Eye className="w-4 h-4" />, color: 'bg-sky-100 text-sky-700' },
+  pending_approval: { label: 'Musteri Onayi Bekliyor', icon: <Clock className="w-4 h-4" />, color: 'bg-amber-100 text-amber-700' },
+  partially_approved: { label: 'Kismi Onay', icon: <ShieldCheck className="w-4 h-4" />, color: 'bg-violet-100 text-violet-700' },
+  approved: { label: 'Onaylandi', icon: <CheckCircle className="w-4 h-4" />, color: 'bg-emerald-100 text-emerald-700' },
+  revision_requested: { label: 'Revizyon Istendi', icon: <AlertCircle className="w-4 h-4" />, color: 'bg-red-100 text-red-700' },
 };
 
 const ContentPlanView: React.FC = () => {
@@ -54,6 +68,7 @@ const ContentPlanView: React.FC = () => {
   const [sendingEmail, setSendingEmail] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
+  const [transitioning, setTransitioning] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!planId) return;
@@ -138,6 +153,41 @@ const ContentPlanView: React.FC = () => {
     }
   };
 
+  const handleApprovalAction = async (action: ApprovalAction, comment?: string) => {
+    if (!plan) return;
+    setTransitioning(true);
+    try {
+      const postIds = posts.map((p) => p.id);
+      const res = await authenticatedFetch('/api/content-approval/transition', {
+        method: 'POST',
+        body: JSON.stringify({ planId: plan.id, postIds, action, comment }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        console.error('Approval transition failed:', body.error);
+        return;
+      }
+      // Veriyi yeniden yukle
+      await loadData();
+    } catch (err) {
+      console.error('Approval transition error:', err);
+    } finally {
+      setTransitioning(false);
+    }
+  };
+
+  const handleApprovalConfigChange = async (config: typeof DEFAULT_APPROVAL_CONFIG) => {
+    if (!plan) return;
+    try {
+      await updateApprovalConfig(tenantId, plan.id, config);
+      setPlan((prev) => prev ? { ...prev, approvalConfig: config } : prev);
+    } catch (err) {
+      console.error('Approval config update error:', err);
+    }
+  };
+
+  const approvalConfig = plan?.approvalConfig || DEFAULT_APPROVAL_CONFIG;
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -212,7 +262,7 @@ const ContentPlanView: React.FC = () => {
             {copied ? (
               <>
                 <Check className="w-4 h-4 text-emerald-600" />
-                Kopyalandı
+                Kopyalandi
               </>
             ) : (
               <>
@@ -222,30 +272,44 @@ const ContentPlanView: React.FC = () => {
             )}
           </button>
 
-          {(plan.status === 'draft' || plan.status === 'pending_approval') && (
+          {(plan.status === 'draft' || plan.status === 'pending_approval' || plan.status === 'internal_review') && (
             <button
               onClick={() => setShowEmailModal(true)}
               className="inline-flex items-center gap-2 px-4 py-2 border border-neutral-300 text-neutral-700 rounded-full font-grotesk text-sm font-medium hover:bg-neutral-50 transition-colors"
             >
               <Mail className="w-4 h-4" />
-              E-posta Gönder
+              E-posta Gonder
             </button>
-          )}
-
-          {plan.status === 'draft' && (
-            <motion.button
-              onClick={handleSubmitForApproval}
-              disabled={submittingForApproval}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-[#171717] text-white rounded-full font-grotesk text-sm font-medium hover:bg-neutral-800 transition-colors disabled:opacity-50"
-            >
-              <Send className="w-4 h-4" />
-              {submittingForApproval ? 'Gönderiliyor...' : 'Onaya Gönder'}
-            </motion.button>
           )}
         </div>
       </div>
+
+      {/* Approval Flow Indicator */}
+      <div className="bg-white rounded-xl border border-neutral-100 p-4 overflow-x-auto">
+        <ApprovalFlowIndicator
+          currentStatus={plan.status}
+          requireInternalReview={approvalConfig.requireInternalReview}
+          internalReviewedByName={plan.internalReviewedByName}
+          approvedByName={plan.approvedByName}
+        />
+      </div>
+
+      {/* Bulk Approval Actions */}
+      {plan.status !== 'approved' && plan.status !== 'partially_approved' && posts.length > 0 && (
+        <div className="bg-white rounded-xl border border-neutral-100 p-4">
+          <div className="flex items-center justify-between">
+            <span className="font-grotesk text-xs text-neutral-500">
+              {posts.length} post — toplu islem
+            </span>
+            <PostApprovalActions
+              postStatus={posts[0]?.status || 'draft'}
+              planRequiresInternalReview={approvalConfig.requireInternalReview}
+              onAction={handleApprovalAction}
+              loading={transitioning}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -324,24 +388,72 @@ const ContentPlanView: React.FC = () => {
             </div>
           )}
 
+          {/* Post Approval Summary */}
+          {plan.postApprovalSummary && plan.postApprovalSummary.total > 0 && (
+            <div className="bg-white rounded-xl border border-neutral-100 p-4">
+              <h3 className="font-grotesk text-sm font-semibold text-[#171717] mb-3 flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4" />
+                Post Onay Durumu
+              </h3>
+              <div className="space-y-1.5">
+                {plan.postApprovalSummary.approved > 0 && (
+                  <div className="flex justify-between items-center px-2 py-1">
+                    <PostApprovalBadge status="approved" size="sm" />
+                    <span className="font-grotesk text-xs font-medium text-[#171717]">{plan.postApprovalSummary.approved}</span>
+                  </div>
+                )}
+                {plan.postApprovalSummary.pendingApproval > 0 && (
+                  <div className="flex justify-between items-center px-2 py-1">
+                    <PostApprovalBadge status="pending_approval" size="sm" />
+                    <span className="font-grotesk text-xs font-medium text-[#171717]">{plan.postApprovalSummary.pendingApproval}</span>
+                  </div>
+                )}
+                {plan.postApprovalSummary.internalReview > 0 && (
+                  <div className="flex justify-between items-center px-2 py-1">
+                    <PostApprovalBadge status="internal_review" size="sm" />
+                    <span className="font-grotesk text-xs font-medium text-[#171717]">{plan.postApprovalSummary.internalReview}</span>
+                  </div>
+                )}
+                {plan.postApprovalSummary.revisionRequested > 0 && (
+                  <div className="flex justify-between items-center px-2 py-1">
+                    <PostApprovalBadge status="revision_requested" size="sm" />
+                    <span className="font-grotesk text-xs font-medium text-[#171717]">{plan.postApprovalSummary.revisionRequested}</span>
+                  </div>
+                )}
+                {plan.postApprovalSummary.draft > 0 && (
+                  <div className="flex justify-between items-center px-2 py-1">
+                    <PostApprovalBadge status="draft" size="sm" />
+                    <span className="font-grotesk text-xs font-medium text-[#171717]">{plan.postApprovalSummary.draft}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Plan Info */}
           <div className="bg-white rounded-xl border border-neutral-100 p-4">
             <h3 className="font-grotesk text-sm font-semibold text-[#171717] mb-3">
-              Plan Detayları
+              Plan Detaylari
             </h3>
             <div className="space-y-2 font-grotesk text-xs text-neutral-600">
               <div className="flex justify-between">
-                <span>Oluşturan:</span>
+                <span>Olusturan:</span>
                 <span className="font-medium text-[#171717]">{plan.createdByName}</span>
               </div>
               <div className="flex justify-between">
-                <span>Tarih Aralığı:</span>
+                <span>Tarih Araligi:</span>
                 <span className="font-medium text-[#171717]">
                   {plan.weekStartDate?.toDate().toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
                   {' - '}
                   {plan.weekEndDate?.toDate().toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
                 </span>
               </div>
+              {plan.internalReviewedByName && (
+                <div className="flex justify-between">
+                  <span>Dahili Onaylayan:</span>
+                  <span className="font-medium text-sky-700">{plan.internalReviewedByName}</span>
+                </div>
+              )}
               {plan.approvedByName && (
                 <div className="flex justify-between">
                   <span>Onaylayan:</span>
@@ -349,6 +461,19 @@ const ContentPlanView: React.FC = () => {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Approval Config */}
+          {plan.status === 'draft' && (
+            <ApprovalConfigSection
+              config={approvalConfig}
+              onChange={handleApprovalConfigChange}
+            />
+          )}
+
+          {/* Approval Audit Trail */}
+          <div className="bg-white rounded-xl border border-neutral-100 p-4">
+            <ApprovalAuditTrail planId={plan.id} compact />
           </div>
         </div>
       </div>

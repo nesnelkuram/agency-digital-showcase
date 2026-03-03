@@ -1,72 +1,40 @@
-@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+/* Google Fonts (Hanken Grotesk) loaded via <link> in index.html for non-blocking */
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Font Face Definitions */
+/* Font Face Definitions — WOFF2 for optimal compression */
 @font-face {
   font-family: 'TT Ramillas';
-  src: url('/fonts/TT Ramillas Trial Regular.ttf') format('truetype');
+  src: url('/fonts/TT Ramillas Trial Regular.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
-  font-display: optional;
+  font-display: swap;
 }
 
 @font-face {
   font-family: 'TT Ramillas';
-  src: url('/fonts/TT Ramillas Trial Bold.ttf') format('truetype');
+  src: url('/fonts/TT Ramillas Trial Bold.woff2') format('woff2');
   font-weight: 700;
   font-style: normal;
-  font-display: optional;
+  font-display: swap;
 }
 
 @font-face {
   font-family: 'TT Ramillas';
-  src: url('/fonts/TT Ramillas Trial Italic.ttf') format('truetype');
+  src: url('/fonts/TT Ramillas Trial Italic.woff2') format('woff2');
   font-weight: 400;
   font-style: italic;
-  font-display: optional;
+  font-display: swap;
 }
 
 /* HK Grotesk → aliased to Google Fonts loaded Hanken Grotesk */
 
-/* TT Commons */
+/* TT Commons — weights 300-700 only */
 @font-face {
   font-family: 'TT Commons';
-  src: url('/fonts/TT Commons Thin.otf') format('opentype');
-  font-weight: 100;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'TT Commons';
-  src: url('/fonts/TT Commons Thin Italic.otf') format('opentype');
-  font-weight: 100;
-  font-style: italic;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'TT Commons';
-  src: url('/fonts/TT Commons ExtraLight.otf') format('opentype');
-  font-weight: 200;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'TT Commons';
-  src: url('/fonts/TT Commons ExtraLight Italic.otf') format('opentype');
-  font-weight: 200;
-  font-style: italic;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'TT Commons';
-  src: url('/fonts/TT Commons Light.otf') format('opentype');
+  src: url('/fonts/TT Commons Light.woff2') format('woff2');
   font-weight: 300;
   font-style: normal;
   font-display: swap;
@@ -74,7 +42,7 @@
 
 @font-face {
   font-family: 'TT Commons';
-  src: url('/fonts/TT Commons Light Italic.otf') format('opentype');
+  src: url('/fonts/TT Commons Light Italic.woff2') format('woff2');
   font-weight: 300;
   font-style: italic;
   font-display: swap;
@@ -82,7 +50,7 @@
 
 @font-face {
   font-family: 'TT Commons';
-  src: url('/fonts/TT Commons Regular.otf') format('opentype');
+  src: url('/fonts/TT Commons Regular.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -90,7 +58,7 @@
 
 @font-face {
   font-family: 'TT Commons';
-  src: url('/fonts/TT Commons Italic.otf') format('opentype');
+  src: url('/fonts/TT Commons Italic.woff2') format('woff2');
   font-weight: 400;
   font-style: italic;
   font-display: swap;
@@ -98,7 +66,7 @@
 
 @font-face {
   font-family: 'TT Commons';
-  src: url('/fonts/TT Commons Medium.otf') format('opentype');
+  src: url('/fonts/TT Commons Medium.woff2') format('woff2');
   font-weight: 500;
   font-style: normal;
   font-display: swap;
@@ -106,7 +74,7 @@
 
 @font-face {
   font-family: 'TT Commons';
-  src: url('/fonts/TT Commons Medium Italic.otf') format('opentype');
+  src: url('/fonts/TT Commons Medium Italic.woff2') format('woff2');
   font-weight: 500;
   font-style: italic;
   font-display: swap;
@@ -114,7 +82,7 @@
 
 @font-face {
   font-family: 'TT Commons';
-  src: url('/fonts/TT Commons DemiBold.otf') format('opentype');
+  src: url('/fonts/TT Commons DemiBold.woff2') format('woff2');
   font-weight: 600;
   font-style: normal;
   font-display: swap;
@@ -122,7 +90,7 @@
 
 @font-face {
   font-family: 'TT Commons';
-  src: url('/fonts/TT Commons DemiBold Italic.otf') format('opentype');
+  src: url('/fonts/TT Commons DemiBold Italic.woff2') format('woff2');
   font-weight: 600;
   font-style: italic;
   font-display: swap;
@@ -130,7 +98,7 @@
 
 @font-face {
   font-family: 'TT Commons';
-  src: url('/fonts/TT Commons Bold.otf') format('opentype');
+  src: url('/fonts/TT Commons Bold.woff2') format('woff2');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -138,40 +106,8 @@
 
 @font-face {
   font-family: 'TT Commons';
-  src: url('/fonts/TT Commons Bold Italic.otf') format('opentype');
+  src: url('/fonts/TT Commons Bold Italic.woff2') format('woff2');
   font-weight: 700;
-  font-style: italic;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'TT Commons';
-  src: url('/fonts/TT Commons ExtraBold.otf') format('opentype');
-  font-weight: 800;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'TT Commons';
-  src: url('/fonts/TT Commons ExtraBold Italic.otf') format('opentype');
-  font-weight: 800;
-  font-style: italic;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'TT Commons';
-  src: url('/fonts/TT Commons Black.otf') format('opentype');
-  font-weight: 900;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'TT Commons';
-  src: url('/fonts/TT Commons Black Italic.otf') format('opentype');
-  font-weight: 900;
   font-style: italic;
   font-display: swap;
 }

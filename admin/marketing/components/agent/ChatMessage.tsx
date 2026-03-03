@@ -6,6 +6,35 @@ import CampaignGrid from './CampaignGrid';
 import CampaignDetail from './CampaignDetail';
 import PerformanceWidget from './PerformanceWidget';
 import ApprovalCard from './ApprovalCard';
+import StrategyQuestionnaire from './StrategyQuestionnaire';
+import FunnelPlan from './FunnelPlan';
+import CampaignStructure from './CampaignStructure';
+import BudgetAllocationV3 from './BudgetAllocationV3';
+import AudienceTargetingV3 from './AudienceTargetingV3';
+import StrategySummary from './StrategySummary';
+import TargetingSearchResults from './TargetingSearchResults';
+import GeoLocationResults from './GeoLocationResults';
+import AudienceEstimateWidget from './AudienceEstimateWidget';
+import CompetitorAdsGrid from './CompetitorAdsGrid';
+import AdSetGrid from './AdSetGrid';
+import AdSetDetailCard from './AdSetDetailCard';
+import AdGrid from './AdGrid';
+import AdDetailCard from './AdDetailCard';
+import ImageUploadResult from './ImageUploadResult';
+import CreativePreviewCard from './CreativePreviewCard';
+import CreativeGrid from './CreativeGrid';
+import ABTestResultsCard from './ABTestResultsCard';
+import PerformanceSummaryCard from './PerformanceSummaryCard';
+import PerformanceBreakdownCard from './PerformanceBreakdownCard';
+import BudgetOverviewCard from './BudgetOverviewCard';
+import ReportListCard from './ReportListCard';
+import OptimizationSuggestionsCard from './OptimizationSuggestionsCard';
+import BudgetForecastCard from './BudgetForecastCard';
+import AutomationRuleListCard from './AutomationRuleListCard';
+import AutomationRuleCard from './AutomationRuleCard';
+import RuleExecutionLogCard from './RuleExecutionLogCard';
+import CompetitorListCard from './CompetitorListCard';
+import CompetitorAnalysisCard from './CompetitorAnalysisCard';
 import type { AgentV2Message, AgentV2MessagePart } from '@/shared/types/marketing';
 
 interface ChatMessageProps {
@@ -24,6 +53,59 @@ const TOOL_LABELS: Record<string, string> = {
   sync_campaigns: 'Kampanyalar senkronize ediliyor...',
   create_marketing_plan: 'Pazarlama plani olusturuluyor...',
   get_marketing_stats: 'Istatistikler yukleniyor...',
+  ask_strategy_questions: 'Strateji formu hazirlaniyor...',
+  show_funnel_plan: 'Huni plani olusturuluyor...',
+  show_campaign_structure: 'Kampanya yapisi hazirlaniyor...',
+  ask_budget_allocation: 'Butce formu hazirlaniyor...',
+  ask_audience_targeting: 'Kitle hedefleme formu hazirlaniyor...',
+  show_strategy_summary: 'Strateji ozeti hazirlaniyor...',
+  search_interests: 'Ilgi alanlari araniyor...',
+  search_behaviors: 'Davranislar getiriliyor...',
+  search_demographics: 'Demografikler getiriliyor...',
+  search_geo_locations: 'Konumlar araniyor...',
+  estimate_audience_size: 'Kitle buyuklugu hesaplaniyor...',
+  search_ads_archive: 'Reklam arsivi taraniyor...',
+  get_adsets: 'Reklam setleri getiriliyor...',
+  get_adset_details: 'Reklam seti detaylari yukleniyor...',
+  get_ads: 'Reklamlar getiriliyor...',
+  get_ad_details: 'Reklam detaylari yukleniyor...',
+  // Faz 2A — Creative & Image
+  upload_ad_image: 'Gorsel yukleniyor...',
+  create_ad_creative: 'Creative olusturuluyor...',
+  get_ad_creatives: 'Creative listesi getiriliyor...',
+  get_creative_details: 'Creative detaylari yukleniyor...',
+  // Faz 2B — Write tools
+  create_campaign_v2: 'Kampanya olusturuluyor...',
+  create_adset_v2: 'Reklam seti olusturuluyor...',
+  create_ad_v2: 'Reklam olusturuluyor...',
+  update_campaign_v2: 'Kampanya guncelleniyor...',
+  update_adset_v2: 'Reklam seti guncelleniyor...',
+  update_ad_v2: 'Reklam guncelleniyor...',
+  create_budget_schedule: 'Butce plani olusturuluyor...',
+  // Faz 3 — A/B Testing
+  create_ab_test: 'A/B testi hazirlaniyor...',
+  get_ab_test_results: 'Test sonuclari yukleniyor...',
+  duplicate_adset: 'Reklam seti kopyalaniyor...',
+  // Faz 4 — Performance & Reporting
+  get_performance_summary: 'Performans ozeti hazirlaniyor...',
+  get_performance_breakdown: 'Performans kirilimi yukleniyor...',
+  get_budget_overview: 'Butce durumu kontrol ediliyor...',
+  get_budget_alerts: 'Butce uyarilari kontrol ediliyor...',
+  get_reports_list: 'Raporlar listeleniyor...',
+  generate_report: 'Rapor olusturuluyor...',
+  get_optimization_suggestions: 'Optimizasyon onerileri hazirlaniyor...',
+  forecast_budget: 'Butce tahmini yapiliyor...',
+  // Faz 5 — Automation Rules
+  get_automation_rules: 'Otomasyon kurallari yukleniyor...',
+  get_rule_execution_log: 'Kural gecmisi yukleniyor...',
+  create_automation_rule: 'Otomasyon kurali olusturuluyor...',
+  update_automation_rule: 'Otomasyon kurali guncelleniyor...',
+  delete_automation_rule: 'Otomasyon kurali siliniyor...',
+  // Faz 6 — Competitor Intelligence
+  get_competitors: 'Rakipler yukleniyor...',
+  get_competitor_analysis: 'Rakip analizi yukleniyor...',
+  add_competitor: 'Rakip ekleniyor...',
+  analyze_competitor: 'Rakip analizi yapiliyor...',
 };
 
 const ChatMessage: React.FC<ChatMessageProps> = ({
@@ -36,8 +118,9 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
   const isUser = message.role === 'user';
 
   // Filter out empty messages
-  const hasParts = message.parts.length > 0 && message.parts.some(p => {
-    if (p.type === 'text') return p.content.length > 0;
+  const parts = message.parts || [];
+  const hasParts = parts.length > 0 && parts.some(p => {
+    if (p.type === 'text') return p.content?.length > 0;
     return true;
   });
 
@@ -57,7 +140,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
           </div>
         )}
         <div className="flex-1 min-w-0">
-          {message.parts.map((part, idx) => renderPart(part, idx, {
+          {parts.map((part, idx) => renderPart(part, idx, {
             isUser,
             onSendMessage,
             onApprove,
@@ -146,6 +229,130 @@ function renderPart(
             />
           );
         }
+      }
+
+      // V3 Interactive Strategy Components
+      if (component === 'StrategyQuestionnaire') {
+        return <StrategyQuestionnaire key={index} data={data} onSendMessage={opts.onSendMessage} />;
+      }
+
+      if (component === 'FunnelPlan') {
+        return <FunnelPlan key={index} data={data} onSendMessage={opts.onSendMessage} />;
+      }
+
+      if (component === 'CampaignStructure') {
+        return <CampaignStructure key={index} data={data} onSendMessage={opts.onSendMessage} />;
+      }
+
+      if (component === 'BudgetAllocationV3') {
+        return <BudgetAllocationV3 key={index} data={data} onSendMessage={opts.onSendMessage} />;
+      }
+
+      if (component === 'AudienceTargetingV3') {
+        return <AudienceTargetingV3 key={index} data={data} onSendMessage={opts.onSendMessage} />;
+      }
+
+      if (component === 'StrategySummary') {
+        return <StrategySummary key={index} data={data} onSendMessage={opts.onSendMessage} />;
+      }
+
+      // Research & Targeting Components
+      if (component === 'TargetingSearchResults' || part.name === 'search_interests' || part.name === 'search_behaviors' || part.name === 'search_demographics') {
+        return <TargetingSearchResults key={index} data={data} onSendMessage={opts.onSendMessage} />;
+      }
+
+      if (component === 'GeoLocationResults' || part.name === 'search_geo_locations') {
+        return <GeoLocationResults key={index} data={data} onSendMessage={opts.onSendMessage} />;
+      }
+
+      if (component === 'AudienceEstimateWidget' || part.name === 'estimate_audience_size') {
+        return <AudienceEstimateWidget key={index} data={data} />;
+      }
+
+      if (component === 'CompetitorAdsGrid' || part.name === 'search_ads_archive') {
+        return <CompetitorAdsGrid key={index} data={data} />;
+      }
+
+      // AdSet & Ad Components
+      if (component === 'AdSetGrid' || part.name === 'get_adsets') {
+        return <AdSetGrid key={index} data={data} onSendMessage={opts.onSendMessage} />;
+      }
+
+      if (component === 'AdSetDetailCard' || part.name === 'get_adset_details') {
+        return <AdSetDetailCard key={index} data={data} />;
+      }
+
+      if (component === 'AdGrid' || part.name === 'get_ads') {
+        return <AdGrid key={index} data={data} onSendMessage={opts.onSendMessage} />;
+      }
+
+      if (component === 'AdDetailCard' || part.name === 'get_ad_details') {
+        return <AdDetailCard key={index} data={data} />;
+      }
+
+      // Creative & Image Components (Faz 2A)
+      if (component === 'ImageUploadResult' || part.name === 'upload_ad_image') {
+        return <ImageUploadResult key={index} data={data} onSendMessage={opts.onSendMessage} />;
+      }
+
+      if (component === 'CreativePreviewCard' || part.name === 'create_ad_creative' || part.name === 'get_creative_details') {
+        return <CreativePreviewCard key={index} data={data} onSendMessage={opts.onSendMessage} />;
+      }
+
+      if (component === 'CreativeGrid' || part.name === 'get_ad_creatives') {
+        return <CreativeGrid key={index} data={data} onSendMessage={opts.onSendMessage} />;
+      }
+
+      // A/B Test Results (Faz 3)
+      if (component === 'ABTestResultsCard' || part.name === 'get_ab_test_results') {
+        return <ABTestResultsCard key={index} data={data} />;
+      }
+
+      // Performance & Reporting (Faz 4)
+      if (component === 'PerformanceSummaryCard' || part.name === 'get_performance_summary') {
+        return <PerformanceSummaryCard key={index} data={data} />;
+      }
+
+      if (component === 'PerformanceBreakdownCard' || part.name === 'get_performance_breakdown') {
+        return <PerformanceBreakdownCard key={index} data={data} />;
+      }
+
+      if (component === 'BudgetOverviewCard' || part.name === 'get_budget_overview' || part.name === 'get_budget_alerts') {
+        return <BudgetOverviewCard key={index} data={data} />;
+      }
+
+      if (component === 'ReportListCard' || part.name === 'get_reports_list') {
+        return <ReportListCard key={index} data={data} onSendMessage={opts.onSendMessage} />;
+      }
+
+      if (component === 'OptimizationSuggestionsCard' || part.name === 'get_optimization_suggestions') {
+        return <OptimizationSuggestionsCard key={index} data={data} />;
+      }
+
+      if (component === 'BudgetForecastCard' || part.name === 'forecast_budget') {
+        return <BudgetForecastCard key={index} data={data} />;
+      }
+
+      // Automation Rules (Faz 5)
+      if (component === 'AutomationRuleListCard' || part.name === 'get_automation_rules') {
+        return <AutomationRuleListCard key={index} data={data} onSendMessage={opts.onSendMessage} />;
+      }
+
+      if (component === 'AutomationRuleCard') {
+        return <AutomationRuleCard key={index} data={data} />;
+      }
+
+      if (component === 'RuleExecutionLogCard' || part.name === 'get_rule_execution_log') {
+        return <RuleExecutionLogCard key={index} data={data} />;
+      }
+
+      // Competitor Intelligence (Faz 6)
+      if (component === 'CompetitorListCard' || part.name === 'get_competitors') {
+        return <CompetitorListCard key={index} data={data} onSendMessage={opts.onSendMessage} />;
+      }
+
+      if (component === 'CompetitorAnalysisCard' || part.name === 'get_competitor_analysis' || part.name === 'analyze_competitor') {
+        return <CompetitorAnalysisCard key={index} data={data} />;
       }
 
       // Default: show as JSON-like summary

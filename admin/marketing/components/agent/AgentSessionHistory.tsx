@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { History, Plus, ChevronLeft, MessageSquare } from 'lucide-react';
+import { History, Plus, ChevronLeft, MessageSquare, Loader2, AlertCircle } from 'lucide-react';
 import type { SessionSummary } from '@/shared/hooks/useAgentSessions';
 
 function relativeTime(ts: number): string {
@@ -21,6 +21,7 @@ interface Props {
   onNewSession: () => void;
   sessions: SessionSummary[];
   loading: boolean;
+  error?: string | null;
 }
 
 const AgentSessionHistory: React.FC<Props> = ({
@@ -29,6 +30,7 @@ const AgentSessionHistory: React.FC<Props> = ({
   onNewSession,
   sessions,
   loading,
+  error,
 }) => {
   const [open, setOpen] = useState(false);
 
@@ -87,7 +89,16 @@ const AgentSessionHistory: React.FC<Props> = ({
               </div>
             )}
 
-            {!loading && sessions.length === 0 && (
+            {!loading && error && (
+              <div className="flex flex-col items-center gap-1.5 py-4 px-2">
+                <AlertCircle className="w-4 h-4 text-red-400" />
+                <p className="text-center text-[10px] text-red-500 font-commons leading-tight">
+                  {error}
+                </p>
+              </div>
+            )}
+
+            {!loading && !error && sessions.length === 0 && (
               <p className="text-center text-xs text-neutral-400 py-6 font-commons">
                 Henuz oturum yok
               </p>
@@ -95,28 +106,41 @@ const AgentSessionHistory: React.FC<Props> = ({
 
             {sessions.map((s) => {
               const isActive = s.id === currentSessionId;
+              const isEmpty = s.messageCount === 0;
               return (
                 <button
                   key={s.id}
-                  onClick={() => onSelectSession(s)}
+                  onClick={() => !isEmpty && onSelectSession(s)}
+                  disabled={isEmpty}
                   className={`w-full text-left px-2.5 py-2 rounded-lg transition-all text-xs font-commons group ${
                     isActive
                       ? 'bg-indigo-50 border border-indigo-200'
-                      : 'hover:bg-neutral-50 border border-transparent'
+                      : isEmpty
+                        ? 'bg-neutral-50/50 border border-transparent opacity-60'
+                        : 'hover:bg-neutral-50 border border-transparent'
                   }`}
                 >
                   <p className={`truncate font-medium ${
                     isActive ? 'text-indigo-700' : 'text-neutral-700'
                   }`}>
-                    {s.title || 'Isimsiz oturum'}
+                    {isEmpty ? (
+                      <span className="flex items-center gap-1">
+                        <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                        Baslatiliyor...
+                      </span>
+                    ) : (
+                      s.title || 'Isimsiz oturum'
+                    )}
                   </p>
-                  <div className="flex items-center gap-2 mt-0.5 text-neutral-400">
-                    <span className="flex items-center gap-0.5">
-                      <MessageSquare className="w-2.5 h-2.5" />
-                      {s.messageCount}
-                    </span>
-                    <span>{relativeTime(s.updatedAt)}</span>
-                  </div>
+                  {!isEmpty && (
+                    <div className="flex items-center gap-2 mt-0.5 text-neutral-400">
+                      <span className="flex items-center gap-0.5">
+                        <MessageSquare className="w-2.5 h-2.5" />
+                        {s.messageCount}
+                      </span>
+                      <span>{relativeTime(s.updatedAt)}</span>
+                    </div>
+                  )}
                 </button>
               );
             })}
@@ -124,7 +148,7 @@ const AgentSessionHistory: React.FC<Props> = ({
         )}
       </AnimatePresence>
 
-      {/* Collapsed: vertical icon strip for new session */}
+      {/* Collapsed: vertical icon strip */}
       {!open && (
         <div className="flex-1 flex flex-col items-center pt-2 gap-2">
           <button
@@ -134,6 +158,11 @@ const AgentSessionHistory: React.FC<Props> = ({
           >
             <Plus className="w-4 h-4" />
           </button>
+          {sessions.length > 0 && (
+            <span className="text-[10px] font-commons text-neutral-400 leading-none">
+              {sessions.length}
+            </span>
+          )}
         </div>
       )}
     </motion.div>

@@ -11,6 +11,19 @@ import {
   DollarSign,
   Upload,
   Target,
+  Plus,
+  Layers,
+  Image,
+  Edit3,
+  Settings,
+  Pencil,
+  Calendar,
+  GitBranch,
+  Copy,
+  FileText,
+  Zap,
+  UserPlus,
+  Search,
 } from 'lucide-react';
 import type { PendingPlatformAction } from '@/shared/types/marketing';
 
@@ -28,6 +41,26 @@ const ACTION_ICONS: Record<string, React.FC<{ className?: string }>> = {
   update_budget: DollarSign,
   publish_plan: Upload,
   create_meta_ad: Target,
+  // Faz 2B
+  create_campaign_v2: Plus,
+  create_adset_v2: Layers,
+  create_ad_v2: Image,
+  update_campaign_v2: Edit3,
+  update_adset_v2: Settings,
+  update_ad_v2: Pencil,
+  create_budget_schedule: Calendar,
+  // Faz 3
+  create_ab_test: GitBranch,
+  duplicate_adset: Copy,
+  // Faz 4
+  generate_report: FileText,
+  // Faz 5
+  create_automation_rule: Zap,
+  update_automation_rule: Settings,
+  delete_automation_rule: Trash2,
+  // Faz 6
+  add_competitor: UserPlus,
+  analyze_competitor: Search,
 };
 
 const ACTION_LABELS: Record<string, string> = {
@@ -37,6 +70,26 @@ const ACTION_LABELS: Record<string, string> = {
   update_budget: 'Butce Guncelle',
   publish_plan: 'Plan Yayinla',
   create_meta_ad: 'Reklam Olustur',
+  // Faz 2B
+  create_campaign_v2: 'Kampanya Olustur',
+  create_adset_v2: 'Reklam Seti Olustur',
+  create_ad_v2: 'Reklam Olustur',
+  update_campaign_v2: 'Kampanya Guncelle',
+  update_adset_v2: 'Reklam Seti Guncelle',
+  update_ad_v2: 'Reklam Guncelle',
+  create_budget_schedule: 'Butce Plani Olustur',
+  // Faz 3
+  create_ab_test: 'A/B Testi Olustur',
+  duplicate_adset: 'Reklam Seti Kopyala',
+  // Faz 4
+  generate_report: 'Rapor Olustur',
+  // Faz 5
+  create_automation_rule: 'Kural Olustur',
+  update_automation_rule: 'Kural Guncelle',
+  delete_automation_rule: 'Kural Sil',
+  // Faz 6
+  add_competitor: 'Rakip Ekle',
+  analyze_competitor: 'Rakip Analizi',
 };
 
 const ApprovalCard: React.FC<ApprovalCardProps> = ({ action, onApprove, onReject, executing }) => {

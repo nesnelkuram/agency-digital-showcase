@@ -22,6 +22,8 @@ import {
   SOCIAL_PLATFORM_LABELS,
   POST_TYPE_LABELS,
   POST_TYPE_COLORS,
+  POST_STATUS_LABELS,
+  POST_STATUS_COLORS,
 } from '@/shared/types/socialMedia';
 import {
   getContentPlanByShareToken,
@@ -228,19 +230,27 @@ const ContentPlanSharePage: React.FC = () => {
         {/* Post Navigation */}
         {posts.length > 0 && (
           <div className="flex items-center gap-2 overflow-x-auto pb-2">
-            {posts.map((post, idx) => (
-              <button
-                key={post.id}
-                onClick={() => setCurrentPostIndex(idx)}
-                className={`flex-shrink-0 px-3 py-2 rounded-xl font-grotesk text-xs font-medium transition-all border ${
-                  idx === currentPostIndex
-                    ? 'bg-[#171717] text-white border-[#171717]'
-                    : 'bg-white text-neutral-600 border-neutral-200 hover:border-neutral-300'
-                }`}
-              >
-                {idx + 1}. {post.title.slice(0, 20)}{post.title.length > 20 ? '...' : ''}
-              </button>
-            ))}
+            {posts.map((post, idx) => {
+              const statusColor = POST_STATUS_COLORS[post.status] || 'bg-gray-100 text-gray-700';
+              return (
+                <button
+                  key={post.id}
+                  onClick={() => setCurrentPostIndex(idx)}
+                  className={`flex-shrink-0 px-3 py-2 rounded-xl font-grotesk text-xs font-medium transition-all border flex items-center gap-1.5 ${
+                    idx === currentPostIndex
+                      ? 'bg-[#171717] text-white border-[#171717]'
+                      : 'bg-white text-neutral-600 border-neutral-200 hover:border-neutral-300'
+                  }`}
+                >
+                  <span>{idx + 1}. {(post.title || post.caption || '').slice(0, 20)}{(post.title || post.caption || '').length > 20 ? '...' : ''}</span>
+                  {idx !== currentPostIndex && post.status !== 'draft' && (
+                    <span className={`px-1.5 py-0.5 rounded text-[9px] ${statusColor}`}>
+                      {POST_STATUS_LABELS[post.status]}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         )}
 
@@ -361,13 +371,15 @@ const ContentPlanSharePage: React.FC = () => {
           </div>
         )}
 
-        {/* Comments List */}
-        {plan.clientComments && plan.clientComments.length > 0 && (
+        {/* Comments List — dahili yorumlari filtrele */}
+        {plan.clientComments && plan.clientComments.filter((c) => !(c as any).isInternal).length > 0 && (
           <div className="bg-white rounded-xl border border-neutral-200 p-4 space-y-3">
             <h3 className="font-grotesk text-sm font-semibold text-[#171717]">
-              Yorumlar ({plan.clientComments.length})
+              Yorumlar ({plan.clientComments.filter((c) => !(c as any).isInternal).length})
             </h3>
-            {plan.clientComments.map((comment) => (
+            {plan.clientComments
+              .filter((c) => !(c as any).isInternal)
+              .map((comment) => (
               <div key={comment.id} className="bg-neutral-50 rounded-lg p-3 space-y-1">
                 <div className="flex items-center gap-2">
                   <span className="font-grotesk text-xs font-medium text-[#171717]">

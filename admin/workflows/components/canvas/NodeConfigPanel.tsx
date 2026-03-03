@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Trash2, ExternalLink, Bot, Plus, Database, ArrowRight } from 'lucide-react';
+import { X, Trash2, ExternalLink, Bot, Plus, Database, ArrowRight, Network } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useWorkflowBuilderStore } from '../../store/workflowBuilderStore';
 import { useAgents } from '@/shared/hooks/useAgents';
@@ -320,7 +320,7 @@ const IOSchemaEditor: React.FC<{
   );
 };
 
-const NodeConfigPanel: React.FC = () => {
+const NodeConfigPanel: React.FC<{ onSubprocessNavigate?: (nodeId: string) => void }> = ({ onSubprocessNavigate }) => {
   const { nodes, selectedNodeId, setSelectedNodeId, updateNodeData, removeNode } =
     useWorkflowBuilderStore();
 
@@ -441,17 +441,17 @@ const NodeConfigPanel: React.FC = () => {
                 placeholder="Alt sablon adi"
               />
             </div>
-            {data.subprocessConfig?.childTemplateId && (
-              <a
-                href={`/admin/workflows/builder/${data.subprocessConfig.childTemplateId}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-xs font-commons text-cyan-600 hover:text-cyan-800 transition-colors"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-                Alt Workflow'u Ac
-              </a>
-            )}
+            <button
+              onClick={() => onSubprocessNavigate?.(selectedNode.id)}
+              className={`flex items-center gap-1.5 w-full px-3 py-2 rounded-lg font-commons text-xs font-medium transition-colors ${
+                data.subprocessConfig?.childTemplateId
+                  ? 'text-cyan-700 bg-cyan-50 hover:bg-cyan-100 border border-cyan-200'
+                  : 'text-white bg-cyan-600 hover:bg-cyan-700'
+              }`}
+            >
+              <Network className="w-3.5 h-3.5" />
+              {data.subprocessConfig?.childTemplateId ? 'Alt Workflow\'u Ac' : 'Alt Surec Olustur'}
+            </button>
           </div>
         )}
 

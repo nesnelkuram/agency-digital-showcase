@@ -5,6 +5,10 @@ import {
   contentPlanSubmittedEmail,
   contentPlanApprovedEmail,
   contentPlanRevisionEmail,
+  internalReviewNeededEmail,
+  internalApprovedEmail,
+  internalRevisionEmail,
+  partialApprovalEmail,
 } from './_lib/emailTemplates.js';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -14,9 +18,13 @@ const FROM_ADDRESS = process.env.RESEND_FROM || 'intiba <onboarding@resend.dev>'
 /**
  * POST /api/send-content-plan-notification
  *
- * type: 'submitted'         → client email (admin submits plan for approval)
- * type: 'approved'          → team email (client approved the plan)
- * type: 'revision_requested'→ team email (client wants revision)
+ * type: 'submitted'              → client email (admin submits plan for approval)
+ * type: 'approved'               → team email (client approved the plan)
+ * type: 'revision_requested'     → team email (client wants revision)
+ * type: 'internal_review_needed' → AM email (editor submits for internal review)
+ * type: 'internal_approved'      → editor email (AM approved internal review)
+ * type: 'internal_revision'      → editor email (AM wants internal revision)
+ * type: 'partial_approval'       → team email (client partially approved)
  */
 export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) => {
   res.setHeader('Content-Type', 'application/json');
@@ -36,6 +44,8 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
       adminUrl,
       weekRange,
       comment,
+      approvedCount,
+      totalCount,
     } = req.body || {};
 
     if (!type || !recipientEmail || !planTitle) {
@@ -78,6 +88,53 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
           planTitle,
           comment,
           adminUrl: adminUrl || (process.env.APP_URL ? `${process.env.APP_URL}/admin/social-media` : '/admin/social-media'),
+        });
+        break;
+      }
+
+      case 'internal_review_needed': {
+        const defaultAdminUrl = process.env.APP_URL ? `${process.env.APP_URL}/admin/social-media` : '/admin/social-media';
+        emailContent = internalReviewNeededEmail({
+          recipientName: recipientName || recipientEmail,
+          submittedByName: senderName || req.userDisplayName || 'Editor',
+          planTitle,
+          adminUrl: adminUrl || defaultAdminUrl,
+        });
+        break;
+      }
+
+      case 'internal_approved': {
+        const defaultAdminUrl = process.env.APP_URL ? `${process.env.APP_URL}/admin/social-media` : '/admin/social-media';
+        emailContent = internalApprovedEmail({
+          recipientName: recipientName || recipientEmail,
+          approvedByName: senderName || req.userDisplayName || 'Account Manager',
+          planTitle,
+          adminUrl: adminUrl || defaultAdminUrl,
+        });
+        break;
+      }
+
+      case 'internal_revision': {
+        const defaultAdminUrl = process.env.APP_URL ? `${process.env.APP_URL}/admin/social-media` : '/admin/social-media';
+        emailContent = internalRevisionEmail({
+          recipientName: recipientName || recipientEmail,
+          requestedByName: senderName || req.userDisplayName || 'Account Manager',
+          planTitle,
+          comment,
+          adminUrl: adminUrl || defaultAdminUrl,
+        });
+        break;
+      }
+
+      case 'partial_approval': {
+        const defaultAdminUrl = process.env.APP_URL ? `${process.env.APP_URL}/admin/social-media` : '/admin/social-media';
+        emailContent = partialApprovalEmail({
+          recipientName: recipientName || recipientEmail,
+          approvedByName: senderName || 'Musteri',
+          planTitle,
+          approvedCount: approvedCount || 0,
+          totalCount: totalCount || 0,
+          adminUrl: adminUrl || defaultAdminUrl,
         });
         break;
       }

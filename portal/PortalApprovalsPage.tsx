@@ -19,6 +19,12 @@ interface PendingPlan {
   platform: string;
   shareToken: string;
   createdAt: Date;
+  postApprovalSummary?: {
+    total: number;
+    approved: number;
+    pendingApproval: number;
+    revisionRequested: number;
+  };
 }
 
 const PortalApprovalsPage: React.FC = () => {
@@ -39,7 +45,7 @@ const PortalApprovalsPage: React.FC = () => {
           query(
             collection(db!, 'content_plans'),
             where('tenantId', '==', tenantId),
-            where('status', '==', 'pending_approval'),
+            where('status', 'in', ['pending_approval', 'partially_approved']),
             orderBy('createdAt', 'desc')
           )
         );
@@ -48,10 +54,11 @@ const PortalApprovalsPage: React.FC = () => {
           const d = doc.data();
           items.push({
             id: doc.id,
-            title: d.title || 'İçerik Planı',
+            title: d.title || 'Icerik Plani',
             platform: d.platform || '',
             shareToken: d.shareToken || '',
             createdAt: d.createdAt?.toDate?.() || new Date(),
+            postApprovalSummary: d.postApprovalSummary || undefined,
           });
         });
         setPlans(items);
@@ -113,9 +120,15 @@ const PortalApprovalsPage: React.FC = () => {
                   </p>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  <span className="px-2.5 py-1 bg-amber-100 text-amber-700 rounded-full font-grotesk text-xs font-medium">
-                    Onay Bekliyor
-                  </span>
+                  {plan.postApprovalSummary && plan.postApprovalSummary.total > 0 ? (
+                    <span className="px-2.5 py-1 bg-amber-100 text-amber-700 rounded-full font-grotesk text-xs font-medium">
+                      {plan.postApprovalSummary.approved}/{plan.postApprovalSummary.total} onaylandi
+                    </span>
+                  ) : (
+                    <span className="px-2.5 py-1 bg-amber-100 text-amber-700 rounded-full font-grotesk text-xs font-medium">
+                      Onay Bekliyor
+                    </span>
+                  )}
                   <ArrowRight className="w-4 h-4 text-neutral-400" />
                 </div>
               </Link>

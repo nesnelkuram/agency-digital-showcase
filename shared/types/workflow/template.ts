@@ -103,6 +103,10 @@ export interface WorkflowNodeTemplate {
     childTemplateId?: string;
     childTemplateName?: string;
   };
+  // Mindmap builder extensions
+  colorOverride?: string;
+  notes?: string;
+  locked?: boolean;
   metadata?: Record<string, any>;
 }
 

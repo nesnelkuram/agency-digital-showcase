@@ -45,7 +45,7 @@ const DashboardPage: React.FC = () => {
       changeType: 'positive' as const,
       icon: <Users className="w-6 h-6" />,
       color: 'bg-green-50 text-green-600',
-      href: '/admin/settings/users',
+      href: '/admin/team',
     },
     {
       label: 'Bu Ay Tamamlanan',

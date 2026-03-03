@@ -306,7 +306,7 @@ service cloud.firestore {
     // Social media posts
     // =============================================
     match /social_media_posts/{postId} {
-      allow read: if isSuperAdmin() || belongsToTenant();
+      allow read: if isSuperAdmin() || belongsToTenant() || (isClient() && isAuthenticated());
       allow create: if isSuperAdmin() || creatingForOwnTenant();
       allow update, delete: if isSuperAdmin() || belongsToTenant();
     }
@@ -419,6 +419,15 @@ service cloud.firestore {
                     || belongsToTenant()
                     || isClient(); // Clients can approve/comment
       allow delete: if isSuperAdmin() || belongsToTenant();
+
+      // Approval events — immutable audit trail
+      match /approval_events/{eventId} {
+        allow read: if isSuperAdmin()
+                    || belongsToTenant()
+                    || (isClient() && isAuthenticated());
+        allow create: if isSuperAdmin() || belongsToTenant();
+        allow update, delete: if false; // immutable audit log
+      }
     }
 
     // =============================================

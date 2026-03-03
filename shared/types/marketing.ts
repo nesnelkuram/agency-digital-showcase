@@ -937,3 +937,162 @@ export type AgentV2MessagePart =
   | { type: 'tool_call'; id: string; name: string; args: Record<string, unknown> }
   | { type: 'tool_result'; id: string; name: string; data: unknown; component?: string }
   | { type: 'approval_required'; actionId: string; action: PendingPlatformAction };
+
+// ============================================
+// STRATEGY V3 TYPES (Interactive Agent)
+// ============================================
+
+// Strategy Questionnaire
+export type StrategyStep = 'business_info' | 'target_audience' | 'goals' | 'budget' | 'platforms' | 'timeline';
+export type StrategyInputType = 'single_select' | 'multi_select' | 'text_input' | 'number_input' | 'combined';
+
+export interface StrategyOption {
+  id: string;
+  label: string;
+  description?: string;
+  icon?: string;
+  recommended?: boolean;
+}
+
+export interface StrategyField {
+  id: string;
+  label: string;
+  type: 'text' | 'number' | 'textarea' | 'select';
+  placeholder?: string;
+  required?: boolean;
+  options?: string[];
+}
+
+export interface StrategyQuestionnaireData {
+  step: StrategyStep;
+  question: string;
+  description?: string;
+  inputType: StrategyInputType;
+  options?: StrategyOption[];
+  fields?: StrategyField[];
+}
+
+// Funnel
+export type FunnelStage = 'tofu' | 'mofu' | 'bofu';
+
+export const FUNNEL_STAGE_LABELS: Record<FunnelStage, string> = {
+  tofu: 'TOFU — Farkindalik',
+  mofu: 'MOFU — Degerlendirme',
+  bofu: 'BOFU — Donusum',
+};
+
+export const FUNNEL_STAGE_COLORS: Record<FunnelStage, { bg: string; text: string; border: string }> = {
+  tofu: { bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200' },
+  mofu: { bg: 'bg-violet-50', text: 'text-violet-700', border: 'border-violet-200' },
+  bofu: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+};
+
+export interface FunnelStagePlan {
+  stage: FunnelStage;
+  label: string;
+  objective: string;
+  metaObjective: string;
+  budgetPercent: number;
+  budgetAmount: number;
+  targetKPIs: {
+    impressions?: number;
+    clicks?: number;
+    conversions?: number;
+    cpa?: number;
+    roas?: number;
+  };
+  audienceSummary: string;
+  creativeSuggestion: string;
+}
+
+export interface FunnelPlanData {
+  businessName: string;
+  totalBudget: number;
+  currency: string;
+  funnel: FunnelStagePlan[];
+  recommendations?: string[];
+}
+
+// Campaign Structure
+export interface CampaignStructureAd {
+  name: string;
+  format: string;
+  creativeSummary: string;
+}
+
+export interface CampaignStructureAdSet {
+  name: string;
+  audienceType: string;
+  audienceDescription: string;
+  dailyBudget: number;
+  bidStrategy: string;
+  ads: CampaignStructureAd[];
+}
+
+export interface CampaignStructureItem {
+  name: string;
+  platform: AdPlatform;
+  funnelStage: FunnelStage;
+  objective: string;
+  platformObjective: string;
+  budgetType: 'cbo' | 'abo';
+  dailyBudget: number;
+  adSets: CampaignStructureAdSet[];
+}
+
+// Budget Allocation (V3 interactive)
+export interface BudgetSegment {
+  id: string;
+  label: string;
+  description?: string;
+  suggestedPercent: number;
+  minPercent?: number;
+  maxPercent?: number;
+  color: string;
+}
+
+export interface BudgetAllocationV3Data {
+  totalBudget: number;
+  currency: string;
+  allocationType: 'funnel' | 'platform';
+  segments: BudgetSegment[];
+  showDailyBreakdown?: boolean;
+  durationDays?: number;
+}
+
+// Audience Targeting (V3 interactive)
+export interface AudienceTypeOption {
+  id: string;
+  label: string;
+  description?: string;
+  recommended?: boolean;
+}
+
+export interface AudienceTargetingV3Data {
+  funnelStage: FunnelStage;
+  suggestedAgeRange?: { min: number; max: number };
+  suggestedGenders?: string[];
+  suggestedLocations?: string[];
+  suggestedInterests?: string[];
+  suggestedBehaviors?: string[];
+  audienceTypes?: AudienceTypeOption[];
+}
+
+// Strategy Summary
+export interface StrategySummaryData {
+  businessName: string;
+  industry?: string;
+  targetAudience?: string;
+  primaryGoal: string;
+  totalBudget: number;
+  currency: string;
+  platforms?: string[];
+  funnelSummary?: {
+    stage: FunnelStage;
+    budgetPercent: number;
+    objective: string;
+    audienceSummary: string;
+  }[];
+  timeline?: string;
+  keyMessages?: string[];
+}

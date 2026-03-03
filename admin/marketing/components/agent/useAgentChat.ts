@@ -236,7 +236,12 @@ export function useAgentChat(): UseAgentChatReturn {
   // 3b. loadExistingSession — restore a previous session without creating a new one
   const loadExistingSession = useCallback((sid: string, msgs: AgentV2Message[]) => {
     setSessionId(sid);
-    setMessages(msgs);
+    // Sanitize messages from Firestore — ensure parts array always exists
+    const sanitized = (msgs || []).map(m => ({
+      ...m,
+      parts: m.parts || [],
+    }));
+    setMessages(sanitized);
     setError(null);
     setStarting(false);
   }, []);

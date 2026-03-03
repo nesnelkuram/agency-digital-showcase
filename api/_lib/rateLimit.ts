@@ -96,6 +96,9 @@ export const LIMITS = {
 
   /** Task AI intake chat: 20 req / minute per user */
   AI_TASK_INTAKE: { limit: 20, windowMs: 60_000 },
+
+  /** Workflow builder AI chat: 20 req / minute per user */
+  AI_BUILDER_CHAT: { limit: 20, windowMs: 60_000 },
 } as const;
 
 /**

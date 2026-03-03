@@ -30,6 +30,22 @@
       "@contexts/*": ["contexts/*"]
     }
   },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "admin/**/*.ts",
+    "admin/**/*.tsx",
+    "shared/**/*.ts",
+    "shared/**/*.tsx",
+    "lib/**/*.ts",
+    "lib/**/*.tsx",
+    "contexts/**/*.ts",
+    "contexts/**/*.tsx",
+    "portal/**/*.ts",
+    "portal/**/*.tsx",
+    "vite-env.d.ts"
+  ],
+  "exclude": ["node_modules", "dist", "api"],
   "ts-node": {
     "experimentalSpecifierResolution": "node",
     "transpileOnly": true,

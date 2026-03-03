@@ -26,6 +26,7 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
       userId: req.userId || '',
       projectId: projectId || null,
       strategyContext: strategyContext || null,
+      title: null,
       messages: [],
       createdAt: Date.now(),
       updatedAt: Date.now(),

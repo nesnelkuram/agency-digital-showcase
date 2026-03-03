@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { GitBranch, ArrowLeft, Save, Settings2, Loader2, Check, ChevronRight, RefreshCw, CheckCircle } from 'lucide-react';
+import { GitBranch, ArrowLeft, Save, Settings2, Loader2, Check, ChevronRight, RefreshCw, CheckCircle, Undo2, Redo2, LayoutGrid, Bot } from 'lucide-react';
 import { useWorkflowTemplate, useWorkflowTemplates } from '@/shared/hooks/useWorkflowTemplates';
 import { useWorkflowBuilderStore } from './store/workflowBuilderStore';
 import WorkflowCanvas from './components/canvas/WorkflowCanvas';
 import NodePalette from './components/canvas/NodePalette';
 import NodeConfigPanel from './components/canvas/NodeConfigPanel';
+import BuilderChatPanel from './components/ai-chat/BuilderChatPanel';
 import type { WorkflowNodeTemplate, WorkflowEdgeTemplate, ServiceCategory } from '@/shared/types/workflow';
 
 const categoryOptions: { value: ServiceCategory; label: string }[] = [
@@ -39,24 +40,38 @@ const WorkflowBuilderPage: React.FC = () => {
     setTemplateInfo,
     loadFromTemplate,
     reset,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    autoLayout,
+    updateNodeData,
+    saveSession,
+    restoreSession,
+    clearSession,
   } = useWorkflowBuilderStore();
 
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [showChat, setShowChat] = useState(false);
 
   const isNew = !id;
   const title = isNew ? 'Yeni Workflow Sablonu' : templateName || 'Workflow Builder';
 
   // Load template data into store when template is fetched
+  // Try session cache first (preserves unsaved changes across parent/child navigation)
   useEffect(() => {
-    if (template) {
-      loadFromTemplate(template);
+    if (template && id) {
+      const restored = restoreSession(id);
+      if (!restored) {
+        loadFromTemplate(template);
+      }
     } else if (isNew) {
       reset();
     }
-  }, [template, isNew]);
+  }, [template, isNew, id]);
 
   // Convert React Flow state back to WorkflowTemplate format
   const buildTemplateData = useCallback(() => {
@@ -79,6 +94,9 @@ const WorkflowBuilderPage: React.FC = () => {
       outputSchema: node.data.outputSchema as WorkflowNodeTemplate['outputSchema'],
       aiAgentConfig: node.data.aiAgentConfig as WorkflowNodeTemplate['aiAgentConfig'],
       subprocessConfig: node.data.subprocessConfig as WorkflowNodeTemplate['subprocessConfig'],
+      colorOverride: (node.data.colorOverride as string) || undefined,
+      notes: (node.data.notes as string) || undefined,
+      locked: (node.data.locked as boolean) || undefined,
     }));
 
     const templateEdges: WorkflowEdgeTemplate[] = edges.map((edge) => ({
@@ -127,6 +145,8 @@ const WorkflowBuilderPage: React.FC = () => {
         });
       }
 
+      // Clear session cache so next load uses fresh Firestore data
+      if (id) clearSession(id);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2000);
     } catch (err) {
@@ -134,7 +154,7 @@ const WorkflowBuilderPage: React.FC = () => {
     } finally {
       setSaving(false);
     }
-  }, [isNew, id, buildTemplateData, createTemplate, updateTemplate, navigate]);
+  }, [isNew, id, buildTemplateData, createTemplate, updateTemplate, navigate, clearSession]);
 
   const handlePublish = useCallback(async () => {
     if (!id || isNew) return;
@@ -152,6 +172,62 @@ const WorkflowBuilderPage: React.FC = () => {
       setPublishing(false);
     }
   }, [id, isNew, buildTemplateData, updateTemplate, publishTemplate]);
+
+  const handleSubprocessNavigate = useCallback(async (nodeId: string) => {
+    const node = nodes.find(n => n.id === nodeId);
+    if (!node || node.data?.nodeType !== 'subprocess') return;
+
+    const childTemplateId = (node.data?.subprocessConfig as any)?.childTemplateId as string | undefined;
+
+    // Save current session before navigating away
+    if (id) saveSession(id);
+
+    if (childTemplateId) {
+      navigate(`/admin/workflows/builder/${childTemplateId}`);
+    } else {
+      // Save parent first if dirty
+      if (isDirty && id) await handleSave();
+
+      const childId = await createTemplate({
+        name: ((node.data?.label as string) || 'Alt Surec') + ' Workflow',
+        description: '',
+        serviceCategory: (serviceCategory as ServiceCategory) || 'other',
+        defaultEstimatedDays: 3,
+        nodes: [],
+        edges: [],
+        phases: [],
+        depth: depth + 1,
+        parentTemplateId: id || undefined,
+        parentNodeId: nodeId,
+        status: 'draft',
+        createdBy: '',
+        createdByName: '',
+      });
+
+      if (!childId) return;
+
+      // Write childTemplateId back to the subprocess node
+      updateNodeData(nodeId, {
+        subprocessConfig: {
+          ...(node.data?.subprocessConfig as any),
+          childTemplateId: childId,
+          childTemplateName: (node.data?.label as string) || 'Alt Surec',
+        },
+      });
+
+      // Save parent with updated subprocessConfig
+      if (id) {
+        // Re-build after store update (next tick)
+        setTimeout(async () => {
+          const data = buildTemplateData();
+          await updateTemplate(id, { ...data, nodes: data.nodes, edges: data.edges });
+          navigate(`/admin/workflows/builder/${childId}`);
+        }, 50);
+      } else {
+        navigate(`/admin/workflows/builder/${childId}`);
+      }
+    }
+  }, [nodes, navigate, id, isDirty, handleSave, createTemplate, updateNodeData, buildTemplateData, updateTemplate, serviceCategory, depth, saveSession]);
 
   return (
     <div className="space-y-4">
@@ -209,6 +285,44 @@ const WorkflowBuilderPage: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {/* Undo / Redo / Auto-Layout */}
+          <div className="flex items-center gap-1 mr-1">
+            <button
+              onClick={undo}
+              disabled={!canUndo()}
+              className="p-2 rounded-lg bg-white border border-neutral-200 hover:bg-neutral-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              title="Geri Al (Ctrl+Z)"
+            >
+              <Undo2 className="w-4 h-4 text-neutral-600" />
+            </button>
+            <button
+              onClick={redo}
+              disabled={!canRedo()}
+              className="p-2 rounded-lg bg-white border border-neutral-200 hover:bg-neutral-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              title="Ileri Al (Ctrl+Shift+Z)"
+            >
+              <Redo2 className="w-4 h-4 text-neutral-600" />
+            </button>
+            <button
+              onClick={autoLayout}
+              className="p-2 rounded-lg bg-white border border-neutral-200 hover:bg-neutral-50 transition-colors"
+              title="Otomatik Duzenle"
+            >
+              <LayoutGrid className="w-4 h-4 text-neutral-600" />
+            </button>
+            <button
+              onClick={() => setShowChat(!showChat)}
+              className={`p-2 rounded-lg border transition-colors ${
+                showChat
+                  ? 'bg-indigo-50 border-indigo-300 text-indigo-600'
+                  : 'bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-50'
+              }`}
+              title="AI Asistan"
+            >
+              <Bot className="w-4 h-4" />
+            </button>
+          </div>
+
           <button
             onClick={() => setShowSettings(!showSettings)}
             className={`flex items-center gap-2 px-4 py-2 bg-white border rounded-lg hover:bg-neutral-50 transition-colors font-commons text-sm text-neutral-700 ${
@@ -423,10 +537,14 @@ const WorkflowBuilderPage: React.FC = () => {
             <NodePalette />
 
             {/* Center - Canvas */}
-            <WorkflowCanvas />
+            <WorkflowCanvas onSubprocessNavigate={handleSubprocessNavigate} />
 
-            {/* Right Panel - Node Config */}
-            {selectedNodeId && <NodeConfigPanel />}
+            {/* Right Panel - Chat or Node Config */}
+            {showChat ? (
+              <BuilderChatPanel templateId={id} onClose={() => setShowChat(false)} />
+            ) : (
+              selectedNodeId && <NodeConfigPanel onSubprocessNavigate={handleSubprocessNavigate} />
+            )}
           </div>
         )}
       </div>

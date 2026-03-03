@@ -102,6 +102,9 @@ const NotificationsPage = React.lazy(() => import('./settings/NotificationsPage'
 const IntegrationsPage = React.lazy(() => import('./settings/IntegrationsPage'));
 const NotificationsListPage = React.lazy(() => import('./notifications/NotificationsListPage'));
 
+// Team Page
+const TeamPage = React.lazy(() => import('./team/TeamPage'));
+
 // Agent Registry Pages
 const AgentRegistryPage = React.lazy(() => import('./agents/AgentRegistryPage'));
 const AgentFormPage = React.lazy(() => import('./agents/AgentFormPage'));
@@ -130,6 +133,14 @@ const AdminApp: React.FC = () => {
       <Routes>
         <Route element={<AdminLayout />}>
           <Route index element={<DashboardPage />} />
+          <Route
+            path="team"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <TeamPage />
+              </React.Suspense>
+            }
+          />
           <Route
             path="leads"
             element={
@@ -1011,11 +1022,7 @@ const AdminApp: React.FC = () => {
           />
           <Route
             path="settings/users"
-            element={
-              <React.Suspense fallback={<PageLoader />}>
-                <UserManagementPage />
-              </React.Suspense>
-            }
+            element={<Navigate to="/admin/team" replace />}
           />
           <Route
             path="notifications"

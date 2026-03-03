@@ -191,3 +191,112 @@ export function approvalNeededEmail(params: {
   `);
   return { subject, html };
 }
+
+// =========================================================
+// Content Plan: Internal Review Needed (→ Account Manager)
+// =========================================================
+export function internalReviewNeededEmail(params: {
+  recipientName: string;
+  submittedByName: string;
+  planTitle: string;
+  adminUrl: string;
+}): { subject: string; html: string } {
+  const subject = `Dahili inceleme bekliyor: "${params.planTitle}"`;
+  const html = wrapHtml(subject, `
+    <span class="badge badge-blue">Dahili Inceleme</span>
+    <p>Merhaba <strong>${params.recipientName}</strong>,</p>
+    <p><strong>${params.submittedByName}</strong> asagidaki icerik planini dahili incelemenize sundu:</p>
+    <div class="metadata">
+      <p><strong>Plan Adi:</strong> ${params.planTitle}</p>
+      <p><strong>Gonderen:</strong> ${params.submittedByName}</p>
+    </div>
+    <p>Plani incelemek ve onaylamak veya revizyon istemek icin:</p>
+    <div style="text-align:center;">
+      <a href="${params.adminUrl}" class="cta">Plani Incele</a>
+    </div>
+  `);
+  return { subject, html };
+}
+
+// =========================================================
+// Content Plan: Internal Approved (→ Editor)
+// =========================================================
+export function internalApprovedEmail(params: {
+  recipientName: string;
+  approvedByName: string;
+  planTitle: string;
+  adminUrl: string;
+}): { subject: string; html: string } {
+  const subject = `"${params.planTitle}" dahili inceleme onaylandi`;
+  const html = wrapHtml(subject, `
+    <span class="badge badge-green">Dahili Onay ✓</span>
+    <p>Merhaba <strong>${params.recipientName}</strong>,</p>
+    <p><strong>${params.approvedByName}</strong> asagidaki icerik planinin dahili incelemesini onayladi:</p>
+    <div class="metadata">
+      <p><strong>Plan Adi:</strong> ${params.planTitle}</p>
+      <p><strong>Onaylayan:</strong> ${params.approvedByName}</p>
+    </div>
+    <p>Icerik artik musteri onayina gonderildi.</p>
+    <div style="text-align:center;">
+      <a href="${params.adminUrl}" class="cta-outline">Detaylari Gor</a>
+    </div>
+  `);
+  return { subject, html };
+}
+
+// =========================================================
+// Content Plan: Internal Revision Requested (→ Editor)
+// =========================================================
+export function internalRevisionEmail(params: {
+  recipientName: string;
+  requestedByName: string;
+  planTitle: string;
+  comment?: string;
+  adminUrl: string;
+}): { subject: string; html: string } {
+  const subject = `"${params.planTitle}" dahili revizyon istendi`;
+  const html = wrapHtml(subject, `
+    <span class="badge badge-amber">Dahili Revizyon</span>
+    <p>Merhaba <strong>${params.recipientName}</strong>,</p>
+    <p><strong>${params.requestedByName}</strong> asagidaki icerik plani icin dahili revizyon istedi:</p>
+    <div class="metadata">
+      <p><strong>Plan Adi:</strong> ${params.planTitle}</p>
+      <p><strong>Isteyen:</strong> ${params.requestedByName}</p>
+      ${params.comment ? `<p><strong>Not:</strong> ${params.comment}</p>` : ''}
+    </div>
+    <p>Lutfen icerigi gozden gecirip gerekli duzeltmeleri yapin:</p>
+    <div style="text-align:center;">
+      <a href="${params.adminUrl}" class="cta">Plani Duzenle</a>
+    </div>
+  `);
+  return { subject, html };
+}
+
+// =========================================================
+// Content Plan: Partial Approval (→ Team)
+// =========================================================
+export function partialApprovalEmail(params: {
+  recipientName: string;
+  approvedByName: string;
+  planTitle: string;
+  approvedCount: number;
+  totalCount: number;
+  adminUrl: string;
+}): { subject: string; html: string } {
+  const subject = `"${params.planTitle}" kismi onay: ${params.approvedCount}/${params.totalCount}`;
+  const html = wrapHtml(subject, `
+    <span class="badge badge-amber">Kismi Onay</span>
+    <p>Merhaba <strong>${params.recipientName}</strong>,</p>
+    <p><strong>${params.approvedByName}</strong> asagidaki icerik planindan bazi postlari onayladi:</p>
+    <div class="metadata">
+      <p><strong>Plan Adi:</strong> ${params.planTitle}</p>
+      <p><strong>Onaylanan:</strong> ${params.approvedCount} / ${params.totalCount} post</p>
+      <p><strong>Onaylayan:</strong> ${params.approvedByName}</p>
+    </div>
+    <p>Geri kalan postlar hala onay bekliyor.</p>
+    <div style="text-align:center;">
+      <a href="${params.adminUrl}" class="cta-outline">Detaylari Gor</a>
+    </div>
+  `);
+  return { subject, html };
+}

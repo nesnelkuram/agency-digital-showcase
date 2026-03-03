@@ -26,7 +26,7 @@ const SettingsPage: React.FC = () => {
             label: 'Kullanici Yonetimi',
             description: 'Kullanicilari davet edin ve yonetin',
             icon: <Shield className="w-5 h-5" />,
-            href: '/admin/settings/users',
+            href: '/admin/team',
           },
           {
             label: 'Entegrasyonlar',

@@ -1,10 +1,36 @@
-import React, { useMemo, useState, useEffect, useRef, Suspense, useCallback } from 'react';
+import React, { useMemo, useState, useEffect, useRef, Suspense, useCallback, Component, ErrorInfo, ReactNode } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { Environment } from '@react-three/drei';
 import AnimatedPhone from './AnimatedPhone';
 import { ALL_MEDIA_CONTENT } from '../constants';
 import { useBreakpoint } from '../hooks/useMediaQuery';
 import { getVideosByCategory } from '../videoUtils';
+import WebGLFallback from './WebGLFallback';
+
+// WebGL availability probe — cached at module level
+let _webglSupported: boolean | null = null;
+function isWebGLSupported(): boolean {
+  if (_webglSupported !== null) return _webglSupported;
+  try {
+    const c = document.createElement('canvas');
+    _webglSupported = !!(c.getContext('webgl2') || c.getContext('webgl'));
+  } catch {
+    _webglSupported = false;
+  }
+  return _webglSupported!;
+}
+
+// Error boundary to catch WebGL context loss / creation failures
+class WebGLErrorBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { hasError: boolean }> {
+  state = { hasError: false };
+  static getDerivedStateFromError() { return { hasError: true }; }
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.warn('[WebGLErrorBoundary] Caught error, falling back to 2D:', error.message);
+  }
+  render() {
+    return this.state.hasError ? this.props.fallback : this.props.children;
+  }
+}
 
 interface HeroContent {
   headline: string;
@@ -45,21 +71,14 @@ const Header3D: React.FC<Header3DProps> = ({
   const [hasEntered, setHasEntered] = useState(false); // Start false for entrance animation
   const [showContent, setShowContent] = useState(false); // Content animations wait for reveal
 
-  // Start content and phone entrance animations after reveal
+  // Start content and phone entrance animations after reveal — both at once
   useEffect(() => {
     if (revealed) {
-      // Phones enter first
-      const phoneTimer = setTimeout(() => {
+      const timer = setTimeout(() => {
         setHasEntered(true);
-      }, 50);
-      // Content appears after phones start entering
-      const contentTimer = setTimeout(() => {
         setShowContent(true);
-      }, 300);
-      return () => {
-        clearTimeout(phoneTimer);
-        clearTimeout(contentTimer);
-      };
+      }, 50);
+      return () => clearTimeout(timer);
     }
   }, [revealed]);
   const [selectedCategory, setSelectedCategory] = useState<string>(defaultCategory);
@@ -512,9 +531,13 @@ const Header3D: React.FC<Header3DProps> = ({
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
         >
+          {!isWebGLSupported() ? (
+            <WebGLFallback category={selectedCategory} parallaxOffset={parallaxOffset} />
+          ) : (
+          <WebGLErrorBoundary fallback={<WebGLFallback category={selectedCategory} parallaxOffset={parallaxOffset} />}>
           <Canvas
             shadows={false}  // Disable shadows for better performance
-            frameloop="always"  // Render every frame for animations
+            frameloop="demand"  // Only render when invalidated — saves GPU in idle
             camera={{
               // Mobil: Desktop gibi yan açıdan bakış (FOV artırıldı tüm telefonlar görünsün)
               position: isMobile ? [12, -6, 18] : [20, -12, 24.5],
@@ -531,7 +554,7 @@ const Header3D: React.FC<Header3DProps> = ({
               preserveDrawingBuffer: false,
               failIfMajorPerformanceCaveat: false
             }}
-            dpr={[1, 2]}  // Dynamic: uses device pixel ratio up to 2x
+            dpr={isMobile ? [1, 1.5] : [1, 2]}  // Mobile: cap at 1.5x to save GPU
             onCreated={() => {
               // Signal that 3D is ready immediately
               onReady?.();
@@ -540,7 +563,7 @@ const Header3D: React.FC<Header3DProps> = ({
               width: '100%',
               height: '100%',
               opacity: showContent ? 1 : 0,
-              transition: 'opacity 1s ease-out',
+              transition: 'opacity 0.4s ease-out',
               cursor: `url('/images/cursor.svg') 16 16, pointer`,
               pointerEvents: 'auto'
             }}
@@ -687,6 +710,8 @@ const Header3D: React.FC<Header3DProps> = ({
               </group>
             </Suspense>
           </Canvas>
+          </WebGLErrorBoundary>
+          )}
         </div>
 
         {/* Carousel dots - sadece mobilde ve telefon seçili değilken */}

@@ -14,23 +14,23 @@ const SimpleLoadingScreen: React.FC<SimpleLoadingScreenProps> = ({ onLoadComplet
   useEffect(() => {
     const timer = setTimeout(() => {
       setMinimumTimePassed(true);
-    }, 2000);
+    }, 800);
     return () => clearTimeout(timer);
   }, []);
 
-  // Safety: Force complete after 6 seconds no matter what
+  // Safety: Force complete after 4 seconds no matter what
   useEffect(() => {
     const safetyTimer = setTimeout(() => {
       if (phase === 'loading') {
-        console.log('[LoadingScreen] ⚠️ Safety timeout - forcing completion');
+        console.log('[LoadingScreen] Safety timeout - forcing completion');
         setPhase('fadeOutLogo');
-        setTimeout(() => setPhase('shrinking'), 600);
+        setTimeout(() => setPhase('shrinking'), 300);
         setTimeout(() => {
           setPhase('done');
           onLoadComplete();
-        }, 1800);
+        }, 900);
       }
-    }, 6000);
+    }, 4000);
     return () => clearTimeout(safetyTimer);
   }, [phase, onLoadComplete]);
 
@@ -44,16 +44,14 @@ const SimpleLoadingScreen: React.FC<SimpleLoadingScreenProps> = ({ onLoadComplet
 
       // Phase 2: Start shrinking after logo fades
       setTimeout(() => {
-        console.log('[LoadingScreen] Phase 2: Shrinking to circle');
         setPhase('shrinking');
-      }, 600);
+      }, 300);
 
       // Phase 3: Complete - notify parent AFTER animation finishes
       setTimeout(() => {
-        console.log('[LoadingScreen] Phase 3: Done');
         setPhase('done');
         onLoadComplete();
-      }, 1800); // 600ms logo fade + 1200ms shrink
+      }, 900); // 300ms logo fade + 600ms shrink
     }
   }, [progress, minimumTimePassed, phase, isActive, onLoadComplete]);
 
@@ -73,7 +71,7 @@ const SimpleLoadingScreen: React.FC<SimpleLoadingScreenProps> = ({ onLoadComplet
           height: phase === 'shrinking' ? '100vh' : '300vmax',
           borderRadius: '50%',
           transition: phase === 'shrinking'
-            ? 'width 1.2s cubic-bezier(0.4, 0, 0.2, 1), height 1.2s cubic-bezier(0.4, 0, 0.2, 1)'
+            ? 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1), height 0.6s cubic-bezier(0.4, 0, 0.2, 1)'
             : 'none',
         }}
       />

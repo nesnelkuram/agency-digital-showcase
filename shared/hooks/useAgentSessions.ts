@@ -1,11 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   collection,
   query,
   where,
-  orderBy,
-  limit,
-  onSnapshot,
+  getDocs,
   doc,
   getDoc,
 } from 'firebase/firestore';
@@ -23,6 +21,8 @@ export interface SessionSummary {
 interface UseAgentSessionsReturn {
   sessions: SessionSummary[];
   loading: boolean;
+  error: string | null;
+  refresh: () => void;
   loadSession: <T = unknown>(sessionId: string) => Promise<T | null>;
 }
 
@@ -31,56 +31,63 @@ export function useAgentSessions(collectionName: string): UseAgentSessionsReturn
   const tenantId = useTenantId();
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const fetchIdRef = useRef(0);
 
-  useEffect(() => {
+  const fetchSessions = useCallback(async () => {
     if (!db || !user?.uid || !tenantId) {
       setLoading(false);
       return;
     }
 
-    // Defer subscription by one tick — React 18 StrictMode protection
-    // (same pattern as useNotifications.ts)
-    let cancelled = false;
-    let unsubFn: (() => void) | undefined;
+    const id = ++fetchIdRef.current;
+    setLoading(true);
+    setError(null);
 
-    const timer = setTimeout(() => {
-      if (cancelled) return;
-
+    try {
+      // Two equality filters — no composite index needed (zig-zag merge).
+      // Sort + limit applied client-side to avoid orderBy composite index requirement.
       const q = query(
         collection(db, collectionName),
         where('tenantId', '==', tenantId),
-        where('userId', '==', user.uid),
-        orderBy('updatedAt', 'desc'),
-        limit(20)
+        where('userId', '==', user.uid)
       );
 
-      unsubFn = onSnapshot(q, (snapshot) => {
-        const items: SessionSummary[] = [];
-        snapshot.forEach((docSnap) => {
-          const data = docSnap.data();
-          const messages = data.messages || [];
-          // Filter out sessions with 0 messages (never started)
-          if (messages.length === 0) return;
-          items.push({
-            id: docSnap.id,
-            title: data.title || null,
-            updatedAt: data.updatedAt || data.createdAt || 0,
-            messageCount: messages.length,
-          });
-        });
-        setSessions(items);
-        setLoading(false);
-      }, () => {
-        setLoading(false);
-      });
-    }, 0);
+      const snapshot = await getDocs(q);
+      if (id !== fetchIdRef.current) return; // stale
 
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-      unsubFn?.();
-    };
+      const items: SessionSummary[] = [];
+      console.log('[useAgentSessions] snapshot size:', snapshot.size);
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        const messages = data.messages || [];
+        console.log('[useAgentSessions] doc:', docSnap.id, 'messages type:', typeof data.messages, 'isArray:', Array.isArray(data.messages), 'length:', messages.length, 'keys:', Object.keys(data));
+        items.push({
+          id: docSnap.id,
+          title: data.title || null,
+          updatedAt: data.updatedAt || data.createdAt || 0,
+          messageCount: messages.length,
+        });
+      });
+
+      // Client-side sort by updatedAt DESC, take 20
+      items.sort((a, b) => b.updatedAt - a.updatedAt);
+      setSessions(items.slice(0, 20));
+    } catch (err: any) {
+      if (id !== fetchIdRef.current) return;
+      console.error('[useAgentSessions] fetch error:', err);
+      setError(err.message || 'Oturumlar yuklenemedi');
+    } finally {
+      if (id === fetchIdRef.current) {
+        setLoading(false);
+      }
+    }
   }, [user?.uid, tenantId, collectionName]);
+
+  // Fetch on mount and when deps change
+  useEffect(() => {
+    fetchSessions();
+  }, [fetchSessions]);
 
   const loadSession = useCallback(async <T = unknown>(sessionId: string): Promise<T | null> => {
     if (!db) return null;
@@ -89,5 +96,5 @@ export function useAgentSessions(collectionName: string): UseAgentSessionsReturn
     return { id: docSnap.id, ...docSnap.data() } as T;
   }, [collectionName]);
 
-  return { sessions, loading, loadSession };
+  return { sessions, loading, error, refresh: fetchSessions, loadSession };
 }

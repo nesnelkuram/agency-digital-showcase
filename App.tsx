@@ -60,15 +60,7 @@ const HomePage: React.FC = () => {
       }
     });
     
-    // Reduce category preloading to just 1 video per category (was 3)
-    const categories = ['fashion', 'commercial'];
-    categories.forEach(category => {
-      const categoryVideos = getVideosByCategory(category);
-      // Preload only first video from each category
-      if (categoryVideos.length > 0 && categoryVideos[0].preview) {
-        uniqueVideoUrls.add(categoryVideos[0].preview);
-      }
-    });
+    // Category videos loaded lazily after reveal — not blocking initial load
     
     const requiredVideos = Array.from(uniqueVideoUrls);
     
@@ -84,8 +76,8 @@ const HomePage: React.FC = () => {
     }, 300); // Quick minimum time
     
     const updateProgress = () => {
-      // Use STRICT mode to ensure videos are really ready
-      const videoProgress = videoCache.getProgress(requiredVideos, true); // strict = true
+      // Basic readiness is sufficient — strict mode adds latency
+      const videoProgress = videoCache.getProgress(requiredVideos, false);
       
       // Calculate total progress: 10% images + 90% videos
       const imageProgress = (loadedImages / criticalAssets.length) * 10;
@@ -131,38 +123,31 @@ const HomePage: React.FC = () => {
     
     console.log(`[App] Loading ${initialVideos.length} initial videos before showing site`);
     
-    // Load ALL initial videos - site won't show until these are ready
+    // Load initial videos — proceed as soon as batch resolves
     videoCache.preloadBatch(initialVideos).then(() => {
-      console.log('[App] Initial videos loaded, checking readiness...');
-      
-      // Double-check videos are REALLY ready with strict mode
-      const checkReadiness = setInterval(() => {
-        const strictProgress = videoCache.getProgress(initialVideos, true);
-        console.log(`[App] Strict readiness check: ${strictProgress.loaded}/${strictProgress.total}`);
-        
-        if (strictProgress.loaded === strictProgress.total && minimumTimeElapsed) {
-          clearInterval(checkReadiness);
-          console.log('[App] ✅ All videos FULLY ready!');
-          updateProgress();
+      console.log('[App] Initial videos loaded');
+      if (minimumTimeElapsed) {
+        setLoadingProgress(100);
+        setVideosReady(true);
+      } else {
+        // Wait for minimum time to pass
+        const wait = setInterval(() => {
+          if (minimumTimeElapsed) {
+            clearInterval(wait);
+            setLoadingProgress(100);
+            setVideosReady(true);
+          }
+        }, 50);
+        setTimeout(() => clearInterval(wait), 2000);
+      }
 
-          // Videos are ready - no delay
-          setLoadingProgress(100);
-          setVideosReady(true);
-        }
-      }, 200); // Check every 200ms
-      
-      // Safety timeout
-      setTimeout(() => {
-        clearInterval(checkReadiness);
-      }, 5000);
-      
       // Load category videos in background AFTER site is shown
       if (categoryVideos.length > 0) {
         setTimeout(() => {
           videoCache.preloadBatch(categoryVideos).then(() => {
             console.log('[App] Category preview videos preloaded');
           });
-        }, 3000); // Load after user starts interacting
+        }, 3000);
       }
 
       // Preload FULL videos in background for instant playback when clicked
@@ -170,38 +155,19 @@ const HomePage: React.FC = () => {
         const fullVideoUrls = initialVideos.map(url =>
           url.replace('/preview/', '/full/')
         );
-        console.log(`[App] Starting full video preload in background (${fullVideoUrls.length} videos)`);
-        videoCache.preloadBatch(fullVideoUrls).then(() => {
-          console.log('[App] ✅ Full videos preloaded - clicks will be instant!');
-        });
-      }, 5000); // Wait 5 seconds after site loads
+        videoCache.preloadBatch(fullVideoUrls).catch(() => {});
+      }, 5000);
     });
     
     // Progress polling for smooth updates
     const progressInterval = setInterval(updateProgress, 50);
     
-    // Maximum loading time - increased for better video loading
+    // Maximum loading time — force proceed after 2.5s
     const timeout = setTimeout(() => {
-      console.log('[App] Maximum loading time reached, checking strict video status...');
-      const strictReady = videoCache.getProgress(initialVideos, true);
-      const basicReady = videoCache.getProgress(initialVideos, false);
-      console.log(`[App] Videos ready (strict): ${strictReady.loaded}/${strictReady.total} (${strictReady.percentage}%)`);
-      console.log(`[App] Videos ready (basic): ${basicReady.loaded}/${basicReady.total} (${basicReady.percentage}%)`);
-      
-      // Only proceed if at least basic loading is complete
-      if (basicReady.percentage >= 100) {
-        console.log('[App] ⚠️ Proceeding with basic readiness');
-        setLoadingProgress(100);
-        setVideosReady(true);
-      } else {
-        // Give it more time if not even basically ready
-        console.log('[App] ⏳ Extending loading time...');
-        setTimeout(() => {
-          setLoadingProgress(100);
-          setVideosReady(true);
-        }, 2000);
-      }
-    }, 4000); // Increased to 4 seconds for better guarantee
+      console.log('[App] Maximum loading time reached, proceeding');
+      setLoadingProgress(100);
+      setVideosReady(true);
+    }, 2500);
     
     return () => {
       clearInterval(progressInterval);
@@ -369,7 +335,11 @@ const App: React.FC = () => {
         <Route
           path="/admin/login"
           element={
-            <Suspense fallback={<div className="min-h-screen" style={{ backgroundColor: '#ebeef8' }} />}>
+            <Suspense fallback={
+              <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#ebeef8' }}>
+                <div className="w-8 h-8 border-2 border-[#171717] border-t-transparent rounded-full animate-spin" />
+              </div>
+            }>
               <LoginPage />
             </Suspense>
           }
@@ -377,7 +347,11 @@ const App: React.FC = () => {
         <Route
           path="/admin/*"
           element={
-            <Suspense fallback={<div className="min-h-screen" style={{ backgroundColor: '#ebeef8' }} />}>
+            <Suspense fallback={
+              <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#ebeef8' }}>
+                <div className="w-8 h-8 border-2 border-[#171717] border-t-transparent rounded-full animate-spin" />
+              </div>
+            }>
               <TenantProvider>
                 <AdminApp />
               </TenantProvider>

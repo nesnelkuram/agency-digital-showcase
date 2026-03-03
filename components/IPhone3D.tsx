@@ -1,6 +1,7 @@
-import React, { useMemo, useEffect, useState } from 'react';
+import React, { useMemo, useEffect, useState, useRef } from 'react';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
+import { clone as cloneScene } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { videoCache } from '../utils/videoCache';
 import { shouldAutoplayVideos } from '../utils/deviceDetection';
 
@@ -42,12 +43,12 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
   //   return () => clearTimeout(timer);
   // }, [loadDelay]);
 
-  // Load iPhone model
-  const { scene } = useGLTF('/models/iphone_14_pro_max/scene.gltf') as any;
+  // Load iPhone model — DRACO compressed
+  const { scene } = useGLTF('/models/iphone_14_pro_max/scene.gltf', true) as any;
   
-  // Clone the scene to avoid modifying the original
+  // Clone the scene — SkeletonUtils.clone shares geometry/textures, only copies transforms
   const clonedScene = useMemo(() => {
-    const cloned = scene.clone();
+    const cloned = cloneScene(scene);
     
     // First, let's find the bounding box to understand the model size
     const box = new THREE.Box3().setFromObject(cloned);
@@ -65,23 +66,45 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
     return cloned;
   }, [scene]);
 
-  // Cleanup on component unmount
+  // Track created materials/textures for cleanup
+  const createdMaterials = useRef<THREE.Material[]>([]);
+  const createdTextures = useRef<THREE.Texture[]>([]);
+
+  // Cleanup on component unmount — dispose video, textures, materials
   useEffect(() => {
     return () => {
-      // When component unmounts, stop and mute the video
       clonedScene.traverse((child: any) => {
-        if (child.isMesh && child.__video) {
-          const video = child.__video;
-          video.muted = true;
-          video.volume = 0;
-          video.pause();
+        if (child.isMesh) {
+          // Stop & release video element
+          if (child.__video) {
+            const video = child.__video as HTMLVideoElement;
+            video.pause();
+            video.removeAttribute('src');
+            video.load(); // release network resources
+            child.__video = null;
+          }
         }
       });
+
+      // Dispose all materials and textures we created
+      createdTextures.current.forEach(t => t.dispose());
+      createdMaterials.current.forEach(m => m.dispose());
+      createdTextures.current = [];
+      createdMaterials.current = [];
     };
   }, [clonedScene]);
   
   // Find and update materials
   useEffect(() => {
+    // Dispose previously created resources before creating new ones
+    createdTextures.current.forEach(t => t.dispose());
+    createdMaterials.current.forEach(m => m.dispose());
+    createdTextures.current = [];
+    createdMaterials.current = [];
+
+    const trackMaterial = (m: THREE.Material) => { createdMaterials.current.push(m); return m; };
+    const trackTexture = (t: THREE.Texture) => { createdTextures.current.push(t); return t; };
+
     // First, let's analyze the model structure
     // Analyze model structure
     let meshCount = 0;
@@ -176,25 +199,22 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
       
       // If no video source, skip video setup for this phone
       if (!videoSrc) {
-        // Show black screen for empty phone
-        mesh.material = new THREE.MeshBasicMaterial({
+        mesh.material = trackMaterial(new THREE.MeshBasicMaterial({
           color: '#000000',
           toneMapped: false,
           side: THREE.FrontSide
-        });
+        }));
         return;
       }
 
       // Staggered loading: show gradient placeholder until ready to load
       if (!shouldLoadVideo) {
-        // Create a gradient canvas texture for loading state
         const canvas = document.createElement('canvas');
         canvas.width = 256;
         canvas.height = 512;
         const ctx = canvas.getContext('2d');
 
         if (ctx) {
-          // Dark gradient background
           const gradient = ctx.createLinearGradient(0, 0, 0, 512);
           gradient.addColorStop(0, '#1a1a2e');
           gradient.addColorStop(0.5, '#16213e');
@@ -202,194 +222,133 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
           ctx.fillStyle = gradient;
           ctx.fillRect(0, 0, 256, 512);
 
-          // Subtle loading indicator (pulsing circle placeholder)
           ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
           ctx.beginPath();
           ctx.arc(128, 256, 30, 0, Math.PI * 2);
           ctx.fill();
         }
 
-        const placeholderTexture = new THREE.CanvasTexture(canvas);
+        const placeholderTexture = trackTexture(new THREE.CanvasTexture(canvas));
         placeholderTexture.minFilter = THREE.LinearFilter;
         placeholderTexture.magFilter = THREE.LinearFilter;
 
-        mesh.material = new THREE.MeshBasicMaterial({
+        mesh.material = trackMaterial(new THREE.MeshBasicMaterial({
           map: placeholderTexture,
           toneMapped: false,
           side: THREE.FrontSide
-        });
+        }));
         return;
       }
 
-      // Create video element and texture with performance optimizations
+      // Create video element and texture
       const video = document.createElement('video');
-      
-      // Check if this is a full video (contains '/full/')
       const isFullVideo = videoSrc.includes('/full/');
-      
+
       if (isFullVideo) {
-        // For full videos, use direct URL for streaming
-        // Streaming full video
         video.src = videoSrc;
         video.crossOrigin = 'anonymous';
-        
-        // Optimize for progressive streaming
-        video.preload = 'metadata'; // Only load metadata initially
-        video.setAttribute('preload', 'metadata');
-        
-        // Add event listeners for loading state
-        video.addEventListener('loadstart', () => {
-          // Full video loading started
-        });
-        
-        video.addEventListener('loadedmetadata', () => {
-          // Video metadata loaded
-        });
-        
-        video.addEventListener('canplay', () => {
-          // Video ready to play
-          // Video can start playing without interruption
-          if (mesh && mesh.material) {
-            // Remove loading indicator if it exists
-            if (mesh.material.map && !mesh.material.map.isVideoTexture) {
-              mesh.material.map = videoTexture;
-              mesh.material.needsUpdate = true;
-            }
-          }
-        });
-        
-        video.addEventListener('progress', (e) => {
-          if (video.buffered.length > 0) {
-            const bufferedEnd = video.buffered.end(video.buffered.length - 1);
-            const duration = video.duration;
-            if (duration > 0) {
-              const bufferedPercent = (bufferedEnd / duration) * 100;
-              // Buffering progress
-            }
-          }
-        });
+        video.preload = 'metadata';
       } else {
-        // For preview videos, use cache if available
         const cachedBlobUrl = videoCache.getBlobUrl(videoSrc);
         if (cachedBlobUrl) {
-          // Using cached preview
           video.src = cachedBlobUrl;
-          video.preload = 'auto'; // Auto-load cached videos
+          video.preload = 'auto';
         } else {
-          // Loading preview
           video.src = videoSrc;
-          video.preload = 'metadata'; // Only metadata for uncached
-          // Cache preview videos in background
+          video.crossOrigin = 'anonymous';
+          video.preload = 'metadata';
           videoCache.preloadVideo(videoSrc);
         }
-        
-        // Don't set crossOrigin for cached blob URLs
-        if (!cachedBlobUrl) {
-          video.crossOrigin = 'anonymous';
-        }
       }
-      
+
       video.loop = true;
-      video.muted = true;  // Always mute for autoplay to work
-      video.autoplay = true;  // Always try to autoplay
+      video.muted = true;
+      video.autoplay = true;
       video.playsInline = true;
       video.setAttribute('playsinline', 'true');
       video.setAttribute('webkit-playsinline', 'true');
-      
-      // Performance optimizations
       video.playbackRate = 1.0;
-      
+
       // Store video reference on mesh for later control
       (mesh as any).__video = video;
-      
-      // Always try to play the video
-      video.play().catch(err => {
-        // Autoplay prevented
-        // Try playing again after a short delay
-        setTimeout(() => {
-          video.play().catch(e => {
-            // Second play attempt failed
-          });
-        }, 100);
+
+      video.play().catch(() => {
+        setTimeout(() => { video.play().catch(() => {}); }, 100);
       });
-      
-      const videoTexture = new THREE.VideoTexture(video);
-      videoTexture.minFilter = THREE.LinearFilter;  // Better quality for visible videos
-      videoTexture.magFilter = THREE.LinearFilter;  // Better quality for visible videos
+
+      const videoTexture = trackTexture(new THREE.VideoTexture(video));
+      videoTexture.minFilter = THREE.LinearFilter;
+      videoTexture.magFilter = THREE.LinearFilter;
       videoTexture.generateMipmaps = false;
       videoTexture.colorSpace = THREE.SRGBColorSpace;
-      videoTexture.format = THREE.RGBFormat;  // Simpler format
-      
-      // Apply UV adjustments
+      videoTexture.format = THREE.RGBFormat;
       videoTexture.wrapS = THREE.ClampToEdgeWrapping;
       videoTexture.wrapT = THREE.ClampToEdgeWrapping;
-      
-      // Flip horizontally for correct orientation
       videoTexture.repeat.set(-1, 1);
       videoTexture.offset.set(1, 0);
-      
-      // Show loading state on screen if loading or if it's a full video that hasn't loaded yet
+
+      // Full video canplay handler
+      if (isFullVideo) {
+        video.addEventListener('canplay', () => {
+          if (mesh?.material?.map && !mesh.material.map.isVideoTexture) {
+            mesh.material.map = videoTexture;
+            mesh.material.needsUpdate = true;
+          }
+        }, { once: true });
+      }
+
+      // Show loading state or video texture
       if (isLoading || (isFullVideo && video.readyState < 2)) {
-        // Use simple static black texture instead of animated spinner
-        // This eliminates 660 texture uploads/second (11 phones × 60fps)
-        mesh.material = new THREE.MeshBasicMaterial({
+        mesh.material = trackMaterial(new THREE.MeshBasicMaterial({
           color: '#000000',
           toneMapped: false,
           side: THREE.FrontSide
-        });
+        }));
 
-        // Replace with video texture when ready
-        const replaceWithVideo = () => {
-          mesh.material = new THREE.MeshBasicMaterial({
+        video.addEventListener('canplay', () => {
+          const mat = trackMaterial(new THREE.MeshBasicMaterial({
             map: videoTexture,
             toneMapped: false,
             side: THREE.FrontSide
-          });
-        };
-
-        video.addEventListener('canplay', replaceWithVideo, { once: true });
+          }));
+          mesh.material = mat;
+        }, { once: true });
       } else {
-        mesh.material = new THREE.MeshBasicMaterial({
+        mesh.material = trackMaterial(new THREE.MeshBasicMaterial({
           map: videoTexture,
           toneMapped: false,
-          side: THREE.FrontSide  // Only render front side
-        });
+          side: THREE.FrontSide
+        }));
       }
-      
-      // Video texture applied
-    } else {
-      // Screen mesh not found
     }
-        
-    // Also style the frame
+
+    // Style the frame
     clonedScene.traverse((child: any) => {
       if (child.isMesh) {
         const meshName = child.name.toLowerCase();
-        
-        // Make the frame silver like ModernPhone
-        if (meshName.includes('frame') || 
+
+        if (meshName.includes('frame') ||
             meshName.includes('body') ||
             meshName.includes('case') ||
             child.material?.name?.toLowerCase().includes('metal') ||
             child.material?.name?.toLowerCase().includes('aluminum')) {
-          child.material = new THREE.MeshStandardMaterial({
+          child.material = trackMaterial(new THREE.MeshStandardMaterial({
             color: '#e5e5e7',
             metalness: 0.95,
             roughness: 0.05,
             envMapIntensity: 1
-          });
+          }));
         }
-        
-        // Make any glass or lens darker
-        if (meshName.includes('glass') || 
+
+        if (meshName.includes('glass') ||
             meshName.includes('lens') ||
             meshName.includes('camera')) {
-          child.material = new THREE.MeshStandardMaterial({
+          child.material = trackMaterial(new THREE.MeshStandardMaterial({
             color: '#1a1a1a',
             metalness: 0.9,
             roughness: 0.1,
             envMapIntensity: 0.5
-          });
+          }));
         }
       }
     });
@@ -501,7 +460,7 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
   );
 };
 
-// Preload the model
-useGLTF.preload('/models/iphone_14_pro_max/scene.gltf');
+// Preload the DRACO-compressed model
+useGLTF.preload('/models/iphone_14_pro_max/scene.gltf', true);
 
 export default IPhone3D;

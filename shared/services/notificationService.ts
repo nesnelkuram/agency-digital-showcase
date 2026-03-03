@@ -154,3 +154,75 @@ export async function notifyApprovalPending(params: {
     link: params.link,
   });
 }
+
+// =============================================
+// Cok seviyeli onay sistemi bildirimleri
+// =============================================
+
+/** Editor icerigi dahili incelemeye gonderdiyse AM'e bildirim */
+export async function notifyInternalReviewNeeded(params: {
+  tenantId: string;
+  recipientUserIds: string[];
+  planTitle: string;
+  planId: string;
+  submittedByName: string;
+}): Promise<void> {
+  await createNotifications(params.recipientUserIds, {
+    tenantId: params.tenantId,
+    type: 'approval_pending',
+    title: 'Dahili Inceleme Bekliyor',
+    message: `"${params.planTitle}" icin ${params.submittedByName} dahili inceleme talep etti.`,
+    link: `/admin/social-media`,
+  });
+}
+
+/** AM dahili incelemeyi onayladiysa editor'e bildirim */
+export async function notifyInternalApproved(params: {
+  tenantId: string;
+  recipientUserIds: string[];
+  planTitle: string;
+  approvedByName: string;
+}): Promise<void> {
+  await createNotifications(params.recipientUserIds, {
+    tenantId: params.tenantId,
+    type: 'social_media',
+    title: 'Dahili Inceleme Onaylandi',
+    message: `"${params.planTitle}" dahili incelemesi ${params.approvedByName} tarafindan onaylandi. Icerik musteriye gonderildi.`,
+    link: `/admin/social-media`,
+  });
+}
+
+/** AM dahili incelemede revizyon istediyse editor'e bildirim */
+export async function notifyInternalRevisionRequested(params: {
+  tenantId: string;
+  recipientUserIds: string[];
+  planTitle: string;
+  requestedByName: string;
+  comment?: string;
+}): Promise<void> {
+  await createNotifications(params.recipientUserIds, {
+    tenantId: params.tenantId,
+    type: 'social_media',
+    title: 'Dahili Revizyon Istendi',
+    message: `"${params.planTitle}" icin ${params.requestedByName} dahili revizyon istedi.${params.comment ? ` Not: ${params.comment}` : ''}`,
+    link: `/admin/social-media`,
+  });
+}
+
+/** Musteri kismi onay verdiyse ekibe bildirim */
+export async function notifyPartialApproval(params: {
+  tenantId: string;
+  recipientUserIds: string[];
+  planTitle: string;
+  approvedByName: string;
+  approvedCount: number;
+  totalCount: number;
+}): Promise<void> {
+  await createNotifications(params.recipientUserIds, {
+    tenantId: params.tenantId,
+    type: 'social_media',
+    title: 'Kismi Onay Verildi',
+    message: `"${params.planTitle}" icin ${params.approvedByName} ${params.approvedCount}/${params.totalCount} postu onayladi.`,
+    link: `/admin/social-media`,
+  });
+}

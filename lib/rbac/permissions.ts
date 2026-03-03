@@ -29,6 +29,9 @@ export const PERMISSIONS = {
   APPROVALS_REVIEW: 'approvals:review',
   APPROVALS_APPROVE: 'approvals:approve',
   APPROVALS_COMMENT: 'approvals:comment',
+  APPROVALS_INTERNAL_REVIEW: 'approvals:internal_review',
+  APPROVALS_SKIP_INTERNAL: 'approvals:skip_internal',
+  APPROVALS_VIEW_AUDIT: 'approvals:view_audit',
 
   // Assets
   ASSETS_VIEW: 'assets:view',

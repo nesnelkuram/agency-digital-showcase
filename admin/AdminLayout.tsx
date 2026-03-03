@@ -67,6 +67,12 @@ const navItems: NavItem[] = [
     icon: LayoutDashboard,
   },
   {
+    label: 'Ekip',
+    path: '/admin/team',
+    icon: Users2,
+    hiddenForRoles: ['client', 'freelancer'],
+  },
+  {
     label: 'Basvurular',
     path: '/admin/leads',
     icon: Users,

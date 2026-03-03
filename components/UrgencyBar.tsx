@@ -40,10 +40,14 @@ const UrgencyBar: React.FC<UrgencyBarProps> = ({ onOpenQuote }) => {
     setIsVisible(false);
   };
 
-  if (!isVisible) return null;
-
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-red-600 text-white shadow-lg" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+    <div
+      className="fixed bottom-0 left-0 right-0 z-50 bg-red-600 text-white shadow-lg transition-transform duration-500 ease-out"
+      style={{
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        transform: isVisible ? 'translateY(0)' : 'translateY(100%)',
+      }}
+    >
       <div className="max-w-7xl mx-auto px-2 sm:px-4 py-2 sm:py-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">

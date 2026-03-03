@@ -8,6 +8,7 @@ const PortalDashboardPage = lazy(() => import('./PortalDashboardPage'));
 const PortalProjectsPage = lazy(() => import('./PortalProjectsPage'));
 const PortalApprovalsPage = lazy(() => import('./PortalApprovalsPage'));
 const PortalSocialMediaPage = lazy(() => import('./PortalSocialMediaPage'));
+const PortalContentPlanReviewPage = lazy(() => import('./PortalContentPlanReviewPage'));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-[300px]">
@@ -49,6 +50,14 @@ const PortalApp: React.FC = () => {
             element={
               <Suspense fallback={<PageLoader />}>
                 <PortalSocialMediaPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="social-media/:planId/review"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <PortalContentPlanReviewPage />
               </Suspense>
             }
           />

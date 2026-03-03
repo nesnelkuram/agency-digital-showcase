@@ -192,24 +192,20 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
   const isAnimating = useRef(true);
   const { invalidate } = useThree();
 
-  // Invalidate frame when animations are active
+  // Invalidate frame only when animations are running
   useFrame(() => {
-    // During entrance, selection changes, or falling - invalidate to render
-    if (!hasEntered || isSelected || shouldFall || isAnimating.current) {
+    if (isAnimating.current) {
       invalidate();
     }
   });
 
-  // Stop invalidating after entrance animation settles (approx 1.5s)
+  // Mark animating on state changes, stop after spring settles (~1.5s)
   useEffect(() => {
-    if (hasEntered && !isSelected && !shouldFall) {
-      const timer = setTimeout(() => {
-        isAnimating.current = false;
-      }, 1500);
-      return () => clearTimeout(timer);
-    } else {
-      isAnimating.current = true;
-    }
+    isAnimating.current = true;
+    const timer = setTimeout(() => {
+      isAnimating.current = false;
+    }, 1500);
+    return () => clearTimeout(timer);
   }, [hasEntered, isSelected, shouldFall]);
 
   // LOD - viewport dışındaki telefonları optimize et
