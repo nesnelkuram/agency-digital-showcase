@@ -160,7 +160,7 @@ export function useUserManagement(): UseUserManagementReturn {
       // Send invitation email via API
       try {
         const token = await getAuth().currentUser?.getIdToken();
-        await fetch('/api/invite-user', {
+        const emailRes = await fetch('/api/invite-user', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -174,6 +174,10 @@ export function useUserManagement(): UseUserManagementReturn {
             invitedByName: currentUser.displayName || currentUser.email,
           }),
         });
+        if (!emailRes.ok) {
+          const errBody = await emailRes.json().catch(() => ({}));
+          console.error('[UserManagement] Email API error:', emailRes.status, errBody);
+        }
       } catch (emailErr) {
         // Email failure should not block invitation creation
         console.warn('[UserManagement] Email send failed:', emailErr);
@@ -250,7 +254,7 @@ export function useUserManagement(): UseUserManagementReturn {
       if (invitation) {
         try {
           const token = await getAuth().currentUser?.getIdToken();
-          await fetch('/api/invite-user', {
+          const emailRes = await fetch('/api/invite-user', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -264,6 +268,10 @@ export function useUserManagement(): UseUserManagementReturn {
               invitedByName: currentUser?.displayName || currentUser?.email,
             }),
           });
+          if (!emailRes.ok) {
+            const errBody = await emailRes.json().catch(() => ({}));
+            console.error('[UserManagement] Resend email API error:', emailRes.status, errBody);
+          }
         } catch (emailErr) {
           console.warn('[UserManagement] Resend email failed:', emailErr);
         }
