@@ -79,9 +79,13 @@ service cloud.firestore {
       allow update: if isSuperAdmin()
                     || (isAuthenticated() && request.auth.uid == userId)
                     || (isAdmin() && resource.data.tenantId == getUserTenantId());
-      // Only super admins or admins (for their tenant) can create/delete users
+      // User creation:
+      // - Super admins can create any user
+      // - Admins can create users in their tenant
+      // - New users can create their own document (invitation join flow)
       allow create: if isSuperAdmin()
-                    || (isAdmin() && request.resource.data.tenantId == getUserTenantId());
+                    || (isAdmin() && request.resource.data.tenantId == getUserTenantId())
+                    || (isAuthenticated() && request.auth.uid == userId);
       allow delete: if isSuperAdmin()
                     || (isAdmin() && resource.data.tenantId == getUserTenantId());
     }
@@ -90,8 +94,14 @@ service cloud.firestore {
     // Invitations collection
     // =============================================
     match /invitations/{invitationId} {
-      allow read, write: if isSuperAdmin() || belongsToTenant();
+      // Authenticated users can read invitations (needed for join page token validation)
+      allow read: if isAuthenticated();
+      allow write: if isSuperAdmin() || belongsToTenant();
       allow create: if isSuperAdmin() || creatingForOwnTenant();
+      // Allow newly registered users to mark their own invitation as accepted
+      allow update: if isAuthenticated()
+                    && request.resource.data.status == 'accepted'
+                    && request.resource.data.acceptedByUid == request.auth.uid;
     }
 
     // =============================================
@@ -573,6 +583,46 @@ service cloud.firestore {
       allow update: if isSuperAdmin()
                     || (isAuthenticated() && resource.data.tenantId == getUserTenantId());
       allow delete: if isSuperAdmin() || belongsToTenant();
+    }
+
+    // =============================================
+    // Agent Memories — persistent AI agent context
+    // Tenant members can read/write their own tenant's memories
+    // =============================================
+    match /agent_memories/{memoryId} {
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update, delete: if isSuperAdmin() || belongsToTenant();
+    }
+
+    // =============================================
+    // Audit Trail — tamper-evident hash chain logs
+    // Read-only for tenant members, append-only (no update/delete)
+    // =============================================
+    match /audit_trail/{entryId} {
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      // No update or delete — audit trail is immutable
+    }
+
+    // =============================================
+    // Background Agents — persistent autonomous agents
+    // Admin-only write, tenant-level read
+    // =============================================
+    match /background_agents/{agentId} {
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || (isAdmin() && creatingForOwnTenant());
+      allow update, delete: if isSuperAdmin() || (isAdmin() && belongsToTenant());
+
+      // Execution history subcollection
+      match /executions/{executionId} {
+        allow read: if isSuperAdmin()
+                    || (isAuthenticated()
+                        && get(/databases/$(database)/documents/background_agents/$(agentId)).data.tenantId == getUserTenantId());
+        allow create: if isSuperAdmin()
+                      || (isAuthenticated()
+                          && get(/databases/$(database)/documents/background_agents/$(agentId)).data.tenantId == getUserTenantId());
+      }
     }
   }
 }

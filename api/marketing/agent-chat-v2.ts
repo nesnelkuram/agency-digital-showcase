@@ -7,6 +7,8 @@ import { toolDeclarations } from './_lib/toolDeclarations.js';
 import { SYSTEM_PROMPT } from './_lib/systemPrompt.js';
 import { toolHandlers, ToolContext } from './_lib/toolHandlers.js';
 import { APPROVAL_REQUIRED_TOOLS, executeApprovedAction } from './_lib/approvalFlow.js';
+import { loadMemoriesForPrompt, extractFactsFromConversation, saveExtractedFacts } from './_lib/agentMemory.js';
+import { eventBus } from '../../shared/events/eventBus.js';
 
 export const config = {
   maxDuration: 120,
@@ -151,10 +153,18 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
     // Build content history from session
     const contentHistory: any[] = sessionData.contentHistory || [];
 
-    // Build system instruction with strategy context
+    // Build system instruction with strategy context + memory
     let systemInstruction = SYSTEM_PROMPT;
     if (sessionData.strategyContext) {
       systemInstruction += `\n\n## Strateji Baglami\n${sessionData.strategyContext}`;
+    }
+
+    // Inject agent memories
+    try {
+      const memorySection = await loadMemoriesForPrompt(db, req.tenantId);
+      if (memorySection) systemInstruction += memorySection;
+    } catch (err) {
+      console.warn('[agent-chat-v2] Memory load failed (non-critical):', err);
     }
 
     // Add user message to history
@@ -293,7 +303,15 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
           }
 
           try {
+            const toolStart = Date.now();
             const toolResult = await handler(ctx, fc.args);
+
+            eventBus.emit('agent:tool.executed', {
+              sessionId,
+              toolName: fc.name,
+              durationMs: Date.now() - toolStart,
+              success: true,
+            }, req.tenantId);
 
             sseWrite(res, {
               type: 'tool_result',
@@ -363,6 +381,46 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
     await db.collection('marketing_agent_sessions').doc(sessionId).update(updateData);
 
     sseWrite(res, { type: 'done', messageId: assistantMsgId });
+
+    // Background: extract memories from this conversation turn
+    const assistantText = assistantParts
+      .filter((p: any) => p.type === 'text')
+      .map((p: any) => p.content)
+      .join(' ');
+
+    if (assistantText && message) {
+      // Fire-and-forget: don't block response
+      (async () => {
+        try {
+          const facts = await extractFactsFromConversation(
+            async (prompt: string) => {
+              const extractResult = await ai.models.generateContent({
+                model: 'gemini-2.0-flash',
+                contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                config: { temperature: 0.3, maxOutputTokens: 1024, responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } },
+              });
+              return JSON.parse(extractResult.text ?? '[]');
+            },
+            message,
+            assistantText
+          );
+
+          if (facts.length > 0) {
+            const saved = await saveExtractedFacts(db, req.tenantId, sessionId, facts);
+            if (saved > 0) {
+              eventBus.emit('agent:memory.extracted', {
+                sessionId,
+                tenantId: req.tenantId,
+                facts: facts.map(f => f.fact),
+              }, req.tenantId);
+            }
+          }
+        } catch (err) {
+          console.warn('[agent-chat-v2] Memory extraction failed (non-critical):', err);
+        }
+      })();
+    }
+
     res.end();
   } catch (error: any) {
     console.error('agent-chat-v2 error:', error);

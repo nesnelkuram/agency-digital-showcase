@@ -30,9 +30,11 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
       return res.status(400).json({ error: 'Eksik alanlar: invitationId, email, role zorunlu' });
     }
 
-    const appUrl = process.env.APP_URL || process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : 'http://localhost:5173';
+    const appUrl = process.env.APP_URL
+      ? process.env.APP_URL
+      : process.env.VERCEL_URL
+        ? (process.env.VERCEL_URL.includes('localhost') ? `http://${process.env.VERCEL_URL}` : `https://${process.env.VERCEL_URL}`)
+        : 'http://localhost:5173';
 
     const inviteLink = `${appUrl}/join?token=${invitationId}`;
     const roleLabel = ROLE_DISPLAY_NAMES[role] || role;
@@ -40,7 +42,7 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
     const senderName = invitedByName || 'intiba ekibi';
 
     const { data, error } = await resend.emails.send({
-      from: 'intiba <onboarding@resend.dev>',
+      from: 'intiba <info@intiba.co.uk>',
       to: [email],
       subject: `${senderName} sizi intiba platformuna davet etti`,
       html: `
