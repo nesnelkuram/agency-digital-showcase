@@ -1,8 +1,5 @@
 import type { VercelResponse } from '@vercel/node';
-import { Resend } from 'resend';
 import { withAuth, AuthenticatedRequest } from './_lib/withAuth.js';
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 const ROLE_DISPLAY_NAMES: Record<string, string> = {
   admin: 'Yonetici',
@@ -29,6 +26,15 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
     if (!invitationId || !email || !role) {
       return res.status(400).json({ error: 'Eksik alanlar: invitationId, email, role zorunlu' });
     }
+
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+      console.error('[invite-user] RESEND_API_KEY is not set');
+      return res.status(500).json({ error: 'Email service not configured (missing RESEND_API_KEY)' });
+    }
+
+    const { Resend } = await import('resend');
+    const resend = new Resend(apiKey);
 
     const appUrl = process.env.APP_URL
       ? process.env.APP_URL
