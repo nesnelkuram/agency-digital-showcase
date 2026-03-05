@@ -1,7 +1,6 @@
 import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
-import viteCompression from 'vite-plugin-compression';
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
@@ -9,6 +8,9 @@ export default defineConfig(({ mode }) => {
       define: {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
         'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
+      },
+      esbuild: {
+        drop: ['console', 'debugger'],
       },
       resolve: {
         alias: {
@@ -21,14 +23,6 @@ export default defineConfig(({ mode }) => {
       },
       build: {
         target: 'es2020',
-        minify: 'terser',
-        terserOptions: {
-          compress: {
-            drop_console: true,
-            drop_debugger: true,
-            pure_funcs: ['console.log', 'console.info', 'console.debug'],
-          },
-        },
         rollupOptions: {
           output: {
             manualChunks: {
@@ -58,23 +52,6 @@ export default defineConfig(({ mode }) => {
       },
       plugins: [
         react(),
-        // Compression only during build, not dev (causes HTML parse errors in vercel dev)
-        ...(mode === 'production' ? [
-          viteCompression({
-            verbose: true,
-            disable: false,
-            threshold: 10240,
-            algorithm: 'gzip',
-            ext: '.gz',
-          }),
-          viteCompression({
-            verbose: true,
-            disable: false,
-            threshold: 10240,
-            algorithm: 'brotliCompress',
-            ext: '.br',
-          }),
-        ] : []),
       ],
     };
 });

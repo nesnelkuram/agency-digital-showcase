@@ -57,9 +57,7 @@ interface UserRecord {
 }
 
 async function verifyTokenAndGetUid(token: string): Promise<string> {
-  const { getAdminDb, getFirebaseAuth } = await import('./firebaseAdmin.js');
-  // Initialize firebase-admin app, then get auth instance
-  getAdminDb();
+  const { getFirebaseAuth } = await import('./firebaseAdmin.js');
   const auth = getFirebaseAuth();
   const decoded = await auth.verifyIdToken(token);
   return decoded.uid;
