@@ -106,6 +106,10 @@
       "maxDuration": 120,
       "includeFiles": "api/_lib/**"
     },
+    "api/invite-user.ts": {
+      "maxDuration": 10,
+      "includeFiles": "api/_lib/**"
+    },
     "api/marketing/agent-chat-v2.ts": {
       "maxDuration": 120,
       "includeFiles": "api/_lib/**"
