@@ -1,5 +1,9 @@
-import './env';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+
+// Load .env.local only in dev — production uses Vercel's env injection
+if (!process.env.VERCEL) {
+  import('./env.js').catch(() => {});
+}
 
 // ============================================
 // Types
