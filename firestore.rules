@@ -94,8 +94,11 @@ service cloud.firestore {
     // Invitations collection
     // =============================================
     match /invitations/{invitationId} {
-      // Authenticated users can read invitations (needed for join page token validation)
-      allow read: if isAuthenticated();
+      // Single-document read allowed without auth (join page token validation)
+      // The invitation ID itself is an unguessable token — no enumeration risk
+      allow get: if true;
+      // List requires auth to prevent enumeration
+      allow list: if isAuthenticated();
       allow write: if isSuperAdmin() || belongsToTenant();
       allow create: if isSuperAdmin() || creatingForOwnTenant();
       // Allow newly registered users to mark their own invitation as accepted
