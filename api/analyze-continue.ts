@@ -13,7 +13,7 @@ import {
   runCompetitorDiscovery,
   runBrandStrategistRevision,
   runConsumerTest,
-} from './_lib/pipeline-bundle.mjs';
+} from './_bundles/pipeline-bundle.mjs';
 import {
   loadCheckpoint,
   markAgentRunning,

@@ -1,6 +1,6 @@
 import type { VercelResponse } from '@vercel/node';
 // @ts-ignore — pre-bundled by esbuild during vercel-build
-import { runPipeline } from './_lib/pipeline-bundle.mjs';
+import { runPipeline } from './_bundles/pipeline-bundle.mjs';
 import { withAuthOptional, OptionalAuthRequest } from './_lib/withAuth.js';
 
 export const config = {

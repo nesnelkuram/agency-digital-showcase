@@ -43,3 +43,4 @@ public/videos/full/
 # Generated API bundles (built by esbuild during vercel-build)
 api/analyze-brand-multi.js
 api/_lib/*.mjs
+api/_bundles/*.mjs

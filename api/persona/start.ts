@@ -1,6 +1,6 @@
 import type { VercelResponse } from '@vercel/node';
 // @ts-ignore — pre-bundled by esbuild during vercel-build
-import { startChat } from '../_lib/persona-bundle.mjs';
+import { startChat } from '../_bundles/persona-bundle.mjs';
 import { getAdminDb } from '../_lib/firebaseAdmin.js';
 import { randomUUID } from 'crypto';
 import { withAuth, AuthenticatedRequest } from '../_lib/withAuth.js';

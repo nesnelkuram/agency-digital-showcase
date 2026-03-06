@@ -2,6 +2,7 @@ import { build } from 'esbuild';
 import { mkdirSync } from 'fs';
 
 mkdirSync('api/_lib', { recursive: true });
+mkdirSync('api/_bundles', { recursive: true });
 
 // ESM banner: create a CJS-compatible require() for dynamic require() calls
 // that esbuild can't convert to import() (e.g. cheerio's require("buffer"))
@@ -26,12 +27,12 @@ await Promise.all([
   build({
     ...sharedOptions,
     entryPoints: ['src/pipeline/pipeline.ts'],
-    outfile: 'api/_lib/pipeline-bundle.mjs',
+    outfile: 'api/_bundles/pipeline-bundle.mjs',
   }),
   build({
     ...sharedOptions,
     entryPoints: ['src/persona/personaAgent.ts'],
-    outfile: 'api/_lib/persona-bundle.mjs',
+    outfile: 'api/_bundles/persona-bundle.mjs',
   }),
   build({
     ...sharedOptions,
@@ -40,4 +41,4 @@ await Promise.all([
   }),
 ]);
 
-console.log('Built api/_lib/pipeline-bundle.mjs, persona-bundle.mjs, gemini-bundle.mjs');
+console.log('Built api/_bundles/pipeline-bundle.mjs, api/_bundles/persona-bundle.mjs, api/_lib/gemini-bundle.mjs');
