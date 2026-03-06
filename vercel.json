@@ -1,5 +1,6 @@
 {
   "framework": "vite",
+  "buildCommand": "node scripts/build-blog-kb.mjs && node scripts/build-api.mjs && vite build",
   "functions": {
     "api/analyze-start.ts": { "maxDuration": 60 },
     "api/analyze-continue.ts": { "maxDuration": 300 },
