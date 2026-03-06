@@ -39,6 +39,7 @@ const sharedOptions = {
   target: 'node18',
   format: 'esm',
   external: ['@vercel/node'],
+  allowOverwrite: true,
   minify: true,
   sourcemap: false,
   mainFields: ['module', 'main'],
