@@ -1,7 +1,3 @@
 public/makaleler/
 *.md
 .claude/
-api/**/*.ts
-api/_lib/
-api/_bundles/
-api/marketing/_lib/

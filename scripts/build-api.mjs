@@ -1,5 +1,5 @@
 import { build } from 'esbuild';
-import { readdirSync, statSync } from 'fs';
+import { readdirSync, statSync, unlinkSync, rmSync } from 'fs';
 import { join, relative } from 'path';
 
 // Recursively find all .ts files under api/, excluding _lib and _bundles directories
@@ -62,3 +62,29 @@ await Promise.all(
 const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
 console.log(`Bundled ${functions.length} functions in ${elapsed}s`);
 functions.forEach((fn) => console.log(`  ✓ ${fn.replace('.ts', '.mjs')}`));
+
+// Clean up .ts source files and _lib directories so Vercel only detects .mjs functions.
+// This runs in Vercel's build environment (a copy), not the original repo.
+if (process.env.VERCEL) {
+  console.log('\nCleaning up .ts sources for Vercel deployment...');
+
+  // Delete all .ts files in api/ (functions + _lib files)
+  function deleteAllTs(dir) {
+    for (const entry of readdirSync(dir)) {
+      const fullPath = join(dir, entry);
+      if (statSync(fullPath).isDirectory()) {
+        deleteAllTs(fullPath);
+      } else if (entry.endsWith('.ts')) {
+        unlinkSync(fullPath);
+      }
+    }
+  }
+  deleteAllTs('api');
+
+  // Remove _lib and _bundles directories
+  for (const dir of ['api/_lib', 'api/_bundles', 'api/marketing/_lib']) {
+    rmSync(dir, { recursive: true, force: true });
+  }
+
+  console.log('Cleaned up .ts sources and _lib directories.');
+}
