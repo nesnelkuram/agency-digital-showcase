@@ -1,5 +1,5 @@
 import { build } from 'esbuild';
-import { readdirSync, statSync, writeFileSync, rmSync } from 'fs';
+import { readdirSync, statSync, writeFileSync, rmSync, mkdirSync } from 'fs';
 import { join, relative, basename } from 'path';
 
 // Recursively find all .ts files under api/, excluding _lib and _bundles directories
@@ -49,6 +49,34 @@ const sharedOptions = {
 
 const startTime = Date.now();
 
+// Step 1: Build intermediate bundles that function files import from.
+// These .mjs files must exist before esbuild can resolve imports in the function files.
+mkdirSync('api/_lib', { recursive: true });
+mkdirSync('api/_bundles', { recursive: true });
+
+const intermediateOpts = { ...sharedOptions, external: ['@vercel/node', '@google/genai'] };
+
+await Promise.all([
+  build({
+    ...intermediateOpts,
+    entryPoints: ['src/pipeline/pipeline.ts'],
+    outfile: 'api/_bundles/pipeline-bundle.mjs',
+  }),
+  build({
+    ...intermediateOpts,
+    entryPoints: ['src/persona/personaAgent.ts'],
+    outfile: 'api/_bundles/persona-bundle.mjs',
+  }),
+  build({
+    ...intermediateOpts,
+    entryPoints: ['src/pipeline/geminiClient.ts'],
+    outfile: 'api/_lib/gemini-bundle.mjs',
+  }),
+]);
+console.log('Built intermediate bundles (pipeline, persona, gemini)');
+
+// Step 2: Bundle all 49 function files — each becomes a self-contained .mjs.
+// Intermediate bundles get inlined since they're not in externals.
 await Promise.all(
   functions.map((fn) =>
     build({
