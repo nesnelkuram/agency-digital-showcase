@@ -609,6 +609,14 @@ service cloud.firestore {
     }
 
     // =============================================
+    // Role Configs — dynamic RBAC per tenant
+    // =============================================
+    match /role_configs/{tenantId} {
+      allow read: if isAuthenticated() && getUserTenantId() == tenantId;
+      allow write: if isAdmin() && getUserTenantId() == tenantId;
+    }
+
+    // =============================================
     // Background Agents — persistent autonomous agents
     // Admin-only write, tenant-level read
     // =============================================

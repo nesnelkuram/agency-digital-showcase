@@ -1,5 +1,5 @@
 import React from 'react';
-import { Settings, User, Bell, Shield, Link, Building2 } from 'lucide-react';
+import { Settings, User, Bell, Shield, Link, Building2, KeyRound } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermission } from '@/shared/hooks/usePermission';
 
@@ -27,6 +27,12 @@ const SettingsPage: React.FC = () => {
             description: 'Kullanicilari davet edin ve yonetin',
             icon: <Shield className="w-5 h-5" />,
             href: '/admin/team',
+          },
+          {
+            label: 'Rol ve Yetki Yonetimi',
+            description: 'Rollerin menu gorunurlugu ve yetkilerini duzenleyin',
+            icon: <KeyRound className="w-5 h-5" />,
+            href: '/admin/settings/roles',
           },
           {
             label: 'Entegrasyonlar',

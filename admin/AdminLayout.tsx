@@ -49,6 +49,7 @@ import { PERMISSIONS } from '@/lib/rbac/permissions';
 import TenantSwitcher from './components/TenantSwitcher';
 import NotificationDropdown from './components/NotificationDropdown';
 import { NotificationsProvider } from './contexts/NotificationsContext';
+import { useRoleConfig } from '@/shared/hooks/useRoleConfig';
 
 interface NavItem {
   label: string;
@@ -231,6 +232,7 @@ const AdminLayout: React.FC = () => {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { can } = usePermission();
+  const { isMenuVisible } = useRoleConfig();
 
   useEffect(() => {
     localStorage.setItem(SIDEBAR_STORAGE_KEY, String(sidebarCollapsed));
@@ -253,6 +255,9 @@ const AdminLayout: React.FC = () => {
 
   const filteredNavItems = navItems.filter((item) => {
     if (item.permission && !can(item.permission as any)) return false;
+    // Dynamic menu visibility from Firestore role config
+    if (user?.role && !isMenuVisible(user.role, item.path)) return false;
+    // Fallback to hardcoded hiddenForRoles
     if (item.hiddenForRoles && user?.role && item.hiddenForRoles.includes(user.role)) return false;
     return true;
   });

@@ -101,6 +101,7 @@ const UserManagementPage = React.lazy(() => import('./settings/UserManagementPag
 const NotificationsPage = React.lazy(() => import('./settings/NotificationsPage'));
 const IntegrationsPage = React.lazy(() => import('./settings/IntegrationsPage'));
 const NotificationsListPage = React.lazy(() => import('./notifications/NotificationsListPage'));
+const RoleManagementPage = React.lazy(() => import('./settings/RoleManagementPage'));
 
 // Team Page
 const TeamPage = React.lazy(() => import('./team/TeamPage'));
@@ -1045,6 +1046,14 @@ const AdminApp: React.FC = () => {
             element={
               <React.Suspense fallback={<PageLoader />}>
                 <IntegrationsPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="settings/roles"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <RoleManagementPage />
               </React.Suspense>
             }
           />

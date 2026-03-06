@@ -2,8 +2,20 @@ import { User } from '@/shared/types/user';
 import { ROLES } from './roles';
 import { Permission } from './permissions';
 
-export function hasPermission(user: User | null, permission: Permission): boolean {
+export function hasPermission(
+  user: User | null,
+  permission: Permission,
+  dynamicPermissions?: string[] | null,
+): boolean {
   if (!user) return false;
+
+  // If dynamic (Firestore) permissions are provided, use those instead of hardcoded role defaults
+  if (dynamicPermissions) {
+    if (dynamicPermissions.includes(permission)) return true;
+    // Also check user-level custom permissions
+    if (user.permissions?.includes(permission)) return true;
+    return false;
+  }
 
   const roleConfig = ROLES[user.role];
   if (!roleConfig) return false;
