@@ -15,15 +15,6 @@
     "api/transcribe-video.ts": {
       "maxDuration": 120
     },
-    "api/marketing/generate-proposal.ts": {
-      "maxDuration": 300
-    },
-    "api/marketing/approve-proposal.ts": {
-      "maxDuration": 60
-    },
-    "api/marketing/execute-campaign.ts": {
-      "maxDuration": 120
-    },
     "api/marketing/sync-campaigns.ts": {
       "maxDuration": 120
     },
@@ -46,15 +37,6 @@
       "maxDuration": 30
     },
     "api/marketing/forecast-budget.ts": {
-      "maxDuration": 120
-    },
-    "api/marketing/sync-google.ts": {
-      "maxDuration": 120
-    },
-    "api/marketing/sync-tiktok.ts": {
-      "maxDuration": 120
-    },
-    "api/marketing/sync-linkedin.ts": {
       "maxDuration": 120
     },
     "api/marketing/generate-report.ts": {
@@ -97,10 +79,6 @@
     },
     "api/marketing/agent-start.ts": {
       "maxDuration": 10
-    },
-    "api/marketing/agent-chat.ts": {
-      "maxDuration": 60,
-      "includeFiles": "api/_lib/**"
     },
     "api/marketing/agent-execute-action.ts": {
       "maxDuration": 120,

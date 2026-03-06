@@ -69,7 +69,6 @@ const ABTestsPage = React.lazy(() => import('./marketing/ABTestsPage'));
 const UTMBuilderPage = React.lazy(() => import('./marketing/UTMBuilderPage'));
 
 // Marketing AI Agent
-const MarketingAgentPage = React.lazy(() => import('./marketing/MarketingAgentPage'));
 const MarketingAgentV2Page = React.lazy(() => import('./marketing/MarketingAgentV2Page'));
 
 // Phase 3: Automation & Intelligence Pages
