@@ -1,6 +1,6 @@
 import { build } from 'esbuild';
-import { readdirSync, statSync, unlinkSync, rmSync } from 'fs';
-import { join, relative } from 'path';
+import { readdirSync, statSync, writeFileSync, rmSync } from 'fs';
+import { join, relative, basename } from 'path';
 
 // Recursively find all .ts files under api/, excluding _lib and _bundles directories
 function findFunctionFiles(dir, rootDir = dir) {
@@ -63,28 +63,22 @@ const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
 console.log(`Bundled ${functions.length} functions in ${elapsed}s`);
 functions.forEach((fn) => console.log(`  ✓ ${fn.replace('.ts', '.mjs')}`));
 
-// Clean up .ts source files and _lib directories so Vercel only detects .mjs functions.
+// Replace each .ts function with a thin re-export wrapper pointing to its .mjs bundle.
+// NFT traces the wrapper → finds only one .mjs import → no heavy dependency tree to trace.
 // This runs in Vercel's build environment (a copy), not the original repo.
 if (process.env.VERCEL) {
-  console.log('\nCleaning up .ts sources for Vercel deployment...');
+  console.log('\nReplacing .ts functions with thin re-export wrappers...');
 
-  // Delete all .ts files in api/ (functions + _lib files)
-  function deleteAllTs(dir) {
-    for (const entry of readdirSync(dir)) {
-      const fullPath = join(dir, entry);
-      if (statSync(fullPath).isDirectory()) {
-        deleteAllTs(fullPath);
-      } else if (entry.endsWith('.ts')) {
-        unlinkSync(fullPath);
-      }
-    }
+  for (const fn of functions) {
+    const mjsName = basename(fn).replace('.ts', '.mjs');
+    const wrapper = `export { default } from './${mjsName}';\n`;
+    writeFileSync(fn, wrapper);
   }
-  deleteAllTs('api');
 
-  // Remove _lib and _bundles directories
+  // Remove _lib and _bundles directories — no longer needed after bundling
   for (const dir of ['api/_lib', 'api/_bundles', 'api/marketing/_lib']) {
     rmSync(dir, { recursive: true, force: true });
   }
 
-  console.log('Cleaned up .ts sources and _lib directories.');
+  console.log('Done. Each .ts is now a thin wrapper around its .mjs bundle.');
 }
