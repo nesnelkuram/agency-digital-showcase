@@ -1,12 +1,36 @@
 import { build } from 'esbuild';
-import { mkdirSync } from 'fs';
+import { readdirSync, statSync } from 'fs';
+import { join, relative } from 'path';
 
-mkdirSync('api/_lib', { recursive: true });
-mkdirSync('api/_bundles', { recursive: true });
+// Recursively find all .ts files under api/, excluding _lib and _bundles directories
+function findFunctionFiles(dir, rootDir = dir) {
+  const results = [];
+  for (const entry of readdirSync(dir)) {
+    const fullPath = join(dir, entry);
+    const relPath = relative(rootDir, fullPath);
+
+    // Skip library/bundle directories — these are not serverless functions
+    if (entry === '_lib' || entry === '_bundles') continue;
+
+    if (statSync(fullPath).isDirectory()) {
+      // Skip marketing/_lib specifically
+      if (relPath === 'marketing/_lib') continue;
+      results.push(...findFunctionFiles(fullPath, rootDir));
+    } else if (entry.endsWith('.ts') && !entry.startsWith('_')) {
+      results.push(fullPath);
+    }
+  }
+  return results;
+}
+
+const apiDir = 'api';
+const functions = findFunctionFiles(apiDir);
+
+console.log(`Found ${functions.length} API functions to bundle...`);
 
 // ESM banner: create a CJS-compatible require() for dynamic require() calls
 // that esbuild can't convert to import() (e.g. cheerio's require("buffer"))
-// Also polyfill File for Node.js 18 (undici/cheerio needs it, available natively in Node.js 20+)
+// Also polyfill File for Node.js 18
 const esmBanner = `import { createRequire } from 'module'; import { Blob as _NodeBlob } from 'buffer'; const require = createRequire(import.meta.url); if (typeof globalThis.File === 'undefined') { globalThis.File = function File(bits, name, opts) { const b = new _NodeBlob(bits, opts); b.name = name; return b; }; globalThis.File.prototype = _NodeBlob.prototype; }`;
 
 const sharedOptions = {
@@ -14,7 +38,7 @@ const sharedOptions = {
   platform: 'node',
   target: 'node18',
   format: 'esm',
-  external: ['@vercel/node', '@google/genai'],
+  external: ['@vercel/node'],
   minify: true,
   sourcemap: false,
   mainFields: ['module', 'main'],
@@ -23,22 +47,18 @@ const sharedOptions = {
   banner: { js: esmBanner },
 };
 
-await Promise.all([
-  build({
-    ...sharedOptions,
-    entryPoints: ['src/pipeline/pipeline.ts'],
-    outfile: 'api/_bundles/pipeline-bundle.mjs',
-  }),
-  build({
-    ...sharedOptions,
-    entryPoints: ['src/persona/personaAgent.ts'],
-    outfile: 'api/_bundles/persona-bundle.mjs',
-  }),
-  build({
-    ...sharedOptions,
-    entryPoints: ['src/pipeline/geminiClient.ts'],
-    outfile: 'api/_lib/gemini-bundle.mjs',
-  }),
-]);
+const startTime = Date.now();
 
-console.log('Built api/_bundles/pipeline-bundle.mjs, api/_bundles/persona-bundle.mjs, api/_lib/gemini-bundle.mjs');
+await Promise.all(
+  functions.map((fn) =>
+    build({
+      ...sharedOptions,
+      entryPoints: [fn],
+      outfile: fn.replace('.ts', '.mjs'),
+    })
+  )
+);
+
+const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+console.log(`Bundled ${functions.length} functions in ${elapsed}s`);
+functions.forEach((fn) => console.log(`  ✓ ${fn.replace('.ts', '.mjs')}`));
