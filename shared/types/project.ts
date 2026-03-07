@@ -47,6 +47,7 @@ export interface ProjectService {
   activatedAt?: Timestamp;
   notes?: string;
   metadata?: Record<string, any>;
+  linkedWorkflowTemplateIds?: string[];
 }
 
 // ============================================

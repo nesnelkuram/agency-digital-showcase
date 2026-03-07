@@ -458,6 +458,133 @@ export async function convertQuoteToProject(
 }
 
 // ============================================
+// HIZMET EKLEME / CIKARMA / WORKFLOW BAGLAMA
+// ============================================
+
+export async function addServiceToProject(
+  tenantId: string,
+  projectId: string,
+  category: ServiceCategory,
+  userId: string,
+  userName: string
+): Promise<void> {
+  if (!db) throw new Error('Firebase not initialized');
+
+  const project = await getProject(tenantId, projectId);
+  if (!project) throw new Error('Project not found');
+
+  const exists = project.services.some((s) => s.category === category);
+  if (exists) throw new Error('Service already exists in project');
+
+  const now = Timestamp.now();
+
+  const updatedServices = [
+    ...project.services,
+    { category, status: 'not_started' as ProjectServiceStatus },
+  ];
+
+  const timelineEvent: ProjectTimelineEvent = {
+    id: `evt-${Date.now()}`,
+    type: 'service_activated',
+    title: 'Hizmet eklendi',
+    description: `${category} hizmeti projeye eklendi`,
+    createdAt: now,
+    createdBy: userId,
+    createdByName: userName,
+  };
+
+  const docRef = doc(db, COLLECTION_NAME, projectId);
+  await updateDoc(docRef, {
+    services: stripUndefined(updatedServices),
+    timeline: [...project.timeline, timelineEvent],
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function removeServiceFromProject(
+  tenantId: string,
+  projectId: string,
+  category: ServiceCategory,
+  userId: string,
+  userName: string
+): Promise<void> {
+  if (!db) throw new Error('Firebase not initialized');
+
+  const project = await getProject(tenantId, projectId);
+  if (!project) throw new Error('Project not found');
+
+  const now = Timestamp.now();
+
+  const updatedServices = project.services.filter((s) => s.category !== category);
+
+  const timelineEvent: ProjectTimelineEvent = {
+    id: `evt-${Date.now()}`,
+    type: 'service_deactivated',
+    title: 'Hizmet kaldirildi',
+    description: `${category} hizmeti projeden kaldirildi`,
+    createdAt: now,
+    createdBy: userId,
+    createdByName: userName,
+  };
+
+  const docRef = doc(db, COLLECTION_NAME, projectId);
+  await updateDoc(docRef, {
+    services: stripUndefined(updatedServices),
+    timeline: [...project.timeline, timelineEvent],
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function linkWorkflowTemplate(
+  tenantId: string,
+  projectId: string,
+  category: ServiceCategory,
+  templateId: string
+): Promise<void> {
+  if (!db) throw new Error('Firebase not initialized');
+
+  const project = await getProject(tenantId, projectId);
+  if (!project) throw new Error('Project not found');
+
+  const updatedServices = project.services.map((s) => {
+    if (s.category !== category) return s;
+    const ids = s.linkedWorkflowTemplateIds || [];
+    if (ids.includes(templateId)) return s;
+    return { ...s, linkedWorkflowTemplateIds: [...ids, templateId] };
+  });
+
+  const docRef = doc(db, COLLECTION_NAME, projectId);
+  await updateDoc(docRef, {
+    services: stripUndefined(updatedServices),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function unlinkWorkflowTemplate(
+  tenantId: string,
+  projectId: string,
+  category: ServiceCategory,
+  templateId: string
+): Promise<void> {
+  if (!db) throw new Error('Firebase not initialized');
+
+  const project = await getProject(tenantId, projectId);
+  if (!project) throw new Error('Project not found');
+
+  const updatedServices = project.services.map((s) => {
+    if (s.category !== category) return s;
+    const ids = (s.linkedWorkflowTemplateIds || []).filter((id) => id !== templateId);
+    return { ...s, linkedWorkflowTemplateIds: ids.length > 0 ? ids : undefined };
+  });
+
+  const docRef = doc(db, COLLECTION_NAME, projectId);
+  await updateDoc(docRef, {
+    services: stripUndefined(updatedServices),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+// ============================================
 // MUSTERI BAZLI SORGULAMA
 // ============================================
 

@@ -209,6 +209,28 @@ export async function notifyInternalRevisionRequested(params: {
   });
 }
 
+/** Notify when a recurring workflow is spawned */
+export async function notifyRecurringWorkflowSpawned(params: {
+  tenantId: string;
+  recipientUserIds: string[];
+  workflowName: string;
+  instanceId: string;
+  projectId: string;
+  serviceCategory?: string;
+}): Promise<void> {
+  const link = params.serviceCategory
+    ? `/admin/projects/${params.projectId}/service/${params.serviceCategory}`
+    : `/admin/projects/${params.projectId}`;
+
+  await createNotifications(params.recipientUserIds, {
+    tenantId: params.tenantId,
+    type: 'workflow_step',
+    title: 'Periyodik Is Akisi Baslatildi',
+    message: `"${params.workflowName}" periyodik is akisi otomatik olarak baslatildi.`,
+    link,
+  });
+}
+
 /** Musteri kismi onay verdiyse ekibe bildirim */
 export async function notifyPartialApproval(params: {
   tenantId: string;

@@ -1,5 +1,5 @@
 import { Timestamp } from 'firebase/firestore';
-import { ServiceCategory } from './template';
+import { ServiceCategory, WorkflowType } from './template';
 
 export type WorkflowInstanceStatus = 'pending' | 'active' | 'paused' | 'completed' | 'cancelled';
 
@@ -105,6 +105,8 @@ export interface WorkflowInstance {
   startedAt?: Timestamp;
   estimatedCompletionAt?: Timestamp;
   completedAt?: Timestamp;
+  // Workflow type classification (copied from template)
+  workflowType?: WorkflowType;
   // Recurring: set when spawned from a recurring template
   recurringTemplateId?: string;
   isRecurringInstance?: boolean;

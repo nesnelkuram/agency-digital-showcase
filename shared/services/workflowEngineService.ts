@@ -96,6 +96,10 @@ export async function instantiateWorkflow(
       };
     }
 
+    // Resolve workflow type from template
+    const workflowType = template.workflowType
+      || (template.recurringConfig?.enabled ? 'recurring' : 'on_demand');
+
     // Create the workflow instance via service
     const instanceId = await createWorkflowInstance(tenantId, {
       templateId,
@@ -105,6 +109,7 @@ export async function instantiateWorkflow(
       projectName,
       clientName,
       serviceCategory: template.serviceCategory,
+      workflowType,
       status: 'active',
       progress: 0,
       steps,

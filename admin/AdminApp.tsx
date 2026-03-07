@@ -49,6 +49,9 @@ const ProjectListPage = React.lazy(() => import('./projects/ProjectListPage'));
 const ProjectDetailPage = React.lazy(() => import('./projects/ProjectDetailPage'));
 const CreateProjectPage = React.lazy(() => import('./projects/CreateProjectPage'));
 
+// Project Service Detail Page
+const ProjectServiceDetailPage = React.lazy(() => import('./projects/ServiceDetailPage'));
+
 // Marketing Pages
 const MarketingDashboard = React.lazy(() => import('./marketing/MarketingDashboard'));
 const CampaignsPage = React.lazy(() => import('./marketing/CampaignsPage'));
@@ -179,6 +182,15 @@ const AdminApp: React.FC = () => {
             element={
               <React.Suspense fallback={<PageLoader />}>
                 <ProjectDetailPage />
+              </React.Suspense>
+            }
+          />
+          {/* Project Service Detail Page */}
+          <Route
+            path="projects/:projectId/service/:category"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <ProjectServiceDetailPage />
               </React.Suspense>
             }
           />

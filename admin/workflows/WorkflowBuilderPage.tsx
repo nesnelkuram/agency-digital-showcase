@@ -37,6 +37,7 @@ const WorkflowBuilderPage: React.FC = () => {
     parentTemplateId,
     depth,
     recurringConfig,
+    workflowType,
     setTemplateInfo,
     loadFromTemplate,
     reset,
@@ -119,11 +120,12 @@ const WorkflowBuilderPage: React.FC = () => {
       depth,
       ...(parentTemplateId && { parentTemplateId }),
       ...(recurringConfig && { recurringConfig }),
+      ...(workflowType !== 'on_demand' && { workflowType }),
       status: 'draft' as const,
       createdBy: '',
       createdByName: '',
     };
-  }, [nodes, edges, templateName, templateDescription, serviceCategory, defaultEstimatedDays, depth, parentTemplateId, recurringConfig]);
+  }, [nodes, edges, templateName, templateDescription, serviceCategory, defaultEstimatedDays, depth, parentTemplateId, recurringConfig, workflowType]);
 
   const handleSave = useCallback(async () => {
     setSaving(true);
@@ -426,6 +428,37 @@ const WorkflowBuilderPage: React.FC = () => {
                 className="w-full px-3 py-1.5 rounded-lg border border-neutral-200 bg-white font-commons text-sm focus:outline-none focus:border-indigo-400 transition-colors"
               />
             </div>
+          </div>
+
+          {/* Workflow Type */}
+          <div className="border-t border-neutral-100 pt-4 mb-4">
+            <label className="font-commons text-xs font-medium text-neutral-600 mb-1.5 block">
+              Is Akisi Tipi
+            </label>
+            <select
+              value={workflowType}
+              onChange={(e) => {
+                const val = e.target.value as 'setup' | 'recurring' | 'on_demand';
+                setTemplateInfo({ workflowType: val });
+                // Auto-enable recurring config when 'recurring' is selected
+                if (val === 'recurring' && !recurringConfig?.enabled) {
+                  setTemplateInfo({
+                    workflowType: val,
+                    recurringConfig: {
+                      enabled: true,
+                      cronExpression: recurringConfig?.cronExpression || '0 9 * * 1',
+                      timezone: recurringConfig?.timezone || 'Europe/Istanbul',
+                      autoStartOnCreate: recurringConfig?.autoStartOnCreate ?? true,
+                    },
+                  });
+                }
+              }}
+              className="w-full px-3 py-1.5 rounded-lg border border-neutral-200 bg-white font-commons text-sm focus:outline-none focus:border-indigo-400 transition-colors"
+            >
+              <option value="on_demand">Tek Seferlik</option>
+              <option value="setup">Kurulum</option>
+              <option value="recurring">Periyodik</option>
+            </select>
           </div>
 
           {/* Recurring Config */}

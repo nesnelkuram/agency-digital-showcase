@@ -113,6 +113,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
         const projectName = `${template.name} — ${runDate}`;
 
+        // Use real projectId if template is bound to a project
+        const boundProjectId = rc.projectId || `recurring-${templateId}`;
+
         // ─── 3. Flatten template nodes into step instances ─────────────────
         const steps: Record<string, any> = {};
         let startNodeId: string | null = null;
@@ -147,10 +150,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           templateId,
           templateVersion: template.version,
           templateName: template.name,
-          projectId: `recurring-${templateId}`,
+          projectId: boundProjectId,
           projectName,
           clientName: 'Periyodik Görev',
           serviceCategory: template.serviceCategory,
+          workflowType: 'recurring',
           status: rc.autoStartOnCreate ? 'active' : 'pending',
           progress: 0,
           steps,
@@ -188,6 +192,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           'recurringConfig.lastInstanceId': instanceRef.id,
           updatedAt: FieldValue.serverTimestamp(),
         });
+
+        // ─── 6. Notify project team members (if bound to a project) ───────
+        if (rc.projectId) {
+          try {
+            const projectSnap = await db.collection('projects').doc(rc.projectId).get();
+            if (projectSnap.exists) {
+              const projectData = projectSnap.data();
+              const recipientIds: string[] = [];
+              // Add assigned user
+              if (projectData?.assignedTo) recipientIds.push(projectData.assignedTo);
+              // Add team members
+              for (const member of projectData?.teamMembers || []) {
+                if (member.uid && !recipientIds.includes(member.uid)) {
+                  recipientIds.push(member.uid);
+                }
+              }
+              // Write notifications
+              for (const userId of recipientIds) {
+                await db.collection('notifications').add({
+                  tenantId,
+                  userId,
+                  type: 'workflow_step',
+                  title: 'Periyodik Is Akisi Baslatildi',
+                  message: `"${template.name}" periyodik is akisi otomatik olarak baslatildi.`,
+                  link: rc.serviceCategory
+                    ? `/admin/projects/${rc.projectId}/service/${rc.serviceCategory}`
+                    : `/admin/projects/${rc.projectId}`,
+                  read: false,
+                  createdAt: now,
+                });
+              }
+            }
+          } catch (notifErr: any) {
+            console.warn(`[cron] Notification error for template ${templateId}:`, notifErr.message);
+          }
+        }
 
         results.push({ templateId, instanceId: instanceRef.id });
       } catch (templateErr: any) {

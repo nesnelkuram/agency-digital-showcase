@@ -31,7 +31,7 @@ export const SERVICE_MODULE_CONFIG: Record<ServiceCategory, ServiceModuleConfig>
     color: '#8B5CF6',
     bgColor: 'bg-violet-50',
     isActive: true,
-    supportsWorkflow: false,
+    supportsWorkflow: true,
     route: 'marketing',
   },
   social_media: {
@@ -41,7 +41,7 @@ export const SERVICE_MODULE_CONFIG: Record<ServiceCategory, ServiceModuleConfig>
     color: '#EC4899',
     bgColor: 'bg-pink-50',
     isActive: true,
-    supportsWorkflow: false,
+    supportsWorkflow: true,
     route: 'social-media',
   },
   video_production: {
@@ -105,7 +105,7 @@ export const SERVICE_MODULE_CONFIG: Record<ServiceCategory, ServiceModuleConfig>
     color: '#78716C',
     bgColor: 'bg-stone-50',
     isActive: true,
-    supportsWorkflow: false,
+    supportsWorkflow: true,
   },
   ecommerce_content: {
     icon: ShoppingBag,

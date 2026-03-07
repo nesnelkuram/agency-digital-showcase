@@ -1437,6 +1437,24 @@
       ]
     },
     {
+      "collectionGroup": "workflow_instances",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "projectId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "serviceCategory",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "workflow_templates",
       "queryScope": "COLLECTION",
       "fields": [

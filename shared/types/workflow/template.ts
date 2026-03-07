@@ -2,6 +2,8 @@ import { Timestamp } from 'firebase/firestore';
 
 export type { ServiceCategory } from '@/shared/types/pricing/services';
 
+export type WorkflowType = 'setup' | 'recurring' | 'on_demand';
+
 export type WorkflowNodeType =
   | 'start'
   | 'task'
@@ -136,6 +138,8 @@ export interface RecurringConfig {
   nextRunAt?: Timestamp;
   lastRunAt?: Timestamp;
   lastInstanceId?: string;  // ID of most recently spawned instance
+  projectId?: string;       // bound to a specific project
+  serviceCategory?: ServiceCategory; // bound to a specific service
 }
 
 export interface WorkflowTemplate {
@@ -158,6 +162,8 @@ export interface WorkflowTemplate {
   depth: number;               // 0 = root template (default)
   parentTemplateId?: string;   // ID of the parent template
   parentNodeId?: string;       // Node ID in parent template that references this
+  // Workflow type classification
+  workflowType?: WorkflowType; // undefined → 'on_demand' (backward compat)
   // Recurring workflow config (optional)
   recurringConfig?: RecurringConfig;
   createdAt: Timestamp;

@@ -31,7 +31,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
 
   const Icon = config.icon;
 
-  // Inactive service without workflow support
+  // Inactive service without workflow support — locked card (not clickable)
   if (!config.isActive && !config.supportsWorkflow) {
     return (
       <div
@@ -61,45 +61,13 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
     );
   }
 
-  // Active service with route (e.g., marketing, social-media)
-  if (status === 'active' && config.route && !config.supportsWorkflow) {
-    return (
-      <Link to={`/admin/projects/${projectId}/${config.route}`}>
-        <motion.div
-          className={`rounded-xl border border-neutral-100 ${config.bgColor} p-5 hover:shadow-md transition-shadow cursor-pointer`}
-          whileHover={{ y: -2 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          <div className="flex items-start justify-between mb-3">
-            <div
-              className="w-10 h-10 rounded-lg flex items-center justify-center"
-              style={{ backgroundColor: `${config.color}20` }}
-            >
-              <Icon className="w-5 h-5" style={{ color: config.color }} />
-            </div>
-            <span
-              className={`text-xs font-grotesk font-medium px-2.5 py-1 rounded-full ${PROJECT_SERVICE_STATUS_COLORS[status]}`}
-            >
-              {PROJECT_SERVICE_STATUS_LABELS[status]}
-            </span>
-          </div>
-          <h3 className="font-grotesk font-semibold text-[#171717] text-sm mb-1">
-            {config.label}
-          </h3>
-          <p className="font-grotesk text-xs text-neutral-500 line-clamp-2">
-            {config.description}
-          </p>
-        </motion.div>
-      </Link>
-    );
-  }
-
-  // Workflow-enabled service card
-  if (config.supportsWorkflow) {
-    return (
+  // All active/workflow services → Link to ServiceDetailPage
+  return (
+    <Link to={`/admin/projects/${projectId}/service/${category}`}>
       <motion.div
-        className={`rounded-xl border border-neutral-100 ${config.bgColor} p-5`}
-        whileHover={{ y: -1 }}
+        className={`rounded-xl border border-neutral-100 ${config.bgColor} p-5 hover:shadow-md transition-shadow cursor-pointer`}
+        whileHover={{ y: -2 }}
+        whileTap={{ scale: 0.98 }}
       >
         <div className="flex items-start justify-between mb-3">
           <div
@@ -128,11 +96,15 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
         <p className="font-grotesk text-xs text-neutral-500 line-clamp-2">
           {config.description}
         </p>
-        {onStartWorkflow && (
+        {onStartWorkflow && config.supportsWorkflow && (
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            onClick={() => onStartWorkflow(category)}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onStartWorkflow(category);
+            }}
             className="mt-3 w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-neutral-200 bg-white text-neutral-700 font-grotesk text-xs font-medium hover:bg-neutral-50 transition-colors"
           >
             <GitBranch className="w-3.5 h-3.5" />
@@ -140,44 +112,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
           </motion.button>
         )}
       </motion.div>
-    );
-  }
-
-  // Default: non-workflow, non-route service
-  return (
-    <motion.div
-      className={`rounded-xl border border-neutral-100 ${config.bgColor} p-5`}
-      whileHover={{ y: -1 }}
-    >
-      <div className="flex items-start justify-between mb-3">
-        <div
-          className="w-10 h-10 rounded-lg flex items-center justify-center"
-          style={{ backgroundColor: `${config.color}20` }}
-        >
-          <Icon className="w-5 h-5" style={{ color: config.color }} />
-        </div>
-        <span
-          className={`text-xs font-grotesk font-medium px-2.5 py-1 rounded-full ${PROJECT_SERVICE_STATUS_COLORS[status]}`}
-        >
-          {PROJECT_SERVICE_STATUS_LABELS[status]}
-        </span>
-      </div>
-      <h3 className="font-grotesk font-semibold text-[#171717] text-sm mb-1">
-        {config.label}
-      </h3>
-      <p className="font-grotesk text-xs text-neutral-500 line-clamp-2">
-        {config.description}
-      </p>
-      <p className="font-grotesk text-xs text-neutral-400 mt-2">
-        {status === 'not_started'
-          ? 'Bu hizmet henuz baslatilmadi'
-          : status === 'paused'
-          ? 'Bu hizmet duraklatildi'
-          : status === 'completed'
-          ? 'Bu hizmet tamamlandi'
-          : ''}
-      </p>
-    </motion.div>
+    </Link>
   );
 };
 

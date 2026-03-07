@@ -10,7 +10,7 @@ import {
   addEdge,
   Connection,
 } from '@xyflow/react';
-import type { WorkflowTemplate, WorkflowNodeType, RecurringConfig } from '@/shared/types/workflow';
+import type { WorkflowTemplate, WorkflowNodeType, WorkflowType, RecurringConfig } from '@/shared/types/workflow';
 import type { CanvasSnapshot } from '@/shared/types/workflowBuilderChat';
 
 const NODE_DEFAULTS: Record<string, { label: string; nodeType: WorkflowNodeType }> = {
@@ -54,6 +54,7 @@ interface SessionData {
   parentNodeId: string | null;
   depth: number;
   recurringConfig: RecurringConfig | null;
+  workflowType: WorkflowType;
   _history: Snapshot[];
   _historyIndex: number;
 }
@@ -71,6 +72,7 @@ interface WorkflowBuilderState {
   parentNodeId: string | null;
   depth: number;
   recurringConfig: RecurringConfig | null;
+  workflowType: WorkflowType;
 
   // Session cache — preserves state when navigating between parent/child workflows
   _sessionCache: Map<string, SessionData>;
@@ -102,6 +104,7 @@ interface WorkflowBuilderState {
     serviceCategory?: string;
     defaultEstimatedDays?: number;
     recurringConfig?: RecurringConfig | null;
+    workflowType?: WorkflowType;
   }) => void;
   reset: () => void;
   loadFromTemplate: (template: WorkflowTemplate) => void;
@@ -200,6 +203,7 @@ const initialState = {
   parentNodeId: null as string | null,
   depth: 0,
   recurringConfig: null as RecurringConfig | null,
+  workflowType: 'on_demand' as WorkflowType,
   _history: [] as Snapshot[],
   _historyIndex: -1,
   clipboard: null as ClipboardData | null,
@@ -233,6 +237,7 @@ export const useWorkflowBuilderStore = create<WorkflowBuilderState>((set, get) =
       parentNodeId: s.parentNodeId,
       depth: s.depth,
       recurringConfig: s.recurringConfig ? deepClone(s.recurringConfig) : null,
+      workflowType: s.workflowType,
       _history: deepClone(s._history),
       _historyIndex: s._historyIndex,
     });
@@ -253,6 +258,7 @@ export const useWorkflowBuilderStore = create<WorkflowBuilderState>((set, get) =
       parentNodeId: cached.parentNodeId,
       depth: cached.depth,
       recurringConfig: cached.recurringConfig ? deepClone(cached.recurringConfig) : null,
+      workflowType: cached.workflowType || 'on_demand',
       _history: deepClone(cached._history),
       _historyIndex: cached._historyIndex,
       selectedNodeId: null,
@@ -385,6 +391,7 @@ export const useWorkflowBuilderStore = create<WorkflowBuilderState>((set, get) =
         defaultEstimatedDays: info.defaultEstimatedDays,
       }),
       ...(info.recurringConfig !== undefined && { recurringConfig: info.recurringConfig }),
+      ...(info.workflowType !== undefined && { workflowType: info.workflowType }),
       isDirty: true,
     });
   },
@@ -459,6 +466,7 @@ export const useWorkflowBuilderStore = create<WorkflowBuilderState>((set, get) =
       parentNodeId: template.parentNodeId || null,
       depth: template.depth || 0,
       recurringConfig: template.recurringConfig || null,
+      workflowType: template.workflowType || 'on_demand',
       _history: [initialSnapshot],
       _historyIndex: 0,
     });
