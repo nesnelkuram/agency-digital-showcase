@@ -1,0 +1,1636 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rakle 2025 - Yil Sonu Performans Raporu | intiba</title>
+    <meta name="robots" content="noindex, nofollow">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700;800;900&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #f0eff5;
+            --surface: rgba(255, 255, 255, 0.55);
+            --surface-2: rgba(255, 255, 255, 0.35);
+            --surface-3: rgba(0, 0, 0, 0.02);
+            --surface-solid: #fff;
+            --border: rgba(255, 255, 255, 0.6);
+            --border-subtle: rgba(0, 0, 0, 0.06);
+            --text: #171717;
+            --text-secondary: #737373;
+            --text-tertiary: #a3a3a3;
+            --accent: #7c3aed;
+            --accent-light: #8b5cf6;
+            --green: #16a34a;
+            --green-bg: #f0fdf4;
+            --amber: #d97706;
+            --amber-bg: #fffbeb;
+            --red: #dc2626;
+            --red-bg: #fef2f2;
+            --blue: #2563eb;
+            --blue-bg: #eff6ff;
+            --blur: blur(40px) saturate(180%);
+            --shadow-card: 0 0 0 0.5px rgba(0,0,0,0.03), 0 2px 8px rgba(0,0,0,0.02), 0 8px 32px rgba(0,0,0,0.04);
+            --shadow-elevated: 0 0 0 0.5px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.06), 0 16px 48px rgba(0,0,0,0.06);
+        }
+
+        body {
+            font-family: 'Hanken Grotesk', -apple-system, sans-serif;
+            background: var(--bg);
+            background-image:
+                radial-gradient(ellipse at 0% 0%, rgba(200, 190, 230, 0.4) 0%, transparent 60%),
+                radial-gradient(ellipse at 100% 0%, rgba(180, 200, 235, 0.35) 0%, transparent 60%),
+                radial-gradient(ellipse at 60% 100%, rgba(195, 185, 220, 0.3) 0%, transparent 60%);
+            background-attachment: fixed;
+            color: var(--text);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+
+        .hero {
+            position: relative;
+            padding: 80px 24px 60px;
+            text-align: center;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 400px;
+            background: radial-gradient(ellipse, rgba(139, 92, 246, 0.08) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            background: var(--surface);
+            backdrop-filter: var(--blur);
+            border: 1px solid var(--border);
+            border-radius: 100px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 32px;
+            box-shadow: var(--shadow-card);
+        }
+
+        .hero-badge span {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .hero h1 {
+            font-size: clamp(36px, 6vw, 64px);
+            font-weight: 900;
+            letter-spacing: -0.03em;
+            line-height: 1.1;
+            margin-bottom: 16px;
+            color: var(--text);
+        }
+
+        .hero h1 .gradient {
+            background: linear-gradient(135deg, var(--accent) 0%, #a855f7 50%, #c084fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            font-size: 18px;
+            color: var(--text-secondary);
+            max-width: 520px;
+            margin: 0 auto;
+        }
+
+        .container {
+            max-width: 1120px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* Big Stats Row */
+        .big-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            border-radius: 20px;
+            margin: -20px 0 64px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .big-stat {
+            background: var(--surface);
+            backdrop-filter: var(--blur);
+            border: 1px solid var(--border);
+            padding: 32px 24px;
+            text-align: center;
+            border-radius: 20px;
+            box-shadow: var(--shadow-card);
+        }
+
+        .big-stat-value {
+            font-size: clamp(28px, 4vw, 42px);
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: var(--text);
+        }
+
+        .big-stat-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 500;
+        }
+
+        /* Section */
+        section {
+            margin-bottom: 64px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .section-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .section-title {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: var(--text);
+        }
+
+        .section-subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        /* Promise vs Delivery Cards */
+        .promise-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 16px;
+        }
+
+        .promise-card {
+            background: var(--surface);
+            backdrop-filter: var(--blur);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 24px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-card);
+            transition: box-shadow 0.3s ease, transform 0.3s ease;
+        }
+
+        .promise-card:hover {
+            box-shadow: var(--shadow-elevated);
+            transform: translateY(-2px);
+        }
+
+        .promise-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+        }
+
+        .promise-card.exceeded::before { background: linear-gradient(90deg, var(--green), #4ade80); }
+        .promise-card.partial::before { background: linear-gradient(90deg, var(--amber), #fbbf24); }
+        .promise-card.below::before { background: linear-gradient(90deg, var(--red), #f87171); }
+
+        .promise-card-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text);
+        }
+
+        .promise-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .promise-row:last-child { border-bottom: none; }
+
+        .promise-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .promise-value {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 10px;
+            border-radius: 100px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-green { background: var(--green-bg); color: var(--green); }
+        .badge-amber { background: var(--amber-bg); color: var(--amber); }
+        .badge-red { background: var(--red-bg); color: var(--red); }
+        .badge-blue { background: var(--blue-bg); color: var(--blue); }
+
+        /* Progress bar */
+        .progress-container {
+            margin-top: 12px;
+        }
+
+        .progress-bar-bg {
+            height: 6px;
+            background: rgba(0, 0, 0, 0.06);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 1.5s ease;
+        }
+
+        .progress-bar.green { background: linear-gradient(90deg, var(--green), #4ade80); }
+        .progress-bar.amber { background: linear-gradient(90deg, var(--amber), #fbbf24); }
+        .progress-bar.red { background: linear-gradient(90deg, var(--red), #f87171); }
+
+        .progress-meta {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 6px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Monthly Table */
+        .table-wrap {
+            background: var(--surface);
+            backdrop-filter: var(--blur);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: var(--shadow-card);
+        }
+
+        .table-scroll {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        thead th {
+            background: rgba(0, 0, 0, 0.02);
+            padding: 12px 16px;
+            text-align: right;
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            position: sticky;
+            top: 0;
+        }
+
+        thead th:first-child { text-align: left; }
+
+        tbody td {
+            padding: 12px 16px;
+            text-align: right;
+            border-bottom: 1px solid var(--border-subtle);
+            white-space: nowrap;
+            color: var(--text-secondary);
+        }
+
+        tbody td:first-child {
+            text-align: left;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        tbody tr:last-child td { border-bottom: none; }
+
+        tbody tr:hover { background: rgba(0, 0, 0, 0.02); }
+
+        tfoot td {
+            padding: 14px 16px;
+            text-align: right;
+            font-weight: 700;
+            background: rgba(0, 0, 0, 0.02);
+            border-top: 2px solid var(--border-subtle);
+            color: var(--text);
+        }
+
+        tfoot td:first-child { text-align: left; }
+
+        .month-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Chart area */
+        .chart-container {
+            background: var(--surface);
+            backdrop-filter: var(--blur);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow-card);
+        }
+
+        .chart-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--text);
+        }
+
+        .bar-chart {
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+            height: 180px;
+            padding-bottom: 32px;
+            position: relative;
+        }
+
+        .bar-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100%;
+            justify-content: flex-end;
+            position: relative;
+        }
+
+        .bar {
+            width: 100%;
+            max-width: 48px;
+            border-radius: 8px 8px 3px 3px;
+            transition: height 1s ease;
+            position: relative;
+            min-height: 4px;
+        }
+
+        .bar-label {
+            position: absolute;
+            bottom: -24px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .bar-value {
+            position: absolute;
+            top: -20px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        /* Photo section */
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 12px;
+        }
+
+        .photo-item {
+            background: var(--surface);
+            backdrop-filter: var(--blur);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            box-shadow: var(--shadow-card);
+            transition: box-shadow 0.3s ease, transform 0.3s ease;
+        }
+
+        .photo-item:hover {
+            box-shadow: var(--shadow-elevated);
+            transform: translateY(-1px);
+        }
+
+        .photo-count {
+            min-width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--accent), #a855f7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 800;
+            color: white;
+        }
+
+        .photo-info h4 {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 2px;
+            color: var(--text);
+        }
+
+        .photo-info p {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Summary */
+        .summary-card {
+            background: var(--surface);
+            backdrop-filter: var(--blur);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 48px 40px;
+            text-align: center;
+            box-shadow: var(--shadow-elevated);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .summary-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent), #a855f7, #c084fc, #e879f9);
+        }
+
+        .summary-card h2 {
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 16px;
+            color: var(--text);
+        }
+
+        .summary-card p {
+            font-size: 16px;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto 32px;
+            line-height: 1.7;
+        }
+
+        .summary-card p strong {
+            color: var(--text);
+        }
+
+        .summary-stats {
+            display: flex;
+            justify-content: center;
+            gap: 48px;
+            flex-wrap: wrap;
+        }
+
+        .summary-stat-value {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--accent);
+        }
+
+        .summary-stat-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-secondary);
+            font-size: 13px;
+            border-top: 1px solid var(--border-subtle);
+            margin-top: 80px;
+        }
+
+        footer strong {
+            color: var(--text);
+        }
+
+        /* Chart Legend */
+        .chart-legend {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 3px;
+        }
+
+        /* Dual bars */
+        .dual-bar-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100%;
+            justify-content: flex-end;
+            position: relative;
+        }
+
+        .dual-bars {
+            display: flex;
+            gap: 3px;
+            align-items: flex-end;
+            width: 100%;
+            max-width: 48px;
+            height: 100%;
+        }
+
+        .dual-bars .bar {
+            flex: 1;
+            border-radius: 6px 6px 2px 2px;
+        }
+
+        /* Mini stat cards */
+        .mini-stat {
+            background: var(--surface);
+            backdrop-filter: var(--blur);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 16px;
+            text-align: center;
+            box-shadow: var(--shadow-card);
+        }
+
+        .mini-stat-value {
+            font-size: 24px;
+            font-weight: 800;
+        }
+
+        .mini-stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .big-stats { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+            .hero { padding: 60px 16px 40px; }
+            .container { padding: 0 16px; }
+            .summary-card { padding: 28px 20px; }
+            .summary-stats { gap: 24px; }
+            .promise-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 480px) {
+            .big-stats { grid-template-columns: 1fr 1fr; }
+            .big-stat { padding: 20px 16px; }
+        }
+
+        /* Animations */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Tooltip style number formatting */
+        .num { font-variant-numeric: tabular-nums; }
+
+        /* Highlight row */
+        .highlight-row td {
+            background: rgba(124, 58, 237, 0.04);
+        }
+    </style>
+</head>
+<body>
+
+<div class="hero">
+    <div class="hero-badge">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+        <span>2025 Yil Sonu Raporu</span>
+    </div>
+    <h1>Rakle <span class="gradient">2025</span></h1>
+    <p>Ocak - Aralik 2025 doneminde vaat edilen ve gerceklestirilen calismalarin kapsamli performans raporu</p>
+</div>
+
+<div class="container">
+
+    <!-- Big Stats -->
+    <div class="big-stats fade-in">
+        <div class="big-stat">
+            <div class="big-stat-value">18.9M</div>
+            <div class="big-stat-label">Toplam Goruntulenme</div>
+        </div>
+        <div class="big-stat">
+            <div class="big-stat-value">1,777</div>
+            <div class="big-stat-label">Toplam Icerik</div>
+        </div>
+        <div class="big-stat">
+            <div class="big-stat-value">1,381</div>
+            <div class="big-stat-label">Studyoda Cekilen Kare</div>
+        </div>
+        <div class="big-stat">
+            <div class="big-stat-value">9.2M</div>
+            <div class="big-stat-label">Toplam Erisim</div>
+        </div>
+    </div>
+
+    <!-- Promise vs Delivery -->
+    <section class="fade-in">
+        <div class="section-header">
+            <div class="section-icon" style="background: var(--green-bg);">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            </div>
+            <div>
+                <div class="section-title">Vaat vs Gerceklesen</div>
+                <div class="section-subtitle">Paket 2 teklifi baz alinarak karsilastirma (92.000 TL+KDV / ay)</div>
+            </div>
+        </div>
+
+        <div class="promise-grid">
+            <!-- Stories -->
+            <div class="promise-card partial">
+                <div class="promise-card-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+                    Instagram Story
+                </div>
+                <div class="promise-row">
+                    <span class="promise-label">Vaat Edilen (yillik)</span>
+                    <span class="promise-value">1,800</span>
+                </div>
+                <div class="promise-row">
+                    <span class="promise-label">Gerceklesen</span>
+                    <span class="promise-value">1,613</span>
+                </div>
+                <div class="promise-row">
+                    <span class="promise-label">Gerceklesme Orani</span>
+                    <span class="badge badge-amber">%89.6</span>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar amber" style="width: 89.6%"></div>
+                    </div>
+                    <div class="progress-meta">
+                        <span>Aylik ort: 134.4</span>
+                        <span>Hedef: 150/ay</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reels -->
+            <div class="promise-card partial">
+                <div class="promise-card-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                    Instagram Reels
+                </div>
+                <div class="promise-row">
+                    <span class="promise-label">Vaat Edilen (yillik)</span>
+                    <span class="promise-value">60</span>
+                </div>
+                <div class="promise-row">
+                    <span class="promise-label">Gerceklesen</span>
+                    <span class="promise-value">32</span>
+                </div>
+                <div class="promise-row">
+                    <span class="promise-label">Gerceklesme Orani</span>
+                    <span class="badge badge-amber">%53.3</span>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar amber" style="width: 53.3%"></div>
+                    </div>
+                    <div class="progress-meta">
+                        <span>Aylik ort: 2.7</span>
+                        <span>Hedef: 5/ay</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Posts Total -->
+            <div class="promise-card exceeded">
+                <div class="promise-card-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    Toplam Post
+                </div>
+                <div class="promise-row">
+                    <span class="promise-label">Gorsel Post</span>
+                    <span class="promise-value">109</span>
+                </div>
+                <div class="promise-row">
+                    <span class="promise-label">Carousel/Dongu</span>
+                    <span class="promise-value">23</span>
+                </div>
+                <div class="promise-row">
+                    <span class="promise-label">Reels</span>
+                    <span class="promise-value">32</span>
+                </div>
+                <div class="promise-row">
+                    <span class="promise-label">Toplam</span>
+                    <span class="promise-value" style="color: var(--green);">164</span>
+                </div>
+            </div>
+
+            <!-- Photo Shoots -->
+            <div class="promise-card exceeded">
+                <div class="promise-card-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                    Fotograf Cekimi
+                </div>
+                <div class="promise-row">
+                    <span class="promise-label">Vaat (aylik)</span>
+                    <span class="promise-value">5 seri x ~5 foto = ~25 foto/ay</span>
+                </div>
+                <div class="promise-row">
+                    <span class="promise-label">Vaat (yillik)</span>
+                    <span class="promise-value">~300 fotograf</span>
+                </div>
+                <div class="promise-row">
+                    <span class="promise-label">Cekim Gunu</span>
+                    <span class="promise-value">20 gun</span>
+                </div>
+                <div class="promise-row">
+                    <span class="promise-label">Toplam Fotograf</span>
+                    <span class="promise-value" style="color: var(--green);">1,381</span>
+                </div>
+                <div class="promise-row">
+                    <span class="promise-label">Gerceklesme</span>
+                    <span class="badge badge-green">%460 &mdash; 4.6x Fazla</span>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar green" style="width: 100%"></div>
+                    </div>
+                    <div class="progress-meta">
+                        <span>20 cekim gunu, 1,381 fotograf</span>
+                        <span>Hedef: ~300 foto/yil</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Content -->
+            <div class="promise-card exceeded">
+                <div class="promise-card-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                    Toplam Icerik Uretimi
+                </div>
+                <div class="promise-row">
+                    <span class="promise-label">Story</span>
+                    <span class="promise-value">1,613</span>
+                </div>
+                <div class="promise-row">
+                    <span class="promise-label">Post (Gorsel+Carousel+Reels)</span>
+                    <span class="promise-value">164</span>
+                </div>
+                <div class="promise-row">
+                    <span class="promise-label">Toplam Icerik</span>
+                    <span class="promise-value" style="color: var(--green); font-size: 20px;">1,777</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Story Monthly Table -->
+    <section class="fade-in">
+        <div class="section-header">
+            <div class="section-icon" style="background: var(--blue-bg);">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+            </div>
+            <div>
+                <div class="section-title">Story Performansi - Aylik Dagilim</div>
+                <div class="section-subtitle">2025 yili boyunca 1,613 story paylasimi yapildi</div>
+            </div>
+        </div>
+
+        <!-- Story Bar Chart -->
+        <div class="chart-container">
+            <div class="chart-title">Aylik Story Sayisi</div>
+            <div class="bar-chart">
+                <div class="bar-group">
+                    <div class="bar-value">124</div>
+                    <div class="bar" style="height: 70%; background: linear-gradient(180deg, #a78bfa, var(--accent));"></div>
+                    <div class="bar-label">Oca</div>
+                </div>
+                <div class="bar-group">
+                    <div class="bar-value">129</div>
+                    <div class="bar" style="height: 73%; background: linear-gradient(180deg, #a78bfa, var(--accent));"></div>
+                    <div class="bar-label">Sub</div>
+                </div>
+                <div class="bar-group">
+                    <div class="bar-value">114</div>
+                    <div class="bar" style="height: 65%; background: linear-gradient(180deg, #a78bfa, var(--accent));"></div>
+                    <div class="bar-label">Mar</div>
+                </div>
+                <div class="bar-group">
+                    <div class="bar-value">137</div>
+                    <div class="bar" style="height: 78%; background: linear-gradient(180deg, #a78bfa, var(--accent));"></div>
+                    <div class="bar-label">Nis</div>
+                </div>
+                <div class="bar-group">
+                    <div class="bar-value">142</div>
+                    <div class="bar" style="height: 81%; background: linear-gradient(180deg, #a78bfa, var(--accent));"></div>
+                    <div class="bar-label">May</div>
+                </div>
+                <div class="bar-group">
+                    <div class="bar-value">125</div>
+                    <div class="bar" style="height: 71%; background: linear-gradient(180deg, #a78bfa, var(--accent));"></div>
+                    <div class="bar-label">Haz</div>
+                </div>
+                <div class="bar-group">
+                    <div class="bar-value">133</div>
+                    <div class="bar" style="height: 76%; background: linear-gradient(180deg, #a78bfa, var(--accent));"></div>
+                    <div class="bar-label">Tem</div>
+                </div>
+                <div class="bar-group">
+                    <div class="bar-value">126</div>
+                    <div class="bar" style="height: 72%; background: linear-gradient(180deg, #a78bfa, var(--accent));"></div>
+                    <div class="bar-label">Agu</div>
+                </div>
+                <div class="bar-group">
+                    <div class="bar-value">139</div>
+                    <div class="bar" style="height: 79%; background: linear-gradient(180deg, #a78bfa, var(--accent));"></div>
+                    <div class="bar-label">Eyl</div>
+                </div>
+                <div class="bar-group">
+                    <div class="bar-value">141</div>
+                    <div class="bar" style="height: 80%; background: linear-gradient(180deg, #a78bfa, var(--accent));"></div>
+                    <div class="bar-label">Eki</div>
+                </div>
+                <div class="bar-group">
+                    <div class="bar-value">127</div>
+                    <div class="bar" style="height: 72%; background: linear-gradient(180deg, #a78bfa, var(--accent));"></div>
+                    <div class="bar-label">Kas</div>
+                </div>
+                <div class="bar-group">
+                    <div class="bar-value" style="color: var(--green); font-weight: 700;">176</div>
+                    <div class="bar" style="height: 100%; background: linear-gradient(180deg, #4ade80, var(--green));"></div>
+                    <div class="bar-label">Ara</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-wrap">
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Ay</th>
+                            <th>Story</th>
+                            <th>Goruntulenme</th>
+                            <th>Erisim</th>
+                            <th>Begeni</th>
+                            <th>Paylasim</th>
+                            <th>Link Tik.</th>
+                            <th>Profil Ziy.</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><div class="month-label">Ocak</div></td>
+                            <td class="num">124</td>
+                            <td class="num">140,580</td>
+                            <td class="num">136,610</td>
+                            <td class="num">294</td>
+                            <td class="num">45</td>
+                            <td class="num">454</td>
+                            <td class="num">501</td>
+                        </tr>
+                        <tr>
+                            <td><div class="month-label">Subat</div></td>
+                            <td class="num">129</td>
+                            <td class="num">191,891</td>
+                            <td class="num">178,957</td>
+                            <td class="num">570</td>
+                            <td class="num">62</td>
+                            <td class="num">989</td>
+                            <td class="num">486</td>
+                        </tr>
+                        <tr>
+                            <td><div class="month-label">Mart</div></td>
+                            <td class="num">114</td>
+                            <td class="num">169,003</td>
+                            <td class="num">161,870</td>
+                            <td class="num">550</td>
+                            <td class="num">79</td>
+                            <td class="num">1,252</td>
+                            <td class="num">556</td>
+                        </tr>
+                        <tr class="highlight-row">
+                            <td><div class="month-label">Nisan</div></td>
+                            <td class="num">137</td>
+                            <td class="num">393,279</td>
+                            <td class="num">373,299</td>
+                            <td class="num">533</td>
+                            <td class="num">63</td>
+                            <td class="num">1,207</td>
+                            <td class="num">573</td>
+                        </tr>
+                        <tr>
+                            <td><div class="month-label">Mayis</div></td>
+                            <td class="num">142</td>
+                            <td class="num">173,614</td>
+                            <td class="num">167,454</td>
+                            <td class="num">619</td>
+                            <td class="num">32</td>
+                            <td class="num">786</td>
+                            <td class="num">524</td>
+                        </tr>
+                        <tr>
+                            <td><div class="month-label">Haziran</div></td>
+                            <td class="num">125</td>
+                            <td class="num">212,505</td>
+                            <td class="num">194,801</td>
+                            <td class="num">616</td>
+                            <td class="num">35</td>
+                            <td class="num">539</td>
+                            <td class="num">431</td>
+                        </tr>
+                        <tr>
+                            <td><div class="month-label">Temmuz</div></td>
+                            <td class="num">133</td>
+                            <td class="num">168,493</td>
+                            <td class="num">157,472</td>
+                            <td class="num">740</td>
+                            <td class="num">26</td>
+                            <td class="num">583</td>
+                            <td class="num">405</td>
+                        </tr>
+                        <tr>
+                            <td><div class="month-label">Agustos</div></td>
+                            <td class="num">126</td>
+                            <td class="num">171,382</td>
+                            <td class="num">158,858</td>
+                            <td class="num">519</td>
+                            <td class="num">15</td>
+                            <td class="num">549</td>
+                            <td class="num">430</td>
+                        </tr>
+                        <tr>
+                            <td><div class="month-label">Eylul</div></td>
+                            <td class="num">139</td>
+                            <td class="num">207,621</td>
+                            <td class="num">186,595</td>
+                            <td class="num">668</td>
+                            <td class="num">73</td>
+                            <td class="num">712</td>
+                            <td class="num">589</td>
+                        </tr>
+                        <tr>
+                            <td><div class="month-label">Ekim</div></td>
+                            <td class="num">141</td>
+                            <td class="num">221,502</td>
+                            <td class="num">199,594</td>
+                            <td class="num">741</td>
+                            <td class="num">62</td>
+                            <td class="num">1,218</td>
+                            <td class="num">552</td>
+                        </tr>
+                        <tr>
+                            <td><div class="month-label">Kasim</div></td>
+                            <td class="num">127</td>
+                            <td class="num">176,787</td>
+                            <td class="num">159,627</td>
+                            <td class="num">634</td>
+                            <td class="num">26</td>
+                            <td class="num">1,163</td>
+                            <td class="num">470</td>
+                        </tr>
+                        <tr class="highlight-row">
+                            <td><div class="month-label">Aralik</div></td>
+                            <td class="num">176</td>
+                            <td class="num">302,918</td>
+                            <td class="num">261,860</td>
+                            <td class="num">1,334</td>
+                            <td class="num">127</td>
+                            <td class="num">762</td>
+                            <td class="num">660</td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td>TOPLAM</td>
+                            <td class="num">1,613</td>
+                            <td class="num">2,529,575</td>
+                            <td class="num">2,336,997</td>
+                            <td class="num">7,818</td>
+                            <td class="num">645</td>
+                            <td class="num">10,214</td>
+                            <td class="num">6,177</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 16px;">
+            <div class="mini-stat">
+                <div class="mini-stat-value" style="color: var(--accent);">1,568</div>
+                <div class="mini-stat-label">Ort. Goruntulenme/Story</div>
+            </div>
+            <div class="mini-stat">
+                <div class="mini-stat-value" style="color: var(--accent);">1,449</div>
+                <div class="mini-stat-label">Ort. Erisim/Story</div>
+            </div>
+            <div class="mini-stat">
+                <div class="mini-stat-value" style="color: var(--accent);">134.4</div>
+                <div class="mini-stat-label">Ort. Story/Ay</div>
+            </div>
+            <div class="mini-stat">
+                <div class="mini-stat-value" style="color: var(--accent);">10,214</div>
+                <div class="mini-stat-label">Toplam Link Tiklama</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Post Monthly Table -->
+    <section class="fade-in">
+        <div class="section-header">
+            <div class="section-icon" style="background: rgba(236, 72, 153, 0.1);">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ec4899" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            </div>
+            <div>
+                <div class="section-title">Post Performansi - Aylik Dagilim</div>
+                <div class="section-subtitle">2025 yili boyunca 164 post paylasimi (109 gorsel, 23 carousel, 32 reels)</div>
+            </div>
+        </div>
+
+        <!-- Post Bar Chart -->
+        <div class="chart-container">
+            <div class="chart-title">Aylik Goruntulenme (Post)</div>
+            <div class="chart-legend">
+                <div class="legend-item"><div class="legend-dot" style="background: #ec4899;"></div> Goruntulenme</div>
+                <div class="legend-item"><div class="legend-dot" style="background: #6366f1;"></div> Erisim</div>
+            </div>
+            <div class="bar-chart" style="height: 200px;">
+                <div class="dual-bar-group">
+                    <div class="dual-bars">
+                        <div class="bar" style="height: 36%; background: linear-gradient(180deg, #f9a8d4, #db2777);"></div>
+                        <div class="bar" style="height: 29%; background: linear-gradient(180deg, #a5b4fc, #4f46e5);"></div>
+                    </div>
+                    <div class="bar-label">Oca</div>
+                </div>
+                <div class="dual-bar-group">
+                    <div class="dual-bars">
+                        <div class="bar" style="height: 30%; background: linear-gradient(180deg, #f9a8d4, #db2777);"></div>
+                        <div class="bar" style="height: 31%; background: linear-gradient(180deg, #a5b4fc, #4f46e5);"></div>
+                    </div>
+                    <div class="bar-label">Sub</div>
+                </div>
+                <div class="dual-bar-group">
+                    <div class="dual-bars">
+                        <div class="bar" style="height: 16%; background: linear-gradient(180deg, #f9a8d4, #db2777);"></div>
+                        <div class="bar" style="height: 15%; background: linear-gradient(180deg, #a5b4fc, #4f46e5);"></div>
+                    </div>
+                    <div class="bar-label">Mar</div>
+                </div>
+                <div class="dual-bar-group">
+                    <div class="dual-bars">
+                        <div class="bar" style="height: 70%; background: linear-gradient(180deg, #f9a8d4, #db2777);"></div>
+                        <div class="bar" style="height: 79%; background: linear-gradient(180deg, #a5b4fc, #4f46e5);"></div>
+                    </div>
+                    <div class="bar-label">Nis</div>
+                </div>
+                <div class="dual-bar-group">
+                    <div class="dual-bars">
+                        <div class="bar" style="height: 100%; background: linear-gradient(180deg, #f9a8d4, #db2777);"></div>
+                        <div class="bar" style="height: 97%; background: linear-gradient(180deg, #a5b4fc, #4f46e5);"></div>
+                    </div>
+                    <div class="bar-label">May</div>
+                </div>
+                <div class="dual-bar-group">
+                    <div class="dual-bars">
+                        <div class="bar" style="height: 68%; background: linear-gradient(180deg, #f9a8d4, #db2777);"></div>
+                        <div class="bar" style="height: 54%; background: linear-gradient(180deg, #a5b4fc, #4f46e5);"></div>
+                    </div>
+                    <div class="bar-label">Haz</div>
+                </div>
+                <div class="dual-bar-group">
+                    <div class="dual-bars">
+                        <div class="bar" style="height: 100%; background: linear-gradient(180deg, #f9a8d4, #db2777);"></div>
+                        <div class="bar" style="height: 93%; background: linear-gradient(180deg, #a5b4fc, #4f46e5);"></div>
+                    </div>
+                    <div class="bar-label">Tem</div>
+                </div>
+                <div class="dual-bar-group">
+                    <div class="dual-bars">
+                        <div class="bar" style="height: 88%; background: linear-gradient(180deg, #f9a8d4, #db2777);"></div>
+                        <div class="bar" style="height: 62%; background: linear-gradient(180deg, #a5b4fc, #4f46e5);"></div>
+                    </div>
+                    <div class="bar-label">Agu</div>
+                </div>
+                <div class="dual-bar-group">
+                    <div class="dual-bars">
+                        <div class="bar" style="height: 58%; background: linear-gradient(180deg, #f9a8d4, #db2777);"></div>
+                        <div class="bar" style="height: 52%; background: linear-gradient(180deg, #a5b4fc, #4f46e5);"></div>
+                    </div>
+                    <div class="bar-label">Eyl</div>
+                </div>
+                <div class="dual-bar-group">
+                    <div class="dual-bars">
+                        <div class="bar" style="height: 35%; background: linear-gradient(180deg, #f9a8d4, #db2777);"></div>
+                        <div class="bar" style="height: 9%; background: linear-gradient(180deg, #a5b4fc, #4f46e5);"></div>
+                    </div>
+                    <div class="bar-label">Eki</div>
+                </div>
+                <div class="dual-bar-group">
+                    <div class="dual-bars">
+                        <div class="bar" style="height: 25%; background: linear-gradient(180deg, #f9a8d4, #db2777);"></div>
+                        <div class="bar" style="height: 9%; background: linear-gradient(180deg, #a5b4fc, #4f46e5);"></div>
+                    </div>
+                    <div class="bar-label">Kas</div>
+                </div>
+                <div class="dual-bar-group">
+                    <div class="dual-bars">
+                        <div class="bar" style="height: 100%; background: linear-gradient(180deg, #22c55e, #15803d);"></div>
+                        <div class="bar" style="height: 100%; background: linear-gradient(180deg, #a5b4fc, #4f46e5);"></div>
+                    </div>
+                    <div class="bar-label">Ara</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-wrap">
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Ay</th>
+                            <th>Post</th>
+                            <th>Reels</th>
+                            <th>Carousel</th>
+                            <th>Gorsel</th>
+                            <th>Goruntulenme</th>
+                            <th>Erisim</th>
+                            <th>Begeni</th>
+                            <th>Yorum</th>
+                            <th>Kaydet</th>
+                            <th>Paylasim</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Ocak</td>
+                            <td class="num">5</td>
+                            <td class="num">0</td>
+                            <td class="num">0</td>
+                            <td class="num">5</td>
+                            <td class="num">805,094</td>
+                            <td class="num">322,047</td>
+                            <td class="num">16,907</td>
+                            <td class="num">35</td>
+                            <td class="num">1,412</td>
+                            <td class="num">784</td>
+                        </tr>
+                        <tr>
+                            <td>Subat</td>
+                            <td class="num">15</td>
+                            <td class="num">3</td>
+                            <td class="num">0</td>
+                            <td class="num">12</td>
+                            <td class="num">673,262</td>
+                            <td class="num">337,581</td>
+                            <td class="num">995</td>
+                            <td class="num">23</td>
+                            <td class="num">700</td>
+                            <td class="num">288</td>
+                        </tr>
+                        <tr>
+                            <td>Mart</td>
+                            <td class="num">15</td>
+                            <td class="num">3</td>
+                            <td class="num">0</td>
+                            <td class="num">12</td>
+                            <td class="num">357,066</td>
+                            <td class="num">162,923</td>
+                            <td class="num">933</td>
+                            <td class="num">24</td>
+                            <td class="num">792</td>
+                            <td class="num">272</td>
+                        </tr>
+                        <tr class="highlight-row">
+                            <td>Nisan</td>
+                            <td class="num">13</td>
+                            <td class="num">3</td>
+                            <td class="num">0</td>
+                            <td class="num">10</td>
+                            <td class="num">1,549,994</td>
+                            <td class="num">865,573</td>
+                            <td class="num">16,934</td>
+                            <td class="num">41</td>
+                            <td class="num">1,466</td>
+                            <td class="num">444</td>
+                        </tr>
+                        <tr class="highlight-row">
+                            <td>Mayis</td>
+                            <td class="num">17</td>
+                            <td class="num">4</td>
+                            <td class="num">7</td>
+                            <td class="num">6</td>
+                            <td class="num">2,224,530</td>
+                            <td class="num">1,059,638</td>
+                            <td class="num">14,727</td>
+                            <td class="num">71</td>
+                            <td class="num">1,725</td>
+                            <td class="num">560</td>
+                        </tr>
+                        <tr>
+                            <td>Haziran</td>
+                            <td class="num">10</td>
+                            <td class="num">2</td>
+                            <td class="num">4</td>
+                            <td class="num">4</td>
+                            <td class="num">1,511,506</td>
+                            <td class="num">594,025</td>
+                            <td class="num">17,242</td>
+                            <td class="num">36</td>
+                            <td class="num">993</td>
+                            <td class="num">257</td>
+                        </tr>
+                        <tr class="highlight-row">
+                            <td>Temmuz</td>
+                            <td class="num">14</td>
+                            <td class="num">4</td>
+                            <td class="num">2</td>
+                            <td class="num">8</td>
+                            <td class="num">2,393,335</td>
+                            <td class="num">1,015,751</td>
+                            <td class="num">29,750</td>
+                            <td class="num">36</td>
+                            <td class="num">788</td>
+                            <td class="num">196</td>
+                        </tr>
+                        <tr>
+                            <td>Agustos</td>
+                            <td class="num">18</td>
+                            <td class="num">4</td>
+                            <td class="num">1</td>
+                            <td class="num">13</td>
+                            <td class="num">1,948,723</td>
+                            <td class="num">675,510</td>
+                            <td class="num">1,656</td>
+                            <td class="num">23</td>
+                            <td class="num">1,093</td>
+                            <td class="num">201</td>
+                        </tr>
+                        <tr>
+                            <td>Eylul</td>
+                            <td class="num">8</td>
+                            <td class="num">1</td>
+                            <td class="num">1</td>
+                            <td class="num">6</td>
+                            <td class="num">1,282,223</td>
+                            <td class="num">566,470</td>
+                            <td class="num">2,224</td>
+                            <td class="num">44</td>
+                            <td class="num">615</td>
+                            <td class="num">207</td>
+                        </tr>
+                        <tr>
+                            <td>Ekim</td>
+                            <td class="num">14</td>
+                            <td class="num">1</td>
+                            <td class="num">2</td>
+                            <td class="num">11</td>
+                            <td class="num">779,536</td>
+                            <td class="num">94,438</td>
+                            <td class="num">690</td>
+                            <td class="num">32</td>
+                            <td class="num">661</td>
+                            <td class="num">183</td>
+                        </tr>
+                        <tr>
+                            <td>Kasim</td>
+                            <td class="num">12</td>
+                            <td class="num">1</td>
+                            <td class="num">0</td>
+                            <td class="num">11</td>
+                            <td class="num">563,096</td>
+                            <td class="num">96,962</td>
+                            <td class="num">4,200</td>
+                            <td class="num">22</td>
+                            <td class="num">498</td>
+                            <td class="num">125</td>
+                        </tr>
+                        <tr class="highlight-row">
+                            <td>Aralik</td>
+                            <td class="num">23</td>
+                            <td class="num">6</td>
+                            <td class="num">6</td>
+                            <td class="num">11</td>
+                            <td class="num">2,282,012</td>
+                            <td class="num">1,105,296</td>
+                            <td class="num">9,042</td>
+                            <td class="num">194</td>
+                            <td class="num">1,260</td>
+                            <td class="num">1,097</td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td>TOPLAM</td>
+                            <td class="num">164</td>
+                            <td class="num">32</td>
+                            <td class="num">23</td>
+                            <td class="num">109</td>
+                            <td class="num">16,370,377</td>
+                            <td class="num">6,896,214</td>
+                            <td class="num">115,300</td>
+                            <td class="num">581</td>
+                            <td class="num">12,003</td>
+                            <td class="num">4,614</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 16px;">
+            <div class="mini-stat">
+                <div class="mini-stat-value" style="color: #c026d3;">99,819</div>
+                <div class="mini-stat-label">Ort. Goruntulenme/Post</div>
+            </div>
+            <div class="mini-stat">
+                <div class="mini-stat-value" style="color: #c026d3;">42,050</div>
+                <div class="mini-stat-label">Ort. Erisim/Post</div>
+            </div>
+            <div class="mini-stat">
+                <div class="mini-stat-value" style="color: #c026d3;">115,300</div>
+                <div class="mini-stat-label">Toplam Begeni</div>
+            </div>
+            <div class="mini-stat">
+                <div class="mini-stat-value" style="color: #c026d3;">4,107</div>
+                <div class="mini-stat-label">Kazanilan Takipci</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Photo Shoots -->
+    <section class="fade-in">
+        <div class="section-header">
+            <div class="section-icon" style="background: rgba(168, 85, 247, 0.1);">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            </div>
+            <div>
+                <div class="section-title">Fotograf Cekimleri - 20 Cekim Gunu, 1,381 Fotograf</div>
+                <div class="section-subtitle">Yil boyunca gerceklestirilen tum urun ve lifestyle cekim detaylari</div>
+            </div>
+        </div>
+
+        <div class="photo-grid">
+            <div class="photo-item">
+                <div class="photo-count">39</div>
+                <div class="photo-info">
+                    <h4>Marsilya</h4>
+                    <p>6 Ocak 2025</p>
+                </div>
+            </div>
+            <div class="photo-item">
+                <div class="photo-count" style="font-size: 14px;">220</div>
+                <div class="photo-info">
+                    <h4>Sevgililer Gunu</h4>
+                    <p>21 Ocak 2025 <span class="badge badge-blue" style="margin-left: 4px;">2. En Buyuk</span></p>
+                </div>
+            </div>
+            <div class="photo-item">
+                <div class="photo-count">59</div>
+                <div class="photo-info">
+                    <h4>Bliss Gold, Avangarte, Elite, Astoria</h4>
+                    <p>5 Subat 2025</p>
+                </div>
+            </div>
+            <div class="photo-item">
+                <div class="photo-count">35</div>
+                <div class="photo-info">
+                    <h4>Kavanozlar</h4>
+                    <p>10 Subat 2025</p>
+                </div>
+            </div>
+            <div class="photo-item">
+                <div class="photo-count">19</div>
+                <div class="photo-info">
+                    <h4>Five O'Clock Pure Platin Altin</h4>
+                    <p>24 Subat 2025</p>
+                </div>
+            </div>
+            <div class="photo-item">
+                <div class="photo-count">6</div>
+                <div class="photo-info">
+                    <h4>Aqua</h4>
+                    <p>20 Mart 2025</p>
+                </div>
+            </div>
+            <div class="photo-item">
+                <div class="photo-count">20</div>
+                <div class="photo-info">
+                    <h4>Mottolu</h4>
+                    <p>28 Mart 2025</p>
+                </div>
+            </div>
+            <div class="photo-item">
+                <div class="photo-count">70</div>
+                <div class="photo-info">
+                    <h4>Anneler Gunu</h4>
+                    <p>21 Nisan 2025</p>
+                </div>
+            </div>
+            <div class="photo-item">
+                <div class="photo-count">94</div>
+                <div class="photo-info">
+                    <h4>Dragonfly, Astoria, Luckycharm +</h4>
+                    <p>7 Mayis 2025</p>
+                </div>
+            </div>
+            <div class="photo-item">
+                <div class="photo-count">50</div>
+                <div class="photo-info">
+                    <h4>Mayis Devam</h4>
+                    <p>9 Mayis 2025</p>
+                </div>
+            </div>
+            <div class="photo-item">
+                <div class="photo-count">65</div>
+                <div class="photo-info">
+                    <h4>Colore, Cay Bardaklari, Yagdanliklar</h4>
+                    <p>20 Mayis 2025</p>
+                </div>
+            </div>
+            <div class="photo-item">
+                <div class="photo-count">11</div>
+                <div class="photo-info">
+                    <h4>Kahvaltilik ve Baharat Takimi</h4>
+                    <p>21 Temmuz 2025</p>
+                </div>
+            </div>
+            <div class="photo-item">
+                <div class="photo-count">85</div>
+                <div class="photo-info">
+                    <h4>Temmuz</h4>
+                    <p>28 Temmuz 2025</p>
+                </div>
+            </div>
+            <div class="photo-item">
+                <div class="photo-count">29</div>
+                <div class="photo-info">
+                    <h4>Cay Bardagi</h4>
+                    <p>15 Agustos 2025</p>
+                </div>
+            </div>
+            <div class="photo-item">
+                <div class="photo-count">86</div>
+                <div class="photo-info">
+                    <h4>Cin</h4>
+                    <p>8 Eylul 2025</p>
+                </div>
+            </div>
+            <div class="photo-item">
+                <div class="photo-count">16</div>
+                <div class="photo-info">
+                    <h4>Cay Bardaklari ve Fincanlar</h4>
+                    <p>19 Eylul 2025</p>
+                </div>
+            </div>
+            <div class="photo-item">
+                <div class="photo-count">22</div>
+                <div class="photo-info">
+                    <h4>Kavanozlar</h4>
+                    <p>21 Ekim 2025</p>
+                </div>
+            </div>
+            <div class="photo-item">
+                <div class="photo-count">89</div>
+                <div class="photo-info">
+                    <h4>Yilbasi Cekimleri</h4>
+                    <p>6 Kasim 2025</p>
+                </div>
+            </div>
+            <div class="photo-item">
+                <div class="photo-count">49</div>
+                <div class="photo-info">
+                    <h4>Kalan ve Yeni Gelen Urunler</h4>
+                    <p>26 Kasim 2025</p>
+                </div>
+            </div>
+            <div class="photo-item">
+                <div class="photo-count" style="font-size: 14px;">317</div>
+                <div class="photo-info">
+                    <h4>Pomodoro</h4>
+                    <p>12 Aralik 2025 <span class="badge badge-green" style="margin-left: 4px;">En Buyuk</span></p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Summary -->
+    <section class="fade-in">
+        <div class="summary-card">
+            <h2>2025 Yili Ozet</h2>
+            <p>Rakle icin 2025 yilinda toplam <strong>1,777 icerik</strong> uretildi, <strong>20 fotograf cekimi</strong> ile <strong>1,381 fotograf</strong> cekildi ve <strong>18.9 milyon goruntulenme</strong> elde edildi. Post basina ortalama <strong>~100K goruntulenme</strong> ile yuksek performansli bir yil gecirdik.</p>
+
+            <div class="summary-stats">
+                <div>
+                    <div class="summary-stat-value">18.9M</div>
+                    <div class="summary-stat-label">Toplam Goruntulenme</div>
+                </div>
+                <div>
+                    <div class="summary-stat-value">9.2M</div>
+                    <div class="summary-stat-label">Toplam Erisim</div>
+                </div>
+                <div>
+                    <div class="summary-stat-value">115K</div>
+                    <div class="summary-stat-label">Toplam Begeni</div>
+                </div>
+                <div>
+                    <div class="summary-stat-value">4,107</div>
+                    <div class="summary-stat-label">Yeni Takipci</div>
+                </div>
+                <div>
+                    <div class="summary-stat-value">12K</div>
+                    <div class="summary-stat-label">Kaydedilen Icerik</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</div>
+
+<footer>
+    <p>Bu rapor <strong>intiba</strong> tarafindan Rakle icin hazirlanmistir.</p>
+    <p style="margin-top: 8px; opacity: 0.6;">Mart 2026 &middot; Tum veriler Instagram API kaynaklarindan alinmistir.</p>
+</footer>
+
+<script>
+    // Fade in on scroll
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+            }
+        });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+</script>
+
+</body>
+</html>
