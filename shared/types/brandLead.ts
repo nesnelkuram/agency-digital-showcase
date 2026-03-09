@@ -12,6 +12,7 @@ export type Sector =
   | 'health'       // Sağlık, wellness
   | 'education'    // Eğitim, kurslar
   | 'fmcg'         // Gıda, FMCG, ürün markaları
+  | 'showroom'     // Yapı malzemeleri, mobilya, dekorasyon, aydınlatma (B2B2C showroom)
   | 'other';       // Diğer
 
 export const SECTOR_LABELS: Record<Sector, string> = {
@@ -22,6 +23,7 @@ export const SECTOR_LABELS: Record<Sector, string> = {
   health: 'Sağlık & Wellness',
   education: 'Eğitim',
   fmcg: 'Gıda & FMCG',
+  showroom: 'Yapı & Dekorasyon',
   other: 'Diğer',
 };
 

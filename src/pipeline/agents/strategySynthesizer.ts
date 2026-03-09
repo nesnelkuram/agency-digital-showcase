@@ -185,7 +185,7 @@ Dijital Benchmark: Web kalite ort. ${competitorDiscovery.digitalBenchmark.avgWeb
 
   // Budget-calibrated action plan instructions
   const budgetCalibration = bc?.monthlyBudget
-    ? `\n12. BUTCE KALIBRASYONU: Musterinin aylik butcesi "${bc.monthlyBudget}" olarak belirtilmis. actionPlan'daki TUM onerileri bu butceye uygun olacak sekilde kalibre et. Butceyi asan oneriler YAPMA. Ornegin: "starter" (0-5K TL) butce icin "profesyonel video produksiyon" ONERME, bunun yerine "smartphone ile cekilen UGC icerik" gibi butce-uyumlu alternatifler sun.`
+    ? `\n12. BUTCE KALIBRASYONU: Musterinin aylik butcesi "${bc.monthlyBudget}" olarak belirtilmis. actionPlan'daki TUM onerileri bu butceye uygun olacak sekilde kalibre et. Butceyi asan oneriler YAPMA. Ornegin: "starter" (50-100K TL) butce icin yuksek produksiyonlu kampanyalar yerine organik ve UGC agirlikli stratejiler sun. "growth" (100-200K TL) icin hibrit yaklasim, "scale" (200-400K TL) icin tam kapsamli dijital pazarlama onerileri yap.`
     : '';
 
   // Stage-calibrated owner instructions

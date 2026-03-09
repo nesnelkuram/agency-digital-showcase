@@ -84,10 +84,10 @@ export const businessContextConfig: BusinessContextConfig = {
       text: "Aylık Bütçe",
       required: true,
       options: [
-        { id: 'starter', title: "0 - 5.000 TL", desc: "Başlangıç" },
-        { id: 'growth', title: "5.000 - 15.000 TL", desc: "Büyüme" },
-        { id: 'scale', title: "15.000 - 50.000 TL", desc: "Ölçekleme" },
-        { id: 'enterprise', title: "50.000 TL+", desc: "Kurumsal" },
+        { id: 'starter', title: "50.000 - 100.000 TL", desc: "Başlangıç" },
+        { id: 'growth', title: "100.000 - 200.000 TL", desc: "Büyüme" },
+        { id: 'scale', title: "200.000 - 400.000 TL", desc: "Ölçekleme" },
+        { id: 'enterprise', title: "400.000 TL+", desc: "Kurumsal" },
       ],
     },
 

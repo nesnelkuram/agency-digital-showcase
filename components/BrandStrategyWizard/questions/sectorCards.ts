@@ -58,4 +58,11 @@ export const SECTOR_CARDS: SectorCard[] = [
     description: 'Gıda, içecek, hızlı tüketim ürünleri',
     color: '#84cc16',
   },
+  {
+    id: 'showroom',
+    icon: 'Lamp',
+    title: 'Yapı & Dekorasyon',
+    description: 'Yapı malzemeleri, mobilya, dekorasyon, aydınlatma',
+    color: '#d97706',
+  },
 ];

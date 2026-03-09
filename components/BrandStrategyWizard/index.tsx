@@ -18,7 +18,7 @@ import {
   OutroQuestion,
 } from './components/QuestionRenderers';
 
-const VALID_SECTORS: Sector[] = ['gastronomi', 'retail', 'corporate', 'tech', 'health', 'education', 'fmcg'];
+const VALID_SECTORS: Sector[] = ['gastronomi', 'retail', 'corporate', 'tech', 'health', 'education', 'fmcg', 'showroom'];
 
 const BrandStrategyWizard: React.FC = () => {
   const startTime = useRef(Date.now());

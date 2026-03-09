@@ -8,6 +8,7 @@ import { techConfig } from './sectors/tech';
 import { healthConfig } from './sectors/health';
 import { educationConfig } from './sectors/education';
 import { fmcgConfig } from './sectors/fmcg';
+import { showroomConfig } from './sectors/showroom';
 
 const sectorConfigs: Record<string, SectorQuestionConfig> = {
   gastronomi: gastronomyConfig,
@@ -17,6 +18,7 @@ const sectorConfigs: Record<string, SectorQuestionConfig> = {
   health: healthConfig,
   education: educationConfig,
   fmcg: fmcgConfig,
+  showroom: showroomConfig,
 };
 
 export function getQuestionsForSector(sector: Sector): Question[] {

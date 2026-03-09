@@ -8,6 +8,7 @@ import {
   HeartPulse,
   GraduationCap,
   Package,
+  Lamp,
 } from 'lucide-react';
 import { Sector } from '@/shared/types/brandLead';
 import { SECTOR_CARDS, SectorCard } from '../questions/sectorCards';
@@ -20,6 +21,7 @@ const iconMap: Record<string, React.FC<{ className?: string }>> = {
   HeartPulse,
   GraduationCap,
   Package,
+  Lamp,
 };
 
 interface SectorSelectionProps {

@@ -656,7 +656,7 @@ const LeadDetailPage: React.FC = () => {
                           <div className="p-3 bg-neutral-50 rounded-lg">
                             <p className="font-grotesk text-xs text-neutral-500 mb-1">Aylik Butce</p>
                             <p className="font-grotesk text-sm text-neutral-700">
-                              {{ starter: '0-5.000 TL', growth: '5.000-15.000 TL', scale: '15.000-50.000 TL', enterprise: '50.000 TL+' }[lead.wizard.businessContext.monthlyBudget] || lead.wizard.businessContext.monthlyBudget}
+                              {{ starter: '50.000-100.000 TL', growth: '100.000-200.000 TL', scale: '200.000-400.000 TL', enterprise: '400.000 TL+' }[lead.wizard.businessContext.monthlyBudget] || lead.wizard.businessContext.monthlyBudget}
                             </p>
                           </div>
                         )}
