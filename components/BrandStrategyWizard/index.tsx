@@ -1,4 +1,4 @@
-import React, { Component, useState, useCallback, useRef, useMemo } from 'react';
+import React, { Component, useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, RefreshCw, SkipForward } from 'lucide-react';
 import { getQuestionsForSector } from './questions';
@@ -20,11 +20,137 @@ import {
 
 const VALID_SECTORS: Sector[] = ['gastronomi', 'retail', 'corporate', 'tech', 'health', 'education', 'fmcg', 'showroom'];
 
+const STORAGE_KEY = 'brand_strategy_wizard_state';
+const STORAGE_VERSION = 2;
+
+interface WizardPersistedState {
+  version: number;
+  sector: Sector;
+  currentStep: number;
+  answers: Record<number, string | string[]>;
+  scores: Record<number, number>;
+  stageResults: Record<number, ResultMatrix>;
+  businessContext: BusinessContext;
+  startTime: number;
+  savedAt: number;
+}
+
+function saveToStorage(state: WizardPersistedState) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // localStorage full or unavailable
+  }
+}
+
+function loadFromStorage(): WizardPersistedState | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as WizardPersistedState;
+    // Validate version and sector
+    if (parsed.version !== STORAGE_VERSION) return null;
+    if (!VALID_SECTORS.includes(parsed.sector)) return null;
+    // Expire after 24 hours
+    if (Date.now() - parsed.savedAt > 24 * 60 * 60 * 1000) {
+      localStorage.removeItem(STORAGE_KEY);
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function clearStorage() {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+// Build stage groups from questions array for progress indicator
+function buildStageGroups(questions: Question[]) {
+  const groups: { label: string; startStep: number; endStep: number }[] = [];
+
+  // Find business context section (after global intro, before first stage intro)
+  let ctxStart = -1;
+  let ctxEnd = -1;
+  let firstStageIntro = -1;
+
+  for (let i = 0; i < questions.length; i++) {
+    const q = questions[i];
+    if (q.type === 'intro' && q.stage) {
+      if (firstStageIntro === -1) firstStageIntro = i;
+    }
+    if (q.action?.startsWith('ctx:') && ctxStart === -1) {
+      ctxStart = i;
+    }
+    if (q.action?.startsWith('ctx:')) {
+      ctxEnd = i;
+    }
+  }
+
+  // Intro group (global intro + context intro + context questions)
+  if (firstStageIntro > 0) {
+    groups.push({
+      label: 'Isletme Bilgileri',
+      startStep: 0,
+      endStep: firstStageIntro - 1,
+    });
+  }
+
+  // Stage groups
+  let currentStageStart = -1;
+  let currentStageLabel = '';
+
+  for (let i = 0; i < questions.length; i++) {
+    const q = questions[i];
+
+    if (q.type === 'intro' && q.stage) {
+      // If we had a previous stage, close it
+      if (currentStageStart !== -1) {
+        groups.push({
+          label: currentStageLabel,
+          startStep: currentStageStart,
+          endStep: i - 1,
+        });
+      }
+      currentStageStart = i;
+      currentStageLabel = q.stage.title;
+    }
+
+    // Outro closes the last stage
+    if (q.type === 'outro' && currentStageStart !== -1) {
+      groups.push({
+        label: currentStageLabel,
+        startStep: currentStageStart,
+        endStep: i - 1,
+      });
+      // Outro is its own group
+      groups.push({
+        label: 'Sonuc',
+        startStep: i,
+        endStep: i,
+      });
+      currentStageStart = -1;
+    }
+  }
+
+  return groups;
+}
+
 const BrandStrategyWizard: React.FC = () => {
   const startTime = useRef(Date.now());
+  const isRestoredRef = useRef(false);
 
-  // Read sector from URL params on mount
+  // Try to restore from localStorage or URL
+  const restored = useMemo(() => loadFromStorage(), []);
+
   const initialSector = useMemo((): Sector | null => {
+    // Restored state takes priority
+    if (restored) return restored.sector;
     const params = new URLSearchParams(window.location.search);
     const urlSector = params.get('sector') as Sector | null;
     if (urlSector && VALID_SECTORS.includes(urlSector)) {
@@ -37,11 +163,41 @@ const BrandStrategyWizard: React.FC = () => {
   const [questions, setQuestions] = useState<Question[]>(
     initialSector ? getQuestionsForSector(initialSector) : []
   );
-  const [currentStep, setCurrentStep] = useState(0);
-  const [answers, setAnswers] = useState<Record<number, string | string[]>>({});
-  const [scores, setScores] = useState<Record<number, number>>({});
-  const [stageResults, setStageResults] = useState<Record<number, ResultMatrix>>({});
-  const [businessContext, setBusinessContext] = useState<BusinessContext>({});
+  const [currentStep, setCurrentStep] = useState(restored?.currentStep || 0);
+  const [answers, setAnswers] = useState<Record<number, string | string[]>>(restored?.answers || {});
+  const [scores, setScores] = useState<Record<number, number>>(restored?.scores || {});
+  const [stageResults, setStageResults] = useState<Record<number, ResultMatrix>>(restored?.stageResults || {});
+  const [businessContext, setBusinessContext] = useState<BusinessContext>(restored?.businessContext || {});
+  const [showResumePrompt, setShowResumePrompt] = useState(!!restored && restored.currentStep > 0);
+
+  // Restore startTime if we have a saved session
+  if (restored && !isRestoredRef.current) {
+    startTime.current = restored.startTime;
+    isRestoredRef.current = true;
+  }
+
+  // Stage groups for progress indicator
+  const stageGroups = useMemo(() => buildStageGroups(questions), [questions]);
+
+  // Persist state to localStorage on every meaningful change
+  useEffect(() => {
+    if (!selectedSector || questions.length === 0) return;
+    // Don't save if we're on the outro (submitted)
+    const currentQ = questions[currentStep];
+    if (currentQ?.type === 'outro') return;
+
+    saveToStorage({
+      version: STORAGE_VERSION,
+      sector: selectedSector,
+      currentStep,
+      answers,
+      scores,
+      stageResults,
+      businessContext,
+      startTime: startTime.current,
+      savedAt: Date.now(),
+    });
+  }, [selectedSector, currentStep, answers, scores, stageResults, businessContext, questions]);
 
   const handleSectorSelect = useCallback((sector: Sector) => {
     setSelectedSector(sector);
@@ -51,16 +207,76 @@ const BrandStrategyWizard: React.FC = () => {
     setScores({});
     setStageResults({});
     setBusinessContext({});
+    setShowResumePrompt(false);
     startTime.current = Date.now();
+    clearStorage();
     // Update URL without reload
     const url = new URL(window.location.href);
     url.searchParams.set('sector', sector);
     window.history.replaceState(null, '', url.toString());
   }, []);
 
+  const handleResumeDecision = useCallback((resume: boolean) => {
+    if (!resume) {
+      // Start fresh
+      setCurrentStep(0);
+      setAnswers({});
+      setScores({});
+      setStageResults({});
+      setBusinessContext({});
+      startTime.current = Date.now();
+      clearStorage();
+    }
+    setShowResumePrompt(false);
+  }, []);
+
   // If no sector selected, show sector selection
   if (!selectedSector || questions.length === 0) {
     return <SectorSelection onSelect={handleSectorSelect} />;
+  }
+
+  // Show resume prompt
+  if (showResumePrompt) {
+    return (
+      <div
+        className="min-h-screen flex flex-col items-center justify-center px-6 font-grotesk"
+        style={{ backgroundColor: '#ebeef8', color: '#171717' }}
+      >
+        <motion.div
+          className="text-center space-y-6 max-w-md"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <div className="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center" style={{ backgroundColor: '#fffceb' }}>
+            <RefreshCw className="w-8 h-8" style={{ color: '#2563eb' }} />
+          </div>
+          <h2 className="text-2xl font-bold font-ramillas">Devam Eden Basvurunuz Var</h2>
+          <p className="text-base" style={{ color: '#525252' }}>
+            Daha once basladıgınız bir degerlendirme bulundu. Kaldıgınız yerden devam etmek ister misiniz?
+          </p>
+          <div className="flex flex-col gap-3">
+            <motion.button
+              onClick={() => handleResumeDecision(true)}
+              className="w-full text-white rounded-full px-8 py-4 font-grotesk font-semibold text-lg shadow-lg"
+              style={{ backgroundColor: '#171717' }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              Kaldıgım Yerden Devam Et
+            </motion.button>
+            <motion.button
+              onClick={() => handleResumeDecision(false)}
+              className="w-full rounded-full px-8 py-4 font-grotesk font-semibold text-lg border-2"
+              style={{ borderColor: '#d4d4d4', color: '#525252' }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              Bastan Basla
+            </motion.button>
+          </div>
+        </motion.div>
+      </div>
+    );
   }
 
   const currentQuestion = questions[currentStep];
@@ -74,6 +290,13 @@ const BrandStrategyWizard: React.FC = () => {
   const handleBack = () => {
     if (currentStep > 0) {
       setCurrentStep((prev) => prev - 1);
+    }
+  };
+
+  const handleNavigateToStep = (step: number) => {
+    // Only allow backward navigation
+    if (step < currentStep && step >= 0) {
+      setCurrentStep(step);
     }
   };
 
@@ -199,6 +422,12 @@ const BrandStrategyWizard: React.FC = () => {
       default:
         return false;
     }
+  };
+
+  // Clear storage on successful submission
+  const handleSubmitComplete = (data: any) => {
+    clearStorage();
+    console.log('Final submission:', data);
   };
 
   // Render the appropriate question component
@@ -335,9 +564,7 @@ const BrandStrategyWizard: React.FC = () => {
             sector={selectedSector}
             completionTime={Date.now() - startTime.current}
             businessContext={businessContext}
-            onSubmit={(data) => {
-              console.log('Final submission:', data);
-            }}
+            onSubmit={handleSubmitComplete}
           />
         );
 
@@ -368,6 +595,8 @@ const BrandStrategyWizard: React.FC = () => {
         <ProgressIndicator
           currentStep={currentStep}
           totalSteps={questions.length}
+          stageGroups={stageGroups}
+          onNavigate={handleNavigateToStep}
         />
 
         <div className="w-10" />
@@ -459,9 +688,9 @@ class WizardErrorBoundary extends Component<{ children: React.ReactNode }, Error
           style={{ backgroundColor: '#ebeef8', color: '#171717' }}
         >
           <div className="text-center space-y-4 max-w-md">
-            <h2 className="text-2xl font-bold font-ramillas">Bir sorun oluştu</h2>
+            <h2 className="text-2xl font-bold font-ramillas">Bir sorun olustu</h2>
             <p className="text-base" style={{ color: '#525252' }}>
-              Değerlendirme sırasında beklenmeyen bir hata meydana geldi. Lütfen sayfayı yenileyin.
+              Degerlendirme sırasında beklenmeyen bir hata meydana geldi. Lutfen sayfayı yenileyin.
             </p>
             <button
               onClick={() => window.location.reload()}
