@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users,
   Search,
@@ -14,6 +14,10 @@ import {
   TrendingUp,
   Clock,
   UserPlus,
+  Send,
+  X,
+  Check,
+  Loader2,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermission } from '@/shared/hooks/usePermission';
@@ -35,6 +39,7 @@ import {
 } from '@/shared/types/brandLead';
 import { Timestamp, DocumentSnapshot } from 'firebase/firestore';
 import { isFirebaseConfigured } from '@/lib/firebase/config';
+import { getAuth } from 'firebase/auth';
 
 const LeadsPage: React.FC = () => {
   const { user } = useAuth();
@@ -57,6 +62,17 @@ const LeadsPage: React.FC = () => {
   const [filters, setFilters] = useState<BrandLeadFilters>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+
+  // Invitation modal
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteForm, setInviteForm] = useState({
+    recipientName: '',
+    recipientEmail: '',
+    businessName: '',
+    sector: '' as Sector | '',
+  });
+  const [inviteSending, setInviteSending] = useState(false);
+  const [inviteResult, setInviteResult] = useState<'success' | 'error' | null>(null);
 
   // Load leads
   const loadLeads = useCallback(async (reset = false) => {
@@ -152,6 +168,46 @@ const LeadsPage: React.FC = () => {
     }));
   };
 
+  // Send wizard invitation
+  const handleSendInvitation = async () => {
+    if (!inviteForm.recipientName || !inviteForm.recipientEmail || !inviteForm.businessName || !inviteForm.sector) return;
+
+    setInviteSending(true);
+    setInviteResult(null);
+
+    try {
+      const auth = getAuth();
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) throw new Error('Not authenticated');
+
+      const response = await fetch('/api/send-wizard-invitation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(inviteForm),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Email gonderilemedi');
+      }
+
+      setInviteResult('success');
+      setTimeout(() => {
+        setShowInviteModal(false);
+        setInviteForm({ recipientName: '', recipientEmail: '', businessName: '', sector: '' });
+        setInviteResult(null);
+      }, 2000);
+    } catch (error) {
+      console.error('Error sending invitation:', error);
+      setInviteResult('error');
+    } finally {
+      setInviteSending(false);
+    }
+  };
+
   if (!isFirebaseConfigured) {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-center">
@@ -188,6 +244,15 @@ const LeadsPage: React.FC = () => {
           >
             <Filter className="w-4 h-4" />
             Filtrele
+          </motion.button>
+          <motion.button
+            className="inline-flex items-center gap-2 px-4 py-2 border border-blue-200 bg-blue-50 text-blue-700 rounded-full font-grotesk text-sm font-medium hover:bg-blue-100 transition-colors"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setShowInviteModal(true)}
+          >
+            <Send className="w-4 h-4" />
+            Davet Gonder
           </motion.button>
           <motion.button
             className="inline-flex items-center gap-2 px-4 py-2 bg-[#171717] text-white rounded-full font-grotesk text-sm font-medium hover:bg-neutral-800 transition-colors"
@@ -467,6 +532,148 @@ const LeadsPage: React.FC = () => {
           </div>
         )}
       </div>
+      {/* Invitation Modal */}
+      <AnimatePresence>
+        {showInviteModal && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            {/* Backdrop */}
+            <div
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+              onClick={() => !inviteSending && setShowInviteModal(false)}
+            />
+
+            {/* Modal */}
+            <motion.div
+              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6"
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+                    <Send className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <h2 className="font-grotesk font-bold text-lg text-[#171717]">Strateji Daveti Gonder</h2>
+                    <p className="font-grotesk text-xs text-neutral-500">Marka stratejisi formunu doldurmaya davet edin</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => !inviteSending && setShowInviteModal(false)}
+                  className="p-1.5 rounded-lg hover:bg-neutral-100 transition-colors"
+                >
+                  <X className="w-5 h-5 text-neutral-400" />
+                </button>
+              </div>
+
+              {/* Form */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block font-grotesk text-sm font-medium text-neutral-700 mb-1.5">
+                    Kisi Adi
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Fatih Aslan"
+                    value={inviteForm.recipientName}
+                    onChange={(e) => setInviteForm((f) => ({ ...f, recipientName: e.target.value }))}
+                    className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 bg-neutral-50 font-grotesk text-sm focus:outline-none focus:border-blue-400 focus:bg-white transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-grotesk text-sm font-medium text-neutral-700 mb-1.5">
+                    E-posta
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="isim@firma.com"
+                    value={inviteForm.recipientEmail}
+                    onChange={(e) => setInviteForm((f) => ({ ...f, recipientEmail: e.target.value }))}
+                    className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 bg-neutral-50 font-grotesk text-sm focus:outline-none focus:border-blue-400 focus:bg-white transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-grotesk text-sm font-medium text-neutral-700 mb-1.5">
+                    Isletme Adi
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="DesignFloor"
+                    value={inviteForm.businessName}
+                    onChange={(e) => setInviteForm((f) => ({ ...f, businessName: e.target.value }))}
+                    className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 bg-neutral-50 font-grotesk text-sm focus:outline-none focus:border-blue-400 focus:bg-white transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-grotesk text-sm font-medium text-neutral-700 mb-1.5">
+                    Sektor
+                  </label>
+                  <select
+                    value={inviteForm.sector}
+                    onChange={(e) => setInviteForm((f) => ({ ...f, sector: e.target.value as Sector }))}
+                    className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 bg-neutral-50 font-grotesk text-sm focus:outline-none focus:border-blue-400 focus:bg-white transition-colors"
+                  >
+                    <option value="">Sektor secin...</option>
+                    {Object.entries(SECTOR_LABELS).map(([value, label]) => (
+                      <option key={value} value={value}>{label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-3 mt-6">
+                <button
+                  onClick={() => !inviteSending && setShowInviteModal(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-neutral-200 font-grotesk text-sm font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+                  disabled={inviteSending}
+                >
+                  Iptal
+                </button>
+                <button
+                  onClick={handleSendInvitation}
+                  disabled={inviteSending || !inviteForm.recipientName || !inviteForm.recipientEmail || !inviteForm.businessName || !inviteForm.sector}
+                  className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white font-grotesk text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {inviteSending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Gonderiliyor...
+                    </>
+                  ) : inviteResult === 'success' ? (
+                    <>
+                      <Check className="w-4 h-4" />
+                      Gonderildi!
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4" />
+                      Davet Gonder
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Error message */}
+              {inviteResult === 'error' && (
+                <p className="mt-3 text-center font-grotesk text-sm text-red-600">
+                  Email gonderilemedi. Lutfen tekrar deneyin.
+                </p>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

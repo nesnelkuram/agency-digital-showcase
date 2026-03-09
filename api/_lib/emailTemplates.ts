@@ -300,3 +300,37 @@ export function partialApprovalEmail(params: {
   `);
   return { subject, html };
 }
+
+// =========================================================
+// Wizard Invitation: Strategy Form Davet (→ Potansiyel Müşteri)
+// =========================================================
+export function wizardInvitationEmail(params: {
+  recipientName: string;
+  businessName: string;
+  sectorLabel: string;
+  wizardUrl: string;
+  senderName: string;
+}): { subject: string; html: string } {
+  const subject = `${params.businessName} için marka stratejisi analizi hazır`;
+  const html = wrapHtml(subject, `
+    <span class="badge badge-blue">Strateji Daveti</span>
+    <p>Merhaba <strong>${params.recipientName}</strong>,</p>
+    <p><strong>${params.senderName}</strong> olarak <strong>${params.businessName}</strong> için özel bir marka stratejisi analizi hazırladık.</p>
+    <p>Sektörünüze (<strong>${params.sectorLabel}</strong>) özel sorularla markanızın dijital stratejisini birlikte şekillendirelim. Bu kısa analiz formu yaklaşık <strong>8-10 dakika</strong> sürmektedir.</p>
+    <div class="metadata">
+      <p><strong>İşletme:</strong> ${params.businessName}</p>
+      <p><strong>Sektör:</strong> ${params.sectorLabel}</p>
+      <p><strong>Süre:</strong> ~8-10 dakika</p>
+    </div>
+    <p>Stratejik analiz formunu doldurmak için aşağıdaki butona tıklayın:</p>
+    <div style="text-align:center;">
+      <a href="${params.wizardUrl}" class="cta">Strateji Analizine Başla</a>
+    </div>
+    <div class="link-box">
+      Link çalışmıyorsa bu adresi tarayıcınıza kopyalayın:<br>${params.wizardUrl}
+    </div>
+    <hr class="divider">
+    <p style="font-size:13px; color:#737373;">Bu analiz sonucunda markanızın güçlü yönleri, dijital stratejisi ve sektöre özel öneriler içeren kapsamlı bir rapor hazırlanacaktır.</p>
+  `);
+  return { subject, html };
+}
