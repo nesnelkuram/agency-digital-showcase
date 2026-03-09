@@ -154,6 +154,7 @@ const OutroQuestion: React.FC<OutroQuestionProps> = ({
         allAnswers: JSON.stringify(answers, null, 2),
         allScores: JSON.stringify(scores, null, 2),
         _subject: `Brand Strategy #${submissionId} - ${businessName.trim()}`,
+        sector: sector,
         _replyto: email.trim(),
         _template: 'table',
       };

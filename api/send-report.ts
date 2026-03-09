@@ -1,14 +1,9 @@
-import type { VercelResponse } from '@vercel/node';
-import { Resend } from 'resend';
-import { withAuth, AuthenticatedRequest } from './_lib/withAuth.js';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { newLeadNotificationEmail } from './_lib/emailTemplates.js';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
-export default withAuth(async (
-  req: AuthenticatedRequest,
-  res: VercelResponse
-) => {
-  // Only allow POST requests
+// Public endpoint — no auth required (wizard form is filled by anonymous users)
+// Only sends to hardcoded info@intiba.co.uk, no abuse risk
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -23,115 +18,64 @@ export default withAuth(async (
       phone,
       requestedServices,
       serviceCount,
-      stage0,
-      stage0Score,
-      stage1,
-      stage1Score,
-      stage2,
-      stage2Score,
-      stage3,
-      stage3Score,
-      stage4,
-      stage4Score,
-      allAnswers,
-      allScores,
+      sector,
+      stage0, stage0Score,
+      stage1, stage1Score,
+      stage2, stage2Score,
+      stage3, stage3Score,
+      stage4, stage4Score,
     } = req.body;
 
-    // Send email using Resend
+    if (!name || !businessName || !email) {
+      return res.status(400).json({ error: 'name, businessName, email zorunlu' });
+    }
+
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+      console.error('[send-report] RESEND_API_KEY is not set');
+      return res.status(500).json({ error: 'Email service not configured' });
+    }
+
+    const { Resend } = await import('resend');
+    const resend = new Resend(apiKey);
+
+    const emailContent = newLeadNotificationEmail({
+      submissionId: submissionId || 'N/A',
+      submissionTime: submissionTime || new Date().toLocaleString('tr-TR'),
+      name,
+      businessName,
+      email,
+      phone: phone || 'Belirtilmedi',
+      sector: sector || 'Belirtilmedi',
+      requestedServices: requestedServices || 'Belirtilmedi',
+      serviceCount: serviceCount || 0,
+      stages: [
+        { label: 'Operasyonel Gerçeklik', result: stage0, score: stage0Score },
+        { label: 'Marka Ruhu', result: stage1, score: stage1Score },
+        { label: 'Marka Karakteri', result: stage2, score: stage2Score },
+        { label: 'Kim Değiliz', result: stage3, score: stage3Score },
+        { label: 'Hedef ve Başarı', result: stage4, score: stage4Score },
+      ],
+    });
+
     const { data, error } = await resend.emails.send({
-      from: 'Brand Strategy Wizard <noreply@intiba.co.uk>',
+      from: 'intiba <info@intiba.co.uk>',
       to: ['info@intiba.co.uk'],
       replyTo: email,
-      subject: `Brand Strategy #${submissionId} - ${businessName}`,
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: #171717; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-            .content { background: #f9f9f9; padding: 20px; }
-            .section { background: white; margin: 15px 0; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-            .label { font-weight: bold; color: #171717; }
-            .value { color: #525252; margin-bottom: 10px; }
-            .stage { display: inline-block; padding: 8px 12px; margin: 5px; background: #fffceb; border: 2px solid #171717; border-radius: 6px; }
-            .footer { text-align: center; padding: 20px; color: #737373; font-size: 12px; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>🎯 Yeni Brand Strategy Değerlendirmesi</h1>
-              <p>Submission ID: ${submissionId}</p>
-            </div>
-
-            <div class="content">
-              <div class="section">
-                <h2>👤 İletişim Bilgileri</h2>
-                <div class="value"><span class="label">Ad Soyad:</span> ${name}</div>
-                <div class="value"><span class="label">İşletme:</span> ${businessName}</div>
-                <div class="value"><span class="label">Email:</span> ${email}</div>
-                <div class="value"><span class="label">Telefon:</span> ${phone}</div>
-                <div class="value"><span class="label">Tarih:</span> ${submissionTime}</div>
-              </div>
-
-              <div class="section">
-                <h2>🎨 Talep Edilen Hizmetler</h2>
-                <div class="value"><span class="label">Seçilen Hizmetler:</span> ${requestedServices}</div>
-                <div class="value"><span class="label">Toplam:</span> ${serviceCount} hizmet</div>
-              </div>
-
-              <div class="section">
-                <h2>📊 Aşama Sonuçları</h2>
-                <div class="value">
-                  <span class="label">Operasyonel Gerçeklik:</span> ${stage0} (Skor: ${stage0Score})
-                </div>
-                <div class="value">
-                  <span class="label">Marka Ruhu:</span> ${stage1} (Skor: ${stage1Score})
-                </div>
-                <div class="value">
-                  <span class="label">Marka Karakteri:</span> ${stage2} (Skor: ${stage2Score})
-                </div>
-                <div class="value">
-                  <span class="label">Kim Değiliz:</span> ${stage3} (Skor: ${stage3Score})
-                </div>
-                <div class="value">
-                  <span class="label">Hedef ve Başarı:</span> ${stage4} (Skor: ${stage4Score})
-                </div>
-              </div>
-
-              <div class="section">
-                <h2>📝 Detaylı Cevaplar</h2>
-                <pre style="background: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto;">${allAnswers}</pre>
-              </div>
-
-              <div class="section">
-                <h2>🔢 Skorlar</h2>
-                <pre style="background: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto;">${allScores}</pre>
-              </div>
-            </div>
-
-            <div class="footer">
-              <p>Bu email Brand Strategy Wizard tarafından otomatik olarak gönderilmiştir.</p>
-              <p>Submission ID: ${submissionId}</p>
-            </div>
-          </div>
-        </body>
-        </html>
-      `,
+      subject: emailContent.subject,
+      html: emailContent.html,
     });
 
     if (error) {
-      console.error('Resend error:', error);
+      console.error('[send-report] Resend error:', error);
       return res.status(400).json({ error: error.message });
     }
 
-    console.log('Email sent successfully:', data);
+    console.log('[send-report] New lead notification sent:', data?.id, 'for:', businessName);
     return res.status(200).json({ success: true, messageId: data?.id });
 
   } catch (error: any) {
-    console.error('Server error:', error);
+    console.error('[send-report] Error:', error);
     return res.status(500).json({ error: error.message || 'Internal server error' });
   }
-});
+}

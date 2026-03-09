@@ -302,6 +302,55 @@ export function partialApprovalEmail(params: {
 }
 
 // =========================================================
+// New Lead Notification (→ info@intiba.co.uk)
+// =========================================================
+export function newLeadNotificationEmail(params: {
+  submissionId: string;
+  submissionTime: string;
+  name: string;
+  businessName: string;
+  email: string;
+  phone: string;
+  sector: string;
+  requestedServices: string;
+  serviceCount: number;
+  stages: { label: string; result: string; score: number }[];
+}): { subject: string; html: string } {
+  const subject = `Yeni Başvuru: ${params.businessName} — #${params.submissionId}`;
+
+  const stageRows = params.stages
+    .map(s => `<p><strong>${s.label}:</strong> ${s.result || 'N/A'} (Skor: ${s.score ?? 0})</p>`)
+    .join('');
+
+  const html = wrapHtml(subject, `
+    <span class="badge badge-green">Yeni Başvuru</span>
+    <p>Marka stratejisi formu üzerinden <strong>yeni bir başvuru</strong> geldi:</p>
+    <div class="metadata">
+      <p><strong>İşletme:</strong> ${params.businessName}</p>
+      <p><strong>Kişi:</strong> ${params.name}</p>
+      <p><strong>E-posta:</strong> ${params.email}</p>
+      <p><strong>Telefon:</strong> ${params.phone}</p>
+      <p><strong>Sektör:</strong> ${params.sector}</p>
+      <p><strong>Tarih:</strong> ${params.submissionTime}</p>
+    </div>
+    <hr class="divider">
+    <p><strong>Talep Edilen Hizmetler:</strong> ${params.requestedServices} (${params.serviceCount} hizmet)</p>
+    <hr class="divider">
+    <p><strong>Aşama Sonuçları:</strong></p>
+    <div class="metadata">
+      ${stageRows}
+    </div>
+    <div style="text-align:center;">
+      <a href="https://intiba.co.uk/admin/leads" class="cta">Başvuruları Görüntüle</a>
+    </div>
+    <div class="link-box">
+      Submission ID: ${params.submissionId}
+    </div>
+  `);
+  return { subject, html };
+}
+
+// =========================================================
 // Wizard Invitation: Strategy Form Davet (→ Potansiyel Müşteri)
 // =========================================================
 export function wizardInvitationEmail(params: {
