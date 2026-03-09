@@ -126,6 +126,7 @@ export async function createBrandLeadFromWebsite(
   };
 
   const leadData: Omit<BrandLead, 'id'> = {
+    tenantId: 'default',
     sector: data.sector,
     contact: data.contact,
     status: 'new',
