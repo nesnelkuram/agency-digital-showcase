@@ -13,7 +13,7 @@ export const SECTOR_CARDS: SectorCard[] = [
     id: 'gastronomi',
     icon: 'ChefHat',
     title: 'Gastronomi',
-    description: 'Restoran, kafe, otel, food & beverage',
+    description: 'Restoran, kafe, bar, food & beverage',
     color: '#f97316',
   },
   {
@@ -64,5 +64,12 @@ export const SECTOR_CARDS: SectorCard[] = [
     title: 'Yapı & Dekorasyon',
     description: 'Yapı malzemeleri, mobilya, dekorasyon, aydınlatma',
     color: '#d97706',
+  },
+  {
+    id: 'hospitality',
+    icon: 'Hotel',
+    title: 'Otelcilik & Turizm',
+    description: 'Otel, tatil köyü, pansiyon, turizm işletmeleri',
+    color: '#0891b2',
   },
 ];

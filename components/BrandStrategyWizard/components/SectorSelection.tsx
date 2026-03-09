@@ -9,6 +9,7 @@ import {
   GraduationCap,
   Package,
   Lamp,
+  Hotel,
 } from 'lucide-react';
 import { Sector } from '@/shared/types/brandLead';
 import { SECTOR_CARDS, SectorCard } from '../questions/sectorCards';
@@ -22,6 +23,7 @@ const iconMap: Record<string, React.FC<{ className?: string }>> = {
   GraduationCap,
   Package,
   Lamp,
+  Hotel,
 };
 
 interface SectorSelectionProps {

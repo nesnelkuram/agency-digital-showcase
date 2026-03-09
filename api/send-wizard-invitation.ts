@@ -11,6 +11,7 @@ const SECTOR_LABELS: Record<string, string> = {
   education: 'Eğitim',
   fmcg: 'Gıda & FMCG',
   showroom: 'Yapı & Dekorasyon',
+  hospitality: 'Otelcilik & Turizm',
   other: 'Diğer',
 };
 

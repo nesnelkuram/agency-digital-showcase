@@ -13,6 +13,7 @@ export type Sector =
   | 'education'    // Eğitim, kurslar
   | 'fmcg'         // Gıda, FMCG, ürün markaları
   | 'showroom'     // Yapı malzemeleri, mobilya, dekorasyon, aydınlatma (B2B2C showroom)
+  | 'hospitality'  // Otel, tatil köyü, pansiyon, turizm
   | 'other';       // Diğer
 
 export const SECTOR_LABELS: Record<Sector, string> = {
@@ -24,6 +25,7 @@ export const SECTOR_LABELS: Record<Sector, string> = {
   education: 'Eğitim',
   fmcg: 'Gıda & FMCG',
   showroom: 'Yapı & Dekorasyon',
+  hospitality: 'Otelcilik & Turizm',
   other: 'Diğer',
 };
 
