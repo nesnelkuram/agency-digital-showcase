@@ -268,19 +268,6 @@ export const corporateConfig: SectorQuestionConfig = {
         },
         {
           type: 'selection_list',
-          script: "Potansiyel müşteriyi nasıl ikna edersiniz?",
-          text: "İkna Yöntemi",
-          options: [
-            { id: 'process', title: "Süreç ve metodoloji", desc: "Kanıtlanmış çerçeveler, tutarlı teslimat garantisi" },
-            { id: 'reference', title: "Referans ve sonuçlar", desc: "Vaka çalışmaları, müşteri referansları, ölçülebilir sonuçlar" },
-            { id: 'knowledge', title: "Bilgi ve uzmanlık", desc: "Sektör analizi, benchmark, stratejik öngörü" },
-            { id: 'relationship', title: "İlişki ve güven", desc: "Uzun vadeli ortaklık, kişisel bağ, karşılıklı yatırım" },
-            { id: 'other', title: "Diğer (Belirtin)" }
-          ],
-          placeholder: "İkna yönteminizi açıklayın"
-        },
-        {
-          type: 'selection_list',
           script: "Kurumsal iletişim tonunuz?",
           text: "İletişim Tonu",
           options: [

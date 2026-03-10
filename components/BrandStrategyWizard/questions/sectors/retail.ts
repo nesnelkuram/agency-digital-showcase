@@ -268,19 +268,6 @@ export const retailConfig: SectorQuestionConfig = {
         },
         {
           type: 'selection_list',
-          script: "Müşterinizi nasıl ikna edersiniz?",
-          text: "İkna Yöntemi",
-          options: [
-            { id: 'consistency', title: "Tutarlılık", desc: "Her seferinde aynı kalite, aynı standart" },
-            { id: 'social_proof', title: "Sosyal kanıt", desc: "Yorumlar, influencer onayı, satış rakamları" },
-            { id: 'expertise', title: "Uzmanlık", desc: "Ürün bilgisi, malzeme hikayesi, üretim süreci" },
-            { id: 'emotion', title: "Duygusal bağ", desc: "Kişisel ilgi, hatırlama, özel hissettirme" },
-            { id: 'other', title: "Diğer (Belirtin)" }
-          ],
-          placeholder: "İkna yönteminizi açıklayın"
-        },
-        {
-          type: 'selection_list',
           script: "İletişim tonunuz nasıl?",
           text: "Ton",
           options: [

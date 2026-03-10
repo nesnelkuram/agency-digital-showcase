@@ -268,19 +268,6 @@ export const gastronomyConfig: SectorQuestionConfig = {
         },
         {
           type: 'selection_list',
-          script: "Misafirinizi nasıl ikna edersiniz?",
-          text: "İkna Yöntemi",
-          options: [
-            { id: 'sop', title: "SOP (Standart)", desc: "Tutarlılık, kalite garantisi" },
-            { id: 'reference', title: "Referans", desc: "Ödüller, medya, tanınmış isimler" },
-            { id: 'knowledge', title: "Bilgi", desc: "Kaynak, teknik, hikaye anlatımı" },
-            { id: 'influence', title: "Etki", desc: "Duygusal bağ, deneyim, atmosfer" },
-            { id: 'other', title: "Diğer (Belirtin)" }
-          ],
-          placeholder: "İkna yönteminizi açıklayın"
-        },
-        {
-          type: 'selection_list',
           script: "İletişim tonunuz?",
           text: "Ton",
           options: [

@@ -268,19 +268,6 @@ export const fmcgConfig: SectorQuestionConfig = {
         },
         {
           type: 'selection_list',
-          script: "Tüketiciyi nasıl ikna edersiniz?",
-          text: "İkna Yöntemi",
-          options: [
-            { id: 'consistency', title: "Tutarlılık", desc: "Her seferinde aynı tat, aynı kalite garantisi" },
-            { id: 'origin', title: "Kaynak hikayesi", desc: "Hammadde kaynağı, üretim yeri, üreticinin hikayesi" },
-            { id: 'certification', title: "Sertifika ve test", desc: "Bağımsız laboratuvar sonuçları, sertifikalar, ödüller" },
-            { id: 'community', title: "Topluluk gücü", desc: "Sadık müşteri yorumları, kullanıcı içerikleri, ağızdan ağıza" },
-            { id: 'other', title: "Diğer (Belirtin)" }
-          ],
-          placeholder: "İkna yönteminizi açıklayın"
-        },
-        {
-          type: 'selection_list',
           script: "Marka iletişim tonunuz nasıl?",
           text: "Ton",
           options: [

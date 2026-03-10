@@ -268,19 +268,6 @@ export const healthConfig: SectorQuestionConfig = {
         },
         {
           type: 'selection_list',
-          script: "Yeni bir danışanı nasıl ikna edersiniz?",
-          text: "İkna Yöntemi",
-          options: [
-            { id: 'evidence', title: "Kanıt", desc: "Klinik veriler, başarı oranları, bilimsel referanslar" },
-            { id: 'reference', title: "Referans", desc: "Hasta yorumları, ödüller, akreditasyonlar, medyada yer alma" },
-            { id: 'empathy', title: "Empati", desc: "Dinleme, anlama, kişiselleştirilmiş yaklaşım" },
-            { id: 'technology', title: "Teknoloji", desc: "Son teknoloji cihazlar, yenilikçi yöntemler, dijital altyapı" },
-            { id: 'other', title: "Diğer (Belirtin)" }
-          ],
-          placeholder: "İkna yönteminizi açıklayın"
-        },
-        {
-          type: 'selection_list',
           script: "İletişim tonunuz nasıl?",
           text: "İletişim Tonu",
           options: [

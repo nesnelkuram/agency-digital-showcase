@@ -1,6 +1,6 @@
 import { generateJSON } from '../geminiClient';
 import { resolveAnswers, STAGE_NAMES, STAGE_QUESTION_IDS, QUESTION_MAP } from '../prompts';
-import type { PipelineInput, NormalizedData } from '../types';
+import type { PipelineInput, NormalizedData, BrandMaturityLevel } from '../types';
 
 export async function runDataNormalizer(input: PipelineInput): Promise<NormalizedData> {
 
@@ -32,6 +32,13 @@ export async function runDataNormalizer(input: PipelineInput): Promise<Normalize
 - Aylik Butce: ${bc.monthlyBudget || 'Belirtilmedi'}
 - Isletme Asamasi: ${bc.businessStage || 'Belirtilmedi'}
 - Basvuru Nedeni: ${bc.triggerReason || 'Belirtilmedi'}
+- Varoluş Amacı (WHY): ${bc.brandWhy || 'Belirtilmedi'}
+- Müşteri Algısı: ${bc.customerPerception || 'Belirtilmedi'}
+- Mevcut Marka Varlıkları: ${bc.existingBrandAssets || 'Belirtilmedi'}
+- 3 Yıllık Vizyon: ${bc.futureVision || 'Belirtilmedi'}
+- Müşterinin Kiraladığı İş (JTBD): ${bc.customerJob || 'Belirtilmedi'}
+- Müşterinin Mücadelesi: ${bc.customerStruggle || 'Belirtilmedi'}
+- Karşı Olunan (Düşman): ${bc.brandEnemy || 'Belirtilmedi'}
 `
     : '';
 
@@ -92,6 +99,9 @@ ONEMLI KURALLAR:
     maxOutputTokens: 2048,
   });
 
+  // Calculate brand maturity score from business context signals
+  const brandMaturity = calculateBrandMaturity(bc);
+
   // Ensure required fields have fallback values
   return {
     sector: parsed.sector || sector,
@@ -102,5 +112,58 @@ ONEMLI KURALLAR:
     dataQualityScore: typeof parsed.dataQualityScore === 'number' ? parsed.dataQualityScore : 0.5,
     missingAreas: parsed.missingAreas || [],
     overallProfile: parsed.overallProfile || `${contact.businessName} - ${sector} sektorunde faaliyet gostermektedir.`,
+    brandMaturity,
+  };
+}
+
+/**
+ * Calculate brand maturity from business context signals.
+ * 4 factors × 0-3 points = 0-12 total score.
+ * No LLM call needed — pure rule-based.
+ */
+function calculateBrandMaturity(bc?: PipelineInput['businessContext']): NormalizedData['brandMaturity'] {
+  if (!bc) {
+    return { level: 'pre_brand', score: 0, factors: { businessAge: 0, brandAssets: 0, digitalPresence: 0, audienceSize: 0 }, reportFocus: 'kimlik' };
+  }
+
+  // Factor 1: Business age
+  const ageMap: Record<string, number> = { idea: 0, new: 1, growing: 2, established: 3 };
+  const businessAge = ageMap[bc.businessStage || ''] ?? 0;
+
+  // Factor 2: Brand assets
+  const assetMap: Record<string, number> = { none: 0, basic: 1, professional: 3 };
+  const brandAssets = assetMap[bc.existingBrandAssets || ''] ?? 0;
+
+  // Factor 3: Digital presence breadth
+  const platforms = bc.digitalPresence || [];
+  const hasNone = platforms.includes('none');
+  const digitalPresence = hasNone ? 0 : Math.min(platforms.length, 3);
+
+  // Factor 4: Audience size (Instagram as proxy)
+  const audienceMap: Record<string, number> = { no_account: 0, '0_1k': 1, '1k_10k': 2, '10k_50k': 3, '50k_plus': 3 };
+  const audienceSize = audienceMap[bc.instagramFollowers || ''] ?? 0;
+
+  const score = businessAge + brandAssets + digitalPresence + audienceSize;
+
+  let level: BrandMaturityLevel;
+  let reportFocus: string;
+  if (score <= 3) {
+    level = 'pre_brand';
+    reportFocus = 'kimlik';       // Önce temel kimlik oluştur
+  } else if (score <= 6) {
+    level = 'emerging';
+    reportFocus = 'kimlik';       // Kimlik güçlendir + temel strateji
+  } else if (score <= 9) {
+    level = 'developing';
+    reportFocus = 'strateji';     // Strateji optimize et
+  } else {
+    level = 'mature';
+    reportFocus = 'buyume';       // Büyüme ve sadakat odaklı
+  }
+
+  return {
+    level, score,
+    factors: { businessAge, brandAssets, digitalPresence, audienceSize },
+    reportFocus,
   };
 }

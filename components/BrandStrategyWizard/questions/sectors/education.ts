@@ -268,19 +268,6 @@ export const educationConfig: SectorQuestionConfig = {
         },
         {
           type: 'selection_list',
-          script: "Potansiyel öğrenciyi nasıl ikna edersiniz?",
-          text: "İkna Yöntemi",
-          options: [
-            { id: 'results', title: "Sonuçlarla", desc: "Mezun başarı oranları, iş bulma yüzdeleri, sınav skorları" },
-            { id: 'reference', title: "Referansla", desc: "Akreditasyonlar, ödüller, tanınmış mezunlar, medya" },
-            { id: 'knowledge', title: "Bilgiyle", desc: "Metodoloji, müfredat derinliği, akademik yetkinlik" },
-            { id: 'experience', title: "Deneyimle", desc: "Ücretsiz ders, kampüs turu, topluluk atmosferi" },
-            { id: 'other', title: "Diğer (Belirtin)" }
-          ],
-          placeholder: "İkna yönteminizi açıklayın"
-        },
-        {
-          type: 'selection_list',
           script: "İletişim tonunuz nasıl?",
           text: "İletişim Tonu",
           options: [

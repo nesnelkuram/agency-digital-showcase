@@ -268,19 +268,6 @@ export const showroomConfig: SectorQuestionConfig = {
         },
         {
           type: 'selection_list',
-          script: "Musterinizi (veya mimarı) nasıl ikna edersiniz?",
-          text: "Ikna Yontemi",
-          options: [
-            { id: 'references', title: "Referans projeler", desc: "Tamamlanmıs projeler, mimar tavsiyeleri, musteri yorumları" },
-            { id: 'technical', title: "Teknik uzmanlık", desc: "Test sonucları, sertifikalar, malzeme bilimi, karsilastırmalı analiz" },
-            { id: 'experience', title: "Showroom deneyimi", desc: "Dokunma, gorme, yasama — fiziksel deneyimle ikna" },
-            { id: 'relationship', title: "Kisisel iliski", desc: "Uzun vadeli guven, kisisel ilgi, 'sizi tanıyoruz' yaklasımı" },
-            { id: 'other', title: "Diger (Belirtin)" }
-          ],
-          placeholder: "Ikna yonteminizi aciklayın"
-        },
-        {
-          type: 'selection_list',
           script: "Iletisim tonunuz nasıl?",
           text: "Ton",
           options: [

@@ -96,7 +96,7 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
             // DR tamamlandi → JSON extraction
             console.log(`analyze-continue: DR completed (${drResult.text.length} chars), extracting JSON...`);
             const extractStart = Date.now();
-            researchFindings = await extractResearchJSON(drResult.text, [], [], -1);
+            researchFindings = await extractResearchJSON(drResult.text, [], [], -1, input.sector);
             timings.researchExtraction = Date.now() - extractStart;
             agentsRun.push('sectorResearch');
             const rc = researchFindings;
@@ -326,7 +326,7 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
           if (runId) await markAgentRunning(effectiveLeadId, runId, 'brandChallenger');
           const s = Date.now();
           try {
-            const r = await runBrandChallenger(normalizedData, researchFindings, strategistOutput);
+            const r = await runBrandChallenger(normalizedData, researchFindings, strategistOutput, input.businessContext);
             timings.brandChallenger = Date.now() - s;
             agentsRun.push('brandChallenger');
             if (runId) await checkpointAgent(effectiveLeadId, runId, 'brandChallenger', 'challengerOutput', r, timings.brandChallenger);
@@ -528,6 +528,11 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
             searchQueries: researchFindings.searchQueries,
             sourcesUsed: researchFindings.sourcesUsed,
             sourceUrls: researchFindings.sourceUrls,
+            // Pass through sector-specific data (e.g. hospitalityData, retailData, etc.)
+            ...Object.fromEntries(
+              Object.entries(researchFindings)
+                .filter(([k]) => k.endsWith('Data') && k !== 'marketData')
+            ),
           }
         : undefined,
 
@@ -570,6 +575,17 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
       digitalPresence: digitalPresence || undefined,
       competitorDiscovery: competitorDiscovery || undefined,
       consumerTest: consumerTestResult || undefined,
+
+      // Faz 2 — Strategic depth outputs
+      brandNarrative: synthesized.brandNarrative || undefined,
+      intibaEngagement: synthesized.intibaEngagement || undefined,
+      perceptualMap: synthesized.perceptualMap || undefined,
+      brandMaturity: normalizedData?.brandMaturity || undefined,
+
+      // Faz 3 — Yapaylıktan uzaklaşma çıktıları
+      strategicDepth: synthesized.strategicDepth || undefined,
+      brandCharacter: synthesized.brandCharacter || undefined,
+      qualityMetrics: synthesized.qualityMetrics || undefined,
 
       dataQuality: normalizedData
         ? {

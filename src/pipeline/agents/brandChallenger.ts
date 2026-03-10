@@ -4,7 +4,8 @@ import type { NormalizedData, ResearchFindings, StrategistOutput, ChallengerOutp
 export async function runBrandChallenger(
   normalizedData: NormalizedData,
   researchFindings: ResearchFindings | null,
-  strategistOutput: StrategistOutput
+  strategistOutput: StrategistOutput,
+  businessContext?: { brandWhy?: string; customerPerception?: string; existingBrandAssets?: string; futureVision?: string; businessStage?: string }
 ): Promise<ChallengerOutput> {
 
   // Build rich research context (if available)
@@ -59,12 +60,30 @@ ${researchFindings.sectorBenchmarks.map((b) => `- ${b}`).join('\n') || 'Bilgi yo
     ? `\n- Urun/Hizmet: ${vpReasoning.whatBusinessProduces}\n- Temel Fayda: ${vpReasoning.coreBenefit}\n- Kimin Icin: ${vpReasoning.whoBenefits}\n- Fiyat Konumlandirmasi: ${vpReasoning.pricePositioning}`
     : '';
 
+  // Brand maturity context
+  const maturity = normalizedData.brandMaturity;
+  const maturityContext = maturity
+    ? `\n## Marka Olgunluk Seviyesi
+- Seviye: ${maturity.level} (Skor: ${maturity.score}/12)
+- Faktörler: İşletme Yaşı=${maturity.factors.businessAge}, Marka Varlıkları=${maturity.factors.brandAssets}, Dijital Varlık=${maturity.factors.digitalPresence}, Kitle Büyüklüğü=${maturity.factors.audienceSize}
+- Rapor Odağı: ${maturity.reportFocus}`
+    : '';
+
+  // Business context deep signals
+  const deepContext = businessContext
+    ? `\n## Derin İşletme Sinyalleri
+${businessContext.brandWhy ? `- Varoluş Amacı (WHY): ${businessContext.brandWhy}` : ''}
+${businessContext.customerPerception ? `- Müşteri Algısı: ${businessContext.customerPerception}` : ''}
+${businessContext.existingBrandAssets ? `- Mevcut Marka Varlıkları: ${businessContext.existingBrandAssets}` : ''}
+${businessContext.futureVision ? `- 3 Yıllık Vizyon: ${businessContext.futureVision}` : ''}`
+    : '';
+
   const prompt = `Sen deneyimli bir marka danismanisin ve SEYTAN AVUKATI olarak gorev yapiyorsun. Bir baska strateji uzmani asagidaki marka konumlandirmasini onerdi. Senin gorevin bu stratejiyi ELESTIREL ve KANIT TABANLI gozle incelemek.
 
 ## Isletme Bilgileri
 - Isletme: ${normalizedData.businessName}
 - Sektor: ${normalizedData.sector}
-- Genel Profil: ${normalizedData.overallProfile}
+- Genel Profil: ${normalizedData.overallProfile}${maturityContext}${deepContext}
 
 ## Onerilen Strateji (Strateji Uzmani Ciktisi)
 - Arketip: ${strategistOutput.archetype}
@@ -76,6 +95,10 @@ ${researchFindings.sectorBenchmarks.map((b) => `- ${b}`).join('\n') || 'Bilgi yo
 - Hedef Kitle: ${targetAudienceSummary}${vpSummary}
 - Farklilik: ${strategistOutput.differentiator}
 - Rekabet Avantaji: ${strategistOutput.competitiveAdvantage}
+${strategistOutput.brandEnemy ? `- Marka Dusmani: ${strategistOutput.brandEnemy}` : ''}
+${strategistOutput.transformationStatement ? `- Donusum Ifadesi: ${strategistOutput.transformationStatement}` : ''}
+${strategistOutput.believeReject ? `- Inanislar: ${strategistOutput.believeReject.believe?.join('; ')}\n- Redler: ${strategistOutput.believeReject.reject?.join('; ')}` : ''}
+${strategistOutput.customerProblem ? `- Musteri Problemi (Dis): ${strategistOutput.customerProblem.external}\n- Musteri Problemi (Ic): ${strategistOutput.customerProblem.internal}\n- Musteri Problemi (Felsefi): ${strategistOutput.customerProblem.philosophical}` : ''}
 
 ## Normalize Edilmis Veri
 ### Tespit Edilen Oruntular
@@ -105,9 +128,18 @@ Yukaridaki stratejiyi elestirel gozle inceleyerek asagidaki JSON yapisinda bir k
   ],
   "riskAssessment": "Onerilen stratejinin uygulanmasi halinde ortaya cikabilecek SOMUT riskler. Hangi pazar kosulları, hangi rakip hamleleri, hangi tuketici davranisi degisikligi bu stratejiyi tehlikeye atabilir? (2-3 cumle)",
   "blindSpots": [
-    "KOR NOKTA 1: Arastirma verilerinde gozuken ama stratejistin GORMEZDEN GELDIGI trend veya tehdit. Ornek: 'Arastirma [trend X]'i gosteriyor, stratejist bunu hic ele almamis.'",
+    "KOR NOKTA 1: Arastirma verilerinde gozuken ama stratejistin GORMEZDEN GELDIGI trend veya tehdit.",
     "KOR NOKTA 2: Eksik birakilmis onemli bir faktor."
-  ]
+  ],
+  "onlynessTest": {
+    "statement": "${normalizedData.businessName}, [kategoride] [fark] sunan TEK markadir. — Stratejistin konumlandirmasini Neumeier Onlyness formatina cevir.",
+    "competitorSwaps": [
+      { "competitor": "Rakip 1 adi", "stillValid": true, "reason": "Bu cumle rakip icin de gecerli mi, neden?" },
+      { "competitor": "Rakip 2 adi", "stillValid": false, "reason": "..." }
+    ],
+    "verdict": "'strong' (hicbir rakip icin gecerli degil), 'weak' (1 rakip icin gecerli), 'generic' (cogu rakip icin gecerli — YENIDEN YAZILMALI)"
+  },
+  "distinctivenessScore": 75
 }
 
 KRITIK KURALLAR:
@@ -120,7 +152,15 @@ KRITIK KURALLAR:
 7. ${hasResearch ? 'Sektor arastirmasi bulgularini DOGRUDAN referans goster. Rakip isimlerini kullan.' : 'Sektor arastirmasi mevcut degil, genel sektor bilgini kullanarak somut elestiriler sun.'}
 8. Tum metinler TURKCE olmali.
 9. Sadece JSON don, baska bir sey yazma.
-10. GROUNDING KONTROLU: Her iddianda arastirma verisinde kanit olup olmadigini belirt. Arastirma verisinde dogrudan kaniti OLMAYAN bir iddia yapiyorsan, bunu ACIKCA isaretle: "(Sektor genel bilgisine dayali — arastirmada dogrudan kanit bulunamadi)". Bu sayede stratejist hangi elestirilerin DOGRULANMIS veriye, hangilerinin VARSAYIMA dayandigini bilir.`;
+10. GROUNDING KONTROLU: Her iddianda arastirma verisinde kanit olup olmadigini belirt. Arastirma verisinde dogrudan kaniti OLMAYAN bir iddia yapiyorsan, bunu ACIKCA isaretle: "(Sektor genel bilgisine dayali — arastirmada dogrudan kanit bulunamadi)". Bu sayede stratejist hangi elestirilerin DOGRULANMIS veriye, hangilerinin VARSAYIMA dayandigini bilir.
+11. OLGUNLUK KALIBRASYONU: ${maturity ? `Bu isletme "${maturity.level}" seviyesinde (${maturity.score}/12).` : 'Olgunluk verisi mevcut degil.'} Elestirini isletmenin bulundugu asamaya gore kalibre et:
+   - pre_brand (0-3): Stratejistin temel kimlik onerilerine odaklan. Fazla sofistike strateji onerildiyse bunu elestir — once temel logo, isim tutarliligi, renk paleti olusturulmali.
+   - emerging (4-6): Kimlik guclendirilmeli. Stratejist dijital varlik olmadan premium konumlanma oneriyorsa bunu sorgula.
+   - developing (7-9): Strateji optimizasyonuna odaklan. Alternatif konumlandirmalar SOMUT rakip aciklariyla desteklenmeli.
+   - mature (10-12): Buyume ve sadakat stratejilerini sorgula. Yeni pazar segmentleri, marka genislemesi riskleri.
+12. WHY KONTROLU: ${businessContext?.brandWhy ? `Isletmenin varolus amaci: "${businessContext.brandWhy}". Stratejistin onerisi bu WHY ile tutarli mi? Arketip ve ton bu amaci yansitıyor mu? Tutarsizlik varsa acikca belirt.` : 'Varolus amaci (WHY) bilgisi mevcut degil — stratejistin arketip seciminin temelsiz olma riskini belirt.'}
+13. MUSTERI ALGISI KONTROLU: ${businessContext?.customerPerception ? `Musteri gozunden gercek algi: "${businessContext.customerPerception}". Stratejistin onerisi ile gercek musteri algisi arasinda FARK var mi? Strateji musterinin zaten hissettigi degerleri guclendiriyor mu yoksa tamamen farkli bir yone mi gidiyor?` : 'Musteri algisi verisi yok — stratejistin onerisinin gercek musteri deneyimiyle dogrulanmadigini belirt.'}
+14. VIZYON UYUMU: ${businessContext?.futureVision ? `3 yillik vizyon: "${businessContext.futureVision}". Onerilen strateji bu vizyona giden yolda mi yoksa farkli bir rotada mi? Kisa vadeli strateji uzun vadeli vizyonla celisiyor mu?` : ''}`;
 
   const parsed = await generateJSON<ChallengerOutput>('pro', prompt, 'BrandChallenger', {
     temperature: 0.8,
@@ -142,5 +182,8 @@ KRITIK KURALLAR:
     blindSpots: Array.isArray(parsed.blindSpots) && parsed.blindSpots.length > 0
       ? parsed.blindSpots
       : ['Dijital donusum sureci yeterince ele alinmamis olabilir', 'Musteri deneyimi perspektifi guclendirilmeli'],
+    // Faz 3 — Onlyness testi + kalite
+    onlynessTest: parsed.onlynessTest || undefined,
+    distinctivenessScore: typeof parsed.distinctivenessScore === 'number' ? parsed.distinctivenessScore : undefined,
   };
 }

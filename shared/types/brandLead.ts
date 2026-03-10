@@ -303,6 +303,68 @@ export interface AIAnalysis {
   // Danışman giriş yorumu (rapor başı)
   consultantIntro?: string;
 
+  // Faz 2 — Stratejik derinlik çıktıları
+  brandNarrative?: {
+    elevatorPitch: string;
+    socialMediaBio: string;
+    brandStory: string;
+    brandManifesto?: string;
+  };
+  intibaEngagement?: {
+    recommendedServices: Array<{
+      service: string;
+      description: string;
+      priority: 'kritik' | 'onemli' | 'opsiyonel';
+      estimatedInvestment: string;
+    }>;
+    threeMonthRoadmap: string;
+    expectedOutcomes: string[];
+    clientReadinessNotes: string;
+  };
+  perceptualMap?: {
+    xAxis: { label: string; lowEnd: string; highEnd: string };
+    yAxis: { label: string; lowEnd: string; highEnd: string };
+    brandPosition: { x: number; y: number };
+    competitorPositions: Array<{ name: string; x: number; y: number }>;
+  };
+  brandMaturity?: {
+    level: 'pre_brand' | 'emerging' | 'developing' | 'mature';
+    score: number;
+    factors: { businessAge: number; brandAssets: number; digitalPresence: number; audienceSize: number };
+    reportFocus: string;
+  };
+
+  // Faz 3 — Yapaylıktan uzaklaşma çıktıları
+  strategicDepth?: {
+    customerProblem: { external: string; internal: string; philosophical: string };
+    transformationStatement: string;
+    brandEnemy: string;
+    weStandFor: string[];
+    weStandAgainst: string[];
+    valueLevel: 'commodity' | 'product' | 'service' | 'experience' | 'transformation';
+    valueLevelUpgrade: string;
+    culturalTension?: { expectation: string; reality: string; opportunity: string };
+  };
+  brandCharacter?: {
+    sliders: { friendAuthority: number; youngMature: number; playfulSerious: number; massElite: number };
+    behaviors: Array<{ value: string; do: string; dont: string; example: string }>;
+    weAreThis: string[];
+    weAreNotThis: string[];
+    dinnerPartyDescription: string;
+  };
+  qualityMetrics?: {
+    distinctivenessScore: number;
+    onlynessTest: { statement: string; competitorSwaps: Array<{ name: string; stillValid: boolean }> };
+    genericPhraseCount: number;
+  };
+
+  // Dijital varlık analizi
+  digitalPresence?: any;
+  // Rakip keşif analizi
+  competitorDiscovery?: any;
+  // Tüketici testi
+  consumerTest?: any;
+
   // Meta
   analyzedAt: Timestamp;
   analyzedBy: 'gemini' | 'gemini-2.0-flash' | 'gemini-multi-agent' | 'manual';

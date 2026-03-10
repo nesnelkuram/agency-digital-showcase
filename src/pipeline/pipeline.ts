@@ -20,6 +20,8 @@ export { runCompetitorDiscovery } from './agents/competitorDiscovery';
 export { runBrandStrategistRevision } from './agents/brandStrategistRevision';
 export { runConsumerTest } from './agents/consumerTest';
 export { fetchAndParseWebsite } from './utils/websiteFetcher';
+// Ensure sector enrichment modules are registered
+import './sectorEnrichment';
 export { startDeepResearch, pollDeepResearch } from './geminiClient';
 export { buildDeepResearchPrompt } from './agents/sectorResearch';
 export type { PipelineInput, NormalizedData, ResearchFindings, StrategistOutput, ChallengerOutput, BlogAdvisorOutput, SynthesizedAnalysis, DigitalPresenceAnalysis, CompetitorDiscoveryOutput, ConsumerTestOutput } from './types';
@@ -107,7 +109,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineState> 
     const [challResult, blogResult] = await Promise.all([
       runAgent<ChallengerOutput>(
         'brandChallenger',
-        () => runBrandChallenger(normalizedData, researchFindings, strategistOutput),
+        () => runBrandChallenger(normalizedData, researchFindings, strategistOutput, input.businessContext),
         state,
         false
       ),
@@ -199,6 +201,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineState> 
         dataFreshness: 'Veri mevcut degil',
         confidenceLevel: 'Dusuk — Sentez asamasi atlanmistir',
       },
+      consultantIntro: '',
       synthesisRationale: 'Sentez asamasi atlanmistir, stratejist ciktisi dogrudan kullanilmistir.',
     };
     state.errors.push({

@@ -255,18 +255,6 @@ export const hospitalityConfig: SectorQuestionConfig = {
         },
         {
           type: 'selection_list',
-          script: "Potansiyel misafiri nasıl ikna edersiniz?",
-          text: "İkna Yöntemi",
-          options: [
-            { id: 'social_proof', title: "Sosyal kanıt", desc: "Yorumlar, puanlar, ödüller, medya" },
-            { id: 'visual', title: "Görsel deneyim", desc: "Fotoğraf, video, sanal tur" },
-            { id: 'story', title: "Hikaye", desc: "Otelin hikayesi, bölgenin ruhu, yerel bağ" },
-            { id: 'guarantee', title: "Garanti", desc: "En iyi fiyat, iptal kolaylığı, memnuniyet garantisi" },
-            { id: 'exclusivity', title: "Ayrıcalık", desc: "Sınırlı kapasite, özel deneyimler, VIP muamele" },
-          ],
-        },
-        {
-          type: 'selection_list',
           script: "İletişim tonunuz?",
           text: "Ton",
           options: [

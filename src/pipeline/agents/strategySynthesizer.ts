@@ -1,5 +1,6 @@
 import { generateJSON } from '../geminiClient';
 import type { NormalizedData, ResearchFindings, StrategistOutput, ChallengerOutput, BlogAdvisorOutput, SynthesizedAnalysis, BusinessContextInput, DigitalPresenceAnalysis, CompetitorDiscoveryOutput } from '../types';
+import { getSectorEnrichment } from '../sectorEnrichment';
 
 export async function runStrategySynthesizer(
   normalizedData: NormalizedData,
@@ -116,6 +117,16 @@ ${blogAdvisorOutput.unconventionalInsights.map((i) => `  - ${i}`).join('\n')}`;
     }
   }
 
+  // Sector-specific data injection via enrichment module
+  let sectorSpecificContext = '';
+  const sectorEnrichment = getSectorEnrichment(normalizedData.sector);
+  if (sectorEnrichment && researchFindings) {
+    const sectorData = (researchFindings as any)[sectorEnrichment.dataFieldName];
+    if (sectorData) {
+      sectorSpecificContext = sectorEnrichment.formatForSynthesizer(sectorData);
+    }
+  }
+
   // Build digital presence context (if available)
   let digitalPresenceContext = '';
   if (digitalPresence) {
@@ -180,7 +191,20 @@ Dijital Benchmark: Web kalite ort. ${competitorDiscovery.digitalBenchmark.avgWeb
 - Aylik Butce: ${bc.monthlyBudget || 'Belirtilmedi'}
 - Isletme Asamasi: ${bc.businessStage || 'Belirtilmedi'}
 - Basvuru Nedeni: ${bc.triggerReason || 'Belirtilmedi'}
+${bc.brandWhy ? `- Varoluş Amacı (WHY): ${bc.brandWhy}` : ''}
+${bc.customerPerception ? `- Müşteri Algısı: ${bc.customerPerception}` : ''}
+${bc.existingBrandAssets ? `- Mevcut Marka Varlıkları: ${bc.existingBrandAssets}` : ''}
+${bc.futureVision ? `- 3 Yıllık Vizyon: ${bc.futureVision}` : ''}
 `
+    : '';
+
+  // Brand maturity context
+  const maturity = normalizedData.brandMaturity;
+  const maturityContext = maturity
+    ? `\n## Marka Olgunluk Seviyesi
+- Seviye: ${maturity.level} (${maturity.score}/12)
+- Rapor Odagi: ${maturity.reportFocus}
+- Faktorler: Is yasi=${maturity.factors.businessAge}, Marka varligi=${maturity.factors.brandAssets}, Dijital=${maturity.factors.digitalPresence}, Kitle=${maturity.factors.audienceSize}`
     : '';
 
   // Budget-calibrated action plan instructions
@@ -211,13 +235,13 @@ Dijital Benchmark: Web kalite ort. ${competitorDiscovery.digitalBenchmark.avgWeb
 - Genel Profil: ${normalizedData.overallProfile}
 - Veri Kalitesi: ${normalizedData.dataQualityScore}
 - Tespit Edilen Oruntular: ${normalizedData.detectedPatterns.join('; ') || 'Yok'}
-${businessContextSection}
+${businessContextSection}${maturityContext}
 ## Uzman Gorusleri
 ${strategistSummary}
 ${competitiveMapSummary}
 ${challengerSummary}
 ${blogAdvisorSummary}
-${researchContext}
+${researchContext}${sectorSpecificContext}
 ${digitalPresenceContext}
 ${competitorDiscoveryContext}
 
@@ -330,7 +354,66 @@ Tum verileri sentezleyerek asagidaki JSON yapisinda NIHAI marka stratejisi rapor
     "dataFreshness": "Ocak 2025 web arama verileri",
     "confidenceLevel": "${sourceCount > 5 ? 'Yuksek' : sourceCount > 0 ? 'Orta' : 'Dusuk'} — ${sourceCount} kaynak kullanildi"
   },
-  "synthesisRationale": "Bu sentezin NEDEN bu sekilde yapildiginin aciklamasi. Hangi uzman gorusleri benimsendi, hangileri reddedildi ve NEDEN? SOMUT referanslarla. (3-5 cumle)"
+  "synthesisRationale": "Bu sentezin NEDEN bu sekilde yapildiginin aciklamasi. Hangi uzman gorusleri benimsendi, hangileri reddedildi ve NEDEN? SOMUT referanslarla. (3-5 cumle)",
+  "brandNarrative": {
+    "elevatorPitch": "30 saniyelik tanitim metni. Birisi 'ne is yapiyorsunuz?' dediginde soylenmesi gereken 2-3 cumle. Dogal, ezbere degil, akilda kalici.",
+    "socialMediaBio": "Instagram/LinkedIn bio metni. Max 150 karakter. Emoji kullanilabilir. Marka tonuna uygun.",
+    "brandStory": "Marka hikayesi ozeti (about us sayfasi icin). 3-5 cumle. Kurucunun motivasyonu, markanin vaadi ve farki. Samimi ama profesyonel."
+  },
+  "intibaEngagement": {
+    "recommendedServices": [
+      {
+        "service": "Hizmet adi (orn: Marka Kimlik Tasarimi, Sosyal Medya Yonetimi, Icerik Uretimi, Web Sitesi, SEO, Performans Reklam)",
+        "description": "Neden bu hizmet bu isletme icin gerekli? 1-2 cumle, SOMUT gerekce.",
+        "priority": "kritik/onemli/opsiyonel",
+        "estimatedInvestment": "Tahmini aylik/proje bazli yatirim araligi (TL). Musterinin butcesiyle UYUMLU olmali."
+      }
+    ],
+    "threeMonthRoadmap": "3 aylik yol haritasinda Intiba'nin rolu: Ay 1'de ne yapilir, Ay 2'de ne yapilir, Ay 3'te ne yapilir. SOMUT ciktilarla. (3-5 cumle)",
+    "expectedOutcomes": ["3 ay sonunda beklenen OLCULEBILIR sonuclar — orn: 'Instagram takipci sayisi %50 artis', 'Web sitesi trafigi 2x'"],
+    "clientReadinessNotes": "Musterinin hazirlik durumu hakkinda notlar. Operasyonel kapasite, dijital olgunluk, ekip ihtiyaci gibi konularda dikkat edilmesi gerekenler. (2-3 cumle)"
+  },
+  "perceptualMap": {
+    "xAxis": { "label": "Birinci eksen etiketi (orn: Fiyat)", "lowEnd": "Dusuk uc (orn: Ekonomik)", "highEnd": "Yuksek uc (orn: Premium)" },
+    "yAxis": { "label": "Ikinci eksen etiketi (orn: Deneyim)", "lowEnd": "Dusuk uc (orn: Fonksiyonel)", "highEnd": "Yuksek uc (orn: Deneyimsel)" },
+    "brandPosition": { "x": 0, "y": 0 },
+    "competitorPositions": [{ "name": "Rakip adi", "x": 0, "y": 0 }]
+  },
+  "strategicDepth": {
+    "customerProblem": {
+      "external": "Musterinin yuzeysel, somut sorunu",
+      "internal": "Bu sorunun yarattigi duygu (bunalmis, sinirli, guvensiz...)",
+      "philosophical": "'Bu boyle olmamali' — ahlaki boyut"
+    },
+    "transformationStatement": "Musterimiz [X]'dan [Y]'a gecer — MAX 12 KELIME",
+    "brandEnemy": "Markanin KARSI DURDUGU guc/aliskanlik/statukonun parcasi (rakip ismi DEGIL)",
+    "weStandFor": ["'Inaniyoruz ki...' — 3 adet cesur, spesifik ilke"],
+    "weStandAgainst": ["'Reddediyoruz...' — 3 adet. 'Kotu hizmet' gibi bos laf YASAK"],
+    "valueLevel": "commodity/product/service/experience/transformation",
+    "valueLevelUpgrade": "Bir ust basamaga cikmak icin SOMUT oneri. Orn: 'Urun satmaktan deneyim satmaya gecmek icin showroom'u interaktif deneyim alanina donusturun'",
+    "culturalTension": {
+      "expectation": "Toplumun/sektorun normatif beklentisi",
+      "reality": "Insanlarin gercekte yasadigi",
+      "opportunity": "Bu gerilimi cozen marka firsati"
+    }
+  },
+  "brandCharacter": {
+    "sliders": { "friendAuthority": 65, "youngMature": 40, "playfulSerious": 55, "massElite": 70 },
+    "behaviors": [
+      { "value": "Deger adi", "do": "Bu degerin gozlemlenebilir davranisi", "dont": "Bu degerin ANTI-davranisi (biz bunu YAPMAYIZ)", "example": "Somut durum ornegi" }
+    ],
+    "weAreThis": ["'Biz buyuz' — 3-4 adet DAVRANISSAL tanimla, tek kelime sifat YASAK"],
+    "weAreNotThis": ["'Biz bu degiliz' — 3-4 adet. Negatif tanim pozitiften daha guclu farklilik yaratir"],
+    "dinnerPartyDescription": "Eger bu marka bir insan olsaydi, bir aksam yemeginde nasil konusurdu? 2-3 cumle ile CANLANDIR. Giyim tarzi, konusma uslubi, dinleyenlerdeki izlenim."
+  },
+  "qualityMetrics": {
+    "distinctivenessScore": 75,
+    "onlynessTest": {
+      "statement": "[Marka] [kategoride] [fark] sunan TEK markadir",
+      "competitorSwaps": [{ "name": "Rakip", "stillValid": false }]
+    },
+    "genericPhraseCount": 0
+  }
 }
 
 KRITIK KURALLAR — BU KURALLARA UYMAYAN RAPOR BASARISIZ SAYILIR:
@@ -368,7 +451,25 @@ KRITIK KURALLAR — BU KURALLARA UYMAYAN RAPOR BASARISIZ SAYILIR:
 9. Tum metinler TURKCE olmali.
 10. Sadece JSON don, baska bir sey yazma.
 
-${budgetCalibration}${stageCalibration}${digitalCalibration}${triggerCalibration}`;
+${budgetCalibration}${stageCalibration}${digitalCalibration}${triggerCalibration}
+${maturity ? `
+16. MARKA OLGUNLUK KALIBRASYONU: Isletme "${maturity.level}" seviyesinde (${maturity.score}/12). Rapor odagi: "${maturity.reportFocus}".
+${maturity.level === 'pre_brand' ? '- PRE-BRAND ise: brandNarrative cok onemli (kimlik olusturma), contentStrategy ve hashtags BASIT tut, intibaEngagement\'da "Marka Kimlik Tasarimi" birinci oncelik.' : ''}
+${maturity.level === 'emerging' ? '- EMERGING ise: kimlik guclendirme + dijital varlik olusturma. intibaEngagement\'da "Web Sitesi" ve "Sosyal Medya" birinci oncelik.' : ''}
+${maturity.level === 'developing' ? '- DEVELOPING ise: strateji optimizasyonu, mevcut kanallari iyilestirme. intibaEngagement\'da "Icerik Uretimi" ve "Performans Reklam" birinci oncelik.' : ''}
+${maturity.level === 'mature' ? '- MATURE ise: buyume stratejisi, topluluk olusturma, marka genisletme. intibaEngagement\'da "Marka Stratejisi Danismanligi" ve "Komunite Yonetimi" birinci oncelik.' : ''}` : ''}
+
+17. INTIBA ENGAGEMENT: "intibaEngagement" bolumu bu raporun TICARI DONUSUM noktasidir. Musteri bu bolumu okudigunda "Intiba ile calismak istiyorum" demeli. recommendedServices EN AZ 3, EN FAZLA 6 hizmet icermeli. Her hizmetin estimatedInvestment alani musterinin belirttiegi butceyle UYUMLU olmali.
+
+18. BRAND NARRATIVE: "brandNarrative" bolumunde elevatorPitch DOGAL olmali, ezber gibi olmasin. socialMediaBio MAX 150 karakter. brandStory "hakkimizda" sayfasina konulabilecek kalitede.${bc?.brandWhy ? ` Musterinin belirttigi varolus amaci: "${bc.brandWhy}" — bunu narrative'in TEMELINDE kullan.` : ''}
+
+19. PERCEPTUAL MAP: "perceptualMap" icin sektore UYGUN 2 eksen sec (orn: gastronomi icin "Fiyat vs Deneyim", tech icin "Karmasiklik vs Fiyat"). brandPosition ve competitorPositions -5 ile +5 arasinda SOMUT degerler. Arastirmada bulunan EN AZ 3 rakibi haritaya yerlestir.
+
+20. STRATEJIK DERINLIK (strategicDepth): Stratejistin ciktisindaki customerProblem, transformationStatement, brandEnemy, believeReject ve valueLevel verilerini rafine et ve strategicDepth bolumune yerlestir. valueLevelUpgrade alaninda isletmenin deger merdiveninde bir ust basamaga nasil cikacagini SOMUT oner. culturalTension varsa sektore ozgu kulturel gerilimi ekle.
+
+21. MARKA KARAKTERI (brandCharacter): Arketip etiketi KULLANMA. Onun yerine "dinnerPartyDescription" ile markayı bir aksam yemeginde nasil konusacak biri olarak CANLANDIR. behaviors dizisinde her deger icin YAPILACAK davranis + YAPILMAYACAK davranis + SOMUT ornek yaz. weAreThis/weAreNotThis ciftleri SPESIFIK olmali — "Kaliteli" degil "Her detayi dusunmus ama bunu gostermeden yapan" gibi.
+
+22. KALITE METRIKLERI (qualityMetrics): distinctivenessScore 0-100 arasi (challenger'in onlyness testinden turet). onlynessTest'te konumlandirma ifadesini Neumeier formatina cevir ve en az 2 rakiple swap testi yap. genericPhraseCount'ta rapordaki jenerik ifade sayisini say (0 = mukemmel).`;
 
   const parsed = await generateJSON<SynthesizedAnalysis>('pro', prompt, 'StrategySynthesizer', {
     temperature: 0.6,
@@ -472,5 +573,68 @@ ${budgetCalibration}${stageCalibration}${digitalCalibration}${triggerCalibration
       ? `Strateji uzmaninin ${strategistOutput.archetype} arketip onerisi ile seytan avukatinin ${challengerOutput.alternativeArchetype} alternatifi degerlendirilmistir.`
       : `Strateji uzmaninin ${strategistOutput.archetype} arketip onerisi rafine edilerek nihai strateji olusturulmustur.`
     ),
+    // Faz 2 — New strategic depth outputs
+    brandNarrative: parsed.brandNarrative && parsed.brandNarrative.elevatorPitch
+      ? {
+          elevatorPitch: parsed.brandNarrative.elevatorPitch,
+          socialMediaBio: parsed.brandNarrative.socialMediaBio || '',
+          brandStory: parsed.brandNarrative.brandStory || '',
+          brandManifesto: parsed.brandNarrative.brandManifesto,
+        }
+      : undefined,
+    intibaEngagement: parsed.intibaEngagement && Array.isArray(parsed.intibaEngagement.recommendedServices)
+      ? {
+          recommendedServices: parsed.intibaEngagement.recommendedServices.map((s: any) => ({
+            service: s.service || '',
+            description: s.description || '',
+            priority: s.priority || 'onemli',
+            estimatedInvestment: s.estimatedInvestment || '',
+          })),
+          threeMonthRoadmap: parsed.intibaEngagement.threeMonthRoadmap || '',
+          expectedOutcomes: Array.isArray(parsed.intibaEngagement.expectedOutcomes)
+            ? parsed.intibaEngagement.expectedOutcomes
+            : [],
+          clientReadinessNotes: parsed.intibaEngagement.clientReadinessNotes || '',
+        }
+      : undefined,
+    perceptualMap: parsed.perceptualMap && parsed.perceptualMap.xAxis
+      ? {
+          xAxis: parsed.perceptualMap.xAxis,
+          yAxis: parsed.perceptualMap.yAxis,
+          brandPosition: parsed.perceptualMap.brandPosition || { x: 0, y: 0 },
+          competitorPositions: Array.isArray(parsed.perceptualMap.competitorPositions)
+            ? parsed.perceptualMap.competitorPositions
+            : [],
+        }
+      : undefined,
+    // Faz 3 — Yapaylıktan uzaklaşma çıktıları
+    strategicDepth: parsed.strategicDepth && parsed.strategicDepth.customerProblem
+      ? {
+          customerProblem: parsed.strategicDepth.customerProblem,
+          transformationStatement: parsed.strategicDepth.transformationStatement || '',
+          brandEnemy: parsed.strategicDepth.brandEnemy || strategistOutput.brandEnemy || '',
+          weStandFor: Array.isArray(parsed.strategicDepth.weStandFor) ? parsed.strategicDepth.weStandFor : (strategistOutput.believeReject?.believe || []),
+          weStandAgainst: Array.isArray(parsed.strategicDepth.weStandAgainst) ? parsed.strategicDepth.weStandAgainst : (strategistOutput.believeReject?.reject || []),
+          valueLevel: parsed.strategicDepth.valueLevel || strategistOutput.valueLevel || 'service',
+          valueLevelUpgrade: parsed.strategicDepth.valueLevelUpgrade || '',
+          culturalTension: parsed.strategicDepth.culturalTension || undefined,
+        }
+      : undefined,
+    brandCharacter: parsed.brandCharacter && parsed.brandCharacter.dinnerPartyDescription
+      ? {
+          sliders: parsed.brandCharacter.sliders || strategistOutput.personalitySliders || { friendAuthority: 50, youngMature: 50, playfulSerious: 50, massElite: 50 },
+          behaviors: Array.isArray(parsed.brandCharacter.behaviors) ? parsed.brandCharacter.behaviors : [],
+          weAreThis: Array.isArray(parsed.brandCharacter.weAreThis) ? parsed.brandCharacter.weAreThis : [],
+          weAreNotThis: Array.isArray(parsed.brandCharacter.weAreNotThis) ? parsed.brandCharacter.weAreNotThis : [],
+          dinnerPartyDescription: parsed.brandCharacter.dinnerPartyDescription,
+        }
+      : undefined,
+    qualityMetrics: parsed.qualityMetrics
+      ? {
+          distinctivenessScore: typeof parsed.qualityMetrics.distinctivenessScore === 'number' ? parsed.qualityMetrics.distinctivenessScore : (challengerOutput?.distinctivenessScore || 50),
+          onlynessTest: parsed.qualityMetrics.onlynessTest || (challengerOutput?.onlynessTest ? { statement: challengerOutput.onlynessTest.statement, competitorSwaps: challengerOutput.onlynessTest.competitorSwaps.map((s) => ({ name: s.competitor, stillValid: s.stillValid })) } : { statement: '', competitorSwaps: [] }),
+          genericPhraseCount: typeof parsed.qualityMetrics.genericPhraseCount === 'number' ? parsed.qualityMetrics.genericPhraseCount : 0,
+        }
+      : undefined,
   };
 }

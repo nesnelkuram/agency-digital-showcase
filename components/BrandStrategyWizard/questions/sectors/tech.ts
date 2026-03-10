@@ -268,19 +268,6 @@ export const techConfig: SectorQuestionConfig = {
         },
         {
           type: 'selection_list',
-          script: "Potansiyel kullanıcıyı nasıl ikna edersiniz?",
-          text: "İkna Yöntemi",
-          options: [
-            { id: 'data', title: "Veriyle", desc: "Metrikler, benchmarklar, ROI hesabı" },
-            { id: 'social_proof', title: "Sosyal kanıtla", desc: "Müşteri hikayeleri, logo wall, case study'ler" },
-            { id: 'product_led', title: "Ürünle", desc: "Freemium, free trial — ürün kendi kendini satıyor" },
-            { id: 'vision', title: "Vizyonla", desc: "Büyük resim, gelecek vaadi, misyon" },
-            { id: 'other', title: "Diğer (Belirtin)" }
-          ],
-          placeholder: "İkna yönteminizi açıklayın"
-        },
-        {
-          type: 'selection_list',
           script: "İletişim tonunuz nasıl?",
           text: "İletişim Tonu",
           options: [
