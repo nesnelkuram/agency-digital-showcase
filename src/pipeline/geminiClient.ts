@@ -175,7 +175,10 @@ export async function pollDeepResearch(
     try {
       const result = await client.interactions.get(interactionId);
       const status = result.status;
-      console.log(`DeepResearch: poll status=${status}`);
+      const steps = (result as any).steps || (result as any).progress?.steps || [];
+      const outputCount = (result.outputs || []).length;
+      const partialChars = (result.outputs || []).reduce((sum: number, o: any) => sum + (o.text?.length || 0), 0);
+      console.log(`DeepResearch: poll status=${status}, steps=${steps.length || 'N/A'}, outputs=${outputCount}, partialChars=${partialChars}, keys=${Object.keys(result).join(',')}`);
 
       if (status === 'completed') {
         const outputs: any[] = result.outputs || [];

@@ -1,5 +1,6 @@
 import { runDeepResearch, pollDeepResearch, startDeepResearch, generateGroundedText, generateJSON } from '../geminiClient';
 import type { PipelineInput, ResearchFindings, BusinessContextInput } from '../types';
+import { getSectorEnrichment } from '../sectorEnrichment';
 
 export interface SectorResearchOptions {
   drInteractionId?: string;  // pre-started DR interaction to poll
@@ -45,7 +46,14 @@ export function buildDeepResearchPrompt(businessName: string, sector: string, bu
     ? `\nHedef Pazar: ${businessContext.geoScope}`
     : '';
 
-  return `Sen bir sektor arastirmacisisin. Asagidaki marka hakkinda KAPSAMLI ve URUN BAZLI bir arastirma yap.
+  // Check for sector-specific enrichment module
+  const enrichment = getSectorEnrichment(sector);
+  const t = enrichment?.terminologyOverrides;
+
+  // Sector-specific extra steps (ADIM 6+)
+  const extraSteps = enrichment?.deepResearchSteps?.replace(/\$BUSINESS_NAME/g, businessName) || '';
+
+  return `Sen bir sektor arastirmacisisin. Asagidaki marka hakkinda KAPSAMLI ve ${t?.researchType || 'URUN BAZLI'} bir arastirma yap.
 
 Marka: ${businessName}
 Sektor: ${sector}${descLine}${competitorLine}${geoLine}
@@ -54,67 +62,90 @@ ARASTIRMA ADIMLARI (sirayla uygula):
 
 ADIM 1 — MARKANIN KENDISI:
 - "${businessName}" web sitesini bul ve ziyaret et.${businessContext?.businessDescription ? `\n- Musterinin kendi tanimi: "${businessContext.businessDescription}" — bu bilgiyi arastirmani yonlendirmek icin kullan.` : ''}
-- Hangi URUN ve HIZMETLERI sunuyor? Her birini listele.
-- Fiyat araliklari nedir? (mumkunse gercek fiyatlar)
-- Kendini nasil konumlandiriyor? (ucuz/orta/premium)
+- ${t?.productLabel || 'Hangi URUN ve HIZMETLERI sunuyor? Her birini listele.'}
+- Fiyat araliklari nedir? (mumkunse gercek fiyatlar${t?.priceDetail || ''})
+- Kendini nasil konumlandiriyor? (${t?.positioningExamples || 'ucuz/orta/premium'})
 - Alt markalari varsa her birini ayri ayri incele.
 
-ADIM 2 — URUN BAZLI RAKIP ANALIZI:${businessContext?.competitors ? `\n- Musterinin bildirdigi rakipler: ${businessContext.competitors} — BUNLARI ONCELIKLI olarak arastir.` : ''}
-- Adim 1'de buldugun HER urun/hizmet kategorisi icin dogrudan rakipleri arastir.
-- Ornek: Eger marka "findik kremasi" satiyorsa → "findik kremasi markalari Turkiye" ara.
+ADIM 2 — ${t?.competitorAnalysisLabel || 'URUN BAZLI RAKIP ANALIZI'}:${businessContext?.competitors ? `\n- Musterinin bildirdigi rakipler: ${businessContext.competitors} — BUNLARI ONCELIKLI olarak arastir.` : ''}
+- ${t ? (t.competitorSearchExample.includes('Ornek') ? t.competitorSearchExample : `Adim 1'de buldugun HER urun/hizmet kategorisi icin dogrudan rakipleri arastir.\n- ${t.competitorSearchExample}`) : "Adim 1'de buldugun HER urun/hizmet kategorisi icin dogrudan rakipleri arastir.\n- Ornek: Eger marka \"findik kremasi\" satiyorsa → \"findik kremasi markalari Turkiye\" ara."}
 - Her rakibin web sitesini ziyaret et.
-- Rakip urun fiyatlarini karsilastir.
-- Her rakibin guclu ve zayif yanlarini belirle (somut: urun cesitliligi, dagitim agi, fiyat, kalite algisi).
+- ${t?.competitorMetrics || 'Rakip urun fiyatlarini karsilastir.'}
+- Her rakibin guclu ve zayif yanlarini belirle (somut: ${t?.competitorStrengthsContext || 'urun cesitliligi, dagitim agi, fiyat, kalite algisi'}).
 - EN AZ 4, EN FAZLA 8 rakip bul.
 
 ADIM 3 — PAZAR VERILERI:
-- Bu URUN KATEGORISININ (genel sektor degil, spesifik urun!) Turkiye'deki pazar buyuklugu.${businessContext?.geoScope ? `\n- Musteri hedef pazari: ${businessContext.geoScope} — pazar verilerini BU COGRAFYAYA odakla.` : ''}
+- ${t?.marketDataFocus || "Bu URUN KATEGORISININ (genel sektor degil, spesifik urun!) Turkiye'deki pazar buyuklugu."}${businessContext?.geoScope ? `\n- Musteri hedef pazari: ${businessContext.geoScope} — pazar verilerini BU COGRAFYAYA odakla.` : ''}
 - Yillik buyume orani veya trend yonu.
 - Tuketici davranislari: Kim aliyor, nasil aliyor, ne siklikla aliyor.
 - Fiyat hassasiyeti: Tuketiciler fiyat icin marka degistirir mi?
 
 ADIM 4 — HEDEF KITLE PROFILI:
-- Bu urunleri gercekte kimler satin aliyor?
-- Yas araligi, gelir duzeyi, yasadiklari sehirler.
-- Satin alma motivasyonlari (fiyat, kalite, marka, organik/dogal icerikleri vb.).
-- Hangi kanallarda alisveris yapiyorlar (market, online, organik dukkan vb.).
+- ${t?.audienceLabel || 'Bu urunleri gercekte kimler satin aliyor?'}
+${t?.audienceDetails?.map(d => `- ${d}`).join('\n') || '- Yas araligi, gelir duzeyi, yasadiklari sehirler.\n- Satin alma motivasyonlari (fiyat, kalite, marka, organik/dogal icerikleri vb.).\n- Hangi kanallarda alisveris yapiyorlar (market, online, organik dukkan vb.).'}
 
 ADIM 5 — DIJITAL VARLIK ANALIZI:
 - "${businessName}" Instagram hesabini bul ve analiz et.${businessContext?.instagramHandle ? `\n  - Instagram kullanici adi: ${businessContext.instagramHandle}` : ''}
   - Paylasim sikligi, icerik temalari, gorsel tarzi, takipci sayisi tahmini.
-  - Son gonderilerdeki yorumlara bak — musteriler ne diyor?
+  - Son gonderilerdeki yorumlara bak — ${t?.customerTerm || 'musteriler'} ne diyor?
   - Icerik karmasi: foto, video, Reel, carousel oranlarini tahmin et.
 - "${businessName}" web sitesini UX acisindan degerlendir:${businessContext?.websiteUrl ? `\n  - Web sitesi: ${businessContext.websiteUrl}` : ''}
-  - Urun cesitliligi, fiyat gosterimi, mobil uyumluluk.
+  - ${t?.websiteAnalysisFocus || 'Urun cesitliligi, fiyat gosterimi, mobil uyumluluk.'}
   - Hangi CTA'lar var, guveni artiran unsurlar neler?
   - Genel tasarim kalitesi ve profesyonellik.
-- Rakiplerin Instagram ve web sitelerini de kiyasla — hangisi dijitalde daha guclu?
+- Rakiplerin Instagram ve web sitelerini de kiyasla — hangisi dijitalde daha guclu?${extraSteps}
 
 SONUCLARI DETAYLI OLARAK TURKCE YAZ. Her bilginin kaynagini belirt.`;
 }
 
-// --- Grounding-based fallback (3 parallel searches) ---
+// --- Grounding-based fallback ---
 async function runGroundingFallback(businessName: string, sector: string) {
   const today = new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
   const dateRule = `\n\nONEMLI: Bugun ${today} tarihidir. SADECE 2025-2026 yilina ait GUNCEL verileri ara. 2024 ve oncesi veriler YETERSIZDIR — daha guncel kaynak bul. Resmi kurum raporlari (TUIK, TMO, sanayi birlikleri, ihracatci birlikleri) ONCELIKLI kaynaktir.`;
 
-  const competitorPrompt = `Sen bir sektor arastirmacisisin. ${sector} sektorunde Turkiye'de faaliyet gosteren ve "${businessName}" ile ayni segmentte rekabet eden markalari arastir. Her rakip icin gercek marka adi, web sitesi, konumlandirma, guclu/zayif yanlar, tahmini olcek bul. EN AZ 3, EN FAZLA 7 rakip. Turkce yaz.${dateRule}`;
-  const marketPrompt = `Sen bir pazar arastirmacisisin. ${sector} sektoru icin Turkiye pazar buyuklugu, buyume hizi, tuketici profili, satin alma davranislari, dijital trendler arastir. Somut rakamlar ver. Turkce yaz.${dateRule}`;
-  const trendPrompt = `${sector} sektoru ${businessName} icin firsatlar, tehditler, sektor standartlari, benchmark metrikler arastir. Turkce yaz.${dateRule}`;
+  const enrichment = getSectorEnrichment(sector);
 
-  const [competitorRes, marketRes, trendRes] = await Promise.all([
+  // Use sector-specific prompts if available, otherwise generic
+  const competitorPrompt = enrichment
+    ? enrichment.groundingPromptOverrides.competitor(businessName, dateRule)
+    : `Sen bir sektor arastirmacisisin. ${sector} sektorunde Turkiye'de faaliyet gosteren ve "${businessName}" ile ayni segmentte rekabet eden markalari arastir. Her rakip icin gercek marka adi, web sitesi, konumlandirma, guclu/zayif yanlar, tahmini olcek bul. EN AZ 3, EN FAZLA 7 rakip. Turkce yaz.${dateRule}`;
+
+  const marketPrompt = enrichment
+    ? enrichment.groundingPromptOverrides.market(businessName, dateRule)
+    : `Sen bir pazar arastirmacisisin. ${sector} sektoru icin Turkiye pazar buyuklugu, buyume hizi, tuketici profili, satin alma davranislari, dijital trendler arastir. Somut rakamlar ver. Turkce yaz.${dateRule}`;
+
+  const trendPrompt = enrichment
+    ? enrichment.groundingPromptOverrides.trend(businessName, dateRule)
+    : `${sector} sektoru ${businessName} icin firsatlar, tehditler, sektor standartlari, benchmark metrikler arastir. Turkce yaz.${dateRule}`;
+
+  // Extra grounding queries from sector module
+  const extraQueryDefs = enrichment?.extraGroundingQueries(businessName, dateRule) || [];
+  const extraQueries = extraQueryDefs.map(q =>
+    generateGroundedText(q.prompt, q.label, { maxOutputTokens: 8192 })
+  );
+
+  const [competitorRes, marketRes, trendRes, ...extraResults] = await Promise.all([
     generateGroundedText(competitorPrompt, 'SectorResearch-Competitors', { maxOutputTokens: 8192 }),
     generateGroundedText(marketPrompt, 'SectorResearch-Market', { maxOutputTokens: 8192 }),
     generateGroundedText(trendPrompt, 'SectorResearch-Trends', { maxOutputTokens: 8192 }),
+    ...extraQueries,
   ]);
 
   let allSourceUrls: Array<{ title: string; url: string }> = [];
   let allSearchQueries: string[] = [];
   let sourcesUsed = 0;
 
-  const allGroundedText = `## RAKIP ANALIZI\n${competitorRes.text}\n\n## PAZAR VE HEDEF KITLE\n${marketRes.text}\n\n## TRENDLER VE FIRSATLAR\n${trendRes.text}`;
+  // Build grounded text with extra sections
+  let extraSections = '';
+  if (extraResults.length > 0 && extraQueryDefs.length > 0) {
+    extraSections = extraResults.map((res, i) => {
+      const label = extraQueryDefs[i]?.label?.replace('SectorResearch-', '') || `Extra-${i + 1}`;
+      return `\n\n## ${label.toUpperCase()}\n${res?.text || ''}`;
+    }).join('');
+  }
+  const allGroundedText = `## RAKIP ANALIZI\n${competitorRes.text}\n\n## PAZAR VE HEDEF KITLE\n${marketRes.text}\n\n## TRENDLER VE FIRSATLAR\n${trendRes.text}${extraSections}`;
 
-  for (const res of [competitorRes, marketRes, trendRes]) {
+  for (const res of [competitorRes, marketRes, trendRes, ...extraResults]) {
     if (res.groundingMetadata) {
       for (const chunk of res.groundingMetadata.groundingChunks) {
         if (chunk.web?.uri) {
@@ -223,6 +254,7 @@ export async function runSectorResearch(
     allSourceUrls,
     allSearchQueries,
     researchMethod === 'deep-research' ? -1 : sourcesUsed,
+    sector,
   );
 }
 
@@ -232,11 +264,19 @@ export async function extractResearchJSON(
   sourceUrls: Array<{ title: string; url: string }> = [],
   searchQueries: string[] = [],
   sourcesUsedCount: number = 0,
+  sector?: string,
 ): Promise<ResearchFindings> {
   if (!researchText || researchText.length < 100) {
     console.log(`extractResearchJSON: Insufficient text (${researchText?.length || 0} chars), returning empty`);
     return { ...EMPTY_RESEARCH, searchQueries, sourcesUsed: sourcesUsedCount, sourceUrls, rawSnippets: [researchText?.slice(0, 10000) || ''] };
   }
+
+  // Get sector-specific enrichment for extraction
+  const enrichment = sector ? getSectorEnrichment(sector) : null;
+  const t = enrichment?.terminologyOverrides;
+
+  const sectorSchemaFragment = enrichment?.extractionSchemaFragment || '';
+  const sectorExtractionRules = enrichment?.extractionRules || '';
 
   const extractionPrompt = `Asagidaki arastirma metnini analiz ederek JSON yapisinda yapilandir.
 ONEMLI: Metinde gecen TUM somut bilgileri koru. Bilgi UYDURMADAN sadece metinde olan bilgileri yapilandir.
@@ -251,12 +291,12 @@ JSON yapisi:
 {
   "competitors": [
     {
-      "name": "Gercek marka adi",
+      "name": "Gercek ${t ? (sector === 'hospitality' ? 'otel' : sector === 'gastronomi' ? 'restoran' : 'marka') : 'marka'} adi",
       "website": "Web sitesi URL'si",
       "positioning": "Pazar konumlandirmasi ve fiyat segmenti",
       "strengths": ["Guclu yan 1", "Guclu yan 2"],
       "weaknesses": ["Zayif yan 1"],
-      "estimatedScale": "Olcek bilgisi (sube, calisan, ciro)",
+      "estimatedScale": "Olcek bilgisi",
       "socialPresence": "Sosyal medya bilgisi",
       "sourceSnippet": "Bu bilginin kaynagi"
     }
@@ -276,7 +316,7 @@ JSON yapisi:
   },
   "opportunities": ["Firsat 1", "Firsat 2"],
   "threats": ["Tehdit 1", "Tehdit 2"],
-  "sectorBenchmarks": ["Benchmark 1"]
+  "sectorBenchmarks": ["Benchmark 1"]${sectorSchemaFragment}
 }
 
 KURALLAR:
@@ -284,7 +324,7 @@ KURALLAR:
 2. Urun bazli rakip bilgileri oncelikli (sadece sektor degil, spesifik urun kategorisi).
 3. Metinde olmayan bilgiyi UYDURMADAN "Veri bulunamadi" yaz.
 4. Tum metinler TURKCE.
-5. Sadece JSON don.`;
+5. Sadece JSON don.${sectorExtractionRules}`;
 
   try {
     type ResearchJSON = Omit<ResearchFindings, 'searchQueries' | 'sourcesUsed' | 'sourceUrls' | 'rawSnippets'>;
@@ -292,6 +332,10 @@ KURALLAR:
       temperature: 0.5,
       maxOutputTokens: 8192,
     });
+
+    // Extract sector-specific data field
+    const sectorDataField = enrichment?.dataFieldName;
+    const sectorData = sectorDataField ? (parsed as any)[sectorDataField] : undefined;
 
     return {
       competitors: Array.isArray(parsed.competitors) ? parsed.competitors.map((c) => ({
@@ -324,6 +368,7 @@ KURALLAR:
       sourcesUsed: sourcesUsedCount,
       sourceUrls,
       rawSnippets: [researchText.slice(0, 10000)],
+      ...(sectorDataField && sectorData ? { [sectorDataField]: sectorData } : {}),
     };
   } catch (error) {
     console.error('extractResearchJSON: JSON extraction failed:', error);

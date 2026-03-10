@@ -471,6 +471,24 @@ service cloud.firestore {
     }
 
     // =============================================
+    // Filing counters — auto-increment proje numarası
+    // Document ID = tenantId
+    // =============================================
+    match /filing_counters/{tenantId} {
+      allow read: if isSuperAdmin() || (isAuthenticated() && getUserTenantId() == tenantId);
+      allow write: if isSuperAdmin() || (isAuthenticated() && getUserTenantId() == tenantId);
+    }
+
+    // =============================================
+    // Filing config — tenant-level dosyalama ayarları (app seeds vb.)
+    // Document ID = tenantId
+    // =============================================
+    match /filing_config/{tenantId} {
+      allow read: if isSuperAdmin() || (isAuthenticated() && getUserTenantId() == tenantId);
+      allow write: if isSuperAdmin() || (isAuthenticated() && getUserTenantId() == tenantId);
+    }
+
+    // =============================================
     // Marketing AI agent sessions
     // =============================================
     match /marketing_agent_sessions/{sessionId} {

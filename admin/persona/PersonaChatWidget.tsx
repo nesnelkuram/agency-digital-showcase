@@ -1,7 +1,14 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, Loader2, Bot } from 'lucide-react';
+import { getAuth } from 'firebase/auth';
 import PersonaMessageBubble from './PersonaMessageBubble';
 import PersonaSuggestedQuestions from './PersonaSuggestedQuestions';
+
+const getAuthToken = async (): Promise<string> => {
+  const user = getAuth().currentUser;
+  if (!user) throw new Error('Oturum açılmamış');
+  return user.getIdToken();
+};
 
 type FeedbackType = 'positive' | 'negative' | null;
 
@@ -48,9 +55,10 @@ const PersonaChatWidget: React.FC<Props> = ({ initialContext, leadId }) => {
     setStarting(true);
     setError(null);
     try {
+      const token = await getAuthToken();
       const res = await fetch('/api/persona/start', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ leadId, businessContext: initialContext }),
       });
       if (!res.ok) throw new Error('Oturum baslatilamadi');
@@ -75,9 +83,10 @@ const PersonaChatWidget: React.FC<Props> = ({ initialContext, leadId }) => {
     setError(null);
 
     try {
+      const token = await getAuthToken();
       const res = await fetch('/api/persona/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ sessionId, message: text.trim() }),
       });
       if (!res.ok) throw new Error('Yanit alinamadi');
@@ -118,9 +127,10 @@ const PersonaChatWidget: React.FC<Props> = ({ initialContext, leadId }) => {
 
     const msg = messages[messageIndex];
     try {
+      const token = await getAuthToken();
       await fetch('/api/persona/feedback', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           sessionId,
           messageIndex,
