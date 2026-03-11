@@ -131,20 +131,65 @@ const LeadDetailPage: React.FC = () => {
       console.log(`[AsyncPipeline] Phase 1 done: status=${startData.status}, drInteractionId=${startData.drInteractionId || 'none'}, runId=${pipelineRunId || 'none'}`);
       setAnalysisPhase('researching');
 
-      // Phase 2: Continue loop — DR poll + pipeline
-      let result = startData;
-      let researchFindings = startData.researchFindings || null; // May exist if resumed from checkpoint
+      // Phase 2: Wait for Deep Research via lightweight polling
+      let researchFindings = startData.researchFindings || null;
+      let drText: string | null = null;
+
+      if (startData.drInteractionId && !researchFindings) {
+        console.log(`[AsyncPipeline] Phase 2: Polling DR via check-dr-status (every 30s, max 20min)...`);
+        const DR_MAX_WAIT = 20 * 60 * 1000; // 20 minutes
+        const DR_POLL_INTERVAL = 30_000; // 30s
+        const drStartTime = Date.now();
+
+        while (Date.now() - drStartTime < DR_MAX_WAIT) {
+          const elapsed = Math.round((Date.now() - drStartTime) / 1000);
+          console.log(`[AsyncPipeline] DR poll — ${elapsed}s elapsed...`);
+
+          try {
+            const drRes = await fetch('/api/check-dr-status', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ drInteractionId: startData.drInteractionId }),
+            });
+            const drData = await drRes.json();
+
+            if (drData.status === 'completed') {
+              drText = drData.text;
+              console.log(`[AsyncPipeline] DR completed! ${drData.chars} chars in ${elapsed}s`);
+              break;
+            }
+            if (drData.status === 'failed') {
+              console.log(`[AsyncPipeline] DR failed after ${elapsed}s — will use grounding fallback`);
+              break;
+            }
+          } catch (e: any) {
+            console.warn(`[AsyncPipeline] DR poll error: ${e.message}`);
+          }
+
+          // Wait before next poll
+          await new Promise(r => setTimeout(r, DR_POLL_INTERVAL));
+        }
+
+        if (!drText) {
+          console.log(`[AsyncPipeline] DR did not complete — proceeding with grounding fallback`);
+        }
+      }
+
+      // Phase 3: Run pipeline (analyze-continue) — DR already resolved or skipped
+      setAnalysisPhase('analyzing');
+      let result: any = {};
       let attempts = 0;
-      const MAX_ATTEMPTS = 8; // DR can take 5+ min, each call polls ~250s
+      const MAX_ATTEMPTS = 3; // Pipeline only, no DR waiting — should complete in 1-2 calls
 
       while (result.status !== 'completed' && result.status !== 'failed' && attempts < MAX_ATTEMPTS) {
         attempts++;
-        console.log(`[AsyncPipeline] Continue call #${attempts}: hasResearch=${!!researchFindings}`);
+        console.log(`[AsyncPipeline] Pipeline call #${attempts}: hasDrText=${!!drText}, hasResearch=${!!researchFindings}`);
         const continueRes = await fetch('/api/analyze-continue', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            drInteractionId: startData.drInteractionId,
+            drInteractionId: drText ? null : (researchFindings ? null : startData.drInteractionId),
+            drText,
             normalizedData: startData.normalizedData,
             researchFindings,
             runId: pipelineRunId,
@@ -156,7 +201,7 @@ const LeadDetailPage: React.FC = () => {
               requestedServices: lead.requestedServices,
               leadId: lead.id,
               mode: 'full',
-              adminNotes: analysisNotes || undefined,
+              ...(analysisNotes ? { adminNotes: analysisNotes } : {}),
               businessContext: lead.wizard.businessContext,
             },
           }),
@@ -168,19 +213,13 @@ const LeadDetailPage: React.FC = () => {
         }
 
         result = await continueRes.json();
-        console.log(`[AsyncPipeline] Continue #${attempts} result: status=${result.status}, hasFindings=${!!result.researchFindings}, agents=${result.debug?.agentsRun?.join(',') || 'N/A'}, fallback=${result.debug?.agentsRun ? !result.debug.agentsRun.includes('strategySynthesizer') : 'N/A'}`);
+        console.log(`[AsyncPipeline] Pipeline #${attempts} result: status=${result.status}, agents=${result.debug?.agentsRun?.join(',') || 'N/A'}`);
 
-        if (result.status === 'researching') {
-          // DR still running on Gemini, keep polling
-          console.log(`[AsyncPipeline] DR still running, will poll again (attempt ${attempts}/${MAX_ATTEMPTS})...`);
-        } else if (result.status === 'pipeline_partial') {
-          // Some agents completed, remaining deferred to next call via checkpoint
-          console.log(`[AsyncPipeline] Pipeline partial (phase=${result.phase}), continuing from checkpoint (attempt ${attempts}/${MAX_ATTEMPTS})...`);
-          setAnalysisPhase('analyzing');
+        if (result.status === 'pipeline_partial') {
+          console.log(`[AsyncPipeline] Pipeline partial (phase=${result.phase}), continuing...`);
         } else if (result.researchFindings) {
           researchFindings = result.researchFindings;
-          console.log(`[AsyncPipeline] Research received: competitors=${researchFindings.competitors?.length || 0}, sourcesUsed=${researchFindings.sourcesUsed}`);
-          setAnalysisPhase('analyzing');
+          console.log(`[AsyncPipeline] Research received: competitors=${researchFindings.competitors?.length || 0}`);
         }
       }
 

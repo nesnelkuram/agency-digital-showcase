@@ -47,7 +47,7 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
   const remaining = () => BUDGET_MS - (Date.now() - startTime);
 
   try {
-    const { drInteractionId, normalizedData, researchFindings: existingFindings, input, websiteData, runId } = req.body;
+    const { drInteractionId, drText, normalizedData, researchFindings: existingFindings, input, websiteData, runId } = req.body;
 
     if (!normalizedData || !input) {
       return res.status(400).json({ error: 'Missing required fields: normalizedData, input' });
@@ -83,7 +83,19 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
     if (!researchFindings) {
       const researchStart = Date.now();
 
-      if (drInteractionId) {
+      if (drText && typeof drText === 'string' && drText.length > 200) {
+        // --- DR text pre-fetched by client (via check-dr-status) ---
+        console.log(`analyze-continue: Using pre-fetched DR text (${drText.length} chars), extracting JSON...`);
+        const extractStart = Date.now();
+        researchFindings = await extractResearchJSON(drText, [], [], -1, input.sector);
+        timings.researchExtraction = Date.now() - extractStart;
+        agentsRun.push('sectorResearch');
+        const rc = researchFindings;
+        console.log(`analyze-continue: DR extraction done in ${timings.researchExtraction}ms — competitors=${rc?.competitors?.length || 0}, sourcesUsed=${rc?.sourcesUsed}`);
+        if (runId && researchFindings) {
+          await checkpointAgent(effectiveLeadId, runId, 'sectorResearch', 'researchFindings', researchFindings, Date.now() - researchStart);
+        }
+      } else if (drInteractionId) {
         // --- DR interaction exists: poll it, fall back to grounding on timeout ---
         // Reserve 100s for grounding fallback + extraction if DR fails
         const drPollTimeout = Math.min(180_000, remaining() - 100_000);
