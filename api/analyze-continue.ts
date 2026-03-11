@@ -84,9 +84,10 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
       const researchStart = Date.now();
 
       if (drInteractionId) {
-        // --- DR interaction exists: poll it (NO grounding fallback on timeout) ---
-        const drPollTimeout = Math.min(250_000, remaining() - 40_000); // 40s buffer for JSON response
-        console.log(`analyze-continue: Polling DR (${drInteractionId}), timeout=${Math.max(drPollTimeout, 30_000)}ms`);
+        // --- DR interaction exists: poll it, fall back to grounding on timeout ---
+        // Reserve 100s for grounding fallback + extraction if DR fails
+        const drPollTimeout = Math.min(180_000, remaining() - 100_000);
+        console.log(`analyze-continue: Polling DR (${drInteractionId}), timeout=${Math.max(drPollTimeout, 30_000)}ms, remaining=${remaining()}ms`);
 
         try {
           const drResult = await pollDeepResearch(drInteractionId, Math.max(drPollTimeout, 30_000));
@@ -105,12 +106,22 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
               await checkpointAgent(effectiveLeadId, runId, 'sectorResearch', 'researchFindings', researchFindings, Date.now() - researchStart);
             }
           } else if (drResult.status === 'timeout') {
-            // DR HALA CALISIYOR → client'a "tekrar dene" de (grounding'e DUSME)
-            console.log(`analyze-continue: DR still running (poll timeout after ${timings.drPoll}ms), returning 'researching'`);
-            return res.status(200).json({
-              status: 'researching',
-              debug: { timings, errors, agentsRun, drStatus: 'polling', remainingMs: remaining() },
-            });
+            // DR poll timeout — fall back to grounding instead of infinite retry loop
+            console.log(`analyze-continue: DR poll timeout after ${timings.drPoll}ms — falling back to grounding (DR stuck or too slow)`);
+            try {
+              if (runId) await markAgentRunning(effectiveLeadId, runId, 'sectorResearch');
+              researchFindings = await runSectorResearch(input, { drTimeout: 0, startTimeMs: startTime, budgetMs: BUDGET_MS });
+              timings.sectorResearch = Date.now() - researchStart;
+              agentsRun.push('sectorResearch');
+              if (runId && researchFindings) await checkpointAgent(effectiveLeadId, runId, 'sectorResearch', 'researchFindings', researchFindings, timings.sectorResearch);
+              const rc = researchFindings;
+              console.log(`analyze-continue: Grounding fallback (after DR timeout) done in ${timings.sectorResearch}ms — competitors=${rc?.competitors?.length || 0}, sourcesUsed=${rc?.sourcesUsed}`);
+            } catch (error: any) {
+              timings.sectorResearch = Date.now() - researchStart;
+              errors.push({ agent: 'sectorResearch', error: error.message, timestamp: Date.now() });
+              if (runId) await markAgentFailed(effectiveLeadId, runId, 'sectorResearch', error.message, timings.sectorResearch);
+              console.error('analyze-continue: Grounding fallback (after DR timeout) failed:', error.message);
+            }
           } else {
             // DR GERCEKTEN BASARISIZ (failed/cancelled) → grounding fallback
             console.log(`analyze-continue: DR failed (${drResult.status}), falling back to grounding...`);

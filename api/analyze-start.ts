@@ -44,8 +44,8 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
       requestedServices: requestedServices || [],
       leadId: leadId || 'unknown',
       mode: 'full' as const,
-      adminNotes: adminNotes || undefined,
-      businessContext,
+      ...(adminNotes ? { adminNotes } : {}),
+      ...(businessContext ? { businessContext } : {}),
     };
 
     // Initialize pipeline run checkpoint (best-effort — failure won't block pipeline)
