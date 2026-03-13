@@ -34,7 +34,7 @@ const EMPTY_RESEARCH: ResearchFindings = {
 };
 
 // --- Deep Research prompt: product-level investigation ---
-export function buildDeepResearchPrompt(businessName: string, sector: string, businessContext?: BusinessContextInput): string {
+export function buildDeepResearchPrompt(businessName: string, sector: string, businessContext?: BusinessContextInput, adminNotes?: string): string {
   // Enrich prompt with business context when available
   const descLine = businessContext?.businessDescription
     ? `\nIsletme Tanimi (Musteri Beyani): ${businessContext.businessDescription}`
@@ -53,8 +53,13 @@ export function buildDeepResearchPrompt(businessName: string, sector: string, bu
   // Sector-specific extra steps (ADIM 6+)
   const extraSteps = enrichment?.deepResearchSteps?.replace(/\$BUSINESS_NAME/g, businessName) || '';
 
-  return `Sen bir sektor arastirmacisisin. Asagidaki marka hakkinda KAPSAMLI ve ${t?.researchType || 'URUN BAZLI'} bir arastirma yap.
+  // Admin notes — critical context override
+  const adminNotesBlock = adminNotes?.trim()
+    ? `\n\n⚠️ KRITIK ADMIN NOTU — BU BILGIYI KESINLIKLE DIKKATE AL:\n${adminNotes.trim()}\nBu not, isletmeyi taniyan uzman tarafindan eklenmistir. Arastirmani bu nota UYGUN sekilde yonlendir. Bu notla celisen varsayimlar YAPMA.\n`
+    : '';
 
+  return `Sen bir sektor arastirmacisisin. Asagidaki marka hakkinda KAPSAMLI ve ${t?.researchType || 'URUN BAZLI'} bir arastirma yap.
+${adminNotesBlock}
 Marka: ${businessName}
 Sektor: ${sector}${descLine}${competitorLine}${geoLine}
 
@@ -99,9 +104,12 @@ SONUCLARI DETAYLI OLARAK TURKCE YAZ. Her bilginin kaynagini belirt.`;
 }
 
 // --- Grounding-based fallback ---
-async function runGroundingFallback(businessName: string, sector: string) {
+async function runGroundingFallback(businessName: string, sector: string, adminNotes?: string) {
   const today = new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
-  const dateRule = `\n\nONEMLI: Bugun ${today} tarihidir. SADECE 2025-2026 yilina ait GUNCEL verileri ara. 2024 ve oncesi veriler YETERSIZDIR — daha guncel kaynak bul. Resmi kurum raporlari (TUIK, TMO, sanayi birlikleri, ihracatci birlikleri) ONCELIKLI kaynaktir.`;
+  const adminNotesRule = adminNotes?.trim()
+    ? `\n\nKRITIK ADMIN NOTU: ${adminNotes.trim()} — Bu notu arastirma sirasinda KESINLIKLE dikkate al.`
+    : '';
+  const dateRule = `\n\nONEMLI: Bugun ${today} tarihidir. SADECE 2025-2026 yilina ait GUNCEL verileri ara. 2024 ve oncesi veriler YETERSIZDIR — daha guncel kaynak bul. Resmi kurum raporlari (TUIK, TMO, sanayi birlikleri, ihracatci birlikleri) ONCELIKLI kaynaktir.${adminNotesRule}`;
 
   const enrichment = getSectorEnrichment(sector);
 
@@ -172,7 +180,7 @@ export async function runSectorResearch(
   input: PipelineInput,
   options?: SectorResearchOptions,
 ): Promise<ResearchFindings> {
-  const { contact, sector } = input;
+  const { contact, sector, adminNotes } = input;
   const businessName = contact.businessName;
   const drTimeout = options?.drTimeout ?? 240_000;
 
@@ -200,7 +208,7 @@ export async function runSectorResearch(
       // Start + poll DR (sync pipeline path)
       console.log('SectorResearch: Starting Deep Research...');
       const drResult = await runDeepResearch(
-        buildDeepResearchPrompt(businessName, sector),
+        buildDeepResearchPrompt(businessName, sector, input.businessContext, adminNotes),
         drTimeout,
       );
 
@@ -230,7 +238,7 @@ export async function runSectorResearch(
 
     try {
       console.log('SectorResearch: Running grounding fallback...');
-      const fb = await runGroundingFallback(businessName, sector);
+      const fb = await runGroundingFallback(businessName, sector, adminNotes);
       researchText = fb.allGroundedText;
       allSourceUrls = fb.allSourceUrls;
       allSearchQueries = fb.allSearchQueries;

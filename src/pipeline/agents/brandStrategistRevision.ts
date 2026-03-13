@@ -7,6 +7,7 @@ export async function runBrandStrategistRevision(
   challengerOutput: ChallengerOutput,
   researchFindings: ResearchFindings | null,
   consumerTestOutput?: ConsumerTestOutput,
+  adminNotes?: string,
 ): Promise<StrategistOutput> {
 
   // Format original strategy
@@ -72,12 +73,17 @@ ${refinements}
 ### En Zayif Eslesen: ${consumerTestOutput.weakestFit}`;
   }
 
+  // Admin notes — critical expert override
+  const adminNotesBlock = adminNotes?.trim()
+    ? `\n\n⚠️ KRITIK ADMIN NOTU — REVIZYONDA KESINLIKLE DIKKATE AL:\n${adminNotes.trim()}\nBu bilgi isletmeyi taniyan uzman tarafindan yazilmistir. Revizyon sirasinda bu notla celisen duzeltmeler YAPMA.\n`
+    : '';
+
   const prompt = `Sen deneyimli bir marka strateji uzmanisin. Orijinal strateji onerilerini bir SEYTAN AVUKATI inceledi ve elestiriler yapti. Simdi bu elestirileri tek tek degerlendirecek ve stratejini savunacak veya revize edeceksin.
 
 ## Isletme
 - Isletme: ${normalizedData.businessName}
 - Sektor: ${normalizedData.sector}
-- Profil: ${normalizedData.overallProfile}
+- Profil: ${normalizedData.overallProfile}${adminNotesBlock}
 
 ## ORIJINAL STRATEJIN
 - Arketip: ${originalOutput.archetype}

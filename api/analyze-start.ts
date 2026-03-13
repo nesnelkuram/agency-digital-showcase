@@ -86,7 +86,7 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
         }
       })(),
       (async () => {
-        const prompt = buildDeepResearchPrompt(contact.businessName || '', sector, businessContext);
+        const prompt = buildDeepResearchPrompt(contact.businessName || '', sector, businessContext, adminNotes);
         const id = await startDeepResearch(prompt);
         if (id) {
           await checkpointDrInteractionId(effectiveLeadId, runId, id);

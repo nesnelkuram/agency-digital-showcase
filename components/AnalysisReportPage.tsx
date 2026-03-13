@@ -5,6 +5,10 @@ import {
   MessageSquare, Hash, Target, TrendingUp, BarChart3, Shield,
   ExternalLink, ChevronRight, Sparkles,
   CheckCircle2, AlertTriangle, Zap, ArrowRight, Clock,
+  Layers, BookOpen, Globe, Instagram,
+  Activity, Star, Minus, AlertCircle,
+  Gauge, Copy, ThumbsUp, ThumbsDown, Swords, Brain,
+  LayoutGrid, Rocket, ShieldAlert,
 } from 'lucide-react';
 import { getBrandLeadByShareToken } from '@/shared/services/brandLeadService';
 import { SECTOR_LABELS } from '@/shared/types/brandLead';
@@ -35,6 +39,30 @@ const DIGITAL_PLATFORM_LABELS: Record<string, string> = {
   youtube: 'YouTube',
   none: 'Aktif Platform Yok',
 };
+
+const MATURITY_LABELS: Record<string, string> = {
+  pre_brand: 'On-Marka',
+  emerging: 'Gelisen',
+  developing: 'Olgunlasan',
+  mature: 'Olgun',
+};
+
+const MATURITY_COLORS: Record<string, string> = {
+  pre_brand: 'red',
+  emerging: 'amber',
+  developing: 'blue',
+  mature: 'emerald',
+};
+
+const VALUE_LEVEL_LABELS: Record<string, string> = {
+  commodity: 'Emtia',
+  product: 'Urun',
+  service: 'Hizmet',
+  experience: 'Deneyim',
+  transformation: 'Donusum',
+};
+
+const VALUE_LEVELS = ['commodity', 'product', 'service', 'experience', 'transformation'];
 
 // ─── Helpers ───────────────────────────────────────────
 
@@ -76,6 +104,42 @@ function InfoBlock({ label, children, color = 'gray' }: { label: string; childre
     <div className={`bg-${color}-50 rounded-xl p-4`}>
       <p className={`font-commons text-[11px] text-${color}-500 uppercase tracking-wider font-medium mb-1.5`}>{label}</p>
       <div className="font-commons text-sm text-gray-700 leading-relaxed">{children}</div>
+    </div>
+  );
+}
+
+function CircularGauge({ value, max = 100, size = 80, color = 'indigo', label }: { value: number; max?: number; size?: number; color?: string; label?: string }) {
+  const pct = Math.min(Math.max(value / max, 0), 1);
+  const r = (size - 8) / 2;
+  const circumference = 2 * Math.PI * r;
+  const strokeDashoffset = circumference * (1 - pct);
+  return (
+    <div className="flex flex-col items-center">
+      <svg width={size} height={size} className="-rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={r} stroke="#e5e7eb" strokeWidth="6" fill="none" />
+        <circle cx={size / 2} cy={size / 2} r={r} stroke="currentColor" strokeWidth="6" fill="none"
+          className={`text-${color}-500`}
+          strokeDasharray={circumference} strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round" />
+      </svg>
+      <p className="font-commons text-lg font-bold text-gray-900 -mt-[52px] mb-6">{value}</p>
+      {label && <p className="font-commons text-[10px] text-gray-500 mt-1">{label}</p>}
+    </div>
+  );
+}
+
+function SliderBar({ label, leftLabel, rightLabel, value }: { label: string; leftLabel: string; rightLabel: string; value: number }) {
+  return (
+    <div className="mb-3">
+      <p className="font-commons text-xs font-medium text-gray-700 mb-1">{label}</p>
+      <div className="flex items-center gap-2">
+        <span className="font-commons text-[10px] text-gray-400 w-16 text-right">{leftLabel}</span>
+        <div className="flex-1 h-2 bg-gray-100 rounded-full relative">
+          <div className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-indigo-500 rounded-full shadow-sm"
+            style={{ left: `${value}%` }} />
+        </div>
+        <span className="font-commons text-[10px] text-gray-400 w-16">{rightLabel}</span>
+      </div>
     </div>
   );
 }
@@ -151,7 +215,7 @@ const AnalysisReportPage: React.FC = () => {
       </header>
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-6 sm:space-y-8">
-        {/* ─── COVER / TITLE ─── */}
+        {/* 1. COVER / TITLE */}
         <SectionCard className="!p-8 sm:!p-10 bg-gradient-to-br from-white to-gray-50">
           <p className="font-commons text-xs text-gray-400 uppercase tracking-widest mb-3">{sector}</p>
           <h1 className="font-ramillas text-3xl sm:text-4xl font-bold text-gray-900 mb-3">{businessName}</h1>
@@ -160,7 +224,7 @@ const AnalysisReportPage: React.FC = () => {
           </p>
         </SectionCard>
 
-        {/* ─── CONSULTANT INTRO (danışman giriş yorumu) ─── */}
+        {/* 2. CONSULTANT INTRO */}
         {a.consultantIntro && (
           <SectionCard className="border-l-4 border-l-indigo-400">
             <p className="font-commons text-sm sm:text-base text-gray-700 leading-relaxed italic">
@@ -169,45 +233,81 @@ const AnalysisReportPage: React.FC = () => {
           </SectionCard>
         )}
 
-        {/* ─── BUSINESS PROFILE (from v2.0 wizard context) ─── */}
+        {/* 3. DIAGNOSIS: Algı vs Gerçeklik + Olgunluk (birleşik) */}
+        {(a.diagnosisSummary || a.brandMaturity || a.dataQuality) && (
+          <DiagnosisSection
+            diagnosisSummary={a.diagnosisSummary}
+            brandMaturity={a.brandMaturity}
+            dataQuality={a.dataQuality}
+          />
+        )}
+
+        {/* 4. BUSINESS PROFILE */}
         {bc && <BusinessProfileSection bc={bc} />}
 
-        {/* ─── UNIFIED STRATEGY (synthesisRationale from debate) ─── */}
-        {a.debate?.synthesisRationale && (
-          <SectionCard>
-            <SectionTitle icon={Sparkles} title="Strateji Ozeti" color="indigo" />
-            <p className="font-commons text-sm text-gray-700 leading-relaxed">{a.debate.synthesisRationale}</p>
-          </SectionCard>
+        {/* 5. BRAND PERSONALITY + CHARACTER (birleşik) */}
+        {a.brandPersonality && (
+          <BrandPersonalityReport bp={a.brandPersonality} character={a.brandCharacter} />
         )}
 
-        {/* ─── BRAND PERSONALITY (isletmenin kendi analizi — rakiplerden once) ─── */}
-        {a.brandPersonality && <BrandPersonalityReport bp={a.brandPersonality} />}
+        {/* 6. STRATEGIC DEPTH */}
+        {a.strategicDepth && <StrategicDepthSection depth={a.strategicDepth} />}
 
-        {/* ─── POSITIONING ─── */}
+        {/* 7. POSITIONING + PERCEPTUAL MAP */}
         {a.positioning && <PositioningReport positioning={a.positioning} />}
+        {a.perceptualMap && <PerceptualMapSection map={a.perceptualMap} businessName={businessName} />}
 
-        {/* ─── SWOT (isletme analizi — rakiplerden once) ─── */}
+        {/* 8. BRAND NARRATIVE (birleşik: narrative + emotional) */}
+        {(a.brandNarrative || a.emotionalNarrative) && (
+          <BrandNarrativeSection
+            narrative={a.brandNarrative}
+            emotional={a.emotionalNarrative}
+            maturityLevel={a.brandMaturity?.level}
+          />
+        )}
+
+        {/* 9. STRATEGIC ANALYSIS (SWOT) */}
         {a.analysis && <SwotReport analysis={a.analysis} />}
 
-        {/* ─── COMPETITOR ANALYSIS ─── */}
-        {a.sectorResearch?.competitors && a.sectorResearch.competitors.length > 0 && (
-          <CompetitorReport competitors={a.sectorResearch.competitors} />
-        )}
+        {/* 10. COMPETITOR ANALYSIS (birleşik: base + enriched) */}
+        <CompetitorSection
+          competitors={a.sectorResearch?.competitors}
+          discovery={a.competitorDiscovery}
+        />
 
-        {/* ─── MARKET DATA ─── */}
+        {/* 11. MARKET DATA */}
         {a.sectorResearch?.marketData && <MarketDataReport md={a.sectorResearch.marketData} />}
 
-        {/* ─── VISUAL WORLD ─── */}
+        {/* 12. DIGITAL PRESENCE */}
+        {a.digitalPresence && <DigitalPresenceSection dp={a.digitalPresence} />}
+
+        {/* 13. VISUAL WORLD */}
         {a.visualWorld && <VisualWorldReport vw={a.visualWorld} />}
 
-        {/* ─── CONTENT STRATEGY (blog advisor insights merged) ─── */}
+        {/* 14. CONTENT STRATEGY */}
         {a.contentStrategy && <ContentStrategyReport cs={a.contentStrategy} blogInsights={(a as any).blogAdvisorInsights} />}
 
-        {/* ─── ACTION PLAN ─── */}
+        {/* 15. STRATEGY SCENARIOS */}
+        {a.strategyScenarios && <StrategyScenariosSection scenarios={a.strategyScenarios} />}
+
+        {/* 16. RISK MATRIX */}
+        {a.riskMitigationPlans && a.riskMitigationPlans.length > 0 && (
+          <RiskMatrixSection plans={a.riskMitigationPlans} />
+        )}
+
+        {/* 17. ACTION PLAN */}
         {a.actionPlan && <ActionPlanReport ap={a.actionPlan} />}
 
-        {/* ─── CTA: Intiba ile Nasil Calisabilirsiniz ─── */}
-        <CTASection requestedServices={lead.requestedServices} businessName={businessName} />
+        {/* 18. INTIBA ENGAGEMENT PLAN (replaces generic CTA) */}
+        {a.intibaEngagement ? (
+          <IntibaEngagementSection
+            engagement={a.intibaEngagement}
+            businessName={businessName}
+            revenueImpact={a.revenueImpact}
+          />
+        ) : (
+          <CTASection requestedServices={lead.requestedServices} businessName={businessName} />
+        )}
       </main>
 
       {/* ─── FOOTER ─── */}
@@ -226,7 +326,266 @@ const AnalysisReportPage: React.FC = () => {
   );
 };
 
-// ─── Section Components ────────────────────────────────
+// ═══════════════════════════════════════════════════════
+// SECTION COMPONENTS
+// ═══════════════════════════════════════════════════════
+
+// ─── 3. Diagnosis Panel (merged: algı vs gerçeklik + olgunluk + veri kalitesi) ───
+
+function DiagnosisSection({ diagnosisSummary, brandMaturity, dataQuality }: {
+  diagnosisSummary?: AIAnalysis['diagnosisSummary'];
+  brandMaturity?: AIAnalysis['brandMaturity'];
+  dataQuality?: AIAnalysis['dataQuality'];
+}) {
+  const maturityLevels = ['pre_brand', 'emerging', 'developing', 'mature'];
+
+  return (
+    <SectionCard>
+      <SectionTitle icon={Activity} title="Marka Teshis Paneli" color="violet" />
+
+      {/* Perception vs Reality (from brandValueMaximizer) */}
+      {diagnosisSummary && (
+        <div className="mb-6">
+          {diagnosisSummary.criticalMisalignment && (
+            <div className="bg-rose-50 rounded-xl p-4 mb-4 border border-rose-200">
+              <p className="font-commons text-[11px] text-rose-600 uppercase tracking-wider font-medium mb-1">Kritik Uyumsuzluk</p>
+              <p className="font-commons text-sm text-gray-800 font-medium">{diagnosisSummary.criticalMisalignment}</p>
+            </div>
+          )}
+
+          {diagnosisSummary.perceptionVsReality?.length > 0 && (
+            <div className="space-y-3 mb-4">
+              <p className="font-commons text-[11px] text-rose-500 uppercase tracking-wider font-medium">Algi vs Gerceklik</p>
+              {diagnosisSummary.perceptionVsReality.map((item, i) => (
+                <div key={i} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
+                    <p className="font-commons text-[10px] text-amber-600 uppercase font-medium mb-1">Algi</p>
+                    <p className="font-commons text-sm text-gray-700">{item.perception}</p>
+                  </div>
+                  <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100">
+                    <p className="font-commons text-[10px] text-emerald-600 uppercase font-medium mb-1">Gerceklik</p>
+                    <p className="font-commons text-sm text-gray-700">{item.reality}</p>
+                  </div>
+                  {(item.gap || item.recommendation) && (
+                    <div className="md:col-span-2 bg-gray-50 rounded-lg p-3">
+                      {item.gap && <p className="font-commons text-xs text-gray-600 mb-1"><span className="font-medium text-gray-700">Fark:</span> {item.gap}</p>}
+                      {item.recommendation && <p className="font-commons text-xs text-gray-600"><span className="font-medium text-indigo-600">Oneri:</span> {item.recommendation}</p>}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {diagnosisSummary.blindSpots?.length > 0 && (
+            <div>
+              <p className="font-commons text-[11px] text-violet-600 uppercase tracking-wider font-medium mb-2">Gorulmeyen Gucler</p>
+              <div className="flex flex-wrap gap-2">
+                {diagnosisSummary.blindSpots.map((b, i) => (
+                  <span key={i} className="font-commons text-xs bg-violet-50 text-violet-700 px-3 py-1.5 rounded-lg">{b}</span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Brand Maturity Gauge */}
+      {brandMaturity && (
+        <div className="mb-6">
+          <p className="font-commons text-[11px] text-violet-500 uppercase tracking-wider font-medium mb-3">Marka Olgunluk Seviyesi</p>
+          <div className="flex items-center gap-1 mb-3">
+            {maturityLevels.map((level) => {
+              const isActive = maturityLevels.indexOf(brandMaturity.level) >= maturityLevels.indexOf(level);
+              const c = MATURITY_COLORS[level] || 'gray';
+              return (
+                <div key={level} className={`flex-1 h-3 rounded-full ${isActive ? `bg-${c}-400` : 'bg-gray-100'}`} />
+              );
+            })}
+          </div>
+          <div className="flex justify-between mb-4">
+            {maturityLevels.map((level) => (
+              <p key={level} className={`font-commons text-[10px] ${brandMaturity.level === level ? 'text-gray-900 font-semibold' : 'text-gray-400'}`}>
+                {MATURITY_LABELS[level]}
+              </p>
+            ))}
+          </div>
+
+          {/* Factor bars */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: 'Is Yasi', value: brandMaturity.factors.businessAge },
+              { label: 'Marka Varliklari', value: brandMaturity.factors.brandAssets },
+              { label: 'Dijital Varlik', value: brandMaturity.factors.digitalPresence },
+              { label: 'Kitle Buyuklugu', value: brandMaturity.factors.audienceSize },
+            ].map(({ label, value }) => (
+              <div key={label} className="bg-violet-50 rounded-lg p-3">
+                <p className="font-commons text-[10px] text-violet-500 font-medium mb-1">{label}</p>
+                <div className="flex gap-0.5">
+                  {[1, 2, 3].map((n) => (
+                    <div key={n} className={`flex-1 h-2 rounded-full ${n <= value ? 'bg-violet-400' : 'bg-violet-100'}`} />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Data Quality: Contradictions */}
+      {dataQuality?.contradictions && dataQuality.contradictions.length > 0 && (
+        <div className="mb-4">
+          <p className="font-commons text-[11px] text-amber-600 uppercase tracking-wider font-medium mb-2">Dikkat Gerektiren Noktalar</p>
+          <div className="space-y-2">
+            {dataQuality.contradictions.map((c, i) => (
+              <div key={i} className="bg-amber-50 rounded-lg p-3 flex gap-2 border border-amber-100">
+                <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                <p className="font-commons text-sm text-gray-700">{c}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Data Quality: Patterns */}
+      {dataQuality?.patterns && dataQuality.patterns.length > 0 && (
+        <div>
+          <p className="font-commons text-[11px] text-blue-600 uppercase tracking-wider font-medium mb-2">Tespit Edilen Oruntuler</p>
+          <div className="space-y-2">
+            {dataQuality.patterns.map((p, i) => (
+              <div key={i} className="bg-blue-50 rounded-lg p-3 flex gap-2 border border-blue-100">
+                <Lightbulb className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
+                <p className="font-commons text-sm text-gray-700">{p}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </SectionCard>
+  );
+}
+
+// ─── Strategic Depth (Faz 1) ─────────────────────────────
+
+function StrategicDepthSection({ depth }: { depth: NonNullable<AIAnalysis['strategicDepth']> }) {
+  const currentIndex = VALUE_LEVELS.indexOf(depth.valueLevel);
+
+  return (
+    <SectionCard>
+      <SectionTitle icon={Brain} title="Stratejik Derinlik" color="indigo" />
+
+      {/* Customer Problem Pyramid */}
+      {depth.customerProblem && (
+        <div className="mb-5">
+          <p className="font-commons text-[11px] text-indigo-500 uppercase tracking-wider font-medium mb-3">Musteri Problemi (3 Katman)</p>
+          <div className="space-y-2">
+            {[
+              { label: 'Dis (Somut)', text: depth.customerProblem.external, color: 'blue' },
+              { label: 'Ic (Duygusal)', text: depth.customerProblem.internal, color: 'purple' },
+              { label: 'Felsefi (Ahlaki)', text: depth.customerProblem.philosophical, color: 'rose' },
+            ].map(({ label, text, color }) => text ? (
+              <div key={label} className={`bg-${color}-50 rounded-xl p-4 border border-${color}-100`}>
+                <p className={`font-commons text-[10px] text-${color}-600 uppercase font-medium mb-1`}>{label}</p>
+                <p className="font-commons text-sm text-gray-700">{text}</p>
+              </div>
+            ) : null)}
+          </div>
+        </div>
+      )}
+
+      {/* Transformation Statement */}
+      {depth.transformationStatement && (
+        <div className="bg-indigo-50 rounded-xl p-5 mb-5 text-center">
+          <p className="font-commons text-[11px] text-indigo-500 uppercase tracking-wider font-medium mb-2">Donusum Ifadesi</p>
+          <p className="font-ramillas text-xl sm:text-2xl font-bold text-indigo-900">&ldquo;{depth.transformationStatement}&rdquo;</p>
+        </div>
+      )}
+
+      {/* Brand Enemy */}
+      {depth.brandEnemy && (
+        <div className="bg-red-50 rounded-xl p-4 mb-5 border border-red-100">
+          <div className="flex items-center gap-2 mb-1">
+            <Swords className="w-4 h-4 text-red-600" />
+            <p className="font-commons text-[11px] text-red-600 uppercase tracking-wider font-medium">Karsi Durdugunuz Guc</p>
+          </div>
+          <p className="font-commons text-sm text-gray-800 font-medium">{depth.brandEnemy}</p>
+        </div>
+      )}
+
+      {/* We Stand For / Against */}
+      {(depth.weStandFor?.length > 0 || depth.weStandAgainst?.length > 0) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
+          {depth.weStandFor?.length > 0 && (
+            <div className="bg-emerald-50 rounded-xl p-4">
+              <p className="font-commons text-[11px] text-emerald-600 uppercase tracking-wider font-medium mb-2">Inaniyoruz Ki</p>
+              <ul className="space-y-1.5">
+                {depth.weStandFor.map((item, i) => (
+                  <li key={i} className="font-commons text-sm text-gray-700 flex gap-2">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 mt-0.5 shrink-0" />{item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {depth.weStandAgainst?.length > 0 && (
+            <div className="bg-red-50 rounded-xl p-4">
+              <p className="font-commons text-[11px] text-red-600 uppercase tracking-wider font-medium mb-2">Reddediyoruz</p>
+              <ul className="space-y-1.5">
+                {depth.weStandAgainst.map((item, i) => (
+                  <li key={i} className="font-commons text-sm text-gray-700 flex gap-2">
+                    <Minus className="w-3.5 h-3.5 text-red-500 mt-0.5 shrink-0" />{item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Value Level Ladder */}
+      {depth.valueLevel && (
+        <div className="mb-5">
+          <p className="font-commons text-[11px] text-indigo-500 uppercase tracking-wider font-medium mb-3">Deger Merdiveni</p>
+          <div className="flex items-end gap-1">
+            {VALUE_LEVELS.map((level, i) => {
+              const isActive = i <= currentIndex;
+              const isCurrent = level === depth.valueLevel;
+              return (
+                <div key={level} className="flex-1 flex flex-col items-center">
+                  <div className={`w-full rounded-t-lg ${isCurrent ? 'bg-indigo-500' : isActive ? 'bg-indigo-200' : 'bg-gray-100'}`}
+                    style={{ height: `${20 + i * 16}px` }} />
+                  <p className={`font-commons text-[9px] sm:text-[10px] mt-1 ${isCurrent ? 'text-indigo-600 font-semibold' : 'text-gray-400'}`}>
+                    {VALUE_LEVEL_LABELS[level]}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+          {depth.valueLevelUpgrade && (
+            <div className="bg-indigo-50 rounded-lg p-3 mt-3 flex gap-2">
+              <ArrowRight className="w-4 h-4 text-indigo-500 mt-0.5 shrink-0" />
+              <p className="font-commons text-xs text-gray-700">{depth.valueLevelUpgrade}</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Cultural Tension */}
+      {depth.culturalTension && (
+        <div>
+          <p className="font-commons text-[11px] text-indigo-500 uppercase tracking-wider font-medium mb-2">Kulturel Gerilim</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <InfoBlock label="Beklenti" color="amber">{depth.culturalTension.expectation}</InfoBlock>
+            <InfoBlock label="Gerceklik" color="red">{depth.culturalTension.reality}</InfoBlock>
+            <InfoBlock label="Firsat" color="emerald">{depth.culturalTension.opportunity}</InfoBlock>
+          </div>
+        </div>
+      )}
+    </SectionCard>
+  );
+}
+
+// ─── 9a. Positioning (existing, unchanged) ─────────────
 
 function PositioningReport({ positioning }: { positioning: NonNullable<AIAnalysis['positioning']> }) {
   const vpr = positioning.valuePropositionReasoning;
@@ -268,7 +627,6 @@ function PositioningReport({ positioning }: { positioning: NonNullable<AIAnalysi
         </div>
       )}
 
-      {/* Target Audience + Differentiator */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
         <InfoBlock label="Hedef Kitle" color="indigo">{positioning.targetAudience}</InfoBlock>
         <InfoBlock label="Temel Farklilik" color="teal">{positioning.differentiator}</InfoBlock>
@@ -309,6 +667,427 @@ function PositioningReport({ positioning }: { positioning: NonNullable<AIAnalysi
   );
 }
 
+// ─── 9b. Perceptual Map (Faz 1) ────────────────────────
+
+function PerceptualMapSection({ map, businessName }: { map: NonNullable<AIAnalysis['perceptualMap']>; businessName: string }) {
+  const mapSize = 300;
+  const padding = 40;
+  const plotSize = mapSize - padding * 2;
+
+  const toPixel = (val: number) => padding + ((val + 5) / 10) * plotSize;
+
+  return (
+    <SectionCard>
+      <SectionTitle icon={LayoutGrid} title="Algisal Harita" color="cyan" />
+      <div className="flex justify-center">
+        <div className="relative" style={{ width: mapSize, height: mapSize }}>
+          <svg width={mapSize} height={mapSize} className="overflow-visible">
+            {/* Quadrant backgrounds */}
+            <rect x={padding} y={padding} width={plotSize / 2} height={plotSize / 2} fill="#f0fdf4" opacity="0.5" />
+            <rect x={padding + plotSize / 2} y={padding} width={plotSize / 2} height={plotSize / 2} fill="#eff6ff" opacity="0.5" />
+            <rect x={padding} y={padding + plotSize / 2} width={plotSize / 2} height={plotSize / 2} fill="#fefce8" opacity="0.5" />
+            <rect x={padding + plotSize / 2} y={padding + plotSize / 2} width={plotSize / 2} height={plotSize / 2} fill="#fef2f2" opacity="0.5" />
+
+            {/* Axes */}
+            <line x1={padding} y1={mapSize / 2} x2={mapSize - padding} y2={mapSize / 2} stroke="#d1d5db" strokeWidth="1" />
+            <line x1={mapSize / 2} y1={padding} x2={mapSize / 2} y2={mapSize - padding} stroke="#d1d5db" strokeWidth="1" />
+
+            {/* Axis labels */}
+            <text x={padding - 4} y={mapSize / 2 - 4} textAnchor="end" className="fill-gray-400 text-[9px] font-commons">{map.xAxis.lowEnd}</text>
+            <text x={mapSize - padding + 4} y={mapSize / 2 - 4} textAnchor="start" className="fill-gray-400 text-[9px] font-commons">{map.xAxis.highEnd}</text>
+            <text x={mapSize / 2} y={padding - 8} textAnchor="middle" className="fill-gray-400 text-[9px] font-commons">{map.yAxis.highEnd}</text>
+            <text x={mapSize / 2} y={mapSize - padding + 16} textAnchor="middle" className="fill-gray-400 text-[9px] font-commons">{map.yAxis.lowEnd}</text>
+
+            {/* Competitor positions */}
+            {map.competitorPositions?.map((c, i) => (
+              <g key={i}>
+                <circle cx={toPixel(c.x)} cy={toPixel(-c.y)} r={6} fill="#9ca3af" opacity="0.6" />
+                <text x={toPixel(c.x)} y={toPixel(-c.y) - 10} textAnchor="middle" className="fill-gray-500 text-[9px] font-commons">
+                  {c.name}
+                </text>
+              </g>
+            ))}
+
+            {/* Brand position */}
+            <circle cx={toPixel(map.brandPosition.x)} cy={toPixel(-map.brandPosition.y)} r={10} fill="#6366f1" />
+            <text x={toPixel(map.brandPosition.x)} y={toPixel(-map.brandPosition.y) - 14} textAnchor="middle" className="fill-indigo-600 text-[10px] font-commons font-semibold">
+              {businessName}
+            </text>
+          </svg>
+        </div>
+      </div>
+      <div className="flex justify-center gap-6 mt-3">
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded-full bg-indigo-500" />
+          <span className="font-commons text-[10px] text-gray-500">{businessName}</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded-full bg-gray-400 opacity-60" />
+          <span className="font-commons text-[10px] text-gray-500">Rakipler</span>
+        </div>
+      </div>
+    </SectionCard>
+  );
+}
+
+// ─── 10. Brand Narrative (Faz 1) ────────────────────────
+
+function BrandNarrativeSection({ narrative, emotional, maturityLevel }: { narrative?: AIAnalysis['brandNarrative']; emotional?: AIAnalysis['emotionalNarrative']; maturityLevel?: string }) {
+  const [bioCopied, setBioCopied] = useState(false);
+
+  const copyBio = () => {
+    if (!narrative?.socialMediaBio) return;
+    navigator.clipboard.writeText(narrative.socialMediaBio);
+    setBioCopied(true);
+    setTimeout(() => setBioCopied(false), 2000);
+  };
+
+  return (
+    <SectionCard>
+      <SectionTitle icon={BookOpen} title="Marka Anlatisi" color="teal" />
+
+      {/* One-Line Promise (from emotional narrative) */}
+      {emotional?.oneLinePromise && (
+        <div className="bg-rose-50 rounded-xl p-5 mb-4 text-center">
+          <p className="font-commons text-[11px] text-rose-500 uppercase tracking-wider font-medium mb-2">Marka Sozu</p>
+          <p className="font-ramillas text-xl sm:text-2xl font-bold text-rose-900">&ldquo;{emotional.oneLinePromise}&rdquo;</p>
+        </div>
+      )}
+
+      {/* Elevator Pitch */}
+      {narrative?.elevatorPitch && (
+        <div className="bg-teal-50 rounded-xl p-5 mb-4">
+          <p className="font-commons text-[11px] text-teal-500 uppercase tracking-wider font-medium mb-2">30 Saniye Tanitim</p>
+          <p className="font-commons text-base text-gray-800 leading-relaxed italic">&ldquo;{narrative.elevatorPitch}&rdquo;</p>
+        </div>
+      )}
+
+      {/* Social Media Bio */}
+      {narrative?.socialMediaBio && (
+        <div className="bg-gray-50 rounded-xl p-4 mb-4 relative">
+          <div className="flex items-center justify-between mb-2">
+            <p className="font-commons text-[11px] text-gray-500 uppercase tracking-wider font-medium">Sosyal Medya Bio</p>
+            <button onClick={copyBio} className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600">
+              <Copy className="w-3 h-3" />
+              {bioCopied ? 'Kopyalandi' : 'Kopyala'}
+            </button>
+          </div>
+          <p className="font-commons text-sm text-gray-700">{narrative.socialMediaBio}</p>
+          <p className="font-commons text-[10px] text-gray-400 mt-1">{narrative.socialMediaBio.length} karakter</p>
+        </div>
+      )}
+
+      {/* Brand Story */}
+      {narrative?.brandStory && (
+        <div className="bg-white rounded-xl p-4 mb-4 border border-gray-100">
+          <p className="font-commons text-[11px] text-teal-500 uppercase tracking-wider font-medium mb-2">Hakkimizda Metni</p>
+          <p className="font-commons text-sm text-gray-700 leading-relaxed">{narrative.brandStory}</p>
+        </div>
+      )}
+
+      {/* Manifesto (from emotional narrative or brand narrative) */}
+      {emotional?.manifesto && (
+        <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 mb-4 text-white">
+          <p className="font-commons text-[11px] text-gray-400 uppercase tracking-wider font-medium mb-3">Marka Manifestosu</p>
+          <p className="font-ramillas text-base sm:text-lg leading-relaxed text-gray-100">{emotional.manifesto}</p>
+        </div>
+      )}
+      {!emotional?.manifesto && narrative?.brandManifesto && (maturityLevel === 'mature' || maturityLevel === 'developing') && (
+        <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 mb-4 text-white">
+          <p className="font-commons text-[11px] text-gray-400 uppercase tracking-wider font-medium mb-3">Marka Manifestosu</p>
+          <p className="font-ramillas text-base sm:text-lg leading-relaxed text-gray-100 italic">{narrative.brandManifesto}</p>
+        </div>
+      )}
+
+      {/* Transformation Story (from emotional narrative) */}
+      {emotional?.transformationStory && (
+        <div className="bg-gray-50 rounded-xl p-4 border-l-4 border-l-teal-300">
+          <p className="font-commons text-[11px] text-teal-500 uppercase tracking-wider font-medium mb-2">Donusum Hikayesi</p>
+          <p className="font-commons text-sm text-gray-700 leading-relaxed">{emotional.transformationStory}</p>
+        </div>
+      )}
+    </SectionCard>
+  );
+}
+
+// ─── Digital Presence ────────────────────────────────────
+
+function DigitalPresenceSection({ dp }: { dp: NonNullable<AIAnalysis['digitalPresence']> }) {
+  return (
+    <SectionCard>
+      <SectionTitle icon={Globe} title="Dijital Varlik Analizi" color="blue" />
+
+      {/* Overall Score */}
+      <div className="flex items-center gap-4 mb-5">
+        <CircularGauge value={dp.overallDigitalScore} max={10} size={72} color="blue" />
+        <div>
+          <p className="font-commons text-sm font-semibold text-gray-800">Dijital Olgunluk: {dp.digitalMaturityLevel}</p>
+          <p className="font-commons text-xs text-gray-500">Genel Dijital Skor: {dp.overallDigitalScore}/10</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+        {/* Website */}
+        {dp.website && dp.website.status === 'analyzed' && (
+          <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
+            <div className="flex items-center gap-2 mb-2">
+              <Globe className="w-4 h-4 text-blue-600" />
+              <p className="font-commons text-sm font-semibold text-gray-900">Web Sitesi</p>
+              <span className="font-commons text-[10px] text-blue-600 font-medium ml-auto">Tasarim: {dp.website.designQuality}/10</span>
+            </div>
+            <p className="font-commons text-xs text-gray-600 mb-2">{dp.website.overallImpression}</p>
+            <div className="flex flex-wrap gap-1 mb-2">
+              {dp.website.seoBasics?.hasTitle && <Badge color="emerald">Title</Badge>}
+              {dp.website.seoBasics?.hasDescription && <Badge color="emerald">Meta Desc</Badge>}
+              {dp.website.seoBasics?.hasOGTags && <Badge color="emerald">OG Tags</Badge>}
+              {dp.website.mobileOptimized && <Badge color="emerald">Mobil</Badge>}
+            </div>
+            {dp.website.strengths?.length > 0 && (
+              <div className="mb-1">{dp.website.strengths.slice(0, 2).map((s, i) => (
+                <p key={i} className="font-commons text-[11px] text-emerald-600">+ {s}</p>
+              ))}</div>
+            )}
+            {dp.website.weaknesses?.length > 0 && (
+              <div>{dp.website.weaknesses.slice(0, 2).map((w, i) => (
+                <p key={i} className="font-commons text-[11px] text-red-600">- {w}</p>
+              ))}</div>
+            )}
+          </div>
+        )}
+
+        {/* Instagram */}
+        {dp.instagram && dp.instagram.status !== 'not_provided' && (
+          <div className="bg-pink-50 rounded-xl p-4 border border-pink-100">
+            <div className="flex items-center gap-2 mb-2">
+              <Instagram className="w-4 h-4 text-pink-600" />
+              <p className="font-commons text-sm font-semibold text-gray-900">Instagram</p>
+              <span className="font-commons text-[10px] text-pink-600 font-medium ml-auto">{dp.instagram.engagementLevel}</span>
+            </div>
+            <div className="space-y-1 text-xs font-commons text-gray-600 mb-2">
+              {dp.instagram.followerRange && <p>Takipci: {dp.instagram.followerRange}</p>}
+              {dp.instagram.postingFrequency && <p>Paylasim: {dp.instagram.postingFrequency}</p>}
+              {dp.instagram.visualStyle && <p>Gorsel: {dp.instagram.visualStyle}</p>}
+            </div>
+            {dp.instagram.contentThemes?.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-2">
+                {dp.instagram.contentThemes.map((t, i) => <Badge key={i} color="pink">{t}</Badge>)}
+              </div>
+            )}
+            {dp.instagram.strengths?.length > 0 && (
+              <div className="mb-1">{dp.instagram.strengths.slice(0, 2).map((s, i) => (
+                <p key={i} className="font-commons text-[11px] text-emerald-600">+ {s}</p>
+              ))}</div>
+            )}
+            {dp.instagram.weaknesses?.length > 0 && (
+              <div>{dp.instagram.weaknesses.slice(0, 2).map((w, i) => (
+                <p key={i} className="font-commons text-[11px] text-red-600">- {w}</p>
+              ))}</div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Critical Gaps & Quick Wins */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {dp.criticalGaps?.length > 0 && (
+          <div className="bg-red-50 rounded-xl p-4">
+            <p className="font-commons text-[11px] text-red-600 uppercase tracking-wider font-medium mb-2">Kritik Eksikler</p>
+            <ul className="space-y-1">{dp.criticalGaps.map((g, i) => (
+              <li key={i} className="font-commons text-xs text-gray-700 flex gap-1.5"><AlertCircle className="w-3 h-3 text-red-500 mt-0.5 shrink-0" />{g}</li>
+            ))}</ul>
+          </div>
+        )}
+        {dp.quickWins?.length > 0 && (
+          <div className="bg-emerald-50 rounded-xl p-4">
+            <p className="font-commons text-[11px] text-emerald-600 uppercase tracking-wider font-medium mb-2">Hizli Kazanimlar</p>
+            <ul className="space-y-1">{dp.quickWins.map((w, i) => (
+              <li key={i} className="font-commons text-xs text-gray-700 flex gap-1.5"><Zap className="w-3 h-3 text-emerald-500 mt-0.5 shrink-0" />{w}</li>
+            ))}</ul>
+          </div>
+        )}
+      </div>
+    </SectionCard>
+  );
+}
+
+// ─── Strategy Scenarios (Faz 2) ──────────────────────────
+
+function StrategyScenariosSection({ scenarios }: { scenarios: NonNullable<AIAnalysis['strategyScenarios']> }) {
+  const tiers = [
+    { key: 'conservative', label: 'Tutucu', data: scenarios.conservative, color: 'blue', icon: Shield },
+    { key: 'recommended', label: 'Onerilen', data: scenarios.recommended, color: 'emerald', icon: Star },
+    { key: 'aggressive', label: 'Agresif', data: scenarios.aggressive, color: 'rose', icon: Rocket },
+  ];
+
+  return (
+    <SectionCard>
+      <SectionTitle icon={Layers} title="Strateji Senaryolari" color="indigo" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {tiers.map(({ key, label, data, color, icon: TierIcon }) => data ? (
+          <div key={key} className={`bg-${color}-50 rounded-xl p-4 border ${key === 'recommended' ? `border-${color}-300 ring-1 ring-${color}-200` : `border-${color}-100`}`}>
+            <div className="flex items-center gap-2 mb-3">
+              <TierIcon className={`w-4 h-4 text-${color}-600`} />
+              <p className={`font-commons text-sm font-semibold text-${color}-700`}>{label}</p>
+            </div>
+            <p className="font-commons text-xs text-gray-700 mb-3">{data.description}</p>
+            <div className="space-y-1.5 text-[11px] font-commons">
+              <p className="text-gray-600"><span className="text-gray-400">Yatirim:</span> {data.investmentLevel}</p>
+              <p className="text-gray-600"><span className="text-gray-400">Sonuc:</span> {data.expectedOutcome}</p>
+              <p className="text-gray-600"><span className="text-gray-400">Sure:</span> {data.timeframe}</p>
+              <p className="text-gray-600"><span className="text-gray-400">Risk:</span> {data.risk}</p>
+            </div>
+          </div>
+        ) : null)}
+      </div>
+    </SectionCard>
+  );
+}
+
+// ─── 21. Risk Matrix (Faz 2) ────────────────────────────
+
+function RiskMatrixSection({ plans }: { plans: NonNullable<AIAnalysis['riskMitigationPlans']> }) {
+  const impactColors: Record<string, string> = { yuksek: 'red', orta: 'amber', dusuk: 'emerald' };
+
+  return (
+    <SectionCard>
+      <SectionTitle icon={ShieldAlert} title="Risk Azaltma Plani" color="red" />
+      <div className="space-y-3">
+        {plans.map((plan, i) => {
+          const severity = plan.likelihood === 'yuksek' && plan.impact === 'yuksek' ? 'red' :
+            plan.likelihood === 'yuksek' || plan.impact === 'yuksek' ? 'amber' : 'emerald';
+          return (
+            <div key={i} className={`bg-${severity}-50 rounded-xl p-4 border border-${severity}-100`}>
+              <div className="flex items-start justify-between mb-2">
+                <p className="font-commons text-sm font-semibold text-gray-900">{plan.risk}</p>
+                <div className="flex gap-1.5 shrink-0 ml-3">
+                  <span className={`font-commons text-[9px] px-1.5 py-0.5 rounded-full bg-${impactColors[plan.likelihood]}-100 text-${impactColors[plan.likelihood]}-700`}>
+                    Olasilik: {plan.likelihood}
+                  </span>
+                  <span className={`font-commons text-[9px] px-1.5 py-0.5 rounded-full bg-${impactColors[plan.impact]}-100 text-${impactColors[plan.impact]}-700`}>
+                    Etki: {plan.impact}
+                  </span>
+                </div>
+              </div>
+              <p className="font-commons text-xs text-gray-700 mb-1"><span className="font-medium text-gray-800">Azaltma:</span> {plan.mitigation}</p>
+              <p className="font-commons text-xs text-gray-700"><span className="font-medium text-amber-700">Erken Uyari:</span> {plan.earlyWarning}</p>
+            </div>
+          );
+        })}
+      </div>
+    </SectionCard>
+  );
+}
+
+// ─── intiba Engagement Plan ──────────────────────────────
+
+function IntibaEngagementSection({ engagement, businessName, revenueImpact }: { engagement: NonNullable<AIAnalysis['intibaEngagement']>; businessName: string; revenueImpact?: AIAnalysis['revenueImpact'] }) {
+  const priorityColors: Record<string, string> = { kritik: 'red', onemli: 'amber', opsiyonel: 'gray' };
+  const priorityLabels: Record<string, string> = { kritik: 'Kritik', onemli: 'Onemli', opsiyonel: 'Opsiyonel' };
+
+  return (
+    <SectionCard className="!p-8 sm:!p-10 bg-gradient-to-br from-indigo-50 to-white border-indigo-100">
+      <div className="text-center mb-6">
+        <h2 className="font-ramillas text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+          intiba Engagement Plan
+        </h2>
+        <p className="font-commons text-sm text-gray-500 max-w-lg mx-auto">
+          {businessName} icin onerilen isbirligi plani
+        </p>
+      </div>
+
+      {/* Recommended Services */}
+      {engagement.recommendedServices?.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+          {engagement.recommendedServices.map((svc, i) => {
+            const color = priorityColors[svc.priority] || 'gray';
+            return (
+              <div key={i} className="bg-white rounded-xl p-4 border border-indigo-100">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="font-commons text-sm font-semibold text-gray-900">{svc.service}</p>
+                  <span className={`font-commons text-[9px] px-2 py-0.5 rounded-full bg-${color}-100 text-${color}-700`}>
+                    {priorityLabels[svc.priority] || svc.priority}
+                  </span>
+                </div>
+                <p className="font-commons text-xs text-gray-600 mb-2">{svc.description}</p>
+                {svc.estimatedInvestment && (
+                  <p className="font-commons text-[11px] text-indigo-600 font-medium">{svc.estimatedInvestment}</p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* 3-Month Roadmap */}
+      {engagement.threeMonthRoadmap && (
+        <div className="bg-white rounded-xl p-4 border border-indigo-100 mb-4">
+          <p className="font-commons text-[11px] text-indigo-500 uppercase tracking-wider font-medium mb-2">3 Aylik Yol Haritasi</p>
+          <p className="font-commons text-sm text-gray-700 leading-relaxed">{engagement.threeMonthRoadmap}</p>
+        </div>
+      )}
+
+      {/* Expected Outcomes */}
+      {engagement.expectedOutcomes?.length > 0 && (
+        <div className="bg-white rounded-xl p-4 border border-indigo-100 mb-4">
+          <p className="font-commons text-[11px] text-emerald-500 uppercase tracking-wider font-medium mb-2">Beklenen Sonuclar</p>
+          <ul className="space-y-1">{engagement.expectedOutcomes.map((o, i) => (
+            <li key={i} className="font-commons text-sm text-gray-700 flex gap-2">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 mt-0.5 shrink-0" />{o}
+            </li>
+          ))}</ul>
+        </div>
+      )}
+
+      {/* Client Readiness Notes */}
+      {engagement.clientReadinessNotes && (
+        <div className="bg-amber-50 rounded-xl p-4 mb-4">
+          <p className="font-commons text-[11px] text-amber-600 uppercase tracking-wider font-medium mb-1">Hazirlik Notu</p>
+          <p className="font-commons text-xs text-gray-700">{engagement.clientReadinessNotes}</p>
+        </div>
+      )}
+
+      {/* Revenue Impact / Growth Projection (merged from Faz 3) */}
+      {revenueImpact && (
+        <div className="bg-white rounded-xl p-4 border border-indigo-100 mb-6">
+          <p className="font-commons text-[11px] text-emerald-500 uppercase tracking-wider font-medium mb-3">Buyume Projeksiyonu</p>
+          {revenueImpact.currentState && (
+            <p className="font-commons text-sm text-gray-700 mb-3">{revenueImpact.currentState}</p>
+          )}
+          {revenueImpact.growthDrivers?.length > 0 && (
+            <div className="space-y-2 mb-3">
+              {revenueImpact.growthDrivers.map((d, i) => (
+                <div key={i} className="bg-emerald-50 rounded-lg p-3">
+                  <p className="font-commons text-sm font-medium text-gray-800">{d.driver}</p>
+                  <div className="flex gap-4 text-xs font-commons text-gray-600">
+                    <span>Etki: <span className="text-emerald-700 font-medium">{d.estimatedImpact}</span></span>
+                    <span>Sure: {d.timeframe}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {revenueImpact.investmentToGrowthRatio && (
+            <p className="font-commons text-xs text-gray-500">Yatirim / Buyume Orani: <span className="font-medium text-emerald-700">{revenueImpact.investmentToGrowthRatio}</span></p>
+          )}
+        </div>
+      )}
+
+      <div className="text-center">
+        <a href="https://intiba.co.uk/iletisim" target="_blank" rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-full font-commons text-sm font-medium hover:bg-gray-800 transition-colors">
+          Bizimle Iletisime Gecin
+          <ArrowRight className="w-4 h-4" />
+        </a>
+        <p className="font-commons text-xs text-gray-400 mt-3">
+          veya <a href="mailto:info@intiba.co.uk" className="text-indigo-500 hover:underline">info@intiba.co.uk</a> adresine yazin
+        </p>
+      </div>
+    </SectionCard>
+  );
+}
+
+// ─── Existing Section Components (preserved) ────────────
+
 function BusinessProfileSection({ bc }: { bc: BusinessContext }) {
   const hasContent = bc.businessDescription || bc.geoScope || bc.businessStage ||
     (bc.digitalPresence && bc.digitalPresence.length > 0 && !bc.digitalPresence.includes('none'));
@@ -343,10 +1122,10 @@ function BusinessProfileSection({ bc }: { bc: BusinessContext }) {
   );
 }
 
-function BrandPersonalityReport({ bp }: { bp: NonNullable<AIAnalysis['brandPersonality']> }) {
+function BrandPersonalityReport({ bp, character }: { bp: NonNullable<AIAnalysis['brandPersonality']>; character?: AIAnalysis['brandCharacter'] }) {
   return (
     <SectionCard>
-      <SectionTitle icon={Sparkles} title="Marka Kisiligi" color="purple" />
+      <SectionTitle icon={Sparkles} title="Marka Kisiligi & Karakteri" color="purple" />
       <div className="bg-purple-50 rounded-xl p-5 mb-4">
         <p className="font-commons text-[11px] text-purple-500 uppercase tracking-wider font-medium mb-1">Arketip</p>
         <p className="font-ramillas text-xl font-bold text-gray-900">{bp.archetype}</p>
@@ -354,15 +1133,181 @@ function BrandPersonalityReport({ bp }: { bp: NonNullable<AIAnalysis['brandPerso
       <div className="flex flex-wrap gap-2 mb-4">
         {bp.traits.map((t, i) => <Badge key={i} color="purple">{t}</Badge>)}
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
         <InfoBlock label="Iletisim Tonu" color="purple">{bp.tone}</InfoBlock>
         <InfoBlock label="Marka Sesi" color="purple">{bp.voice}</InfoBlock>
       </div>
+
+      {/* Character Sliders (merged from BrandCharacterSection) */}
+      {character?.sliders && (
+        <div className="mb-5 bg-purple-50 rounded-xl p-4">
+          <SliderBar label="Iletisim Tarzi" leftLabel="Arkadas" rightLabel="Otorite" value={character.sliders.friendAuthority} />
+          <SliderBar label="Enerji" leftLabel="Genc" rightLabel="Olgun" value={character.sliders.youngMature} />
+          <SliderBar label="Atmosfer" leftLabel="Eglenceli" rightLabel="Ciddi" value={character.sliders.playfulSerious} />
+          <SliderBar label="Segment" leftLabel="Kitle" rightLabel="Elit" value={character.sliders.massElite} />
+        </div>
+      )}
+
+      {/* We Are This / We Are Not This */}
+      {(character?.weAreThis?.length || character?.weAreNotThis?.length) ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
+          {character.weAreThis?.length > 0 && (
+            <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100">
+              <div className="flex items-center gap-2 mb-2">
+                <ThumbsUp className="w-4 h-4 text-emerald-600" />
+                <p className="font-commons text-[11px] text-emerald-600 uppercase tracking-wider font-medium">Biz Buyuz</p>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {character.weAreThis.map((item, i) => (
+                  <span key={i} className="font-commons text-xs bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full">{item}</span>
+                ))}
+              </div>
+            </div>
+          )}
+          {character.weAreNotThis?.length > 0 && (
+            <div className="bg-red-50 rounded-xl p-4 border border-red-100">
+              <div className="flex items-center gap-2 mb-2">
+                <ThumbsDown className="w-4 h-4 text-red-600" />
+                <p className="font-commons text-[11px] text-red-600 uppercase tracking-wider font-medium">Biz Bu Degiliz</p>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {character.weAreNotThis.map((item, i) => (
+                  <span key={i} className="font-commons text-xs bg-red-100 text-red-700 px-2.5 py-1 rounded-full">{item}</span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      ) : null}
+
+      {/* Behaviors Table */}
+      {character?.behaviors?.length > 0 && (
+        <div className="mb-5">
+          <p className="font-commons text-[11px] text-purple-500 uppercase tracking-wider font-medium mb-2">Deger Davranislari</p>
+          <div className="hidden sm:block overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-purple-100">
+                  <th className="font-commons text-[10px] text-gray-500 uppercase pb-2 pr-3">Deger</th>
+                  <th className="font-commons text-[10px] text-emerald-500 uppercase pb-2 pr-3">Yap</th>
+                  <th className="font-commons text-[10px] text-red-500 uppercase pb-2 pr-3">Yapma</th>
+                  <th className="font-commons text-[10px] text-gray-500 uppercase pb-2">Ornek</th>
+                </tr>
+              </thead>
+              <tbody>
+                {character.behaviors.map((b, i) => (
+                  <tr key={i} className="border-b border-gray-50">
+                    <td className="font-commons text-sm font-medium text-gray-900 py-2.5 pr-3">{b.value}</td>
+                    <td className="font-commons text-xs text-emerald-700 py-2.5 pr-3">{b.do}</td>
+                    <td className="font-commons text-xs text-red-600 py-2.5 pr-3">{b.dont}</td>
+                    <td className="font-commons text-xs text-gray-500 py-2.5">{b.example}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="sm:hidden space-y-2">
+            {character.behaviors.map((b, i) => (
+              <div key={i} className="bg-purple-50 rounded-lg p-3 border border-purple-100">
+                <p className="font-commons text-sm font-semibold text-gray-900 mb-1">{b.value}</p>
+                <p className="font-commons text-xs text-emerald-700 mb-0.5"><CheckCircle2 className="w-3 h-3 inline mr-1" />{b.do}</p>
+                <p className="font-commons text-xs text-red-600 mb-0.5"><Minus className="w-3 h-3 inline mr-1" />{b.dont}</p>
+                <p className="font-commons text-xs text-gray-500 italic">{b.example}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Dinner Party Description */}
+      {character?.dinnerPartyDescription && (
+        <div className="bg-gray-50 rounded-xl p-5 border-l-4 border-l-purple-300">
+          <p className="font-commons text-[11px] text-purple-500 uppercase tracking-wider font-medium mb-2">Aksam Yemegi Tasviri</p>
+          <p className="font-commons text-sm text-gray-700 italic leading-relaxed">&ldquo;{character.dinnerPartyDescription}&rdquo;</p>
+        </div>
+      )}
     </SectionCard>
   );
 }
 
-function CompetitorReport({ competitors }: { competitors: NonNullable<AIAnalysis['sectorResearch']>['competitors'] }) {
+function CompetitorSection({ competitors, discovery }: { competitors?: AIAnalysis['sectorResearch'] extends infer R ? R extends { competitors: infer C } ? C : never : never; discovery?: AIAnalysis['competitorDiscovery'] }) {
+  const hasEnriched = discovery && ([...(discovery.knownCompetitors || []), ...(discovery.discoveredCompetitors || [])].length > 0);
+  const hasBase = competitors && competitors.length > 0;
+  if (!hasEnriched && !hasBase) return null;
+
+  // If enriched data exists, prefer it (it's a superset of base competitors)
+  if (hasEnriched) {
+    const allCompetitors = [...(discovery!.knownCompetitors || []), ...(discovery!.discoveredCompetitors || [])];
+    return (
+      <SectionCard>
+        <SectionTitle icon={Target} title="Rekabet Analizi" color="emerald" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
+          {allCompetitors.slice(0, 6).map((c, i) => (
+            <div key={i} className="bg-emerald-50 rounded-xl p-4 border border-emerald-100">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <p className="font-commons text-sm font-semibold text-gray-900">{c.name}</p>
+                  <span className={`font-commons text-[9px] px-1.5 py-0.5 rounded-full ${
+                    c.source === 'declared' ? 'bg-blue-100 text-blue-600' :
+                    c.source === 'research' ? 'bg-emerald-100 text-emerald-600' :
+                    'bg-purple-100 text-purple-600'
+                  }`}>
+                    {c.source === 'declared' ? 'Beyan' : c.source === 'research' ? 'Arastirma' : 'Kesfedilen'}
+                  </span>
+                </div>
+                {c.website && (
+                  <a href={c.website.startsWith('http') ? c.website : `https://${c.website}`} target="_blank" rel="noopener noreferrer" className="text-emerald-500">
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                )}
+              </div>
+              <p className="font-commons text-xs text-gray-600 mb-2">{c.positioning}</p>
+              <div className="flex items-center gap-3 text-[10px] font-commons text-gray-500">
+                <span>Fiyat: {c.priceSegment}</span>
+                <span>Dijital: {c.digitalPresenceScore}/10</span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {discovery!.digitalBenchmark && (
+          <div className="bg-gray-50 rounded-xl p-4 mb-4">
+            <p className="font-commons text-[11px] text-gray-500 uppercase tracking-wider font-medium mb-2">Dijital Benchmark</p>
+            <div className="grid grid-cols-3 gap-3">
+              <div><p className="font-commons text-[10px] text-gray-400">Ort. Web Kalitesi</p><p className="font-commons text-sm font-semibold text-gray-800">{discovery!.digitalBenchmark.avgWebsiteQuality}/10</p></div>
+              <div><p className="font-commons text-[10px] text-gray-400">Ort. Takipci</p><p className="font-commons text-sm font-semibold text-gray-800">{discovery!.digitalBenchmark.avgSocialFollowing}</p></div>
+              <div><p className="font-commons text-[10px] text-gray-400">Ort. Paylasim</p><p className="font-commons text-sm font-semibold text-gray-800">{discovery!.digitalBenchmark.avgPostingFrequency}</p></div>
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {discovery!.entryBarriers?.length > 0 && (
+            <div className="bg-red-50 rounded-xl p-4">
+              <p className="font-commons text-[11px] text-red-600 uppercase tracking-wider font-medium mb-2">Giris Engelleri</p>
+              <ul className="space-y-1">{discovery!.entryBarriers.map((b, i) => (
+                <li key={i} className="font-commons text-xs text-gray-700 flex gap-1.5"><AlertCircle className="w-3 h-3 text-red-500 mt-0.5 shrink-0" />{b}</li>
+              ))}</ul>
+            </div>
+          )}
+          {discovery!.competitiveOpportunities?.length > 0 && (
+            <div className="bg-emerald-50 rounded-xl p-4">
+              <p className="font-commons text-[11px] text-emerald-600 uppercase tracking-wider font-medium mb-2">Rekabet Firsatlari</p>
+              <ul className="space-y-1">{discovery!.competitiveOpportunities.map((o, i) => (
+                <li key={i} className="font-commons text-xs text-gray-700 flex gap-1.5"><Zap className="w-3 h-3 text-emerald-500 mt-0.5 shrink-0" />{o}</li>
+              ))}</ul>
+            </div>
+          )}
+        </div>
+      </SectionCard>
+    );
+  }
+
+  // Fallback: base competitors only
+  return <CompetitorReportBase competitors={competitors!} />;
+}
+
+function CompetitorReportBase({ competitors }: { competitors: NonNullable<AIAnalysis['sectorResearch']>['competitors'] }) {
   return (
     <SectionCard>
       <SectionTitle icon={Target} title="Rekabet Analizi" color="emerald" />
@@ -480,17 +1425,13 @@ function VisualWorldReport({ vw }: { vw: NonNullable<AIAnalysis['visualWorld']> 
     <SectionCard>
       <SectionTitle icon={Palette} title="Gorsel Dunya" color="rose" />
 
-      {/* Color Palette */}
       {vw.colorPalette?.length > 0 && (
         <div className="mb-5">
           <p className="font-commons text-[11px] text-rose-500 uppercase tracking-wider font-medium mb-3">Renk Paleti</p>
           <div className="flex flex-wrap gap-3">
             {vw.colorPalette.map((c, i) => (
               <div key={i} className="text-center">
-                <div
-                  className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl shadow-sm border border-gray-200"
-                  style={{ backgroundColor: c.hex }}
-                />
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl shadow-sm border border-gray-200" style={{ backgroundColor: c.hex }} />
                 <p className="font-commons text-[10px] text-gray-700 font-medium mt-1.5">{c.name}</p>
                 <p className="font-commons text-[9px] text-gray-400">{c.usage}</p>
               </div>
@@ -499,7 +1440,6 @@ function VisualWorldReport({ vw }: { vw: NonNullable<AIAnalysis['visualWorld']> 
         </div>
       )}
 
-      {/* Mood Keywords */}
       {vw.moodKeywords?.length > 0 && (
         <div className="mb-4">
           <p className="font-commons text-[11px] text-rose-500 uppercase tracking-wider font-medium mb-2">Mood</p>
@@ -565,7 +1505,6 @@ function ContentStrategyReport({ cs, blogInsights }: { cs: NonNullable<AIAnalysi
         </div>
       )}
 
-      {/* Blog advisor strategic recommendations merged into content strategy */}
       {blogInsights?.keyRecommendations?.length > 0 && (
         <div className="bg-teal-50 rounded-xl p-4 mt-4">
           <p className="font-commons text-[11px] text-teal-500 uppercase tracking-wider font-medium mb-2">Ek Stratejik Oneriler</p>
@@ -601,7 +1540,6 @@ function ActionPlanReport({ ap }: { ap: NonNullable<AIAnalysis['actionPlan']> })
               <span className={`font-commons text-[10px] text-${phase.color}-500 bg-${phase.color}-50 px-2 py-0.5 rounded-full`}>{phase.sub}</span>
             </div>
 
-            {/* Desktop: table */}
             <div className="hidden sm:block">
               <table className="w-full text-left">
                 <thead>
@@ -625,7 +1563,6 @@ function ActionPlanReport({ ap }: { ap: NonNullable<AIAnalysis['actionPlan']> })
               </table>
             </div>
 
-            {/* Mobile: cards */}
             <div className="sm:hidden space-y-2">
               {phase.items.map((item, i) => (
                 <div key={i} className={`bg-${phase.color}-50 rounded-lg p-3 border border-${phase.color}-100`}>
@@ -645,7 +1582,7 @@ function ActionPlanReport({ ap }: { ap: NonNullable<AIAnalysis['actionPlan']> })
   );
 }
 
-// ─── CTA Section ────────────────────────────────────
+// ─── CTA Section (fallback when no intibaEngagement) ───
 
 function CTASection({ requestedServices, businessName }: { requestedServices: { id: string; title: string }[]; businessName: string }) {
   const serviceMapping: Record<string, { title: string; description: string }> = {
@@ -683,12 +1620,8 @@ function CTASection({ requestedServices, businessName }: { requestedServices: { 
       )}
 
       <div className="text-center">
-        <a
-          href="https://intiba.co.uk/iletisim"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-full font-commons text-sm font-medium hover:bg-gray-800 transition-colors"
-        >
+        <a href="https://intiba.co.uk/iletisim" target="_blank" rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-full font-commons text-sm font-medium hover:bg-gray-800 transition-colors">
           Bizimle Iletisime Gecin
           <ArrowRight className="w-4 h-4" />
         </a>

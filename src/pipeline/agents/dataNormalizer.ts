@@ -15,9 +15,9 @@ export async function runDataNormalizer(input: PipelineInput): Promise<Normalize
     .map((s) => s.title)
     .join(', ');
 
-  // Admin notes (optional expert context)
+  // Admin notes (expert context — MUST override any conflicting inference)
   const adminNotesSection = input.adminNotes?.trim()
-    ? `\n## Admin Notlari (Uzman Degerlendirmesi)\nBu isletme hakkinda uzman tarafindan eklenen ek bilgiler:\n${input.adminNotes.trim()}\n\nBu notlari analiz sirasinda dikkate al ve genel profili buna gore sekillendir.\n`
+    ? `\n## ⚠️ KRITIK ADMIN NOTU (ZORUNLU)\nBu isletme hakkinda uzman tarafindan eklenen BAGLAYICI bilgiler:\n${input.adminNotes.trim()}\n\nBu notlar KESINLIKLE dikkate alinmalidir. Genel profili, sektoru ve isletme tanimini bu nota UYGUN olustur. Bu notla CELISEN cikarimlar YAPMA — admin notu diger tum varsayimlardan ONCELIKLIDIR.\n`
     : '';
 
   // Business context (v2.0 wizard data)

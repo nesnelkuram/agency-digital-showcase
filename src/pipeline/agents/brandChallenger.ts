@@ -5,7 +5,8 @@ export async function runBrandChallenger(
   normalizedData: NormalizedData,
   researchFindings: ResearchFindings | null,
   strategistOutput: StrategistOutput,
-  businessContext?: { brandWhy?: string; customerPerception?: string; existingBrandAssets?: string; futureVision?: string; businessStage?: string }
+  businessContext?: { brandWhy?: string; customerPerception?: string; existingBrandAssets?: string; futureVision?: string; businessStage?: string },
+  adminNotes?: string
 ): Promise<ChallengerOutput> {
 
   // Build rich research context (if available)
@@ -78,12 +79,17 @@ ${businessContext.existingBrandAssets ? `- Mevcut Marka Varlıkları: ${business
 ${businessContext.futureVision ? `- 3 Yıllık Vizyon: ${businessContext.futureVision}` : ''}`
     : '';
 
+  // Admin notes — critical expert override
+  const adminNotesContext = adminNotes?.trim()
+    ? `\n\n⚠️ KRITIK ADMIN NOTU — ZORUNLU BAGLAMSAL BILGI:\n${adminNotes.trim()}\nBu notu yazan uzman, isletmeyi yakindan taniyor. Elestirillerini bu bilgiye UYGUN yap. Bu notla celisen varsayimlar URETME. Ozellikle isletmenin ne is yaptigini bu nota gore degerlendir.\n`
+    : '';
+
   const prompt = `Sen deneyimli bir marka danismanisin ve SEYTAN AVUKATI olarak gorev yapiyorsun. Bir baska strateji uzmani asagidaki marka konumlandirmasini onerdi. Senin gorevin bu stratejiyi ELESTIREL ve KANIT TABANLI gozle incelemek.
 
 ## Isletme Bilgileri
 - Isletme: ${normalizedData.businessName}
 - Sektor: ${normalizedData.sector}
-- Genel Profil: ${normalizedData.overallProfile}${maturityContext}${deepContext}
+- Genel Profil: ${normalizedData.overallProfile}${maturityContext}${deepContext}${adminNotesContext}
 
 ## Onerilen Strateji (Strateji Uzmani Ciktisi)
 - Arketip: ${strategistOutput.archetype}
@@ -139,7 +145,16 @@ Yukaridaki stratejiyi elestirel gozle inceleyerek asagidaki JSON yapisinda bir k
     ],
     "verdict": "'strong' (hicbir rakip icin gecerli degil), 'weak' (1 rakip icin gecerli), 'generic' (cogu rakip icin gecerli — YENIDEN YAZILMALI)"
   },
-  "distinctivenessScore": 75
+  "distinctivenessScore": 75,
+  "riskMitigationPlans": [
+    {
+      "risk": "Tespit edilen SOMUT risk",
+      "likelihood": "yuksek/orta/dusuk",
+      "impact": "yuksek/orta/dusuk",
+      "mitigation": "Bu riski azaltmak icin SOMUT strateji",
+      "earlyWarning": "Bu riskin gerceklesmeye basladigini gosteren erken sinyal"
+    }
+  ]
 }
 
 KRITIK KURALLAR:
@@ -160,7 +175,9 @@ KRITIK KURALLAR:
    - mature (10-12): Buyume ve sadakat stratejilerini sorgula. Yeni pazar segmentleri, marka genislemesi riskleri.
 12. WHY KONTROLU: ${businessContext?.brandWhy ? `Isletmenin varolus amaci: "${businessContext.brandWhy}". Stratejistin onerisi bu WHY ile tutarli mi? Arketip ve ton bu amaci yansitıyor mu? Tutarsizlik varsa acikca belirt.` : 'Varolus amaci (WHY) bilgisi mevcut degil — stratejistin arketip seciminin temelsiz olma riskini belirt.'}
 13. MUSTERI ALGISI KONTROLU: ${businessContext?.customerPerception ? `Musteri gozunden gercek algi: "${businessContext.customerPerception}". Stratejistin onerisi ile gercek musteri algisi arasinda FARK var mi? Strateji musterinin zaten hissettigi degerleri guclendiriyor mu yoksa tamamen farkli bir yone mi gidiyor?` : 'Musteri algisi verisi yok — stratejistin onerisinin gercek musteri deneyimiyle dogrulanmadigini belirt.'}
-14. VIZYON UYUMU: ${businessContext?.futureVision ? `3 yillik vizyon: "${businessContext.futureVision}". Onerilen strateji bu vizyona giden yolda mi yoksa farkli bir rotada mi? Kisa vadeli strateji uzun vadeli vizyonla celisiyor mu?` : ''}`;
+14. VIZYON UYUMU: ${businessContext?.futureVision ? `3 yillik vizyon: "${businessContext.futureVision}". Onerilen strateji bu vizyona giden yolda mi yoksa farkli bir rotada mi? Kisa vadeli strateji uzun vadeli vizyonla celisiyor mu?` : ''}
+
+15. RISK AZALTMA PLANLARI: "riskMitigationPlans" bolumunde riskAssessment'taki HER riski ayri bir plan olarak detaylandir. EN AZ 3 risk plani. Her plan icin SOMUT azaltma stratejisi ve ERKEN UYARI sinyali belirt. likelihood ve impact kombinasyonu "yuksek-yuksek" olan riskler ACIL isaret edilmeli.`;
 
   const parsed = await generateJSON<ChallengerOutput>('pro', prompt, 'BrandChallenger', {
     temperature: 0.8,
@@ -185,5 +202,14 @@ KRITIK KURALLAR:
     // Faz 3 — Onlyness testi + kalite
     onlynessTest: parsed.onlynessTest || undefined,
     distinctivenessScore: typeof parsed.distinctivenessScore === 'number' ? parsed.distinctivenessScore : undefined,
+    riskMitigationPlans: Array.isArray(parsed.riskMitigationPlans) && parsed.riskMitigationPlans.length > 0
+      ? parsed.riskMitigationPlans.map((p: any) => ({
+          risk: p.risk || '',
+          likelihood: p.likelihood || 'orta',
+          impact: p.impact || 'orta',
+          mitigation: p.mitigation || '',
+          earlyWarning: p.earlyWarning || '',
+        }))
+      : undefined,
   };
 }

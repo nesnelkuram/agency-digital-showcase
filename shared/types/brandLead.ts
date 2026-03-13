@@ -359,11 +359,133 @@ export interface AIAnalysis {
   };
 
   // Dijital varlık analizi
-  digitalPresence?: any;
+  digitalPresence?: {
+    website: {
+      url: string;
+      status: 'analyzed' | 'fetch_failed' | 'not_provided';
+      overallImpression: string;
+      designQuality: number;
+      mobileOptimized: boolean;
+      loadPerformance: string;
+      products: Array<{ name: string; price?: string; category?: string }>;
+      pricingStrategy: string;
+      contentQuality: string;
+      callToActions: string[];
+      trustSignals: string[];
+      seoBasics: { hasTitle: boolean; hasDescription: boolean; hasOGTags: boolean; title?: string; description?: string };
+      strengths: string[];
+      weaknesses: string[];
+      recommendations: string[];
+    } | null;
+    instagram: {
+      handle: string;
+      status: 'analyzed' | 'limited_data' | 'not_provided';
+      followerRange?: string;
+      estimatedPostCount?: string;
+      postingFrequency?: string;
+      contentThemes: string[];
+      visualStyle: string;
+      captionStyle: string;
+      hashtagUsage: string;
+      engagementLevel: string;
+      contentMix: { photoPercent?: number; videoPercent?: number; reelPercent?: number; carouselPercent?: number };
+      strengths: string[];
+      weaknesses: string[];
+      recommendations: string[];
+    } | null;
+    otherPlatforms: Array<{ platform: string; status: string; notes: string }>;
+    overallDigitalScore: number;
+    digitalMaturityLevel: string;
+    criticalGaps: string[];
+    quickWins: string[];
+  };
   // Rakip keşif analizi
-  competitorDiscovery?: any;
+  competitorDiscovery?: {
+    knownCompetitors: Array<{
+      name: string; website?: string; instagramHandle?: string; positioning: string;
+      priceSegment: string; strengths: string[]; weaknesses: string[];
+      estimatedScale: string; digitalPresenceScore: number; socialMediaSummary: string;
+      differentiators: string[]; source: 'declared' | 'research' | 'discovered';
+    }>;
+    discoveredCompetitors: Array<{
+      name: string; website?: string; instagramHandle?: string; positioning: string;
+      priceSegment: string; strengths: string[]; weaknesses: string[];
+      estimatedScale: string; digitalPresenceScore: number; socialMediaSummary: string;
+      differentiators: string[]; source: 'declared' | 'research' | 'discovered';
+    }>;
+    competitiveLandscapeSummary: string;
+    marketConcentration: string;
+    entryBarriers: string[];
+    competitiveThreats: string[];
+    competitiveOpportunities: string[];
+    digitalBenchmark: {
+      avgWebsiteQuality: number; avgSocialFollowing: string;
+      avgPostingFrequency: string; bestPracticeExamples: string[];
+    };
+  };
   // Tüketici testi
-  consumerTest?: any;
+  consumerTest?: {
+    overallViabilityScore: number;
+    personas: Array<{
+      personaLabel: string; demographics: string; psychographics: string;
+      painPoints: string[]; alignmentScore: number; resonancePoints: string[];
+      concerns: string[]; purchaseLikelihood: 'yuksek' | 'orta' | 'dusuk' | 'cok_dusuk';
+      recommendedMessageAngle: string;
+    }>;
+    strongestFit: string;
+    weakestFit: string;
+    crossPersonaConcerns: string[];
+    strategyRefinements: string[];
+    marketReadiness: 'hazir' | 'iyilestirme_gerekli' | 'yeniden_dusunulmeli';
+  };
+
+  // Faz 2 — KPI Framework & Senaryolar (strategySynthesizer)
+  kpiFramework?: {
+    northStar: { metric: string; currentEstimate: string; target90Day: string };
+    leading: Array<{ metric: string; target: string; measurementMethod: string }>;
+    lagging: Array<{ metric: string; target: string; measurementMethod: string }>;
+    reviewCadence: string;
+  };
+  strategyScenarios?: {
+    conservative: { description: string; investmentLevel: string; expectedOutcome: string; timeframe: string; risk: string };
+    recommended: { description: string; investmentLevel: string; expectedOutcome: string; timeframe: string; risk: string };
+    aggressive: { description: string; investmentLevel: string; expectedOutcome: string; timeframe: string; risk: string };
+  };
+
+  // Faz 2 — Risk Azaltma Planları (brandChallenger)
+  riskMitigationPlans?: Array<{
+    risk: string;
+    likelihood: 'yuksek' | 'orta' | 'dusuk';
+    impact: 'yuksek' | 'orta' | 'dusuk';
+    mitigation: string;
+    earlyWarning: string;
+  }>;
+
+  // Faz 3 — Brand Value Maximizer çıktıları
+  diagnosisSummary?: {
+    perceptionVsReality: Array<{
+      perception: string;
+      reality: string;
+      gap: string;
+      recommendation: string;
+    }>;
+    blindSpots: string[];
+    criticalMisalignment: string;
+  };
+  emotionalNarrative?: {
+    manifesto: string;
+    transformationStory: string;
+    oneLinePromise: string;
+  };
+  revenueImpact?: {
+    currentState: string;
+    growthDrivers: Array<{
+      driver: string;
+      estimatedImpact: string;
+      timeframe: string;
+    }>;
+    investmentToGrowthRatio: string;
+  };
 
   // Meta
   analyzedAt: Timestamp;

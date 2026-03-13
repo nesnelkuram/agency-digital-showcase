@@ -5,7 +5,8 @@ import type { NormalizedData, ResearchFindings, StrategistOutput, BusinessContex
 export async function runBrandStrategist(
   normalizedData: NormalizedData,
   researchFindings: ResearchFindings | null,
-  businessContext?: BusinessContextInput
+  businessContext?: BusinessContextInput,
+  adminNotes?: string
 ): Promise<StrategistOutput> {
 
   // Build structured answers summary
@@ -105,6 +106,11 @@ ${maturity.level === 'mature' ? '- MATURE: Buyume ve sadakat odakli strateji. Pr
     ? `\n13. ISLETME ASAMASI: Isletme "${bc.businessStage}" asamasinda. Buna gore strateji onerileri kalibre et — yeni isletme icin marka bilinirligine, yerlesik isletme icin pazar payi buyutmeye odaklan.`
     : '';
 
+  // Admin notes — critical expert override
+  const adminNotesSection = adminNotes?.trim()
+    ? `\n\n⚠️ KRITIK ADMIN NOTU — ZORUNLU BAGLAMSAL BILGI:\n${adminNotes.trim()}\nBu notu yazan uzman, isletmeyi yakindan taniyor. Stratejini bu bilgiye UYGUN olustur. Bu notla CELISEN varsayimlar veya cikarimlar YAPMA. Ozellikle isletmenin faaliyet alani, sektoru veya konumlandirmasi hakkinda bu notla celisen bir yorum KESINLIKLE uretme.\n`
+    : '';
+
   // JTBD + StoryBrand context from business context
   const customerContext = bc ? `
 ${bc.customerJob ? `- Müşterinin Kiraladığı İş (JTBD): ${bc.customerJob}` : ''}
@@ -136,7 +142,7 @@ Verileri okumadan once su sorulari cevapla:
 - Isletme: ${normalizedData.businessName}
 - Sektor: ${normalizedData.sector}
 - Genel Profil: ${normalizedData.overallProfile}
-${businessContextSection}${customerContext}
+${businessContextSection}${adminNotesSection}${customerContext}
 ## Yapilandirilmis Cevaplar
 ${answersSummary || 'Cevap bilgisi mevcut degil'}
 

@@ -243,6 +243,14 @@ export interface ChallengerOutput {
     verdict: 'strong' | 'weak' | 'generic';
   };
   distinctivenessScore?: number;   // 0-100 — ne kadar benzersiz?
+  // Faz 2 — Risk Azaltma Planları
+  riskMitigationPlans?: Array<{
+    risk: string;
+    likelihood: 'yuksek' | 'orta' | 'dusuk';
+    impact: 'yuksek' | 'orta' | 'dusuk';
+    mitigation: string;
+    earlyWarning: string;
+  }>;
 }
 
 // Agent 4b Output (Blog Strategy Advisor)
@@ -379,6 +387,21 @@ export interface SynthesizedAnalysis {
     onlynessTest: { statement: string; competitorSwaps: Array<{ name: string; stillValid: boolean }> };
     genericPhraseCount: number;             // 0 = mükemmel
   };
+
+  // Faz 2 — KPI Framework
+  kpiFramework?: {
+    northStar: { metric: string; currentEstimate: string; target90Day: string };
+    leading: Array<{ metric: string; target: string; measurementMethod: string }>;
+    lagging: Array<{ metric: string; target: string; measurementMethod: string }>;
+    reviewCadence: string;
+  };
+
+  // Faz 2 — Senaryo Bazlı Strateji
+  strategyScenarios?: {
+    conservative: { description: string; investmentLevel: string; expectedOutcome: string; timeframe: string; risk: string };
+    recommended: { description: string; investmentLevel: string; expectedOutcome: string; timeframe: string; risk: string };
+    aggressive: { description: string; investmentLevel: string; expectedOutcome: string; timeframe: string; risk: string };
+  };
 }
 
 // Agent 7 Output — Digital Presence Analysis
@@ -497,6 +520,35 @@ export interface ConsumerTestOutput {
   crossPersonaConcerns: string[];
   strategyRefinements: string[];
   marketReadiness: 'hazir' | 'iyilestirme_gerekli' | 'yeniden_dusunulmeli';
+}
+
+// Agent 10 Output — Brand Value Maximizer (replaces consultantIntroWriter)
+export interface ValueMaximizerOutput {
+  consultantIntro: string;
+  diagnosisSummary: {
+    perceptionVsReality: Array<{
+      perception: string;
+      reality: string;
+      gap: string;
+      recommendation: string;
+    }>;
+    blindSpots: string[];
+    criticalMisalignment: string;
+  };
+  emotionalNarrative: {
+    manifesto: string;
+    transformationStory: string;
+    oneLinePromise: string;
+  };
+  revenueImpact: {
+    currentState: string;
+    growthDrivers: Array<{
+      driver: string;
+      estimatedImpact: string;
+      timeframe: string;
+    }>;
+    investmentToGrowthRatio: string;
+  };
 }
 
 // Pipeline state passed through agents

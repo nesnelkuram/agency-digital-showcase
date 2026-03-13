@@ -11,6 +11,7 @@ export async function runStrategySynthesizer(
   businessContext?: BusinessContextInput,
   digitalPresence?: DigitalPresenceAnalysis | null,
   competitorDiscovery?: CompetitorDiscoveryOutput | null,
+  adminNotes?: string,
 ): Promise<SynthesizedAnalysis> {
 
   // Format target audience from strategist (segments, not personas)
@@ -227,6 +228,11 @@ ${bc.futureVision ? `- 3 Yıllık Vizyon: ${bc.futureVision}` : ''}
     ? `\n15. TETIKLEYICI NEDEN ONCELIKLENDIRMESI: Musterinin basvuru nedeni "${bc.triggerReason}". actionPlan'in "immediate" fazini bu nedene dogrudan cevap verecek sekilde onceliklendir. Ornegin: "sales_drop" → satis artirici aksiyonlar once, "launch" → marka bilinirlik aksiyonlari once, "rebrand" → kimlik yenileme aksiyonlari once.`
     : '';
 
+  // Admin notes — critical expert override for final synthesis
+  const adminNotesBlock = adminNotes?.trim()
+    ? `\n\n⚠️ KRITIK ADMIN NOTU — NIHAI RAPORDA KESINLIKLE UYULMASI GEREKEN BILGI:\n${adminNotes.trim()}\nBu not, isletmeyi yakindan taniyan uzman tarafindan yazilmistir. Nihai sentez raporunda bu bilgiyi ZORUNLU olarak dikkate al. Bu notla celisen icerik KESINLIKLE raporda yer ALMAMALIDIR. Isletmenin ne is yaptigini, hangi sektorde oldugunu ve konumlandirmasini bu nota gore belirle.\n`
+    : '';
+
   const prompt = `Sen bir marka stratejisi basparlak direktorsun (CSO). ${debateInstruction}
 
 ## Isletme Profili
@@ -235,7 +241,7 @@ ${bc.futureVision ? `- 3 Yıllık Vizyon: ${bc.futureVision}` : ''}
 - Genel Profil: ${normalizedData.overallProfile}
 - Veri Kalitesi: ${normalizedData.dataQualityScore}
 - Tespit Edilen Oruntular: ${normalizedData.detectedPatterns.join('; ') || 'Yok'}
-${businessContextSection}${maturityContext}
+${businessContextSection}${adminNotesBlock}${maturityContext}
 ## Uzman Gorusleri
 ${strategistSummary}
 ${competitiveMapSummary}
@@ -413,6 +419,21 @@ Tum verileri sentezleyerek asagidaki JSON yapisinda NIHAI marka stratejisi rapor
       "competitorSwaps": [{ "name": "Rakip", "stillValid": false }]
     },
     "genericPhraseCount": 0
+  },
+  "kpiFramework": {
+    "northStar": { "metric": "Tek ve en onemli basari metrigi — donusum ifadesiyle baglantili", "currentEstimate": "Mevcut tahmini deger", "target90Day": "90 gun sonrasi hedef" },
+    "leading": [
+      { "metric": "Oncu metrik adi", "target": "Hedef deger", "measurementMethod": "Nasil olculecek" }
+    ],
+    "lagging": [
+      { "metric": "Gecikme metrigi adi", "target": "Hedef deger", "measurementMethod": "Nasil olculecek" }
+    ],
+    "reviewCadence": "Haftalik/Aylik — ne siklikla gozden gecirilecek"
+  },
+  "strategyScenarios": {
+    "conservative": { "description": "Tutucu senaryo aciklamasi", "investmentLevel": "Aylik yatirim araligi", "expectedOutcome": "3 ay sonunda beklenen sonuc", "timeframe": "Sonuc alma suresi", "risk": "Bu senaryonun riski" },
+    "recommended": { "description": "Onerilen senaryo", "investmentLevel": "...", "expectedOutcome": "...", "timeframe": "...", "risk": "..." },
+    "aggressive": { "description": "Agresif buyume senaryosu", "investmentLevel": "...", "expectedOutcome": "...", "timeframe": "...", "risk": "..." }
   }
 }
 
@@ -469,7 +490,11 @@ ${maturity.level === 'mature' ? '- MATURE ise: buyume stratejisi, topluluk olust
 
 21. MARKA KARAKTERI (brandCharacter): Arketip etiketi KULLANMA. Onun yerine "dinnerPartyDescription" ile markayı bir aksam yemeginde nasil konusacak biri olarak CANLANDIR. behaviors dizisinde her deger icin YAPILACAK davranis + YAPILMAYACAK davranis + SOMUT ornek yaz. weAreThis/weAreNotThis ciftleri SPESIFIK olmali — "Kaliteli" degil "Her detayi dusunmus ama bunu gostermeden yapan" gibi.
 
-22. KALITE METRIKLERI (qualityMetrics): distinctivenessScore 0-100 arasi (challenger'in onlyness testinden turet). onlynessTest'te konumlandirma ifadesini Neumeier formatina cevir ve en az 2 rakiple swap testi yap. genericPhraseCount'ta rapordaki jenerik ifade sayisini say (0 = mukemmel).`;
+22. KALITE METRIKLERI (qualityMetrics): distinctivenessScore 0-100 arasi (challenger'in onlyness testinden turet). onlynessTest'te konumlandirma ifadesini Neumeier formatina cevir ve en az 2 rakiple swap testi yap. genericPhraseCount'ta rapordaki jenerik ifade sayisini say (0 = mukemmel).
+
+23. KPI FRAMEWORK: "kpiFramework" bolumunde North Star metrigi donusum ifadesiyle (transformationStatement) dogrudan baglantili olmali. "leading" metrikleri actionPlan'in "immediate" fazindaki ciktilari olcmeli. "lagging" metrikleri 90 gun sonunda gorulebilecek sonuc metrikleri olmali. EN AZ 2 leading ve 2 lagging metrik.
+
+24. STRATEJI SENARYOLARI: "strategyScenarios" bolumunde 3 farkli senaryo sun. "conservative" musterinin belirttigi butcenin ALT sinirinda, "recommended" butce ORTASINDA, "aggressive" butcenin UST sinirinda olmali. Her senaryonun investmentLevel'i RAKAMLARARLA (TL) belirtilmeli.`;
 
   const parsed = await generateJSON<SynthesizedAnalysis>('pro', prompt, 'StrategySynthesizer', {
     temperature: 0.6,
@@ -635,6 +660,17 @@ ${maturity.level === 'mature' ? '- MATURE ise: buyume stratejisi, topluluk olust
           onlynessTest: parsed.qualityMetrics.onlynessTest || (challengerOutput?.onlynessTest ? { statement: challengerOutput.onlynessTest.statement, competitorSwaps: challengerOutput.onlynessTest.competitorSwaps.map((s) => ({ name: s.competitor, stillValid: s.stillValid })) } : { statement: '', competitorSwaps: [] }),
           genericPhraseCount: typeof parsed.qualityMetrics.genericPhraseCount === 'number' ? parsed.qualityMetrics.genericPhraseCount : 0,
         }
+      : undefined,
+    kpiFramework: parsed.kpiFramework && parsed.kpiFramework.northStar
+      ? {
+          northStar: parsed.kpiFramework.northStar,
+          leading: Array.isArray(parsed.kpiFramework.leading) ? parsed.kpiFramework.leading : [],
+          lagging: Array.isArray(parsed.kpiFramework.lagging) ? parsed.kpiFramework.lagging : [],
+          reviewCadence: parsed.kpiFramework.reviewCadence || 'Aylik',
+        }
+      : undefined,
+    strategyScenarios: parsed.strategyScenarios && parsed.strategyScenarios.recommended
+      ? parsed.strategyScenarios
       : undefined,
   };
 }

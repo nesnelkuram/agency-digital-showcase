@@ -9,6 +9,7 @@ import {
   runBlogStrategyAdvisor,
   runStrategySynthesizer,
   runConsultantIntroWriter,
+  runBrandValueMaximizer,
   runDigitalPresenceAnalyzer,
   runCompetitorDiscovery,
   runBrandStrategistRevision,
@@ -238,7 +239,7 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
           if (runId) await markAgentRunning(effectiveLeadId, runId, 'brandStrategist');
           const s = Date.now();
           try {
-            const r = await runBrandStrategist(normalizedData, researchFindings, input.businessContext);
+            const r = await runBrandStrategist(normalizedData, researchFindings, input.businessContext, input.adminNotes);
             timings.brandStrategist = Date.now() - s;
             agentsRun.push('brandStrategist');
             if (runId) await checkpointAgent(effectiveLeadId, runId, 'brandStrategist', 'strategistOutput', r, timings.brandStrategist);
@@ -349,7 +350,7 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
           if (runId) await markAgentRunning(effectiveLeadId, runId, 'brandChallenger');
           const s = Date.now();
           try {
-            const r = await runBrandChallenger(normalizedData, researchFindings, strategistOutput, input.businessContext);
+            const r = await runBrandChallenger(normalizedData, researchFindings, strategistOutput, input.businessContext, input.adminNotes);
             timings.brandChallenger = Date.now() - s;
             agentsRun.push('brandChallenger');
             if (runId) await checkpointAgent(effectiveLeadId, runId, 'brandChallenger', 'challengerOutput', r, timings.brandChallenger);
@@ -434,7 +435,7 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
       const revStart = Date.now();
       try {
         console.log(`analyze-continue: Running strategistRevision (remaining=${remaining()}ms)...`);
-        const revisedOutput = await runBrandStrategistRevision(normalizedData, strategistOutput, challengerOutput, researchFindings, consumerTestResult);
+        const revisedOutput = await runBrandStrategistRevision(normalizedData, strategistOutput, challengerOutput, researchFindings, consumerTestResult, input.adminNotes);
         timings.strategistRevision = Date.now() - revStart;
         agentsRun.push('strategistRevision');
         if (revisedOutput) {
@@ -472,7 +473,7 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
       const synthStart = Date.now();
       try {
         console.log('analyze-continue: Running strategySynthesizer...');
-        synthesizedAnalysis = await runStrategySynthesizer(normalizedData, researchFindings, effectiveStrategistOutput, challengerOutput, blogAdvisorOutput, input.businessContext, digitalPresence, competitorDiscovery);
+        synthesizedAnalysis = await runStrategySynthesizer(normalizedData, researchFindings, effectiveStrategistOutput, challengerOutput, blogAdvisorOutput, input.businessContext, digitalPresence, competitorDiscovery, input.adminNotes);
         timings.strategySynthesizer = Date.now() - synthStart;
         agentsRun.push('strategySynthesizer');
         if (runId) await checkpointAgent(effectiveLeadId, runId, 'strategySynthesizer', 'synthesizedAnalysis', synthesizedAnalysis, timings.strategySynthesizer);
@@ -489,37 +490,59 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
     }
 
     // ============================
-    // Agent 6: Consultant Intro Writer
+    // Agent 6: Brand Value Maximizer (replaces consultantIntroWriter)
     // ============================
     let consultantIntroText = (hasCheckpoint && cp?.consultantIntro) || '';
-    if (consultantIntroText) { console.log('analyze-continue: Using checkpointed consultantIntro'); agentsRun.push('consultantIntroWriter'); }
+    let valueMaximizerOutput = (hasCheckpoint && cp?.valueMaximizerOutput) || null;
+    if (consultantIntroText) { console.log('analyze-continue: Using checkpointed consultantIntro'); agentsRun.push('brandValueMaximizer'); }
 
     const synthesizedForIntro = synthesizedAnalysis || buildFallbackSynthesis(effectiveStrategistOutput);
 
     if (!consultantIntroText) {
       if (remaining() < 8_000) {
-        if (runId) await markAgentSkipped(effectiveLeadId, runId, 'consultantIntroWriter');
-        console.log(`analyze-continue: SKIPPING consultantIntroWriter — remaining=${remaining()}ms`);
+        if (runId) await markAgentSkipped(effectiveLeadId, runId, 'brandValueMaximizer');
+        console.log(`analyze-continue: SKIPPING brandValueMaximizer — remaining=${remaining()}ms`);
       } else {
-        if (runId) await markAgentRunning(effectiveLeadId, runId, 'consultantIntroWriter');
+        if (runId) await markAgentRunning(effectiveLeadId, runId, 'brandValueMaximizer');
         const s = Date.now();
         try {
-          consultantIntroText = await runConsultantIntroWriter(
+          // Try brandValueMaximizer first (produces consultantIntro + extra outputs)
+          valueMaximizerOutput = await runBrandValueMaximizer(
             normalizedData,
             researchFindings,
             synthesizedForIntro,
-            blogAdvisorOutput,
+            challengerOutput,
+            consumerTestResult,
+            digitalPresence,
             input.businessContext,
           );
-          timings.consultantIntroWriter = Date.now() - s;
-          agentsRun.push('consultantIntroWriter');
-          if (runId) await checkpointAgent(effectiveLeadId, runId, 'consultantIntroWriter', 'consultantIntro', consultantIntroText, timings.consultantIntroWriter);
-          console.log(`analyze-continue: consultantIntroWriter done in ${timings.consultantIntroWriter}ms — ${consultantIntroText.length} chars`);
+          consultantIntroText = valueMaximizerOutput?.consultantIntro || '';
+          timings.brandValueMaximizer = Date.now() - s;
+          agentsRun.push('brandValueMaximizer');
+          if (runId) await checkpointAgent(effectiveLeadId, runId, 'brandValueMaximizer', 'consultantIntro', consultantIntroText, timings.brandValueMaximizer);
+          console.log(`analyze-continue: brandValueMaximizer done in ${timings.brandValueMaximizer}ms — ${consultantIntroText.length} chars`);
         } catch (error: any) {
-          timings.consultantIntroWriter = Date.now() - s;
-          errors.push({ agent: 'consultantIntroWriter', error: error.message, timestamp: Date.now() });
-          if (runId) await markAgentFailed(effectiveLeadId, runId, 'consultantIntroWriter', error.message, timings.consultantIntroWriter);
-          console.error(`analyze-continue: consultantIntroWriter failed in ${timings.consultantIntroWriter}ms: ${error.message}`);
+          timings.brandValueMaximizer = Date.now() - s;
+          console.error(`analyze-continue: brandValueMaximizer failed in ${timings.brandValueMaximizer}ms: ${error.message}, falling back to consultantIntroWriter`);
+          // Fallback to old consultantIntroWriter
+          const s2 = Date.now();
+          try {
+            consultantIntroText = await runConsultantIntroWriter(
+              normalizedData,
+              researchFindings,
+              synthesizedForIntro,
+              blogAdvisorOutput,
+              input.businessContext,
+            );
+            timings.consultantIntroWriter = Date.now() - s2;
+            agentsRun.push('consultantIntroWriter');
+            console.log(`analyze-continue: consultantIntroWriter fallback done in ${timings.consultantIntroWriter}ms`);
+          } catch (fallbackError: any) {
+            timings.consultantIntroWriter = Date.now() - s2;
+            errors.push({ agent: 'brandValueMaximizer', error: error.message, timestamp: Date.now() });
+            if (runId) await markAgentFailed(effectiveLeadId, runId, 'brandValueMaximizer', error.message, timings.brandValueMaximizer);
+            console.error(`analyze-continue: consultantIntroWriter fallback also failed: ${fallbackError.message}`);
+          }
         }
       }
     }
@@ -609,6 +632,16 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
       strategicDepth: synthesized.strategicDepth || undefined,
       brandCharacter: synthesized.brandCharacter || undefined,
       qualityMetrics: synthesized.qualityMetrics || undefined,
+
+      // Faz 2 — KPI Framework & Senaryolar
+      kpiFramework: synthesized.kpiFramework || undefined,
+      strategyScenarios: synthesized.strategyScenarios || undefined,
+      riskMitigationPlans: challengerOutput?.riskMitigationPlans || undefined,
+
+      // Faz 3 — Brand Value Maximizer çıktıları
+      diagnosisSummary: valueMaximizerOutput?.diagnosisSummary || undefined,
+      emotionalNarrative: valueMaximizerOutput?.emotionalNarrative || undefined,
+      revenueImpact: valueMaximizerOutput?.revenueImpact || undefined,
 
       dataQuality: normalizedData
         ? {
