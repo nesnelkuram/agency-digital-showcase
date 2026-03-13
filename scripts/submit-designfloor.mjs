@@ -73,6 +73,119 @@ async function main() {
     { id: 'brand_strategy', title: 'Marka Stratejisi' },
   ];
 
+  const readableAnswers = [
+    // Stage 0 — Operasyonel Gerçeklik
+    {
+      stage: 'Operasyonel Gerçeklik',
+      questionId: 12,
+      question: 'Showroom deneyiminiz ile sahada yaşanan gerçeklik ne kadar tutarlı?',
+      answerKey: 'mostly',
+      answer: 'Büyük ölçüde tutarlı — Standartlar var, nadiren sapma oluyor',
+    },
+    {
+      stage: 'Operasyonel Gerçeklik',
+      questionId: 13,
+      question: 'Yoğun sezon veya toplu proje dönemlerinde teslimat kaliteniz ne durumda?',
+      answerKey: 'mostly_holds',
+      answer: 'Çoğunlukla dayanıyor — Küçük aksamalar olsa da genel kalite korunuyor',
+    },
+    {
+      stage: 'Operasyonel Gerçeklik',
+      questionId: 14,
+      question: 'Bu çalışma sonrası %30 talep artışı olursa tedarik ve teslimat zinciriniz ne olur?',
+      answerKey: 'partially',
+      answer: 'Kısmen karşılarız — Bazı ürün gruplarında idare ederiz ama darboğazlar olur',
+    },
+    // Stage 1 — Marka Ruhu
+    {
+      stage: 'Marka Ruhu',
+      questionId: 18,
+      question: 'Markanız yarın kaybolsa, müşteri neyi kaybetmiş hisseder?',
+      answerKey: 'quality_assurance',
+      answer: 'Kalite güvencesi — Gözüm kapalı güvenebileceğim, hiç hayal kırıklığı yaşamadığım bir kaynak',
+    },
+    {
+      stage: 'Marka Ruhu',
+      questionId: 19,
+      question: 'Müşterinize ne sunuyorsunuz?',
+      answerKey: 'product_consulting',
+      answer: 'Ürün + Danışmanlık — Ürün seçimi, mekan analizi, teknik rehberlik',
+    },
+    {
+      stage: 'Marka Ruhu',
+      questionId: 20,
+      question: 'Ürün yaklaşımınız nedir?',
+      answerKey: 'premium',
+      answer: 'Premium — Seçkin markalar, üst segment, bilinçli fiyatlandırma',
+    },
+    // Stage 2 — Marka Karakteri
+    {
+      stage: 'Marka Karakteri',
+      questionId: 24,
+      question: "Müşteri 'döşenen ürün showroom'dakiyle aynı değil' dedi. İlk tepkiniz ne olur?",
+      answerKey: 'explain',
+      answer: 'Analiz eder — Sahaya gider, farkın nedenini tespit eder, rapor sunar (Bilge)',
+    },
+    {
+      stage: 'Marka Karakteri',
+      questionId: 25,
+      question: 'İkna yönteminiz hangisi?',
+      answerKey: 'technical',
+      answer: 'Teknik uzmanlık — Teknik bilgi ve malzeme uzmanlığıyla ikna',
+    },
+    {
+      stage: 'Marka Karakteri',
+      questionId: 26,
+      question: 'İletişim tonunuz nasıl?',
+      answerKey: 'expert',
+      answer: 'Uzman ve eğitici — Teknik bilgi, malzeme hikayesi, doğru seçimi öğretiyor',
+    },
+    // Stage 3 — Kim Değiliz
+    {
+      stage: 'Kim Değiliz',
+      questionId: 30,
+      question: 'Hangi müşteri/proje tipi markanıza en çok zarar verir?',
+      answerKey: 'price_only',
+      answer: "Sadece fiyat soran — Kaliteyi görmeden, showroom'a gelmeden, sadece WhatsApp'tan fiyat karşılaştıran",
+    },
+    {
+      stage: 'Kim Değiliz',
+      questionId: 31,
+      question: 'Bu müşteri tipi hangi soruna yol açıyor?',
+      answerKey: 'profitability',
+      answer: 'Kârlılık — Numune maliyeti, geciken kararlar, iptal edilen siparişler, düşük marj',
+    },
+    {
+      stage: 'Kim Değiliz',
+      questionId: 32,
+      question: 'Bu duruma nasıl yaklaşırsınız?',
+      answerKey: 'soft',
+      answer: 'Nazik yönlendirme — Showroom deneyimi, danışmanlık süreci ve fiyatlandırmayla dolaylı filtreleme',
+    },
+    // Stage 4 — Hedef ve Başarı
+    {
+      stage: 'Hedef ve Başarı',
+      questionId: 36,
+      question: 'Bu projedeki birincil hedefiniz?',
+      answerKey: 'architect_preference',
+      answer: 'Mimar/Tasarımcı tercihi — Mimarların ve iç tasarımcıların projelerde öncelikle önerdiği marka olmak',
+    },
+    {
+      stage: 'Hedef ve Başarı',
+      questionId: 37,
+      question: 'Büyüme hızı tercihiniz?',
+      answerKey: 'balanced',
+      answer: 'Dengeli — Sürdürülebilir büyüme, kontrollü genişleme, kaliteyi koruyarak',
+    },
+    {
+      stage: 'Hedef ve Başarı',
+      questionId: 38,
+      question: 'Başarı sizin için ne demek?',
+      answerKey: 'reference_rate',
+      answer: 'Referans oranı — Tamamlanmış projelerden gelen yeni müşteri oranı',
+    },
+  ];
+
   const leadData = {
     tenantId: 'intiba',
     sector: 'showroom',
@@ -88,6 +201,7 @@ async function main() {
       answers,
       scores,
       stageResults,
+      readableAnswers,
       wizardVersion: '2.0',
       completionTime: 480000, // ~8 minutes
       businessContext,
