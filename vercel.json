@@ -35,7 +35,12 @@
     "api/marketing/platforms/callback.ts": { "maxDuration": 30 },
     "api/marketing/agent-execute-action.ts": { "maxDuration": 120 },
     "api/marketing/agent-chat-v2.ts": { "maxDuration": 120 },
-    "api/marketing/publish-plan.ts": { "maxDuration": 30 }
+    "api/marketing/publish-plan.ts": { "maxDuration": 30 },
+    "api/telegram/webhook.ts": { "maxDuration": 30 },
+    "api/telegram/link.ts": { "maxDuration": 10 },
+    "api/cron/task-digest.ts": { "maxDuration": 60 },
+    "api/cron/task-reminders.ts": { "maxDuration": 60 },
+    "api/tasks/score-delegation.ts": { "maxDuration": 30 }
   },
   "crons": [
     {
@@ -49,6 +54,14 @@
     {
       "path": "/api/cron/sync-meta-campaigns",
       "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/task-digest",
+      "schedule": "0 5 * * 1-5"
+    },
+    {
+      "path": "/api/cron/task-reminders",
+      "schedule": "*/30 * * * *"
     }
   ],
   "rewrites": [

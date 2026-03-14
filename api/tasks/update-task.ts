@@ -38,6 +38,7 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
       'dueDate',
       'description',
       'tags',
+      'reminderConfig',
     ];
 
     const updates: Record<string, any> = {};

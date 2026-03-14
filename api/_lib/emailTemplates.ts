@@ -353,6 +353,39 @@ export function newLeadNotificationEmail(params: {
 // =========================================================
 // Wizard Invitation: Strategy Form Davet (→ Potansiyel Müşteri)
 // =========================================================
+// =========================================================
+// Task Digest (→ User email)
+// =========================================================
+export function taskDigestEmail(params: {
+  recipientName: string;
+  totalActive: number;
+  overdueCount: number;
+  dueTodayCount: number;
+  blockedCount: number;
+  delegatableCount: number;
+  taskSummaryHtml: string;
+  adminUrl: string;
+}): { subject: string; html: string } {
+  const subject = `Günlük Görev Özeti: ${params.totalActive} aktif görev`;
+  const html = wrapHtml(subject, `
+    <span class="badge badge-blue">Günlük Özet</span>
+    <p>Günaydın <strong>${params.recipientName}</strong>,</p>
+    <p>Bugünkü görev özetiniz:</p>
+    <div class="metadata">
+      <p><strong>Toplam Aktif:</strong> ${params.totalActive}</p>
+      ${params.overdueCount > 0 ? `<p style="color:#dc2626"><strong>🚨 Gecikmiş:</strong> ${params.overdueCount}</p>` : ''}
+      ${params.dueTodayCount > 0 ? `<p><strong>⏰ Bugün Bitmeli:</strong> ${params.dueTodayCount}</p>` : ''}
+      ${params.blockedCount > 0 ? `<p><strong>🚫 Engelli:</strong> ${params.blockedCount}</p>` : ''}
+      ${params.delegatableCount > 0 ? `<p><strong>🤝 Delege Edilebilir:</strong> ${params.delegatableCount}</p>` : ''}
+    </div>
+    ${params.taskSummaryHtml}
+    <div style="text-align:center;">
+      <a href="${params.adminUrl}" class="cta">Görevleri Görüntüle</a>
+    </div>
+  `);
+  return { subject, html };
+}
+
 export function wizardInvitationEmail(params: {
   recipientName: string;
   businessName: string;

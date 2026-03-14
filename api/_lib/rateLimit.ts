@@ -99,6 +99,9 @@ export const LIMITS = {
 
   /** Workflow builder AI chat: 20 req / minute per user */
   AI_BUILDER_CHAT: { limit: 20, windowMs: 60_000 },
+
+  /** Telegram webhook: 60 req / minute per chat */
+  TELEGRAM_WEBHOOK: { limit: 60, windowMs: 60_000 },
 } as const;
 
 /**

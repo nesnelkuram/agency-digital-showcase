@@ -59,6 +59,23 @@ export interface Task {
 
   // AI analysis state
   aiAnalyzed?: boolean;   // false = analysis pending, true = done
+
+  // Reminder configuration
+  reminderConfig?: {
+    enabled: boolean;
+    intervalMinutes: number;       // e.g. 60, 120, 240
+    lastRemindedAt?: number;       // Date.now() epoch
+    nextReminderAt?: number;       // Date.now() epoch
+    channels: ('telegram' | 'email')[];
+  };
+
+  // Delegation AI scoring
+  delegationScore?: number;        // 0–100
+  delegationRationale?: string;
+  delegationBlockers?: string[];
+
+  // Source channel
+  source?: 'web' | 'telegram' | 'intake' | 'workflow';
 }
 
 // ─── UnifiedTaskItem — client-only, aggregated view ──────────────────────────

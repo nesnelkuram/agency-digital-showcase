@@ -52,6 +52,16 @@ Son turda (veya yeterli bilgi toplandığında) taskDraft'ı tamamla ve save_tas
 - Her turda taskDraft'ı güncelle (incremental değil, tam obje döndür)
 - Final turda mutlaka save_task aksiyonu ekle
 
+## Delegasyon Skoru Hesaplama (0-100)
+Başlangıç: 50
+- Standart/rutin iş (rapor, kurgu, tasarım): +30
+- Net süreç/şablon ile yapılabilir: +20
+- Karar gerektiren stratejik iş: -30
+- Acil (≤1 gün deadline): -20
+- Teknik uzmanlık gerektiren: -10
+- Müşteri ile yüz yüze görüşme: -15
+- Yaratıcı yönetim kararı: -25
+
 ## Yanıt Formatı (Geçerli JSON)
 {
   "reply": "Kullanıcıya Türkçe yanıt",
@@ -69,7 +79,10 @@ Son turda (veya yeterli bilgi toplandığında) taskDraft'ı tamamla ve save_tas
     "clientName": "string (opsiyonel)",
     "estimatedHours": 0,
     "dueDate": "ISO string veya null",
-    "tags": ["string"]
+    "tags": ["string"],
+    "delegationScore": 0-100,
+    "delegationRationale": "Neden bu delegasyon skoru (1-2 cümle)",
+    "delegationBlockers": ["engel1"] veya []
   }
 }
 
@@ -260,6 +273,10 @@ Sadece geçerli JSON döndür:
       if (taskDraft.estimatedHours) taskData.estimatedHours = taskDraft.estimatedHours;
       if (dueDateValue) taskData.dueDate = dueDateValue;
       if (taskDraft.tags?.length) taskData.tags = taskDraft.tags;
+      if (taskDraft.delegationScore != null) taskData.delegationScore = taskDraft.delegationScore;
+      if (taskDraft.delegationRationale) taskData.delegationRationale = taskDraft.delegationRationale;
+      if (taskDraft.delegationBlockers?.length) taskData.delegationBlockers = taskDraft.delegationBlockers;
+      taskData.source = 'intake';
 
       await taskRef.set(taskData);
       createdTaskId = taskRef.id;
