@@ -30,13 +30,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Verify webhook secret
   const secretHeader = req.headers['x-telegram-bot-api-secret-token'] as string | undefined;
   if (!verifyTelegramWebhook(secretHeader)) {
-    const envSet = !!process.env.TELEGRAM_WEBHOOK_SECRET;
-    const envLen = (process.env.TELEGRAM_WEBHOOK_SECRET || '').length;
-    const headerLen = (secretHeader || '').length;
-    return res.status(401).json({
-      error: 'Unauthorized',
-      debug: { envSet, envLen, headerLen },
-    });
+    return res.status(401).json({ error: 'Unauthorized' });
   }
 
   const update = req.body;
