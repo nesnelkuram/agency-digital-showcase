@@ -29,6 +29,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Verify webhook secret
   const secretHeader = req.headers['x-telegram-bot-api-secret-token'] as string | undefined;
+  const envSet = !!process.env.TELEGRAM_WEBHOOK_SECRET;
+  console.log(`[webhook] secret header present: ${!!secretHeader}, env set: ${envSet}, match: ${secretHeader === process.env.TELEGRAM_WEBHOOK_SECRET}`);
   if (!verifyTelegramWebhook(secretHeader)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
