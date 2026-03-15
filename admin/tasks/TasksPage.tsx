@@ -10,11 +10,16 @@ import {
   Bot,
   Plus,
   RefreshCw,
+  Send,
+  Copy,
+  Check,
+  X,
 } from 'lucide-react';
 import { useUnifiedTasks } from '@/shared/hooks/useUnifiedTasks';
 import UnifiedTaskCard from './components/UnifiedTaskCard';
 import QuickAddTaskModal from './QuickAddTaskModal';
 import TaskDetailPanel from './TaskDetailPanel';
+import TelegramLinkModal from './TelegramLinkModal';
 import type { UnifiedTaskItem } from '@/shared/types/task';
 import type { StepInstance } from '@/shared/types/workflow/instance';
 
@@ -55,6 +60,7 @@ const KANBAN_COLUMNS: Array<{
 const TasksPage: React.FC = () => {
   const { items, loading, error, refresh } = useUnifiedTasks({ mode: 'all' });
   const [intakeOpen, setIntakeOpen] = useState(false);
+  const [telegramOpen, setTelegramOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<UnifiedTaskItem | null>(null);
 
   const stats = {
@@ -85,6 +91,13 @@ const TasksPage: React.FC = () => {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setTelegramOpen(true)}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 transition-colors font-commons text-sm text-neutral-700"
+            title="Telegram Bot Bağla"
+          >
+            <Send className="w-4 h-4 text-blue-500" />
+          </button>
           <button
             onClick={refresh}
             disabled={loading}
@@ -194,6 +207,11 @@ const TasksPage: React.FC = () => {
             );
           })}
         </div>
+      )}
+
+      {/* Telegram Link Modal */}
+      {telegramOpen && (
+        <TelegramLinkModal onClose={() => setTelegramOpen(false)} />
       )}
 
       {/* Quick Add Modal */}
