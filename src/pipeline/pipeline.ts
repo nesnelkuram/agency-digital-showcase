@@ -5,6 +5,10 @@ import { runBrandStrategist } from './agents/brandStrategist';
 import { runBrandChallenger } from './agents/brandChallenger';
 import { runBlogStrategyAdvisor } from './agents/blogStrategyAdvisor';
 import { runStrategySynthesizer } from './agents/strategySynthesizer';
+import { buildEvidenceSummary, buildSectionEvidence, createEvidence, getConfidenceLevel } from './evidence';
+import type { EvidenceChain, SectionEvidence, FrameworkScore } from './evidence';
+import { buildCalibrationSignals, calibrateSection } from './calibration';
+import { runPositioningConsensus } from './consensus';
 
 // Re-exports for async pipeline endpoints
 export { runDataNormalizer } from './agents/dataNormalizer';
@@ -26,6 +30,10 @@ import './sectorEnrichment';
 export { startDeepResearch, pollDeepResearch } from './geminiClient';
 export { buildDeepResearchPrompt } from './agents/sectorResearch';
 export type { PipelineInput, NormalizedData, ResearchFindings, StrategistOutput, ChallengerOutput, BlogAdvisorOutput, SynthesizedAnalysis, DigitalPresenceAnalysis, CompetitorDiscoveryOutput, ConsumerTestOutput, ValueMaximizerOutput } from './types';
+export type { EvidenceChain, FrameworkScore, SectionEvidence, EvidenceSummaryV2, ConfidenceLevel } from './evidence';
+export { buildEvidenceSummary, buildSectionEvidence, createEvidence, getConfidenceLevel } from './evidence';
+export { getSectorFrameworkConfig } from './sectorFrameworks';
+export type { SectorFrameworkConfig } from './sectorFrameworks';
 
 const TIMEOUT_BUDGET = 290_000; // 290s (10s safety margin from 300s Vercel limit)
 
@@ -101,6 +109,33 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineState> 
     throw new Error('Brand strategist failed — pipeline cannot continue');
   }
   state.strategistOutput = strategistOutput;
+
+  // Step 2b: Multi-Model Consensus on positioning + archetype (non-blocking)
+  if (!isLite && remainingTime(startTime) > 30_000) {
+    try {
+      const consensusResult = await runAgent(
+        'multiModelConsensus',
+        () => runPositioningConsensus(
+          normalizedData.businessName,
+          normalizedData.sector,
+          strategistOutput.positioningStatement,
+          strategistOutput.archetype,
+          `Profil: ${normalizedData.overallProfile}. Farklilik: ${strategistOutput.differentiator}. Rekabet avantaji: ${strategistOutput.competitiveAdvantage}.${researchFindings ? ` Pazar: ${researchFindings.marketData.marketSize}. Rakipler: ${researchFindings.competitors.map(c => c.name).join(', ')}.` : ''}`,
+        ),
+        state,
+        false,
+      );
+      if (consensusResult) {
+        state.consensusResults = [{
+          question: `Konumlandirma ve arketip dogrulamasi`,
+          consensusReached: consensusResult.consensusReached,
+          consensusScore: consensusResult.consensusScore,
+        }];
+      }
+    } catch (err: any) {
+      console.log('Multi-model consensus skipped:', err.message);
+    }
+  }
 
   // Step 3: Agent 4a (Challenger) + Agent 4b (Blog Advisor) — run in PARALLEL
   let challengerOutput: ChallengerOutput | null = null;
@@ -212,6 +247,194 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineState> 
     });
   }
 
+  // Step 5: Build Evidence Summary & Calibrate
+  try {
+    const evidenceResult = buildPipelineEvidence(state);
+    state.evidenceSummary = evidenceResult.summary;
+    state.frameworkScores = evidenceResult.frameworkScores;
+
+    // Attach V2 evidence to synthesized analysis if present
+    if (state.synthesizedAnalysis) {
+      state.synthesizedAnalysis.evidenceSummaryV2 = evidenceResult.summary;
+      state.synthesizedAnalysis.frameworkScores = evidenceResult.frameworkScores;
+    }
+  } catch (err: any) {
+    console.error('Evidence building failed:', err.message);
+    state.errors.push({
+      agent: 'evidenceBuilder',
+      error: err.message || 'Evidence building failed',
+      timestamp: Date.now(),
+    });
+  }
+
   state.timings.total = Date.now() - startTime;
   return state;
+}
+
+/** Build evidence summary from all pipeline outputs */
+function buildPipelineEvidence(state: PipelineState): {
+  summary: import('./evidence').EvidenceSummaryV2;
+  frameworkScores: FrameworkScore[];
+} {
+  const sections: SectionEvidence[] = [];
+  const allFrameworkScores: FrameworkScore[] = [];
+  const hasResearch = !!(state.researchFindings && state.researchFindings.sourcesUsed > 0);
+  const dataQuality = state.normalizedData?.dataQualityScore || 50;
+
+  const signals = buildCalibrationSignals(
+    hasResearch,
+    !!(state.strategistOutput?._frameworkScores?.length),
+    !!(state.consensusResults?.length),
+    dataQuality,
+    !!(state.challengerOutput?.challengePoints?.length),
+  );
+
+  // Section: Research
+  if (state.researchFindings) {
+    const researchChains: EvidenceChain[] = [];
+    const rf = state.researchFindings;
+
+    researchChains.push(createEvidence(
+      `Pazar verisi: ${rf.marketData.marketSize}`,
+      'research',
+      rf.sourceUrls?.map(s => s.url) || [],
+      hasResearch ? 75 : 20,
+      [],
+      'Pazar büyüklüğü kaynağı doğrulanarak',
+    ));
+
+    if (rf.competitors.length > 0) {
+      researchChains.push(createEvidence(
+        `${rf.competitors.length} rakip tespit edildi`,
+        'research',
+        rf.competitors.map(c => c.website).filter(Boolean),
+        rf.competitors.length >= 3 ? 80 : 50,
+      ));
+    }
+
+    const researchSection = buildSectionEvidence('Sektör Araştırması', researchChains);
+    sections.push(calibrateSection(researchSection, signals));
+  }
+
+  // Section: Brand Strategy
+  if (state.strategistOutput) {
+    const strategyChains: EvidenceChain[] = [];
+    const so = state.strategistOutput;
+
+    strategyChains.push(createEvidence(
+      `Arketip: ${so.archetype}`,
+      so.aakerPersonality ? 'framework' : 'ai_inference',
+      so.aakerPersonality ? ['Aaker Brand Personality 5 Boyut'] : [],
+      so.aakerPersonality ? 70 : 40,
+      so.aakerPersonality ? [] : ['Arketip seçimi framework puanlaması olmadan yapılmış'],
+      'Farklı bir arketip ile aynı veriler analiz edilirse',
+    ));
+
+    strategyChains.push(createEvidence(
+      `Konumlandırma: ${so.positioningStatement.slice(0, 100)}`,
+      hasResearch ? 'research' : 'ai_inference',
+      [],
+      hasResearch ? 65 : 35,
+      hasResearch ? [] : ['Araştırma verisi olmadan konumlandırma yapılmış'],
+      'Rakip swap testi ile',
+    ));
+
+    // Collect framework scores from strategist
+    if (so._frameworkScores) {
+      allFrameworkScores.push(...so._frameworkScores);
+    }
+
+    const strategySection = buildSectionEvidence('Marka Stratejisi', strategyChains, so._frameworkScores);
+    sections.push(calibrateSection(strategySection, signals));
+  }
+
+  // Section: Challenger Analysis
+  if (state.challengerOutput) {
+    const challengerChains: EvidenceChain[] = [];
+    const co = state.challengerOutput;
+
+    if (co.onlynessTest) {
+      challengerChains.push(createEvidence(
+        `Onlyness testi: ${co.onlynessTest.verdict}`,
+        'framework',
+        ['Neumeier Onlyness Test'],
+        co.onlynessTest.verdict === 'strong' ? 85 : co.onlynessTest.verdict === 'weak' ? 50 : 25,
+        [],
+        'Rakip ismi değiştirilerek test tekrarlanabilir',
+      ));
+    }
+
+    if (co.distinctivenessScore !== undefined) {
+      challengerChains.push(createEvidence(
+        `Benzersizlik skoru: ${co.distinctivenessScore}/100`,
+        'framework',
+        ['Neumeier Distinctiveness Assessment'],
+        co.distinctivenessScore >= 60 ? 70 : 40,
+      ));
+    }
+
+    co.challengePoints.forEach(point => {
+      challengerChains.push(createEvidence(
+        point.slice(0, 150),
+        hasResearch ? 'research' : 'ai_inference',
+        [],
+        hasResearch ? 60 : 35,
+      ));
+    });
+
+    const challengerSection = buildSectionEvidence('Eleştirel Analiz', challengerChains);
+    sections.push(calibrateSection(challengerSection, signals));
+  }
+
+  // Section: Consumer Test
+  if (state.consumerTest) {
+    const consumerChains: EvidenceChain[] = [];
+    const ct = state.consumerTest;
+
+    consumerChains.push(createEvidence(
+      `Genel uygulanabilirlik: ${ct.overallViabilityScore}/100`,
+      'ai_inference',
+      [],
+      Math.min(50, ct.overallViabilityScore * 0.5),
+      ['Sentetik persona testi — gerçek tüketici verisi değil'],
+      'Gerçek müşteri görüşmeleri ile doğrulanabilir',
+    ));
+
+    if (ct.jtbdScenarios && ct.jtbdScenarios.length > 0) {
+      const avgFit = ct.jtbdScenarios.reduce((sum, s) => sum + s.strategyJobFitScore, 0) / ct.jtbdScenarios.length;
+      consumerChains.push(createEvidence(
+        `JTBD Ortalama Uyum: ${Math.round(avgFit)}/100`,
+        'framework',
+        ['JTBD Switch Interview Framework'],
+        Math.min(60, avgFit * 0.6),
+        ['Sentetik JTBD senaryoları — gerçek müşteri röportajı değil'],
+        'Gerçek switch interview\'lar ile',
+      ));
+    }
+
+    const consumerSection = buildSectionEvidence('Tüketici Testi', consumerChains);
+    sections.push(calibrateSection(consumerSection, signals));
+  }
+
+  // Section: Synthesis
+  if (state.synthesizedAnalysis) {
+    const synthChains: EvidenceChain[] = [];
+    const sa = state.synthesizedAnalysis;
+
+    synthChains.push(createEvidence(
+      'Nihai sentez raporu',
+      hasResearch ? 'framework' : 'ai_inference',
+      sa.evidenceSummary.keySourceUrls?.map(s => s.url) || [],
+      hasResearch ? 60 : 30,
+      state.challengerOutput ? [] : ['Eleştirel analiz olmadan sentez yapılmış'],
+    ));
+
+    const synthSection = buildSectionEvidence('Nihai Sentez', synthChains);
+    sections.push(calibrateSection(synthSection, signals));
+  }
+
+  return {
+    summary: buildEvidenceSummary(sections),
+    frameworkScores: allFrameworkScores,
+  };
 }

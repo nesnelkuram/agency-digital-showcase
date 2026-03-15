@@ -33,6 +33,9 @@ const corporate: SectorEnrichmentModule = {
     },
   ],
 
+  frameworkReferences: ['Keller CBBE', 'Aaker Identity', 'Cialdini (Authority)', 'Blue Ocean'],
+  culturalBrandingLens: 'Dijital dönüşüm baskısı, "butik ajans vs büyük kurum" tercihi, uzaktan çalışma etkisi',
+
   deepResearchSteps: `
 
 ADIM 6 — KURUMSAL ITIBAR & MEDYA VARLIGI (KURUMSALA OZEL):

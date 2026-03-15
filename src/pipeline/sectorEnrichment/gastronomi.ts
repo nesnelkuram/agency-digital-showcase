@@ -4,6 +4,8 @@ import type { SectorEnrichmentModule } from './types';
 const gastronomi: SectorEnrichmentModule = {
   sector: 'gastronomi',
   dataFieldName: 'gastronomiData',
+  frameworkReferences: ['Byron Sharp CEPs', 'Hook Model', 'Cialdini', 'Kano Model'],
+  culturalBrandingLens: 'Yemek kültürü, "instagramlık" deneyim vs otantik lezzet gerilimi, hızlı tüketim vs slow food',
 
   culturalTensions: [
     {

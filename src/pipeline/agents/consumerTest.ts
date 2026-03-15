@@ -5,6 +5,7 @@ import type {
   StrategistOutput,
   BusinessContextInput,
   ConsumerTestOutput,
+  JTBDScenario,
 } from '../types';
 
 export async function runConsumerTest(
@@ -75,6 +76,21 @@ ${researchContext}
 
 ---
 
+## JTBD PERSPEKTIFI
+4 personaya ek olarak, 4 JTBD (Jobs-to-be-Done) senaryosu olustur:
+1. TEMEL IS: Musterinin bu markadan beklentisinin en sik karsilasilan hali
+2. SOSYAL IS: Musterinin sosyal cevresiyle ilgili motivasyonu
+3. DUYGUSAL IS: Musterinin kendini iyi hissetme motivasyonu
+4. FONKSIYONEL IS: Musterinin pratik/somut problemi
+
+Her senaryo icin "Switch Interview" cercevesini kullan:
+- Push: Mevcut cozumden itme (neden sikayetci?)
+- Pull: Yeni cozume cekme (bu marka ne vaat ediyor?)
+- Anxiety: Degisim korkusu (geciste ne engel?)
+- Habit: Aliskanlik direnci (mevcut davranis ne tutuyor?)
+
+---
+
 GOREV: 4 farkli tuketici personasi olustur ve her birine bu markayi "goster". Her persona FARKLI bir demografik ve psikografik profilden olmali:
 1. BIRINCIL HEDEF — Stratejinin tam olarak hedefledigi ideal musteri
 2. IKINCIL HEDEF — Stratejinin ikincil segmentinden bir musteri
@@ -104,6 +120,19 @@ Asagidaki JSON yapisinda don:
       "recommendedMessageAngle": "Bu personaya en etkili ulasim mesaji/yaklasimi (1-2 cumle)"
     }
   ],
+  "jtbdScenarios": [
+    {
+      "situationLabel": "Musteri [durum]'dayken...",
+      "jobToBeDone": "[is] yapmak istiyor",
+      "desiredOutcome": "Boylece [sonuc] elde edebilsin",
+      "pushForces": ["Mevcut cozumden itme gucleri — neden mevcut cozum yetersiz?"],
+      "pullForces": ["Yeni cozume cekme gucleri — bu marka ne vaat ediyor?"],
+      "anxieties": ["Degisim korkusu — yeni markaya geciste ne endise ediyor?"],
+      "habits": ["Aliskanlik direnci — mevcut davranisi ne tutuyor?"],
+      "strategyJobFitScore": 0-100,
+      "fitRationale": "Konumlandirma bu isi ne kadar iyi cozuyor?"
+    }
+  ],
   "strongestFit": "En iyi eslesen persona ve NEDEN (1-2 cumle)",
   "weakestFit": "En zayif eslesen persona ve NEDEN (1-2 cumle)",
   "crossPersonaConcerns": ["Tum personalarda ortaya cikan ortak endise/soru (2-3 madde)"],
@@ -118,8 +147,9 @@ KRITIK KURALLAR:
 4. "strategyRefinements" SOMUT ve UYGULANABILIR olmali — "daha iyi iletisim kur" gibi genel laflar YASAK.
 5. "overallViabilityScore" 4 personanin ortalamasi degil — genel pazar potansiyelinin degerlendirmesi.
 6. 4 persona olmali — ne az ne cok.
-7. Tum metinler TURKCE olmali.
-8. Sadece JSON don, baska bir sey yazma.`;
+7. 4 JTBD senaryosu olmali — TEMEL IS, SOSYAL IS, DUYGUSAL IS, FONKSIYONEL IS.
+8. Tum metinler TURKCE olmali.
+9. Sadece JSON don, baska bir sey yazma.`;
 
   const parsed = await generateJSON<ConsumerTestOutput>('flash', prompt, 'ConsumerTest', {
     temperature: 0.7,
@@ -143,11 +173,27 @@ KRITIK KURALLAR:
       }))
     : [];
 
+  // Validate JTBD scenarios
+  const jtbdScenarios: JTBDScenario[] = Array.isArray(parsed.jtbdScenarios) && parsed.jtbdScenarios.length > 0
+    ? parsed.jtbdScenarios.map((s: any) => ({
+        situationLabel: s.situationLabel || 'Tanimlanmamis Durum',
+        jobToBeDone: s.jobToBeDone || 'Belirtilmedi',
+        desiredOutcome: s.desiredOutcome || 'Belirtilmedi',
+        pushForces: Array.isArray(s.pushForces) ? s.pushForces : [],
+        pullForces: Array.isArray(s.pullForces) ? s.pullForces : [],
+        anxieties: Array.isArray(s.anxieties) ? s.anxieties : [],
+        habits: Array.isArray(s.habits) ? s.habits : [],
+        strategyJobFitScore: typeof s.strategyJobFitScore === 'number' ? Math.max(0, Math.min(100, s.strategyJobFitScore)) : 50,
+        fitRationale: s.fitRationale || 'Degerlendirme mevcut degil',
+      }))
+    : [];
+
   return {
     overallViabilityScore: typeof parsed.overallViabilityScore === 'number'
       ? Math.max(0, Math.min(100, parsed.overallViabilityScore))
       : 50,
     personas,
+    jtbdScenarios,
     strongestFit: parsed.strongestFit || 'Belirlenemedi',
     weakestFit: parsed.weakestFit || 'Belirlenemedi',
     crossPersonaConcerns: Array.isArray(parsed.crossPersonaConcerns) ? parsed.crossPersonaConcerns : [],

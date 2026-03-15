@@ -257,11 +257,11 @@ export interface AIAnalysis {
     sourceUrls?: Array<{ title: string; url: string }>;
   };
 
-  // 90 günlük eylem planı (multi-agent v2)
+  // 90 günlük eylem planı (multi-agent v2 + Fogg B=MAP)
   actionPlan?: {
-    immediate: Array<{ action: string; owner: string; metric: string; estimatedImpact: string }>;
-    shortTerm: Array<{ action: string; owner: string; metric: string; estimatedImpact: string }>;
-    mediumTerm: Array<{ action: string; owner: string; metric: string; estimatedImpact: string }>;
+    immediate: Array<{ action: string; owner: string; metric: string; estimatedImpact: string; motivationScore?: number; abilityScore?: number; bottleneck?: string; requiredResources?: string; prerequisite?: string }>;
+    shortTerm: Array<{ action: string; owner: string; metric: string; estimatedImpact: string; motivationScore?: number; abilityScore?: number; bottleneck?: string; requiredResources?: string; prerequisite?: string }>;
+    mediumTerm: Array<{ action: string; owner: string; metric: string; estimatedImpact: string; motivationScore?: number; abilityScore?: number; bottleneck?: string; requiredResources?: string; prerequisite?: string }>;
   };
 
   // Kanıt özeti (multi-agent v2)
@@ -271,6 +271,30 @@ export interface AIAnalysis {
     dataFreshness: string;
     confidenceLevel: string;
   };
+  // Enhanced evidence summary (V2 — with confidence scoring and section breakdown)
+  evidenceSummaryV2?: {
+    overallConfidence: number;
+    sectionBreakdown: Array<{
+      sectionName: string;
+      confidenceLevel: 'verified' | 'grounded' | 'inferred' | 'speculative';
+      overallConfidence: number;
+    }>;
+    totalClaims: number;
+    verifiedClaims: number;
+    groundedClaims: number;
+    inferredClaims: number;
+    speculativeClaims: number;
+    strongestSection: string;
+    weakestSection: string;
+    keyAssumptions: string[];
+  };
+  // Framework scores used in analysis
+  frameworkScores?: Array<{
+    framework: string;
+    score: number;
+    maxScore: number;
+    rationale: string;
+  }>;
 
   // Strateji tartışma kaydı (multi-agent)
   debate?: {
@@ -423,7 +447,7 @@ export interface AIAnalysis {
       avgPostingFrequency: string; bestPracticeExamples: string[];
     };
   };
-  // Tüketici testi
+  // Tüketici testi (enhanced with JTBD scenarios)
   consumerTest?: {
     overallViabilityScore: number;
     personas: Array<{
@@ -431,6 +455,17 @@ export interface AIAnalysis {
       painPoints: string[]; alignmentScore: number; resonancePoints: string[];
       concerns: string[]; purchaseLikelihood: 'yuksek' | 'orta' | 'dusuk' | 'cok_dusuk';
       recommendedMessageAngle: string;
+    }>;
+    jtbdScenarios?: Array<{
+      situationLabel: string;
+      jobToBeDone: string;
+      desiredOutcome: string;
+      pushForces: string[];
+      pullForces: string[];
+      anxieties: string[];
+      habits: string[];
+      strategyJobFitScore: number;
+      fitRationale: string;
     }>;
     strongestFit: string;
     weakestFit: string;
@@ -452,11 +487,14 @@ export interface AIAnalysis {
     aggressive: { description: string; investmentLevel: string; expectedOutcome: string; timeframe: string; risk: string };
   };
 
-  // Faz 2 — Risk Azaltma Planları (brandChallenger)
+  // Faz 2 — Risk Azaltma Planları (brandChallenger, enhanced with quantitative scoring)
   riskMitigationPlans?: Array<{
     risk: string;
     likelihood: 'yuksek' | 'orta' | 'dusuk';
+    likelihoodScore?: number;
     impact: 'yuksek' | 'orta' | 'dusuk';
+    impactScore?: number;
+    expectedValue?: number;
     mitigation: string;
     earlyWarning: string;
   }>;

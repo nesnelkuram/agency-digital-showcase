@@ -1,6 +1,35 @@
 import { generateJSON } from '../geminiClient';
 import type { NormalizedData, ResearchFindings, StrategistOutput, BlogAdvisorOutput } from '../types';
 import personaProfile from '../../persona/data/personaProfile.json';
+import { BLOG_PRINCIPLES, type BlogArticleSummary } from '../data/blogKnowledgeBase';
+
+/**
+ * Search the blog knowledge base by matching keywords against article titles,
+ * tags, excerpts and coreContent. Returns top N matching articles scored by
+ * keyword hit frequency.
+ */
+function searchBlogKnowledgeBase(keywords: string[], maxResults = 5): BlogArticleSummary[] {
+  const normalizedKeywords = keywords.map((k) => k.toLowerCase().replace(/[^a-zçğıöşü0-9\s]/gi, ''));
+
+  const scored = BLOG_PRINCIPLES.map((article) => {
+    const haystack = `${article.title} ${article.tags.join(' ')} ${article.excerpt} ${article.coreContent}`.toLowerCase();
+    let score = 0;
+    for (const kw of normalizedKeywords) {
+      if (!kw || kw.length < 2) continue;
+      // Count occurrences — title/tag hits weigh more
+      const titleHits = (`${article.title} ${article.tags.join(' ')}`.toLowerCase().match(new RegExp(kw, 'g')) || []).length;
+      const bodyHits = (haystack.match(new RegExp(kw, 'g')) || []).length;
+      score += titleHits * 3 + bodyHits;
+    }
+    return { article, score };
+  });
+
+  return scored
+    .filter((s) => s.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, maxResults)
+    .map((s) => s.article);
+}
 
 export async function runBlogStrategyAdvisor(
   normalizedData: NormalizedData,
@@ -51,6 +80,23 @@ export async function runBlogStrategyAdvisor(
     .map((e) => `- ${e}`)
     .join('\n');
 
+  // Extract keywords from strategist output for blog KB search
+  const searchKeywords = [
+    strategistOutput.archetype,
+    normalizedData.sector,
+    strategistOutput.tone,
+    strategistOutput.differentiator,
+    ...(strategistOutput.traits || []),
+    ...(strategistOutput.positioningStatement || '').split(/\s+/).filter((w) => w.length > 4).slice(0, 3),
+  ].filter(Boolean);
+
+  const relatedArticles = searchBlogKnowledgeBase(searchKeywords, 5);
+  const blogKnowledgeContext = relatedArticles.length > 0
+    ? relatedArticles
+        .map((a, i) => `${i + 1}. "${a.title}" [${a.tags.join(', ')}]\n   ${a.coreContent.slice(0, 300)}...`)
+        .join('\n')
+    : '';
+
   const prompt = `Sen deneyimli bir marka strateji uzmanisin. Asagida sana ait dunya gorusu, temel inanclar ve dusunce yaklasimi tanimlanmistir. Bu cerceveden strateji degerlendirmesi yapacaksin.
 
 ## Dunya Gorusun
@@ -91,13 +137,18 @@ ${antiPatternsList}
 - Farklilik: ${strategistOutput.differentiator}
 - Rekabet Avantaji: ${strategistOutput.competitiveAdvantage}
 ${researchContext}
----
+${blogKnowledgeContext ? `## Ilgili Blog Bilgi Bankasi Icerikleri
+Asagidaki makaleler, bu isletmenin sektoru, arketipi ve konumlandirmasiyla iliskili blog yazilaridir. Bu icerikleri degerlendirmene referans olarak kullan — onerilerini ve uyum skorunu bu ilkelere de dayandirabilirsin.
+
+${blogKnowledgeContext}
+` : ''}---
 
 Yukaridaki stratejiyi KENDI DUNYA GORUSUN ve INANCLARIN cercevesinde degerlendir. Asagidaki JSON yapisinda don:
 
 {
   "philosophicalAlignment": {
     "score": 7,
+    "evidenceBasis": "Bu skor su gozlemlere dayaniyor: [somut referanslar]",
     "rationale": "Onerilen stratejinin senin felsefi cercevene ne kadar uyumlu oldugu. Kendi dusuncelerinle, birinci sahis olarak acikla. (2-3 cumle)",
     "alignedPrinciples": [
       "UYUMLU INANC 1: Senin hangi temel inancin bu stratejiyi destekliyor? Kendi sozlerinle acikla.",
@@ -112,7 +163,8 @@ Yukaridaki stratejiyi KENDI DUNYA GORUSUN ve INANCLARIN cercevesinde degerlendir
     {
       "area": "positioning",
       "recommendation": "Temel inanclarinin isiginda bu markaya somut bir oneri. Ornek: 'Kisitlamalari yaraticiliga donusturmek icin [X] yapilmali.'",
-      "sourceInsight": "Bu oneriyi destekleyen dusunce yaklasimin veya inancinin kisa ozeti"
+      "sourceInsight": "Bu oneriyi destekleyen dusunce yaklasimin veya inancinin kisa ozeti",
+      "evidenceStrength": "strong/moderate/weak — Bu onerinin dayandigi kanit ne kadar guclu?"
     },
     {
       "area": "differentiation",
@@ -147,6 +199,16 @@ Yukaridaki stratejiyi KENDI DUNYA GORUSUN ve INANCLARIN cercevesinde degerlendir
     "ALTERNATIF BAKIS 2: Sira disi bir bakis acisi veya strateji onerisi. (1-2 cumle)"
   ]
 }
+
+## KANIT TABANLI DEGERLENDIRME
+- philosophicalAlignment.score icin SOMUT gerekce zorunlu: Hangi wizard cevabi, hangi strateji unsuru ve varsa hangi blog ilkesi bu skoru destekliyor?
+- Blog bilgi bankasindaki ilgili makalelerden elde ettigin ilkeleri, uyum ve celiski degerlendirmende referans olarak kullan.
+- Skor >= 8 ise: EN AZ 3 somut uyum noktasi goster
+- Skor <= 4 ise: EN AZ 3 somut celiski noktasi goster
+- strategicRecommendations'daki her oneri icin evidenceStrength belirt:
+  - "strong": Wizard cevaplari + strateji ciktisi + sektor verileri uyumlu
+  - "moderate": Bazi veriler destekliyor ama eksik noktalar var
+  - "weak": Genel bilgiye dayali, spesifik veri yok
 
 KRITIK KURALLAR:
 1. Hicbir dis kaynaga, makaleye, yaziya veya blog yapisina referans VERME. Bunlar SENIN dusuncelerin, baska birinin degil.
@@ -185,6 +247,7 @@ KRITIK KURALLAR:
           area: r.area || 'general',
           recommendation: r.recommendation || '',
           sourceInsight: r.sourceInsight || '',
+          evidenceStrength: r.evidenceStrength || undefined,
         }))
       : [{ area: 'general', recommendation: 'Stratejik degerlendirme tamamlanamadi.', sourceInsight: '' }],
     contentStrategyInsights: {

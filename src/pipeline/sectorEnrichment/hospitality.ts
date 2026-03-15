@@ -4,6 +4,8 @@ import type { SectorEnrichmentModule } from './types';
 const hospitality: SectorEnrichmentModule = {
   sector: 'hospitality',
   dataFieldName: 'hospitalityData',
+  frameworkReferences: ['Keller CBBE', 'Byron Sharp CEPs', 'Kano Model', 'Hook Model'],
+  culturalBrandingLens: '"Ev gibi rahat" vs "evden daha iyi" gerilimi, dijital göçebe trendi, sürdürülebilir turizm baskısı',
 
   culturalTensions: [
     {

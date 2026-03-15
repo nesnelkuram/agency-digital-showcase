@@ -33,6 +33,9 @@ const fmcg: SectorEnrichmentModule = {
     },
   ],
 
+  frameworkReferences: ['Byron Sharp CEPs', 'Blue Ocean', 'Cialdini', 'Keller CBBE'],
+  culturalBrandingLens: 'Doğallık vs endüstriyel üretim gerilimi, yerel vs global marka tercihi, sağlık bilinci artışı',
+
   deepResearchSteps: `
 
 ADIM 6 — RAF VARLIGI & DAGITIM (FMCG'YE OZEL):

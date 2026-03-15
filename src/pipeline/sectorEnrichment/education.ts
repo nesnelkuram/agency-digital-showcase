@@ -33,6 +33,9 @@ const education: SectorEnrichmentModule = {
     },
   ],
 
+  frameworkReferences: ['Hook Model', 'Fogg B=MAP', 'Byron Sharp CEPs', 'Kano Model'],
+  culturalBrandingLens: 'Diploma değersizleşmesi, "skill-based" istihdam trendi, ömür boyu öğrenme zorunluluğu',
+
   deepResearchSteps: `
 
 ADIM 6 — OGRENCI/VELI YORUMLARI & ITIBAR (EGITIME OZEL):

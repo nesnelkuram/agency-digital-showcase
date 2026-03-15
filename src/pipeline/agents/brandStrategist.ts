@@ -1,5 +1,10 @@
 import { generateJSON } from '../geminiClient';
 import { getSectorEnrichment } from '../sectorEnrichment';
+import { AAKER_PROMPT_SNIPPET } from '../frameworks/aaker-identity';
+import { CBBE_PROMPT_SNIPPET } from '../frameworks/keller-cbbe';
+import { KANO_PROMPT_SNIPPET } from '../frameworks/kano-model';
+import { getSectorFrameworkConfig } from '../sectorFrameworks';
+import { searchKnowledgeCorpus, buildKnowledgeContext } from '../data/knowledgeCorpus';
 import type { NormalizedData, ResearchFindings, StrategistOutput, BusinessContextInput } from '../types';
 
 export async function runBrandStrategist(
@@ -118,6 +123,19 @@ ${bc.customerStruggle ? `- Müşterinin Mücadelesi: ${bc.customerStruggle}` : '
 ${bc.brandEnemy ? `- Sektördeki Düşman/Karşı Olunan: ${bc.brandEnemy}` : ''}
 ${bc.alternativeToUs ? `- Biz Olmasaydık Müşteri Ne Yapardı: ${bc.alternativeToUs}` : ''}` : '';
 
+  // Sector-specific framework config (perceptual map axes, priority frameworks)
+  const sectorConfig = getSectorFrameworkConfig(normalizedData.sector);
+  const perceptualAxes = sectorConfig.perceptualMapAxes;
+
+  // Knowledge corpus retrieval — find relevant strategy principles
+  const searchTerms = [
+    normalizedData.sector,
+    'positioning', 'archetype', 'differentiation',
+    ...(businessContext?.brandWhy ? [businessContext.brandWhy.split(' ').slice(0, 3).join(' ')] : []),
+  ];
+  const relevantKnowledge = searchKnowledgeCorpus(searchTerms, { maxResults: 5 });
+  const knowledgeContext = buildKnowledgeContext(relevantKnowledge, 2500);
+
   // Sector-specific cultural tensions (hardcoded, zero hallucination)
   const sectorEnrichment = getSectorEnrichment(normalizedData.sector);
   const culturalTensionsContext = sectorEnrichment?.culturalTensions?.length
@@ -127,6 +145,7 @@ ${sectorEnrichment.culturalTensions.map((ct, i) => `${i + 1}. BEKLENTİ: "${ct.e
     : '';
 
   const prompt = `Sen dunyanin en iyi marka stratejistlerinden birisin. Senden istenen bir form doldurmak DEGIL — gercek bir stratejik DUSUNME sureci yurutmek.
+${knowledgeContext ? `\n${knowledgeContext}` : ''}
 
 ## ADIM 1: ONCE DUSUN — Musterinin Dunyasini Anla
 
@@ -137,6 +156,20 @@ Verileri okumadan once su sorulari cevapla:
 - Bu marka olmasaydi, musteri ne yapardi? (Gercek alternatifler)
 - Bu sektorde herkesin soyledigi ama kimsenin yapmadigi sey ne? (Kulturel gerilim)
 - Bu marka neye KARSI? Dusmani kim/ne? (Statukonun hangi parcasi?)
+
+## FRAMEWORK PUANLAMA — Strateji Öncesi Zorunlu Değerlendirme
+
+${AAKER_PROMPT_SNIPPET}
+
+${CBBE_PROMPT_SNIPPET}
+
+${KANO_PROMPT_SNIPPET}
+
+## Sektörel Algı Haritası Eksenleri (${normalizedData.sector})
+Bu sektör için algı haritası eksenlerini kullan:
+- X Ekseni: "${perceptualAxes.xAxis.label}" — ${perceptualAxes.xAxis.lowEnd} ↔ ${perceptualAxes.xAxis.highEnd}
+- Y Ekseni: "${perceptualAxes.yAxis.label}" — ${perceptualAxes.yAxis.lowEnd} ↔ ${perceptualAxes.yAxis.highEnd}
+Rakipleri ve bu markayı bu 2 eksende konumlandır.
 
 ## Isletme Profili
 - Isletme: ${normalizedData.businessName}
@@ -185,13 +218,31 @@ Dusunme surecine dayanarak asagidaki JSON yapisinda strateji olustur:
       "estimatedSegmentSize": "KAYNAK belirt"
     },
     "secondarySegment": { "segmentLabel": "Ikincil Segment", "demographics": "...", "behavioralProfile": "...", "coreNeed": "...", "mediaHabits": "...", "purchaseTriggers": ["..."], "estimatedSegmentSize": "..." },
-    "marketSizeEstimate": "TAM ve SAM tahmini"
+    "marketSizeEstimate": "TAM ve SAM tahmini",
+    "valuePropositionCanvas": {
+      "customerJobs": ["Müşterinin yapmaya çalıştığı 3-5 fonksiyonel, sosyal ve duygusal iş"],
+      "pains": ["Müşterinin yaşadığı 3-5 acı noktası — engelleyiciler, riskler, istenmeyen sonuçlar"],
+      "gains": ["Müşterinin beklediği/hayal ettiği 3-5 kazanım — gerekli, beklenen ve sürpriz"]
+    },
+    "kanoClassification": {
+      "mustHave": ["Yokluğu müşteriyi kaçıran ama varlığı memnuniyet artırmayan faktörler"],
+      "performance": ["Ne kadar iyiyse o kadar memnuniyet yaratan faktörler"],
+      "delighter": ["Beklenmeyen sürpriz değer yaratan faktörler — rekabetten ayrışmanın anahtarı"]
+    }
   },
   "differentiator": "SOMUT ve OLCULEBILIR fark — 'X rakibinin sunmadigi Y'. (1-2 cumle)",
   "competitiveAdvantage": "Neden musteriler X, Y, Z yerine bu markayi secmeli? SOMUT kanit. (1-2 cumle)",
   "competitiveMap": [
 ${competitiveMapSchema}
   ],
+  "aakerPersonality": {
+    "sincerity": "0-20 — Samimiyet puanı",
+    "excitement": "0-20 — Heyecan puanı",
+    "competence": "0-20 — Yetkinlik puanı",
+    "sophistication": "0-20 — Sofistike puanı",
+    "ruggedness": "0-20 — Sağlamlık puanı"
+  },
+  "segmentSelectionRationale": "Neden bu segment seçildi, alternatifler neden elendi? (2-3 cümle)",
   "personalitySliders": {
     "friendAuthority": 50,
     "youngMature": 50,
@@ -230,7 +281,9 @@ KRITIK KURALLAR:
 8. Tum metinler TURKCE olmali.
 9. Sadece JSON don, baska bir sey yazma.
 10. personalitySliders: 0-100 arasi. 0=sol uc, 100=sag uc. 50=notr YASAK — bir pozisyon AL. friendAuthority: 0=cok yakin arkadas, 100=sarsılmaz otorite. youngMature: 0=genc ve enerjik, 100=olgun ve deneyimli. playfulSerious: 0=eglenceli ve rahat, 100=ciddi ve resmi. massElite: 0=herkes icin, 100=seckin azinlik icin.
-11. brandEnemy RAKIP ISMI OLMAMALI — bir guc, aliskanlik, statukonun parcasi olmali.${budgetInstruction}${stageInstruction}${maturityInstruction}
+11. brandEnemy RAKIP ISMI OLMAMALI — bir guc, aliskanlik, statukonun parcasi olmali.
+12a. ARKETIP TURETME: "archetype" alanini SERBEST secme. Aaker 5 boyut puanlarini (aakerPersonality) ONCE belirle, en yuksek 2 boyutun kesisimine gore arketipi TURET. Puanlarla tutarsiz arketip = BASARISIZ rapor.
+12b. SEGMENT GEREKCE: "segmentSelectionRationale" alaninda neden BU segmentin secildigini, hangi alternatiflerin neden elendigini SOMUT olarak acikla.${budgetInstruction}${stageInstruction}${maturityInstruction}
 ${bc?.brandWhy ? `\n15. VAROLUS AMACI: "${bc.brandWhy}" — Bu WHY, markanin tum stratejisinin TEMELI. Arketip, ton, dusmanN, inanislar bu amaca UYUMLU olmali.` : ''}
 ${bc?.customerPerception ? `\n16. MUSTERI ALGISI: "${bc.customerPerception}" — GERCEK veri. Stratejiyi buna dayandirmak en akilli hamle.` : ''}`;
 
@@ -282,6 +335,9 @@ ${bc?.customerPerception ? `\n16. MUSTERI ALGISI: "${bc.customerPerception}" —
     competitiveMap: Array.isArray(parsed.competitiveMap) && parsed.competitiveMap.length > 0
       ? parsed.competitiveMap
       : [],
+    // Framework-based scoring
+    aakerPersonality: parsed.aakerPersonality || undefined,
+    segmentSelectionRationale: parsed.segmentSelectionRationale || undefined,
     // Faz 3 — Stratejik derinlik
     personalitySliders: parsed.personalitySliders || undefined,
     brandEnemy: parsed.brandEnemy || undefined,

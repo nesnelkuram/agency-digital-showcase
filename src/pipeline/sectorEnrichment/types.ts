@@ -60,6 +60,12 @@ export interface SectorEnrichmentModule {
   /** Format sector-specific data from ResearchFindings into prompt context for StrategySynthesizer */
   formatForSynthesizer: (sectorData: any) => string;
 
+  /** Priority frameworks for this sector from sectorFrameworks.ts */
+  frameworkReferences?: string[];
+
+  /** Douglas/Holt cultural branding perspective */
+  culturalBrandingLens?: string;
+
   /** Field name in ResearchFindings where sector data is stored */
   dataFieldName: string;
 }

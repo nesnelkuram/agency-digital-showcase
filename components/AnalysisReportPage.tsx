@@ -80,13 +80,14 @@ function SectionCard({ children, className = '' }: { children: React.ReactNode; 
   );
 }
 
-function SectionTitle({ icon: Icon, title, color }: { icon: any; title: string; color: string }) {
+function SectionTitle({ icon: Icon, title, color, badge }: { icon: any; title: string; color: string; badge?: React.ReactNode }) {
   return (
     <div className="flex items-center gap-2.5 mb-5">
       <div className={`w-8 h-8 rounded-lg bg-${color}-50 flex items-center justify-center`}>
         <Icon className={`w-4 h-4 text-${color}-600`} />
       </div>
       <h2 className="font-ramillas text-lg sm:text-xl font-bold text-gray-900">{title}</h2>
+      {badge && <div className="ml-auto">{badge}</div>}
     </div>
   );
 }
@@ -142,6 +143,106 @@ function SliderBar({ label, leftLabel, rightLabel, value }: { label: string; lef
       </div>
     </div>
   );
+}
+
+// ─── Confidence & Evidence Components ──────────────────
+
+type ConfidenceLevel = 'verified' | 'grounded' | 'inferred' | 'speculative';
+
+const CONFIDENCE_LABELS: Record<ConfidenceLevel, string> = {
+  verified: 'Dogrulanmis',
+  grounded: 'Cercevelenmis',
+  inferred: 'Cikarim',
+  speculative: 'Varsayim',
+};
+
+const CONFIDENCE_COLORS: Record<ConfidenceLevel, string> = {
+  verified: 'emerald',
+  grounded: 'blue',
+  inferred: 'amber',
+  speculative: 'red',
+};
+
+const CONFIDENCE_ICONS: Record<ConfidenceLevel, string> = {
+  verified: '🟢',
+  grounded: '🔵',
+  inferred: '🟡',
+  speculative: '🔴',
+};
+
+function getConfidenceLevelFromScore(score: number): ConfidenceLevel {
+  if (score >= 80) return 'verified';
+  if (score >= 55) return 'grounded';
+  if (score >= 30) return 'inferred';
+  return 'speculative';
+}
+
+function ConfidenceBadge({ level }: { level: ConfidenceLevel }) {
+  const color = CONFIDENCE_COLORS[level];
+  return (
+    <span className={`inline-flex items-center gap-1 text-[10px] font-commons font-medium px-2 py-0.5 rounded-full bg-${color}-50 text-${color}-700`}>
+      {CONFIDENCE_ICONS[level]} {CONFIDENCE_LABELS[level]}
+    </span>
+  );
+}
+
+function OverallConfidenceBanner({ score, totalClaims, verifiedClaims, strongestSection, weakestSection }: {
+  score: number;
+  totalClaims: number;
+  verifiedClaims: number;
+  strongestSection: string;
+  weakestSection: string;
+}) {
+  const level = getConfidenceLevelFromScore(score);
+  const color = CONFIDENCE_COLORS[level];
+  return (
+    <div className={`bg-${color}-50 border border-${color}-200 rounded-2xl p-4 sm:p-5`}>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Shield className={`w-4 h-4 text-${color}-600`} />
+          <h3 className="font-commons text-sm font-semibold text-gray-900">Rapor Guvenilirlik Skoru</h3>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className={`font-commons text-xl font-bold text-${color}-700`}>{score}/100</span>
+          <ConfidenceBadge level={level} />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="text-center">
+          <p className="font-commons text-lg font-bold text-gray-900">{totalClaims}</p>
+          <p className="font-commons text-[10px] text-gray-500">Toplam Iddia</p>
+        </div>
+        <div className="text-center">
+          <p className="font-commons text-lg font-bold text-emerald-600">{verifiedClaims}</p>
+          <p className="font-commons text-[10px] text-gray-500">Dogrulanmis</p>
+        </div>
+        <div className="text-center">
+          <p className="font-commons text-[11px] font-medium text-emerald-700 truncate">{strongestSection || '-'}</p>
+          <p className="font-commons text-[10px] text-gray-500">En Guclu Bolum</p>
+        </div>
+        <div className="text-center">
+          <p className="font-commons text-[11px] font-medium text-amber-700 truncate">{weakestSection || '-'}</p>
+          <p className="font-commons text-[10px] text-gray-500">En Zayif Bolum</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SectionConfidenceIndicator({ sectionName, confidence, evidenceV2 }: {
+  sectionName: string;
+  confidence?: number;
+  evidenceV2?: any;
+}) {
+  if (!evidenceV2?.sectionBreakdown) return null;
+
+  const section = evidenceV2.sectionBreakdown.find((s: any) => s.sectionName === sectionName);
+  if (!section) return null;
+
+  const score = confidence ?? section.overallConfidence;
+  const level = getConfidenceLevelFromScore(score);
+
+  return <ConfidenceBadge level={level} />;
 }
 
 // ─── Main Component ────────────────────────────────────
@@ -223,6 +324,17 @@ const AnalysisReportPage: React.FC = () => {
             {formatDate(a.analyzedAt)}
           </p>
         </SectionCard>
+
+        {/* 1b. OVERALL CONFIDENCE BANNER */}
+        {a.evidenceSummaryV2 && (
+          <OverallConfidenceBanner
+            score={a.evidenceSummaryV2.overallConfidence}
+            totalClaims={a.evidenceSummaryV2.totalClaims}
+            verifiedClaims={a.evidenceSummaryV2.verifiedClaims}
+            strongestSection={a.evidenceSummaryV2.strongestSection}
+            weakestSection={a.evidenceSummaryV2.weakestSection}
+          />
+        )}
 
         {/* 2. CONSULTANT INTRO */}
         {a.consultantIntro && (
@@ -931,10 +1043,15 @@ function StrategyScenariosSection({ scenarios }: { scenarios: NonNullable<AIAnal
             </div>
             <p className="font-commons text-xs text-gray-700 mb-3">{data.description}</p>
             <div className="space-y-1.5 text-[11px] font-commons">
-              <p className="text-gray-600"><span className="text-gray-400">Yatirim:</span> {data.investmentLevel}</p>
               <p className="text-gray-600"><span className="text-gray-400">Sonuc:</span> {data.expectedOutcome}</p>
               <p className="text-gray-600"><span className="text-gray-400">Sure:</span> {data.timeframe}</p>
               <p className="text-gray-600"><span className="text-gray-400">Risk:</span> {data.risk}</p>
+              {(data as any).probabilityWeight !== undefined && (
+                <p className="text-gray-600"><span className="text-gray-400">Olasilik:</span> %{Math.round((data as any).probabilityWeight * 100)}</p>
+              )}
+              {(data as any).decisionCriteria && (
+                <p className="text-gray-600"><span className="text-gray-400">Karar Kriteri:</span> {(data as any).decisionCriteria}</p>
+              )}
             </div>
           </div>
         ) : null)}
@@ -968,6 +1085,13 @@ function RiskMatrixSection({ plans }: { plans: NonNullable<AIAnalysis['riskMitig
                   </span>
                 </div>
               </div>
+              {(plan as any).expectedValue !== undefined && (
+                <div className="mb-2">
+                  <span className="font-commons text-[9px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-700">
+                    EV: {(plan as any).expectedValue.toFixed(2)}
+                  </span>
+                </div>
+              )}
               <p className="font-commons text-xs text-gray-700 mb-1"><span className="font-medium text-gray-800">Azaltma:</span> {plan.mitigation}</p>
               <p className="font-commons text-xs text-gray-700"><span className="font-medium text-amber-700">Erken Uyari:</span> {plan.earlyWarning}</p>
             </div>
@@ -1009,9 +1133,6 @@ function IntibaEngagementSection({ engagement, businessName, revenueImpact }: { 
                   </span>
                 </div>
                 <p className="font-commons text-xs text-gray-600 mb-2">{svc.description}</p>
-                {svc.estimatedInvestment && (
-                  <p className="font-commons text-[11px] text-indigo-600 font-medium">{svc.estimatedInvestment}</p>
-                )}
               </div>
             );
           })}
@@ -1065,9 +1186,6 @@ function IntibaEngagementSection({ engagement, businessName, revenueImpact }: { 
                 </div>
               ))}
             </div>
-          )}
-          {revenueImpact.investmentToGrowthRatio && (
-            <p className="font-commons text-xs text-gray-500">Yatirim / Buyume Orani: <span className="font-medium text-emerald-700">{revenueImpact.investmentToGrowthRatio}</span></p>
           )}
         </div>
       )}
@@ -1553,7 +1671,18 @@ function ActionPlanReport({ ap }: { ap: NonNullable<AIAnalysis['actionPlan']> })
                 <tbody>
                   {phase.items.map((item, i) => (
                     <tr key={i} className="border-b border-gray-50">
-                      <td className="font-commons text-sm text-gray-700 py-2.5 pr-3">{item.action}</td>
+                      <td className="font-commons text-sm text-gray-700 py-2.5 pr-3">
+                        {item.action}
+                        {item.bottleneck && item.bottleneck !== 'none' && (
+                          <span className={`ml-1.5 inline-block text-[9px] px-1.5 py-0.5 rounded-full ${
+                            item.bottleneck === 'motivation' ? 'bg-amber-50 text-amber-700' :
+                            item.bottleneck === 'ability' ? 'bg-blue-50 text-blue-700' :
+                            'bg-purple-50 text-purple-700'
+                          }`}>
+                            {item.bottleneck === 'motivation' ? 'Motivasyon' : item.bottleneck === 'ability' ? 'Yetenek' : 'Tetikleyici'}
+                          </span>
+                        )}
+                      </td>
                       <td className="font-commons text-xs text-gray-500 py-2.5 pr-3">{item.owner}</td>
                       <td className="font-commons text-xs text-gray-500 py-2.5 pr-3">{item.metric}</td>
                       <td className="font-commons text-xs text-gray-500 py-2.5">{item.estimatedImpact}</td>

@@ -33,6 +33,9 @@ const retail: SectorEnrichmentModule = {
     },
   ],
 
+  frameworkReferences: ['Aaker Identity', 'Fogg B=MAP', 'Kano Model', 'Byron Sharp CEPs'],
+  culturalBrandingLens: 'Online vs mağaza deneyimi, sürdürülebilirlik baskısı, "ucuz ama kaliteli" paradoksu',
+
   deepResearchSteps: `
 
 ADIM 6 — E-TICARET & ONLINE VARLIK (PERAKENDEYE OZEL):

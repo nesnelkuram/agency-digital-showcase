@@ -1,4 +1,5 @@
 // Multi-Agent Brand Analysis Pipeline Types
+import type { EvidenceChain, FrameworkScore, SectionEvidence, EvidenceSummaryV2 } from './evidence';
 
 export interface BusinessContextInput {
   businessDescription?: string;
@@ -221,6 +222,19 @@ export interface StrategistOutput {
   };
   transformationStatement?: string; // "X'dan Y'a" — 12 kelime max
   valueLevel?: 'commodity' | 'product' | 'service' | 'experience' | 'transformation';
+  // Framework scoring (Aaker Brand Personality 5 dimensions)
+  aakerPersonality?: {
+    sincerity: number;      // 0-20
+    excitement: number;     // 0-20
+    competence: number;     // 0-20
+    sophistication: number; // 0-20
+    ruggedness: number;     // 0-20
+  };
+  // Segment selection rationale (mandatory)
+  segmentSelectionRationale?: string;
+  // Evidence chains for strategist output
+  _evidence?: EvidenceChain[];
+  _frameworkScores?: FrameworkScore[];
 }
 
 // Agent 4a Output
@@ -243,14 +257,19 @@ export interface ChallengerOutput {
     verdict: 'strong' | 'weak' | 'generic';
   };
   distinctivenessScore?: number;   // 0-100 — ne kadar benzersiz?
-  // Faz 2 — Risk Azaltma Planları
+  // Faz 2 — Risk Azaltma Planları (enhanced with quantitative scoring)
   riskMitigationPlans?: Array<{
     risk: string;
     likelihood: 'yuksek' | 'orta' | 'dusuk';
+    likelihoodScore?: number;    // 0-1 quantitative
     impact: 'yuksek' | 'orta' | 'dusuk';
+    impactScore?: number;        // 1-10 quantitative
+    expectedValue?: number;      // likelihood × impact
     mitigation: string;
     earlyWarning: string;
   }>;
+  // Evidence chains for challenger analysis
+  _evidence?: EvidenceChain[];
 }
 
 // Agent 4b Output (Blog Strategy Advisor)
@@ -276,12 +295,18 @@ export interface BlogAdvisorOutput {
   unconventionalInsights: string[];
 }
 
-// Action plan item for 90-day roadmap
+// Action plan item for 90-day roadmap (enhanced with Fogg B=MAP)
 export interface ActionItem {
   action: string;
   owner: string;
   metric: string;
   estimatedImpact: string;
+  // Fogg B=MAP enhancement
+  motivationScore?: number;    // 0-10
+  abilityScore?: number;       // 0-10
+  bottleneck?: 'motivation' | 'ability' | 'prompt' | 'none';
+  requiredResources?: string;
+  prerequisite?: string;
 }
 
 // Agent 5 Output
@@ -331,6 +356,17 @@ export interface SynthesizedAnalysis {
     dataFreshness: string;
     confidenceLevel: string;
   };
+  // Enhanced evidence summary (V2)
+  evidenceSummaryV2?: EvidenceSummaryV2;
+  // Framework scores used in analysis
+  frameworkScores?: FrameworkScore[];
+  // Multi-model consensus results
+  consensusResults?: Array<{
+    question: string;
+    consensusReached: boolean;
+    consensusScore: number;
+    disagreements: string[];
+  }>;
   consultantIntro: string;
   synthesisRationale: string;
   blogAdvisorInsights?: {
@@ -398,9 +434,9 @@ export interface SynthesizedAnalysis {
 
   // Faz 2 — Senaryo Bazlı Strateji
   strategyScenarios?: {
-    conservative: { description: string; investmentLevel: string; expectedOutcome: string; timeframe: string; risk: string };
-    recommended: { description: string; investmentLevel: string; expectedOutcome: string; timeframe: string; risk: string };
-    aggressive: { description: string; investmentLevel: string; expectedOutcome: string; timeframe: string; risk: string };
+    conservative: { description: string; investmentLevel: string; expectedOutcome: string; timeframe: string; risk: string; probabilityWeight?: number; decisionCriteria?: string };
+    recommended: { description: string; investmentLevel: string; expectedOutcome: string; timeframe: string; risk: string; probabilityWeight?: number; decisionCriteria?: string };
+    aggressive: { description: string; investmentLevel: string; expectedOutcome: string; timeframe: string; risk: string; probabilityWeight?: number; decisionCriteria?: string };
   };
 }
 
@@ -499,7 +535,7 @@ export interface CompetitorDiscoveryOutput {
   };
 }
 
-// Agent 9 Output — Synthetic Consumer Test
+// Agent 9 Output — Consumer Test (JTBD + Persona hybrid)
 export interface ConsumerTestResult {
   personaLabel: string;
   demographics: string;
@@ -512,14 +548,31 @@ export interface ConsumerTestResult {
   recommendedMessageAngle: string;
 }
 
+// JTBD Switch Interview scenario
+export interface JTBDScenario {
+  situationLabel: string;           // "When [situation]..."
+  jobToBeDone: string;              // "I want to [job]..."
+  desiredOutcome: string;           // "So I can [outcome]..."
+  pushForces: string[];             // Push away from current solution
+  pullForces: string[];             // Pull toward new solution
+  anxieties: string[];              // Fear of change
+  habits: string[];                 // Inertia / current habits
+  strategyJobFitScore: number;      // 0-100: How well does the positioning solve this job?
+  fitRationale: string;
+}
+
 export interface ConsumerTestOutput {
   overallViabilityScore: number;
   personas: ConsumerTestResult[];
+  // JTBD scenarios (new — complements personas)
+  jtbdScenarios?: JTBDScenario[];
   strongestFit: string;
   weakestFit: string;
   crossPersonaConcerns: string[];
   strategyRefinements: string[];
   marketReadiness: 'hazir' | 'iyilestirme_gerekli' | 'yeniden_dusunulmeli';
+  // Evidence
+  _evidence?: EvidenceChain[];
 }
 
 // Agent 10 Output — Brand Value Maximizer (replaces consultantIntroWriter)
@@ -546,9 +599,15 @@ export interface ValueMaximizerOutput {
       driver: string;
       estimatedImpact: string;
       timeframe: string;
+      // Evidence-based enhancement
+      impactHypothesis?: string;
+      assumptions?: string[];
+      confidenceLevel?: 'verified' | 'grounded' | 'inferred' | 'speculative';
     }>;
     investmentToGrowthRatio: string;
   };
+  // Evidence chains
+  _evidence?: EvidenceChain[];
 }
 
 // Pipeline state passed through agents
@@ -563,6 +622,15 @@ export interface PipelineState {
   digitalPresenceAnalysis?: DigitalPresenceAnalysis;
   competitorDiscovery?: CompetitorDiscoveryOutput;
   consumerTest?: ConsumerTestOutput;
+  valueMaximizerOutput?: ValueMaximizerOutput;
+  // Evidence & calibration
+  evidenceSummary?: EvidenceSummaryV2;
+  frameworkScores?: FrameworkScore[];
+  consensusResults?: Array<{
+    question: string;
+    consensusReached: boolean;
+    consensusScore: number;
+  }>;
   errors: Array<{ agent: string; error: string; timestamp: number }>;
   timings: Record<string, number>;
 }

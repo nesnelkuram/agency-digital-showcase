@@ -1,6 +1,8 @@
 import { generateJSON } from '../geminiClient';
 import type { NormalizedData, ResearchFindings, StrategistOutput, ChallengerOutput, BlogAdvisorOutput, SynthesizedAnalysis, BusinessContextInput, DigitalPresenceAnalysis, CompetitorDiscoveryOutput } from '../types';
 import { getSectorEnrichment } from '../sectorEnrichment';
+import { getSectorFrameworkConfig } from '../sectorFrameworks';
+import { FOGG_PROMPT_SNIPPET } from '../frameworks/fogg-behavior';
 
 export async function runStrategySynthesizer(
   normalizedData: NormalizedData,
@@ -121,6 +123,8 @@ ${blogAdvisorOutput.unconventionalInsights.map((i) => `  - ${i}`).join('\n')}`;
   // Sector-specific data injection via enrichment module
   let sectorSpecificContext = '';
   const sectorEnrichment = getSectorEnrichment(normalizedData.sector);
+  // Sector framework configuration for perceptual map and priority frameworks
+  const sectorFrameworkConfig = getSectorFrameworkConfig(normalizedData.sector);
   if (sectorEnrichment && researchFindings) {
     const sectorData = (researchFindings as any)[sectorEnrichment.dataFieldName];
     if (sectorData) {
@@ -210,7 +214,7 @@ ${bc.futureVision ? `- 3 Yıllık Vizyon: ${bc.futureVision}` : ''}
 
   // Budget-calibrated action plan instructions
   const budgetCalibration = bc?.monthlyBudget
-    ? `\n12. BUTCE KALIBRASYONU: Musterinin aylik butcesi "${bc.monthlyBudget}" olarak belirtilmis. actionPlan'daki TUM onerileri bu butceye uygun olacak sekilde kalibre et. Butceyi asan oneriler YAPMA. Ornegin: "starter" (50-100K TL) butce icin yuksek produksiyonlu kampanyalar yerine organik ve UGC agirlikli stratejiler sun. "growth" (100-200K TL) icin hibrit yaklasim, "scale" (200-400K TL) icin tam kapsamli dijital pazarlama onerileri yap.`
+    ? `\n12. BUTCE KALIBRASYONU: Musterinin aylik butcesi "${bc.monthlyBudget}" olarak belirtilmis. actionPlan'daki TUM onerileri bu butce seviyesine uygun olacak sekilde kalibre et. Butceyi asan oneriler YAPMA. Dusuk butce icin organik ve UGC agirlikli stratejiler, orta butce icin hibrit yaklasim, yuksek butce icin tam kapsamli dijital pazarlama onerileri sun. Net TL rakamlari YAZMA.`
     : '';
 
   // Stage-calibrated owner instructions
@@ -333,7 +337,12 @@ Tum verileri sentezleyerek asagidaki JSON yapisinda NIHAI marka stratejisi rapor
         "action": "Ilk 30 gun icinde yapilacak SOMUT adim. Ornek: 'Instagram isletme hesabi acilmasi, profil optimizasyonu ve ilk 15 icerik planlama'",
         "owner": "Bu isi yapacak ekip/kisi. Ornek: 'Sosyal medya yoneticisi'",
         "metric": "Basari olcutu. Ornek: 'Hesap acildi, 15 icerik taslagi hazir, bio optimize edildi'",
-        "estimatedImpact": "Beklenen etki. Ornek: 'Dijital varlik olusturma — temel adim'"
+        "estimatedImpact": "Beklenen etki. Ornek: 'Dijital varlik olusturma — temel adim'",
+        "motivationScore": "0-10: Bu aksiyonu yapma motivasyonu ne kadar guclu?",
+        "abilityScore": "0-10: Bu aksiyonu yapmak ne kadar kolay?",
+        "bottleneck": "motivation/ability/prompt/none — ana darbogazin adi",
+        "requiredResources": "Bu aksiyonu yapmak icin ne gerekiyor?",
+        "prerequisite": "Oncesinde tamamlanmasi gereken adim (varsa)"
       },
       { "action": "...", "owner": "...", "metric": "...", "estimatedImpact": "..." }
     ],
@@ -372,7 +381,7 @@ Tum verileri sentezleyerek asagidaki JSON yapisinda NIHAI marka stratejisi rapor
         "service": "Hizmet adi (orn: Marka Kimlik Tasarimi, Sosyal Medya Yonetimi, Icerik Uretimi, Web Sitesi, SEO, Performans Reklam)",
         "description": "Neden bu hizmet bu isletme icin gerekli? 1-2 cumle, SOMUT gerekce.",
         "priority": "kritik/onemli/opsiyonel",
-        "estimatedInvestment": "Tahmini aylik/proje bazli yatirim araligi (TL). Musterinin butcesiyle UYUMLU olmali."
+        "estimatedInvestment": "BU ALANI BOS BIRAK veya YAZMA. Hizmet fiyati belirtme."
       }
     ],
     "threeMonthRoadmap": "3 aylik yol haritasinda Intiba'nin rolu: Ay 1'de ne yapilir, Ay 2'de ne yapilir, Ay 3'te ne yapilir. SOMUT ciktilarla. (3-5 cumle)",
@@ -380,8 +389,8 @@ Tum verileri sentezleyerek asagidaki JSON yapisinda NIHAI marka stratejisi rapor
     "clientReadinessNotes": "Musterinin hazirlik durumu hakkinda notlar. Operasyonel kapasite, dijital olgunluk, ekip ihtiyaci gibi konularda dikkat edilmesi gerekenler. (2-3 cumle)"
   },
   "perceptualMap": {
-    "xAxis": { "label": "Birinci eksen etiketi (orn: Fiyat)", "lowEnd": "Dusuk uc (orn: Ekonomik)", "highEnd": "Yuksek uc (orn: Premium)" },
-    "yAxis": { "label": "Ikinci eksen etiketi (orn: Deneyim)", "lowEnd": "Dusuk uc (orn: Fonksiyonel)", "highEnd": "Yuksek uc (orn: Deneyimsel)" },
+    "xAxis": { "label": "${sectorFrameworkConfig.perceptualMapAxes.xAxis.label}", "lowEnd": "${sectorFrameworkConfig.perceptualMapAxes.xAxis.lowEnd}", "highEnd": "${sectorFrameworkConfig.perceptualMapAxes.xAxis.highEnd}" },
+    "yAxis": { "label": "${sectorFrameworkConfig.perceptualMapAxes.yAxis.label}", "lowEnd": "${sectorFrameworkConfig.perceptualMapAxes.yAxis.lowEnd}", "highEnd": "${sectorFrameworkConfig.perceptualMapAxes.yAxis.highEnd}" },
     "brandPosition": { "x": 0, "y": 0 },
     "competitorPositions": [{ "name": "Rakip adi", "x": 0, "y": 0 }]
   },
@@ -463,6 +472,8 @@ KRITIK KURALLAR — BU KURALLARA UYMAYAN RAPOR BASARISIZ SAYILIR:
 
 5. "actionPlan" her fazda EN AZ 2, EN FAZLA 4 aksiyon icermeli. Her aksiyonun "metric" alani OLCULEBILIR olmali.
 
+5a. AKSIYON TASARIMI (B=MAP): actionPlan'daki HER aksiyona motivationScore (0-10) ve abilityScore (0-10) puanla. Her ikisi de 4'un altinda olan aksiyonlar icin darbogazin adini "bottleneck" olarak belirt ve aksiyonu KUCULT veya motivasyonu ARTIR. ${FOGG_PROMPT_SNIPPET ? 'Fogg B=MAP modeli kullan.' : ''}
+
 6. "brandPersonality.archetype" seciminde her iki uzmanin da goruslerini dikkate al.
 
 7. "visualWorld.colorPalette" tam olarak 4 renk icermeli: primary, secondary, accent ve neutral.
@@ -480,7 +491,7 @@ ${maturity.level === 'emerging' ? '- EMERGING ise: kimlik guclendirme + dijital 
 ${maturity.level === 'developing' ? '- DEVELOPING ise: strateji optimizasyonu, mevcut kanallari iyilestirme. intibaEngagement\'da "Icerik Uretimi" ve "Performans Reklam" birinci oncelik.' : ''}
 ${maturity.level === 'mature' ? '- MATURE ise: buyume stratejisi, topluluk olusturma, marka genisletme. intibaEngagement\'da "Marka Stratejisi Danismanligi" ve "Komunite Yonetimi" birinci oncelik.' : ''}` : ''}
 
-17. INTIBA ENGAGEMENT: "intibaEngagement" bolumu bu raporun TICARI DONUSUM noktasidir. Musteri bu bolumu okudigunda "Intiba ile calismak istiyorum" demeli. recommendedServices EN AZ 3, EN FAZLA 6 hizmet icermeli. Her hizmetin estimatedInvestment alani musterinin belirttiegi butceyle UYUMLU olmali.
+17. INTIBA ENGAGEMENT: "intibaEngagement" bolumu bu raporun TICARI DONUSUM noktasidir. Musteri bu bolumu okudigunda "Intiba ile calismak istiyorum" demeli. recommendedServices EN AZ 3, EN FAZLA 6 hizmet icermeli. estimatedInvestment alanina fiyat veya TL rakami YAZMA — bu alan bos birakilmali.
 
 18. BRAND NARRATIVE: "brandNarrative" bolumunde elevatorPitch DOGAL olmali, ezber gibi olmasin. socialMediaBio MAX 150 karakter. brandStory "hakkimizda" sayfasina konulabilecek kalitede.${bc?.brandWhy ? ` Musterinin belirttigi varolus amaci: "${bc.brandWhy}" — bunu narrative'in TEMELINDE kullan.` : ''}
 
@@ -494,7 +505,9 @@ ${maturity.level === 'mature' ? '- MATURE ise: buyume stratejisi, topluluk olust
 
 23. KPI FRAMEWORK: "kpiFramework" bolumunde North Star metrigi donusum ifadesiyle (transformationStatement) dogrudan baglantili olmali. "leading" metrikleri actionPlan'in "immediate" fazindaki ciktilari olcmeli. "lagging" metrikleri 90 gun sonunda gorulebilecek sonuc metrikleri olmali. EN AZ 2 leading ve 2 lagging metrik.
 
-24. STRATEJI SENARYOLARI: "strategyScenarios" bolumunde 3 farkli senaryo sun. "conservative" musterinin belirttigi butcenin ALT sinirinda, "recommended" butce ORTASINDA, "aggressive" butcenin UST sinirinda olmali. Her senaryonun investmentLevel'i RAKAMLARARLA (TL) belirtilmeli.`;
+24. STRATEJI SENARYOLARI: "strategyScenarios" bolumunde 3 farkli senaryo sun. "conservative" dusuk olcekli, "recommended" orta olcekli, "aggressive" yuksek olcekli olmali. investmentLevel'da TL rakami YAZMA — sadece "Dusuk olcek", "Orta olcek", "Yuksek olcek" gibi genel ifadeler kullan.
+
+25. SENARYO OLASILIK AGIRLIGI: strategyScenarios icin her senaryoya "probabilityWeight" (0-1, toplam=1) ve "decisionCriteria" (hangi kosulda bu senaryo secilir) ekle.`;
 
   const parsed = await generateJSON<SynthesizedAnalysis>('pro', prompt, 'StrategySynthesizer', {
     temperature: 0.6,
@@ -613,7 +626,7 @@ ${maturity.level === 'mature' ? '- MATURE ise: buyume stratejisi, topluluk olust
             service: s.service || '',
             description: s.description || '',
             priority: s.priority || 'onemli',
-            estimatedInvestment: s.estimatedInvestment || '',
+            estimatedInvestment: '',
           })),
           threeMonthRoadmap: parsed.intibaEngagement.threeMonthRoadmap || '',
           expectedOutcomes: Array.isArray(parsed.intibaEngagement.expectedOutcomes)
@@ -670,7 +683,11 @@ ${maturity.level === 'mature' ? '- MATURE ise: buyume stratejisi, topluluk olust
         }
       : undefined,
     strategyScenarios: parsed.strategyScenarios && parsed.strategyScenarios.recommended
-      ? parsed.strategyScenarios
+      ? {
+          conservative: { ...parsed.strategyScenarios.conservative, probabilityWeight: parsed.strategyScenarios.conservative?.probabilityWeight, decisionCriteria: parsed.strategyScenarios.conservative?.decisionCriteria },
+          recommended: { ...parsed.strategyScenarios.recommended, probabilityWeight: parsed.strategyScenarios.recommended?.probabilityWeight, decisionCriteria: parsed.strategyScenarios.recommended?.decisionCriteria },
+          aggressive: { ...parsed.strategyScenarios.aggressive, probabilityWeight: parsed.strategyScenarios.aggressive?.probabilityWeight, decisionCriteria: parsed.strategyScenarios.aggressive?.decisionCriteria },
+        }
       : undefined,
   };
 }

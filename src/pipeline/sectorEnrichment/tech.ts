@@ -4,6 +4,8 @@ import type { SectorEnrichmentModule } from './types';
 const tech: SectorEnrichmentModule = {
   sector: 'tech',
   dataFieldName: 'techData',
+  frameworkReferences: ['Hook Model', 'Fogg B=MAP', 'Kano Model', 'Blue Ocean'],
+  culturalBrandingLens: 'Otomasyon korkusu vs verimlilik vaadi, veri gizliliği kaygısı, "bir daha yazılım öğrenmek istemiyorum" yorgunluğu',
 
   culturalTensions: [
     {

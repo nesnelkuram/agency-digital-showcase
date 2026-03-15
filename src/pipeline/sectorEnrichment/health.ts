@@ -33,6 +33,9 @@ const health: SectorEnrichmentModule = {
     },
   ],
 
+  frameworkReferences: ['Keller CBBE', 'Cialdini (Authority)', 'Fogg B=MAP', 'Kano Model'],
+  culturalBrandingLens: 'Geleneksel tıp vs modern yaklaşım, "doktora güven" erozyonu, sağlık turizmi fırsatı',
+
   deepResearchSteps: `
 
 ADIM 6 — HASTA/DANISAN YORUMLARI & ITIBAR (SAGLIGA OZEL):

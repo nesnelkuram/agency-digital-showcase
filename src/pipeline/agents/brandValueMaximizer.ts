@@ -219,7 +219,7 @@ Somut is etkisi analizi. Aksiyon planindaki maddelerle ve dijital eksikliklerle 
   - driver: Spesifik aksiyon (aksiyon plani maddelerinden turetilmis)
   - estimatedImpact: Tahmini etki (orn: "organik trafik %40 artis", "direkt rezervasyon orani %15→%30")
   - timeframe: Gercekci zaman dilimi
-- investmentToGrowthRatio: Yatirim-buyume oranini TEK CUMLEDE acikla. Orn: "Aylik 15.000 TL dijital yatirimla yillik %30 gelir artisi hedeflenebilir."
+- investmentToGrowthRatio: BU ALANI BOS BIRAK. Yatirim-buyume orani belirtme.
 
 ---
 
@@ -229,6 +229,10 @@ ONEMLI:
 - growthDrivers EN AZ 3 madde olmali.
 - Turkce yaz, teknik terimler disinda Ingilizce kullanma.
 - Tum verileri CROSS-REFERENCE et: wizard cevaplari + strateji + dijital analiz + challenger + tuketici testi.
+
+- KANIT ZINCIRI: Her growthDriver icin impactHypothesis (varsayim), assumptions (varsayimlar listesi) ve confidenceLevel (verified/grounded/inferred/speculative) zorunlu. "verified" = arastirma verisine dayali, "grounded" = framework + veri sentezi, "inferred" = AI cikarimi ama mantikli, "speculative" = varsayim agirlikli.
+- ETKI BUYUKLUGU SIRASI: growthDrivers'i tahmini etkiye gore BUYUKTEN KUCUGE sirala.
+- ILK 90 GUN FILTRESI: Her driver icin "ilk 90 gunde olculebilir mi?" sorusunu cevapla.
 
 JSON FORMATI:
 {
@@ -245,7 +249,7 @@ JSON FORMATI:
   },
   "revenueImpact": {
     "currentState": "",
-    "growthDrivers": [{ "driver": "", "estimatedImpact": "", "timeframe": "" }],
+    "growthDrivers": [{ "driver": "", "estimatedImpact": "", "timeframe": "", "impactHypothesis": "Bu tahmin su varsayima dayaniyor: [X]", "assumptions": ["Varsayim 1", "Varsayim 2"], "confidenceLevel": "verified/grounded/inferred/speculative" }],
     "investmentToGrowthRatio": ""
   }
 }`;
@@ -311,6 +315,9 @@ JSON FORMATI:
         driver: d.driver || 'Dijital varlik iyilestirmesi',
         estimatedImpact: d.estimatedImpact || 'Olculebilir iyilesme bekleniyor',
         timeframe: d.timeframe || '3-6 ay',
+        impactHypothesis: d.impactHypothesis || undefined,
+        assumptions: Array.isArray(d.assumptions) ? d.assumptions : undefined,
+        confidenceLevel: (['verified', 'grounded', 'inferred', 'speculative'] as const).includes(d.confidenceLevel) ? d.confidenceLevel : undefined,
       }))
     : [{
         driver: 'Dijital varlik optimizasyonu',

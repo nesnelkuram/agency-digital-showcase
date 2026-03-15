@@ -138,7 +138,7 @@ Yukaridaki stratejiyi elestirel gozle inceleyerek asagidaki JSON yapisinda bir k
     "KOR NOKTA 2: Eksik birakilmis onemli bir faktor."
   ],
   "onlynessTest": {
-    "statement": "${normalizedData.businessName}, [kategoride] [fark] sunan TEK markadir. — Stratejistin konumlandirmasini Neumeier Onlyness formatina cevir.",
+    "statement": "[Marka] [kategoride] [fark] sunan TEK markadir — KIM ICIN: [hedef kitle], NASIL KANITLANIR: [kanit]",
     "competitorSwaps": [
       { "competitor": "Rakip 1 adi", "stillValid": true, "reason": "Bu cumle rakip icin de gecerli mi, neden?" },
       { "competitor": "Rakip 2 adi", "stillValid": false, "reason": "..." }
@@ -150,7 +150,10 @@ Yukaridaki stratejiyi elestirel gozle inceleyerek asagidaki JSON yapisinda bir k
     {
       "risk": "Tespit edilen SOMUT risk",
       "likelihood": "yuksek/orta/dusuk",
+      "likelihoodScore": 0.0-1.0,
       "impact": "yuksek/orta/dusuk",
+      "impactScore": 1-10,
+      "expectedValue": "likelihoodScore * impactScore",
       "mitigation": "Bu riski azaltmak icin SOMUT strateji",
       "earlyWarning": "Bu riskin gerceklesmeye basladigini gosteren erken sinyal"
     }
@@ -176,6 +179,9 @@ KRITIK KURALLAR:
 12. WHY KONTROLU: ${businessContext?.brandWhy ? `Isletmenin varolus amaci: "${businessContext.brandWhy}". Stratejistin onerisi bu WHY ile tutarli mi? Arketip ve ton bu amaci yansitıyor mu? Tutarsizlik varsa acikca belirt.` : 'Varolus amaci (WHY) bilgisi mevcut degil — stratejistin arketip seciminin temelsiz olma riskini belirt.'}
 13. MUSTERI ALGISI KONTROLU: ${businessContext?.customerPerception ? `Musteri gozunden gercek algi: "${businessContext.customerPerception}". Stratejistin onerisi ile gercek musteri algisi arasinda FARK var mi? Strateji musterinin zaten hissettigi degerleri guclendiriyor mu yoksa tamamen farkli bir yone mi gidiyor?` : 'Musteri algisi verisi yok — stratejistin onerisinin gercek musteri deneyimiyle dogrulanmadigini belirt.'}
 14. VIZYON UYUMU: ${businessContext?.futureVision ? `3 yillik vizyon: "${businessContext.futureVision}". Onerilen strateji bu vizyona giden yolda mi yoksa farkli bir rotada mi? Kisa vadeli strateji uzun vadeli vizyonla celisiyor mu?` : ''}
+
+16. KANTITATIF RISK MATRISI: riskMitigationPlans'daki her risk icin likelihoodScore (0-1) ve impactScore (1-10) SAYISAL deger ver. expectedValue = likelihoodScore × impactScore. En yuksek expectedValue'ya sahip riskler ACIL isaret edilmeli. Riskler expectedValue'ya gore BUYUKTEN KUCUGE siralanmali.
+17. KOR NOKTA DOGRULAMASI: Her blindSpot icin soru sor: "Bu gercekten kacirilan bir sey mi, yoksa bilerek oncelenmemis mi?" Bu sorunun cevabini blindSpot aciklamasina ekle.
 
 15. RISK AZALTMA PLANLARI: "riskMitigationPlans" bolumunde riskAssessment'taki HER riski ayri bir plan olarak detaylandir. EN AZ 3 risk plani. Her plan icin SOMUT azaltma stratejisi ve ERKEN UYARI sinyali belirt. likelihood ve impact kombinasyonu "yuksek-yuksek" olan riskler ACIL isaret edilmeli.`;
 
@@ -206,7 +212,12 @@ KRITIK KURALLAR:
       ? parsed.riskMitigationPlans.map((p: any) => ({
           risk: p.risk || '',
           likelihood: p.likelihood || 'orta',
+          likelihoodScore: typeof p.likelihoodScore === 'number' ? Math.max(0, Math.min(1, p.likelihoodScore)) : undefined,
           impact: p.impact || 'orta',
+          impactScore: typeof p.impactScore === 'number' ? Math.max(1, Math.min(10, p.impactScore)) : undefined,
+          expectedValue: (typeof p.likelihoodScore === 'number' && typeof p.impactScore === 'number')
+            ? Math.round(p.likelihoodScore * p.impactScore * 100) / 100
+            : undefined,
           mitigation: p.mitigation || '',
           earlyWarning: p.earlyWarning || '',
         }))

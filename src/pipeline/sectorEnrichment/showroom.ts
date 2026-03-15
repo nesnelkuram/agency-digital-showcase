@@ -33,6 +33,9 @@ const showroom: SectorEnrichmentModule = {
     },
   ],
 
+  frameworkReferences: ['Aaker Identity', 'Kano Model', 'Cialdini', 'Hook Model'],
+  culturalBrandingLens: 'Online vs fiziksel deneyim, "dokunmadan almam" kültürü, sürdürülebilirlik beklentisi',
+
   deepResearchSteps: `
 
 ADIM 6 — SHOWROOM & MAGAZA DENEYIMI (YAPI & DEKORASYONA OZEL):
