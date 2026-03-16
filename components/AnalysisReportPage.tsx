@@ -524,12 +524,12 @@ function DiagnosisSection({ diagnosisSummary, brandMaturity, dataQuality }: {
           </div>
 
           {/* Factor bars */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {brandMaturity.factors && <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { label: 'Is Yasi', value: brandMaturity.factors.businessAge },
-              { label: 'Marka Varliklari', value: brandMaturity.factors.brandAssets },
-              { label: 'Dijital Varlik', value: brandMaturity.factors.digitalPresence },
-              { label: 'Kitle Buyuklugu', value: brandMaturity.factors.audienceSize },
+              { label: 'Is Yasi', value: brandMaturity.factors.businessAge ?? 0 },
+              { label: 'Marka Varliklari', value: brandMaturity.factors.brandAssets ?? 0 },
+              { label: 'Dijital Varlik', value: brandMaturity.factors.digitalPresence ?? 0 },
+              { label: 'Kitle Buyuklugu', value: brandMaturity.factors.audienceSize ?? 0 },
             ].map(({ label, value }) => (
               <div key={label} className="bg-violet-50 rounded-lg p-3">
                 <p className="font-commons text-[10px] text-violet-500 font-medium mb-1">{label}</p>
@@ -540,7 +540,7 @@ function DiagnosisSection({ diagnosisSummary, brandMaturity, dataQuality }: {
                 </div>
               </div>
             ))}
-          </div>
+          </div>}
         </div>
       )}
 
