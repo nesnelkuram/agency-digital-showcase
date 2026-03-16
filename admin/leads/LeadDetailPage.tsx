@@ -30,6 +30,7 @@ import {
   Copy,
   Unlink,
   Briefcase,
+  FileText,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermission } from '@/shared/hooks/usePermission';
@@ -67,12 +68,94 @@ const LeadDetailPage: React.FC = () => {
   const [newNote, setNewNote] = useState('');
   const [activeTab, setActiveTab] = useState<'overview' | 'wizard' | 'timeline' | 'ai'>('overview');
   const [analyzing, setAnalyzing] = useState(false);
-  const [analysisPhase, setAnalysisPhase] = useState<'normalizing' | 'researching' | 'analyzing' | 'completed'>('normalizing');
+  const [analysisPhase, setAnalysisPhase] = useState<'normalizing' | 'researching' | 'analyzing' | 'awaiting_approval' | 'completed'>('normalizing');
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
   const [analysisNotes, setAnalysisNotes] = useState('');
+  const [strategyPreview, setStrategyPreview] = useState<any>(null);
+
+  // Saved pipeline state for fast resume after approval (avoids re-running analyze-start)
+  const pipelineResumeRef = React.useRef<{
+    normalizedData: any;
+    researchFindings: any;
+    runId: string;
+    websiteData: any;
+  } | null>(null);
 
   // Real-time pipeline progress from Firestore
   const { progress: pipelineProgress, isRunning: isPipelineRunning } = useAnalysisProgress(id);
+
+  /**
+   * Run the analyze-continue loop. Extracted so it can be called from both
+   * handleAnalyzeWithAI (fresh) and handleApproveStrategy (resume).
+   */
+  const runPipelineContinue = async (params: {
+    normalizedData: any;
+    researchFindings: any;
+    runId: string | null;
+    websiteData: any;
+    drInteractionId?: string | null;
+    drText?: string | null;
+  }) => {
+    const { normalizedData, researchFindings: initResearch, runId: pipelineRunId, websiteData, drInteractionId, drText } = params;
+    let researchFindings = initResearch;
+
+    setAnalysisPhase('analyzing');
+    let result: any = {};
+    let attempts = 0;
+    const MAX_ATTEMPTS = 3;
+
+    while (result.status !== 'completed' && result.status !== 'failed' && attempts < MAX_ATTEMPTS) {
+      attempts++;
+      console.log(`[AsyncPipeline] Pipeline call #${attempts}: hasDrText=${!!drText}, hasResearch=${!!researchFindings}`);
+      const continueRes = await fetch('/api/analyze-continue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          drInteractionId: drText ? null : (researchFindings ? null : drInteractionId),
+          drText: drText || undefined,
+          normalizedData,
+          researchFindings,
+          runId: pipelineRunId,
+          websiteData,
+          input: {
+            contact: { name: lead!.contact.name, businessName: lead!.contact.businessName, email: lead!.contact.email },
+            sector: lead!.sector,
+            wizard: { answers: lead!.wizard.answers, scores: lead!.wizard.scores, stageResults: lead!.wizard.stageResults },
+            requestedServices: lead!.requestedServices,
+            leadId: lead!.id,
+            mode: 'full',
+            ...(analysisNotes ? { adminNotes: analysisNotes } : {}),
+            businessContext: lead!.wizard.businessContext,
+          },
+        }),
+      });
+
+      if (!continueRes.ok) {
+        const err = await continueRes.json().catch(() => ({}));
+        throw new Error(err.error || `Pipeline hatasi (${continueRes.status})`);
+      }
+
+      result = await continueRes.json();
+      console.log(`[AsyncPipeline] Pipeline #${attempts} result: status=${result.status}, agents=${result.debug?.agentsRun?.join(',') || 'N/A'}`);
+
+      if (result.status === 'awaiting_approval') {
+        console.log(`[AsyncPipeline] Pipeline paused for approval — archetype=${result.strategyPreview?.archetype}`);
+        // Save state for fast resume
+        pipelineResumeRef.current = { normalizedData, researchFindings, runId: pipelineRunId!, websiteData };
+        setAnalysisPhase('awaiting_approval');
+        setStrategyPreview(result.strategyPreview);
+        setAnalyzing(false);
+        return { status: 'awaiting_approval' };
+      } else if (result.status === 'pipeline_partial') {
+        console.log(`[AsyncPipeline] Pipeline partial (phase=${result.phase}), continuing...`);
+      } else if (result.researchFindings) {
+        researchFindings = result.researchFindings;
+        console.log(`[AsyncPipeline] Research received: competitors=${researchFindings.competitors?.length || 0}`);
+      }
+    }
+
+    return result;
+  };
 
   // AI Analysis — Multi-Agent Async Pipeline
   const handleAnalyzeWithAI = async (mode: 'full' | 'lite' = 'full') => {
@@ -176,52 +259,16 @@ const LeadDetailPage: React.FC = () => {
       }
 
       // Phase 3: Run pipeline (analyze-continue) — DR already resolved or skipped
-      setAnalysisPhase('analyzing');
-      let result: any = {};
-      let attempts = 0;
-      const MAX_ATTEMPTS = 3; // Pipeline only, no DR waiting — should complete in 1-2 calls
+      const result = await runPipelineContinue({
+        normalizedData: startData.normalizedData,
+        researchFindings,
+        runId: pipelineRunId,
+        websiteData: startData.websiteData,
+        drInteractionId: startData.drInteractionId,
+        drText,
+      });
 
-      while (result.status !== 'completed' && result.status !== 'failed' && attempts < MAX_ATTEMPTS) {
-        attempts++;
-        console.log(`[AsyncPipeline] Pipeline call #${attempts}: hasDrText=${!!drText}, hasResearch=${!!researchFindings}`);
-        const continueRes = await fetch('/api/analyze-continue', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            drInteractionId: drText ? null : (researchFindings ? null : startData.drInteractionId),
-            drText,
-            normalizedData: startData.normalizedData,
-            researchFindings,
-            runId: pipelineRunId,
-            websiteData: startData.websiteData,
-            input: {
-              contact: { name: lead.contact.name, businessName: lead.contact.businessName, email: lead.contact.email },
-              sector: lead.sector,
-              wizard: { answers: lead.wizard.answers, scores: lead.wizard.scores, stageResults: lead.wizard.stageResults },
-              requestedServices: lead.requestedServices,
-              leadId: lead.id,
-              mode: 'full',
-              ...(analysisNotes ? { adminNotes: analysisNotes } : {}),
-              businessContext: lead.wizard.businessContext,
-            },
-          }),
-        });
-
-        if (!continueRes.ok) {
-          const err = await continueRes.json().catch(() => ({}));
-          throw new Error(err.error || `Pipeline hatasi (${continueRes.status})`);
-        }
-
-        result = await continueRes.json();
-        console.log(`[AsyncPipeline] Pipeline #${attempts} result: status=${result.status}, agents=${result.debug?.agentsRun?.join(',') || 'N/A'}`);
-
-        if (result.status === 'pipeline_partial') {
-          console.log(`[AsyncPipeline] Pipeline partial (phase=${result.phase}), continuing...`);
-        } else if (result.researchFindings) {
-          researchFindings = result.researchFindings;
-          console.log(`[AsyncPipeline] Research received: competitors=${researchFindings.competitors?.length || 0}`);
-        }
-      }
+      if (result.status === 'awaiting_approval') return; // Already handled in runPipelineContinue
 
       if (result.status === 'completed' && result.analysis) {
         console.log(`[AsyncPipeline] COMPLETED: agents=[${result.analysis.pipelineMetadata?.agentsRun?.join(',') || 'N/A'}], fallback=${result.analysis.pipelineMetadata?.fallbackUsed}, researchMethod=${result.analysis.pipelineMetadata?.researchMethod}, totalDuration=${result.analysis.pipelineMetadata?.totalDuration}ms`);
@@ -241,6 +288,79 @@ const LeadDetailPage: React.FC = () => {
       setAnalyzing(false);
     }
   };
+
+  // Strategy approval handler
+  const handleApproveStrategy = async (approved: boolean, note?: string) => {
+    if (!lead || !user) return;
+    try {
+      const token = await (user as any).getIdToken?.();
+      const approveRes = await fetch('/api/approve-strategy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ leadId: lead.id, approved, note }),
+      });
+      const data = await approveRes.json();
+      if (!approveRes.ok) throw new Error(data.error || 'Onay hatasi');
+
+      if (approved) {
+        setStrategyPreview(null);
+        setAnalyzing(true);
+        setAnalyzeError(null);
+
+        // Fast resume: use saved pipeline state if available (skips analyze-start entirely)
+        const saved = pipelineResumeRef.current;
+        if (saved) {
+          console.log('[AsyncPipeline] Fast resume after approval — skipping analyze-start');
+          const result = await runPipelineContinue({
+            normalizedData: saved.normalizedData,
+            researchFindings: saved.researchFindings,
+            runId: saved.runId,
+            websiteData: saved.websiteData,
+          });
+
+          if (result.status === 'awaiting_approval') return;
+
+          if (result.status === 'completed' && result.analysis) {
+            const aiAnalysis = { ...result.analysis, analyzedAt: new Date() };
+            await updateBrandLead(tenantId, lead.id, { aiAnalysis }, user.uid, user.displayName || 'Unknown');
+            const updatedLead = await getBrandLead(tenantId, lead.id);
+            setLead(updatedLead);
+            setActiveTab('ai');
+          } else {
+            throw new Error(result.error || 'Pipeline tamamlanamadi');
+          }
+          setAnalyzing(false);
+          pipelineResumeRef.current = null;
+        } else {
+          // Fallback: no saved state (e.g. page was refreshed) — full re-run via checkpoint
+          console.log('[AsyncPipeline] No saved state — full resume via analyze-start');
+          setAnalyzing(false); // handleAnalyzeWithAI will set it back
+          handleAnalyzeWithAI('full');
+        }
+      } else {
+        // Rejected
+        setAnalysisPhase('normalizing');
+        setStrategyPreview(null);
+        pipelineResumeRef.current = null;
+        setAnalyzeError('Strateji reddedildi. Yeni analiz baslatin.');
+      }
+    } catch (error: any) {
+      console.error('[ApproveStrategy] Error:', error);
+      setAnalyzeError(error.message || 'Onay hatasi');
+      setAnalyzing(false);
+    }
+  };
+
+  // Restore approval state from Firestore on mount/refresh
+  useEffect(() => {
+    if (pipelineProgress?.approvalStatus === 'pending' && pipelineProgress?.strategyPreview && !analyzing) {
+      setAnalysisPhase('awaiting_approval');
+      setStrategyPreview(pipelineProgress.strategyPreview);
+    }
+  }, [pipelineProgress?.approvalStatus]);
 
   // Load lead
   useEffect(() => {
@@ -443,6 +563,15 @@ const LeadDetailPage: React.FC = () => {
           {lead.aiAnalysis && (
             <ReportShareButton lead={lead} onLeadUpdate={setLead} tenantId={tenantId} />
           )}
+          <motion.button
+            onClick={() => navigate(`/admin/pricing/proposals/new?leadId=${lead.id}`)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-full font-grotesk text-sm font-medium hover:bg-amber-700 transition-colors"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <FileText className="w-4 h-4" />
+            Teklif Olustur
+          </motion.button>
           {can(PERMISSIONS.LEADS_CONVERT) && lead.status !== 'won' && (
             <motion.button
               className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-full font-grotesk text-sm font-medium hover:bg-green-700 transition-colors"
@@ -791,10 +920,13 @@ const LeadDetailPage: React.FC = () => {
 
             {activeTab === 'ai' && (
               <div>
-                {analyzing ? (
+                {(analyzing || analysisPhase === 'awaiting_approval') ? (
                   <AnalysisProgressIndicator
                     agentProgress={pipelineProgress?.agents}
                     phase={analysisPhase}
+                    strategyPreview={strategyPreview}
+                    onApprove={(note) => handleApproveStrategy(true, note)}
+                    onReject={() => handleApproveStrategy(false)}
                   />
                 ) : lead.aiAnalysis ? (
                   <div className="space-y-8">

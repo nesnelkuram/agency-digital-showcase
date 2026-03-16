@@ -82,6 +82,7 @@ const ProposalViewPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const quoteId = searchParams.get('quoteId');
+  const leadId = searchParams.get('leadId');
   const navigate = useNavigate();
 
   const [isLoading, setIsLoading] = useState(true);
@@ -103,15 +104,17 @@ const ProposalViewPage: React.FC = () => {
   const { can } = usePermission();
   const canViewCost = can(PERMISSIONS.PRICING_VIEW_COST);
 
-  const isNewProposal = !id && quoteId;
+  const isNewProposal = !id && (quoteId || leadId);
 
   useEffect(() => {
     if (id) {
       loadProposal(id);
     } else if (quoteId) {
       loadQuoteAndGenerate(quoteId);
+    } else if (leadId) {
+      loadLeadAndGenerate(leadId);
     }
-  }, [id, quoteId]);
+  }, [id, quoteId, leadId]);
 
   const loadProposal = async (proposalId: string) => {
     if (!db) return;
@@ -141,6 +144,121 @@ const ProposalViewPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const loadLeadAndGenerate = async (lId: string) => {
+    if (!db) return;
+    try {
+      const docSnap = await getDoc(doc(db, 'brand_leads', lId));
+      if (docSnap.exists()) {
+        const leadData = { id: docSnap.id, ...docSnap.data() };
+        generateProposalFromLead(leadData);
+      }
+    } catch (err) {
+      console.error('Error loading lead:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const generateProposalFromLead = (leadData: any) => {
+    const contact = leadData.contact || {};
+    const aiAnalysis = leadData.aiAnalysis;
+    const requestedServices: any[] = leadData.requestedServices || [];
+
+    // Hizmet kalemleri: AI onerilen hizmetler varsa onlari kullan, yoksa talep edilen hizmetler
+    const serviceLines: ProposalServiceLine[] = [];
+
+    if (aiAnalysis?.intibaEngagement?.recommendedServices?.length > 0) {
+      aiAnalysis.intibaEngagement.recommendedServices.forEach((svc: any) => {
+        serviceLines.push({
+          name: svc.service || svc.description || 'Hizmet',
+          description: svc.description || '',
+          quantity: 1,
+          unit: 'ay',
+          unitPrice: 0,
+          total: 0,
+        });
+      });
+    } else if (requestedServices.length > 0) {
+      requestedServices.forEach((svc: any) => {
+        serviceLines.push({
+          name: svc.title || 'Hizmet',
+          description: svc.description || '',
+          quantity: 1,
+          unit: 'ay',
+          unitPrice: 0,
+          total: 0,
+        });
+      });
+    } else {
+      serviceLines.push({
+        name: 'Dijital Hizmet Paketi',
+        description: 'Dijital pazarlama ve icerik uretimi hizmeti',
+        quantity: 1,
+        unit: 'ay',
+        unitPrice: 0,
+        total: 0,
+      });
+    }
+
+    // Proje aciklamasi: AI analiz varsa positioning + brand narrative kullan
+    let projectDescription = '';
+    if (aiAnalysis?.positioning?.statement) {
+      projectDescription = aiAnalysis.positioning.statement;
+    } else if (aiAnalysis?.brandNarrative?.elevatorPitch) {
+      projectDescription = aiAnalysis.brandNarrative.elevatorPitch;
+    } else {
+      projectDescription = `${contact.businessName || 'Marka'} icin dijital pazarlama ve icerik uretimi hizmeti kapsaminda hazirlanmis tekliftir.`;
+    }
+
+    const subtotal = serviceLines.reduce((sum, line) => sum + line.total, 0);
+    const netTotal = subtotal;
+    const kdvRate = 0.20;
+    const kdvAmount = Math.round(netTotal * kdvRate);
+    const grandTotal = netTotal + kdvAmount;
+
+    const validUntilDate = new Date();
+    validUntilDate.setDate(validUntilDate.getDate() + editValidityDays);
+
+    const proposalData: Omit<ProposalDocument, 'id' | 'createdAt' | 'updatedAt'> = {
+      quoteId: '',
+      quoteVersion: 0,
+      leadId: leadData.id,
+      proposalNumber: generateProposalNumber(1),
+      companyName: COMPANY_INFO.name,
+      companyTitle: COMPANY_INFO.title,
+      companyAddress: COMPANY_INFO.address,
+      companyPhone: COMPANY_INFO.phone,
+      companyEmail: COMPANY_INFO.email,
+      clientName: contact.name || '',
+      clientCompany: contact.businessName || '',
+      clientEmail: contact.email || '',
+      clientPhone: contact.phone || '',
+      clientAddress: contact.location || '',
+      projectTitle: `${contact.businessName || 'Marka'} — Dijital Hizmet Teklifi`,
+      projectDescription,
+      serviceLines,
+      internalCost: 0,
+      internalMargin: 0,
+      subtotal,
+      discountAmount: 0,
+      netTotal,
+      kdvRate,
+      kdvAmount,
+      grandTotal,
+      paymentPlans: [],
+      economicParameters: editParams,
+      terms: editTerms,
+      validityDays: editValidityDays,
+      validUntil: Timestamp.fromDate(validUntilDate),
+      status: 'draft' as ProposalDocStatus,
+      createdBy: 'admin',
+      version: 1,
+    };
+
+    setProposal(proposalData as ProposalDocument);
+    setIsEditing(true);
   };
 
   const generateProposal = (quoteData: any) => {
@@ -376,6 +494,18 @@ const ProposalViewPage: React.FC = () => {
         // Yeni olustur
         const docRef = await addDoc(proposalsRef, dataToSave);
         setProposal({ ...proposal, id: docRef.id, proposalNumber: generateProposalNumber(nextNumber), status: 'ready' });
+
+        // Lead varsa durumunu 'proposal' olarak guncelle
+        if (proposal.leadId) {
+          try {
+            await updateDoc(doc(db, 'brand_leads', proposal.leadId), {
+              status: 'proposal',
+              updatedAt: serverTimestamp(),
+            });
+          } catch (leadErr) {
+            console.error('Error updating lead status:', leadErr);
+          }
+        }
       }
 
       setIsEditing(false);

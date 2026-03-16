@@ -108,6 +108,9 @@ export interface ProposalDocument {
   quoteId: string;
   quoteVersion: number;
 
+  // Lead baglantisi (opsiyonel)
+  leadId?: string;
+
   // Teklif numarasi
   proposalNumber: string;         // TEK-2026-001 formatinda
 
