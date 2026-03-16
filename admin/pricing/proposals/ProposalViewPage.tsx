@@ -473,10 +473,21 @@ const ProposalViewPage: React.FC = () => {
         nextNumber = lastNumber + 1;
       }
 
+      // Duzenleme alanlardaki degerleri proposal'a uygula
+      const validUntilDate = new Date();
+      validUntilDate.setDate(validUntilDate.getDate() + editValidityDays);
+
       const proposalToSave = {
         ...proposal,
-        proposalNumber: generateProposalNumber(nextNumber),
-        status: 'ready',
+        clientCompany: editClientCompany || proposal.clientCompany,
+        clientAddress: editClientAddress || proposal.clientAddress,
+        projectDescription: editProjectDescription || proposal.projectDescription,
+        validityDays: editValidityDays,
+        validUntil: Timestamp.fromDate(validUntilDate),
+        terms: editTerms,
+        economicParameters: editParams,
+        proposalNumber: proposal.id ? proposal.proposalNumber : generateProposalNumber(nextNumber),
+        status: proposal.id ? proposal.status : 'ready',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       };
@@ -489,6 +500,16 @@ const ProposalViewPage: React.FC = () => {
         await updateDoc(doc(db, 'proposals', proposal.id), {
           ...dataToSave,
           updatedAt: serverTimestamp(),
+        });
+        // Yerel state'i guncelle
+        setProposal({
+          ...proposal,
+          clientCompany: proposalToSave.clientCompany,
+          clientAddress: proposalToSave.clientAddress,
+          projectDescription: proposalToSave.projectDescription,
+          validityDays: proposalToSave.validityDays,
+          terms: editTerms,
+          economicParameters: editParams,
         });
       } else {
         // Yeni olustur
@@ -647,17 +668,51 @@ const ProposalViewPage: React.FC = () => {
           </div>
         </div>
         <div className="flex gap-2">
-          {isEditing && (
+          {!isEditing && proposal?.id && (
             <motion.button
-              onClick={saveProposal}
-              disabled={isSaving}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-full font-grotesk text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
+              onClick={() => {
+                setIsEditing(true);
+                if (proposal.terms) setEditTerms(proposal.terms);
+                if (proposal.economicParameters) setEditParams(proposal.economicParameters);
+                if (proposal.clientCompany) setEditClientCompany(proposal.clientCompany);
+                if (proposal.clientAddress) setEditClientAddress(proposal.clientAddress || '');
+                if (proposal.projectDescription) setEditProjectDescription(proposal.projectDescription);
+                if (proposal.validityDays) setEditValidityDays(proposal.validityDays);
+              }}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-full font-grotesk text-sm font-medium hover:bg-amber-700 transition-colors"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
-              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              Kaydet
+              <Edit3 className="w-4 h-4" />
+              Duzenle
             </motion.button>
+          )}
+          {isEditing && (
+            <>
+              <motion.button
+                onClick={saveProposal}
+                disabled={isSaving}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-full font-grotesk text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                Kaydet
+              </motion.button>
+              {proposal?.id && (
+                <motion.button
+                  onClick={() => {
+                    setIsEditing(false);
+                    if (proposal.id) loadProposal(proposal.id);
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2 border border-neutral-300 text-neutral-700 rounded-full font-grotesk text-sm font-medium hover:bg-neutral-50 transition-colors"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  Iptal
+                </motion.button>
+              )}
+            </>
           )}
           {proposal?.id && (
             <motion.button
@@ -698,6 +753,16 @@ const ProposalViewPage: React.FC = () => {
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
+              <label className="block font-grotesk text-xs text-amber-700 mb-1">Musteri Adi</label>
+              <input
+                type="text"
+                value={proposal.clientName}
+                onChange={(e) => setProposal({ ...proposal, clientName: e.target.value })}
+                placeholder="Ad Soyad"
+                className="w-full px-3 py-2 rounded-lg border border-amber-200 font-grotesk text-sm focus:outline-none focus:border-amber-400 bg-white"
+              />
+            </div>
+            <div>
               <label className="block font-grotesk text-xs text-amber-700 mb-1">Musteri Firma</label>
               <input
                 type="text"
@@ -708,12 +773,42 @@ const ProposalViewPage: React.FC = () => {
               />
             </div>
             <div>
+              <label className="block font-grotesk text-xs text-amber-700 mb-1">E-posta</label>
+              <input
+                type="email"
+                value={proposal.clientEmail || ''}
+                onChange={(e) => setProposal({ ...proposal, clientEmail: e.target.value })}
+                placeholder="ornek@firma.com"
+                className="w-full px-3 py-2 rounded-lg border border-amber-200 font-grotesk text-sm focus:outline-none focus:border-amber-400 bg-white"
+              />
+            </div>
+            <div>
+              <label className="block font-grotesk text-xs text-amber-700 mb-1">Telefon</label>
+              <input
+                type="tel"
+                value={proposal.clientPhone || ''}
+                onChange={(e) => setProposal({ ...proposal, clientPhone: e.target.value })}
+                placeholder="+90 xxx xxx xx xx"
+                className="w-full px-3 py-2 rounded-lg border border-amber-200 font-grotesk text-sm focus:outline-none focus:border-amber-400 bg-white"
+              />
+            </div>
+            <div>
               <label className="block font-grotesk text-xs text-amber-700 mb-1">Musteri Adresi</label>
               <input
                 type="text"
                 value={editClientAddress}
                 onChange={(e) => setEditClientAddress(e.target.value)}
                 placeholder="Istanbul, Turkiye"
+                className="w-full px-3 py-2 rounded-lg border border-amber-200 font-grotesk text-sm focus:outline-none focus:border-amber-400 bg-white"
+              />
+            </div>
+            <div>
+              <label className="block font-grotesk text-xs text-amber-700 mb-1">Proje Basligi</label>
+              <input
+                type="text"
+                value={proposal.projectTitle}
+                onChange={(e) => setProposal({ ...proposal, projectTitle: e.target.value })}
+                placeholder="Dijital Hizmet Teklifi"
                 className="w-full px-3 py-2 rounded-lg border border-amber-200 font-grotesk text-sm focus:outline-none focus:border-amber-400 bg-white"
               />
             </div>
