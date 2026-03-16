@@ -58,7 +58,7 @@ import EvidenceSummary from './components/EvidenceSummary';
 const LeadDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, firebaseUser } = useAuth();
   const { can } = usePermission();
   const tenantId = useTenantId();
 
@@ -304,7 +304,7 @@ const LeadDetailPage: React.FC = () => {
   const handleApproveStrategy = async (approved: boolean, note?: string) => {
     if (!lead || !user) return;
     try {
-      const token = await (user as any).getIdToken?.();
+      const token = await firebaseUser?.getIdToken();
       const approveRes = await fetch('/api/approve-strategy', {
         method: 'POST',
         headers: {
