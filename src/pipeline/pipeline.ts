@@ -24,6 +24,7 @@ export { runDigitalPresenceAnalyzer } from './agents/digitalPresenceAnalyzer';
 export { runCompetitorDiscovery } from './agents/competitorDiscovery';
 export { runBrandStrategistRevision } from './agents/brandStrategistRevision';
 export { runConsumerTest } from './agents/consumerTest';
+export { runStrategyHealthComparator } from './agents/strategyHealthComparator';
 export { fetchAndParseWebsite } from './utils/websiteFetcher';
 // Ensure sector enrichment modules are registered
 import './sectorEnrichment';
@@ -272,7 +273,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineState> 
 }
 
 /** Build evidence summary from all pipeline outputs */
-function buildPipelineEvidence(state: PipelineState): {
+export function buildPipelineEvidence(state: PipelineState): {
   summary: import('./evidence').EvidenceSummaryV2;
   frameworkScores: FrameworkScore[];
 } {

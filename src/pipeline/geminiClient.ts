@@ -93,14 +93,15 @@ export async function generateGroundedText(
   config?: { temperature?: number; maxOutputTokens?: number; modelTier?: ModelTier }
 ): Promise<GroundedResponse> {
   const client = getClient();
+  const tier = config?.modelTier ?? 'flash';
   const result = await client.models.generateContent({
-    model: MODEL_IDS[config?.modelTier ?? 'flash'],
+    model: MODEL_IDS[tier],
     contents: prompt,
     config: {
       temperature: config?.temperature ?? 0.4,
       topP: 0.9,
-      maxOutputTokens: config?.maxOutputTokens ?? 8192,
-      thinkingConfig: { thinkingBudget: 0 },
+      maxOutputTokens: resolveMaxTokens(tier, config?.maxOutputTokens, 8192),
+      ...(tier === 'pro' ? {} : { thinkingConfig: { thinkingBudget: 0 } }),
       tools: [{ googleSearch: {} }],
     },
   });

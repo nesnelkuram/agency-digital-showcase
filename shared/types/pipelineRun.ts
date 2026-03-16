@@ -79,6 +79,22 @@ export interface PipelineRunDoc {
   // Deep Research tracking
   drInteractionId?: string;
 
+  // Human-in-the-Loop: Strategy Approval
+  approvalStatus?: 'pending' | 'approved' | 'rejected';
+  approvalRequestedAt?: number;
+  approvalRespondedAt?: number;
+  approvalBy?: string;
+  approvalByName?: string;
+  approvalNote?: string;
+  strategyPreview?: {
+    archetype: string;
+    positioningStatement: string;
+    traits: string[];
+    tone: string;
+    differentiator: string;
+    consumerViability?: number;
+  };
+
   // Error/timing metadata
   errors: Array<{ agent: string; error: string; timestamp: number }>;
   timings: Record<string, number>;

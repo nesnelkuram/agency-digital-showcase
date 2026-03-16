@@ -14,6 +14,7 @@ import {
   runCompetitorDiscovery,
   runBrandStrategistRevision,
   runConsumerTest,
+  buildPipelineEvidence,
 } from './_bundles/pipeline-bundle.mjs';
 import {
   loadCheckpoint,
@@ -23,8 +24,10 @@ import {
   markAgentSkipped,
   completeRun,
   failRun,
+  pauseForApproval,
 } from './_lib/checkpointManager.js';
 import { withAuthOptional, OptionalAuthRequest } from './_lib/withAuth.js';
+import { searchBlogArticles as hetznerSearchBlog, isHetznerConfigured } from './_lib/hetznerClient.js';
 
 export const config = {
   maxDuration: 300,
@@ -191,7 +194,40 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
     }
 
     // ============================
-    // PHASE B: Pipeline agents
+    // HETZNER DELEGATION: If Hetzner is configured, delegate the full pipeline
+    // Research is already resolved at this point — send everything to Hetzner
+    // ============================
+    if (isHetznerConfigured() && input.mode === 'full' && researchFindings) {
+      const HETZNER_URL = process.env.HETZNER_PIPELINE_URL!;
+      const PIPELINE_SECRET = process.env.PIPELINE_API_SECRET!;
+      try {
+        console.log(`analyze-continue: DELEGATING to Hetzner (${HETZNER_URL})`);
+        const hetznerRes = await fetch(`${HETZNER_URL}/api/pipeline/run`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-pipeline-secret': PIPELINE_SECRET },
+          body: JSON.stringify({
+            leadId: effectiveLeadId, input, normalizedData, researchFindings, websiteData,
+          }),
+        });
+        if (hetznerRes.ok) {
+          const { jobId } = await hetznerRes.json();
+          console.log(`analyze-continue: Hetzner job enqueued: ${jobId}`);
+          // Pipeline runs async on Hetzner — Firestore gets updated directly
+          // Frontend watches pipelineRun via useAnalysisProgress hook
+          return res.status(200).json({
+            status: 'delegated_to_hetzner',
+            jobId,
+            debug: { timings, errors, agentsRun, delegatedAt: Date.now() },
+          });
+        }
+        console.warn(`analyze-continue: Hetzner delegation failed (${hetznerRes.status}), falling back to Vercel`);
+      } catch (err: any) {
+        console.warn(`analyze-continue: Hetzner unreachable (${err.message}), falling back to Vercel`);
+      }
+    }
+
+    // ============================
+    // PHASE B: Pipeline agents (Vercel fallback)
     // ============================
 
     // Research quality router — no extra LLM call
@@ -203,6 +239,15 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
 
     console.log(`analyze-continue: ROUTER — researchQuality=${researchQuality}, competitors=${researchFindings?.competitors?.length || 0}, sources=${researchFindings?.sourcesUsed || 0}`);
     console.log(`analyze-continue: PHASE B START — remaining=${remaining()}ms, hasResearch=${!!researchFindings}, sourcesUsed=${researchFindings?.sourcesUsed}`);
+
+    // Semantic search via Hetzner Qdrant (non-blocking, fallback to null)
+    const semanticQuery = `${input.contact.businessName} ${input.sector} marka stratejisi konumlandırma`;
+    const semanticBlogResults = await hetznerSearchBlog(semanticQuery, 5).catch(() => null);
+    if (semanticBlogResults) {
+      console.log(`analyze-continue: Semantic search OK — ${semanticBlogResults.length} articles (top: ${semanticBlogResults[0]?.title}, score: ${semanticBlogResults[0]?.score?.toFixed(2)})`);
+    } else {
+      console.log('analyze-continue: Semantic search unavailable — falling back to keyword search');
+    }
 
     // Agent 3 + 7 + 8: Brand Strategist + Digital Presence + Competitor Discovery — PARALLEL
     // Resume: use checkpointed outputs if available
@@ -239,7 +284,7 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
           if (runId) await markAgentRunning(effectiveLeadId, runId, 'brandStrategist');
           const s = Date.now();
           try {
-            const r = await runBrandStrategist(normalizedData, researchFindings, input.businessContext, input.adminNotes);
+            const r = await runBrandStrategist(normalizedData, researchFindings, input.businessContext, input.adminNotes, semanticBlogResults);
             timings.brandStrategist = Date.now() - s;
             agentsRun.push('brandStrategist');
             if (runId) await checkpointAgent(effectiveLeadId, runId, 'brandStrategist', 'strategistOutput', r, timings.brandStrategist);
@@ -280,7 +325,7 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
         // Agent 8: Competitor Discovery (optional — only if not checkpointed)
         (async () => {
           if (!needsCD) return competitorDiscovery;
-          if (remaining() < 20_000) {
+          if (remaining() < 15_000) {
             if (runId) await markAgentSkipped(effectiveLeadId, runId, 'competitorDiscovery');
             return null;
           }
@@ -369,7 +414,7 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
           if (runId) await markAgentRunning(effectiveLeadId, runId, 'blogStrategyAdvisor');
           const s = Date.now();
           try {
-            const r = await runBlogStrategyAdvisor(normalizedData, researchFindings, strategistOutput);
+            const r = await runBlogStrategyAdvisor(normalizedData, researchFindings, strategistOutput, semanticBlogResults);
             timings.blogStrategyAdvisor = Date.now() - s;
             agentsRun.push('blogStrategyAdvisor');
             if (runId) await checkpointAgent(effectiveLeadId, runId, 'blogStrategyAdvisor', 'blogAdvisorOutput', r, timings.blogStrategyAdvisor);
@@ -463,88 +508,146 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
       console.log(`analyze-continue: SKIPPING strategistRevision — no runId for checkpoint deferral`);
     }
 
-    // Agent 5: Strategy Synthesizer (optional with fallback)
-    // Resume: use checkpointed output if available
-    let synthesizedAnalysis = (hasCheckpoint && cp?.synthesizedAnalysis) || null;
-    if (synthesizedAnalysis) { console.log('analyze-continue: Using checkpointed synthesizedAnalysis'); agentsRun.push('strategySynthesizer'); }
+    // ============================
+    // APPROVAL GATE: Pause for human review after revision (full mode only)
+    // ============================
+    const revisionHappened = effectiveStrategistOutput !== strategistOutput;
+    const approvalAlreadyGiven = hasCheckpoint && existingRun?.approvalStatus === 'approved';
+    const synthesizedCheckpointed = hasCheckpoint && cp?.synthesizedAnalysis;
 
-    if (!synthesizedAnalysis && remaining() > 10_000) {
-      if (runId) await markAgentRunning(effectiveLeadId, runId, 'strategySynthesizer');
-      const synthStart = Date.now();
-      try {
-        console.log('analyze-continue: Running strategySynthesizer...');
-        synthesizedAnalysis = await runStrategySynthesizer(normalizedData, researchFindings, effectiveStrategistOutput, challengerOutput, blogAdvisorOutput, input.businessContext, digitalPresence, competitorDiscovery, input.adminNotes);
-        timings.strategySynthesizer = Date.now() - synthStart;
-        agentsRun.push('strategySynthesizer');
-        if (runId) await checkpointAgent(effectiveLeadId, runId, 'strategySynthesizer', 'synthesizedAnalysis', synthesizedAnalysis, timings.strategySynthesizer);
-        console.log(`analyze-continue: strategySynthesizer done in ${timings.strategySynthesizer}ms`);
-      } catch (error: any) {
-        timings.strategySynthesizer = Date.now() - synthStart;
-        errors.push({ agent: 'strategySynthesizer', error: error.message, timestamp: Date.now() });
-        if (runId) await markAgentFailed(effectiveLeadId, runId, 'strategySynthesizer', error.message, timings.strategySynthesizer);
-        console.error(`analyze-continue: strategySynthesizer failed in ${timings.strategySynthesizer}ms: ${error.message}`);
-      }
+    if (revisionHappened && !approvalAlreadyGiven && !synthesizedCheckpointed && input.mode === 'full') {
+      const preview = {
+        archetype: effectiveStrategistOutput.archetype,
+        positioningStatement: effectiveStrategistOutput.positioningStatement,
+        traits: effectiveStrategistOutput.traits,
+        tone: effectiveStrategistOutput.tone,
+        differentiator: effectiveStrategistOutput.differentiator,
+        consumerViability: consumerTestResult?.overallViabilityScore,
+      };
+      await pauseForApproval(effectiveLeadId, runId, preview);
+      console.log(`analyze-continue: PAUSED for approval — archetype=${preview.archetype}, viability=${preview.consumerViability}`);
+      return res.status(200).json({
+        status: 'awaiting_approval',
+        strategyPreview: preview,
+        debug: { timings, errors, agentsRun },
+      });
+    }
+
+    // If approval has a note, inject it as admin notes for synthesizer
+    const approvalNote = existingRun?.approvalNote;
+    const effectiveAdminNotes = [input.adminNotes, approvalNote].filter(Boolean).join('\n\n');
+
+    // ============================
+    // Agent 5 + 6: Synthesizer + ValueMaximizer — PARALLEL
+    // valueMaximizer uses fallback synthesis (not dependent on real synthesized output)
+    // ============================
+    let synthesizedAnalysis = (hasCheckpoint && cp?.synthesizedAnalysis) || null;
+    let consultantIntroText = (hasCheckpoint && cp?.consultantIntro) || '';
+    let valueMaximizerOutput = (hasCheckpoint && cp?.valueMaximizerOutput) || null;
+    if (synthesizedAnalysis) { console.log('analyze-continue: Using checkpointed synthesizedAnalysis'); agentsRun.push('strategySynthesizer'); }
+    if (consultantIntroText) { console.log('analyze-continue: Using checkpointed consultantIntro'); agentsRun.push('brandValueMaximizer'); }
+
+    const synthesizedForIntro = buildFallbackSynthesis(effectiveStrategistOutput);
+    const needsSynth = !synthesizedAnalysis && remaining() > 10_000;
+    const needsVM = !consultantIntroText && remaining() > 10_000;
+
+    if (needsSynth || needsVM) {
+      console.log(`analyze-continue: Running PARALLEL synth=${needsSynth} + valueMaximizer=${needsVM} (remaining=${remaining()}ms)`);
+
+      const [synthResult, vmResult] = await Promise.all([
+        // Synthesizer
+        (async () => {
+          if (!needsSynth) return synthesizedAnalysis;
+          if (runId) await markAgentRunning(effectiveLeadId, runId, 'strategySynthesizer');
+          const synthStart = Date.now();
+          try {
+            const result = await runStrategySynthesizer(normalizedData, researchFindings, effectiveStrategistOutput, challengerOutput, blogAdvisorOutput, input.businessContext, digitalPresence, competitorDiscovery, consumerTestResult, effectiveAdminNotes || input.adminNotes);
+            timings.strategySynthesizer = Date.now() - synthStart;
+            agentsRun.push('strategySynthesizer');
+            if (runId) await checkpointAgent(effectiveLeadId, runId, 'strategySynthesizer', 'synthesizedAnalysis', result, timings.strategySynthesizer);
+            console.log(`analyze-continue: strategySynthesizer done in ${timings.strategySynthesizer}ms`);
+            return result;
+          } catch (error: any) {
+            timings.strategySynthesizer = Date.now() - synthStart;
+            errors.push({ agent: 'strategySynthesizer', error: error.message, timestamp: Date.now() });
+            if (runId) await markAgentFailed(effectiveLeadId, runId, 'strategySynthesizer', error.message, timings.strategySynthesizer);
+            console.error(`analyze-continue: strategySynthesizer failed in ${timings.strategySynthesizer}ms: ${error.message}`);
+            return null;
+          }
+        })(),
+        // Brand Value Maximizer (uses fallback synthesis — independent of real synth output)
+        (async () => {
+          if (!needsVM) return { output: valueMaximizerOutput, intro: consultantIntroText };
+          if (runId) await markAgentRunning(effectiveLeadId, runId, 'brandValueMaximizer');
+          const s = Date.now();
+          try {
+            const output = await runBrandValueMaximizer(
+              normalizedData, researchFindings, synthesizedForIntro,
+              challengerOutput, consumerTestResult, digitalPresence, input.businessContext,
+            );
+            const intro = output?.consultantIntro || '';
+            timings.brandValueMaximizer = Date.now() - s;
+            agentsRun.push('brandValueMaximizer');
+            if (runId) await checkpointAgent(effectiveLeadId, runId, 'brandValueMaximizer', 'consultantIntro', intro, timings.brandValueMaximizer);
+            console.log(`analyze-continue: brandValueMaximizer done in ${timings.brandValueMaximizer}ms — ${intro.length} chars`);
+            return { output, intro };
+          } catch (error: any) {
+            timings.brandValueMaximizer = Date.now() - s;
+            console.error(`analyze-continue: brandValueMaximizer failed in ${timings.brandValueMaximizer}ms: ${error.message}, falling back to consultantIntroWriter`);
+            // Fallback to old consultantIntroWriter
+            const s2 = Date.now();
+            try {
+              const intro = await runConsultantIntroWriter(
+                normalizedData, researchFindings, synthesizedForIntro, blogAdvisorOutput, input.businessContext,
+              );
+              timings.consultantIntroWriter = Date.now() - s2;
+              agentsRun.push('consultantIntroWriter');
+              console.log(`analyze-continue: consultantIntroWriter fallback done in ${timings.consultantIntroWriter}ms`);
+              return { output: null, intro };
+            } catch (fallbackError: any) {
+              timings.consultantIntroWriter = Date.now() - s2;
+              errors.push({ agent: 'brandValueMaximizer', error: error.message, timestamp: Date.now() });
+              if (runId) await markAgentFailed(effectiveLeadId, runId, 'brandValueMaximizer', error.message, timings.brandValueMaximizer);
+              console.error(`analyze-continue: consultantIntroWriter fallback also failed: ${fallbackError.message}`);
+              return { output: null, intro: '' };
+            }
+          }
+        })(),
+      ]);
+
+      synthesizedAnalysis = synthResult;
+      valueMaximizerOutput = vmResult?.output || null;
+      consultantIntroText = vmResult?.intro || '';
+      console.log(`analyze-continue: PARALLEL synth+VM done — synth=${!!synthesizedAnalysis}, vm=${!!valueMaximizerOutput}`);
     } else if (!synthesizedAnalysis) {
-      console.log(`analyze-continue: SKIPPING strategySynthesizer — remaining=${remaining()}ms`);
-      if (runId) await markAgentSkipped(effectiveLeadId, runId, 'strategySynthesizer');
+      console.log(`analyze-continue: SKIPPING synthesizer+VM — remaining=${remaining()}ms`);
+      if (runId) {
+        await markAgentSkipped(effectiveLeadId, runId, 'strategySynthesizer');
+        await markAgentSkipped(effectiveLeadId, runId, 'brandValueMaximizer');
+      }
     }
 
     // ============================
-    // Agent 6: Brand Value Maximizer (replaces consultantIntroWriter)
+    // Build Evidence Summary (post-synthesis, zero-cost meta-extraction)
     // ============================
-    let consultantIntroText = (hasCheckpoint && cp?.consultantIntro) || '';
-    let valueMaximizerOutput = (hasCheckpoint && cp?.valueMaximizerOutput) || null;
-    if (consultantIntroText) { console.log('analyze-continue: Using checkpointed consultantIntro'); agentsRun.push('brandValueMaximizer'); }
-
-    const synthesizedForIntro = synthesizedAnalysis || buildFallbackSynthesis(effectiveStrategistOutput);
-
-    if (!consultantIntroText) {
-      if (remaining() < 8_000) {
-        if (runId) await markAgentSkipped(effectiveLeadId, runId, 'brandValueMaximizer');
-        console.log(`analyze-continue: SKIPPING brandValueMaximizer — remaining=${remaining()}ms`);
-      } else {
-        if (runId) await markAgentRunning(effectiveLeadId, runId, 'brandValueMaximizer');
-        const s = Date.now();
-        try {
-          // Try brandValueMaximizer first (produces consultantIntro + extra outputs)
-          valueMaximizerOutput = await runBrandValueMaximizer(
-            normalizedData,
-            researchFindings,
-            synthesizedForIntro,
-            challengerOutput,
-            consumerTestResult,
-            digitalPresence,
-            input.businessContext,
-          );
-          consultantIntroText = valueMaximizerOutput?.consultantIntro || '';
-          timings.brandValueMaximizer = Date.now() - s;
-          agentsRun.push('brandValueMaximizer');
-          if (runId) await checkpointAgent(effectiveLeadId, runId, 'brandValueMaximizer', 'consultantIntro', consultantIntroText, timings.brandValueMaximizer);
-          console.log(`analyze-continue: brandValueMaximizer done in ${timings.brandValueMaximizer}ms — ${consultantIntroText.length} chars`);
-        } catch (error: any) {
-          timings.brandValueMaximizer = Date.now() - s;
-          console.error(`analyze-continue: brandValueMaximizer failed in ${timings.brandValueMaximizer}ms: ${error.message}, falling back to consultantIntroWriter`);
-          // Fallback to old consultantIntroWriter
-          const s2 = Date.now();
-          try {
-            consultantIntroText = await runConsultantIntroWriter(
-              normalizedData,
-              researchFindings,
-              synthesizedForIntro,
-              blogAdvisorOutput,
-              input.businessContext,
-            );
-            timings.consultantIntroWriter = Date.now() - s2;
-            agentsRun.push('consultantIntroWriter');
-            console.log(`analyze-continue: consultantIntroWriter fallback done in ${timings.consultantIntroWriter}ms`);
-          } catch (fallbackError: any) {
-            timings.consultantIntroWriter = Date.now() - s2;
-            errors.push({ agent: 'brandValueMaximizer', error: error.message, timestamp: Date.now() });
-            if (runId) await markAgentFailed(effectiveLeadId, runId, 'brandValueMaximizer', error.message, timings.brandValueMaximizer);
-            console.error(`analyze-continue: consultantIntroWriter fallback also failed: ${fallbackError.message}`);
-          }
-        }
-      }
+    let evidenceSummaryV2: any = undefined;
+    let frameworkScores: any[] | undefined = undefined;
+    try {
+      const evidenceState: any = {
+        input, normalizedData, researchFindings,
+        strategistOutput: effectiveStrategistOutput,
+        challengerOutput, blogAdvisorOutput, consumerTest: consumerTestResult,
+        synthesizedAnalysis: synthesizedAnalysis || synthesizedForIntro,
+        digitalPresence, competitorDiscovery,
+        valueMaximizerOutput, errors, agentsRun, timings,
+      };
+      const evidenceResult = buildPipelineEvidence(evidenceState);
+      evidenceSummaryV2 = evidenceResult.summary;
+      frameworkScores = evidenceResult.frameworkScores;
+      console.log(`analyze-continue: Evidence built — confidence=${evidenceSummaryV2?.overallConfidence}, frameworkScores=${frameworkScores?.length || 0}`);
+    } catch (err: any) {
+      console.error(`analyze-continue: Evidence building failed: ${err.message}`);
+      errors.push({ agent: 'evidenceBuilder', error: err.message, timestamp: Date.now() });
     }
 
     // ============================
@@ -585,6 +688,10 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
       actionPlan: synthesized.actionPlan,
       evidenceSummary: synthesized.evidenceSummary,
       consultantIntro: consultantIntroText || synthesized.consultantIntro || undefined,
+
+      // Pipeline upgrade v4 — evidence & confidence
+      evidenceSummaryV2: evidenceSummaryV2 || synthesized.evidenceSummaryV2 || undefined,
+      frameworkScores: frameworkScores || synthesized.frameworkScores || undefined,
 
       debate: effectiveStrategistOutput
         ? {
@@ -653,7 +760,7 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
         : undefined,
 
       pipelineMetadata: {
-        version: '3.6.0',
+        version: '4.0.0',
         agentsRun,
         totalDuration,
         agentDurations: Object.fromEntries(

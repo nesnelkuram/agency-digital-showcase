@@ -67,6 +67,9 @@ export interface Question {
   // Stage result için
   resultMatrix?: ResultMatrix[];
   stageQuestions?: number[];  // Bu aşamadaki soru ID'leri
+
+  // Conditional visibility (business context questions only)
+  condition?: { key: string; includes: string };
 }
 
 export interface WizardState {
@@ -128,6 +131,8 @@ export interface BusinessContextQuestion {
   required: boolean;
   options?: SelectionOption[];
   placeholder?: string;
+  /** Show this question only when condition is met (checked against businessContext) */
+  condition?: { key: string; includes: string };
 }
 
 export interface BusinessContextConfig {

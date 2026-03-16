@@ -34,7 +34,8 @@ function searchBlogKnowledgeBase(keywords: string[], maxResults = 5): BlogArticl
 export async function runBlogStrategyAdvisor(
   normalizedData: NormalizedData,
   researchFindings: ResearchFindings | null,
-  strategistOutput: StrategistOutput
+  strategistOutput: StrategistOutput,
+  semanticBlogResults?: Array<{ title: string; slug: string; content: string; score: number; tags: string[] }>,
 ): Promise<BlogAdvisorOutput> {
 
   // Build research context (same pattern as brandChallenger)
@@ -90,12 +91,20 @@ export async function runBlogStrategyAdvisor(
     ...(strategistOutput.positioningStatement || '').split(/\s+/).filter((w) => w.length > 4).slice(0, 3),
   ].filter(Boolean);
 
-  const relatedArticles = searchBlogKnowledgeBase(searchKeywords, 5);
-  const blogKnowledgeContext = relatedArticles.length > 0
-    ? relatedArticles
-        .map((a, i) => `${i + 1}. "${a.title}" [${a.tags.join(', ')}]\n   ${a.coreContent.slice(0, 300)}...`)
-        .join('\n')
-    : '';
+  // Prefer semantic search from Hetzner Qdrant if available, fallback to keyword
+  let blogKnowledgeContext = '';
+  if (semanticBlogResults && semanticBlogResults.length > 0) {
+    blogKnowledgeContext = semanticBlogResults
+      .map((a, i) => `${i + 1}. "${a.title}" [${a.tags.join(', ')}] (skor: ${a.score.toFixed(2)})\n   ${a.content.slice(0, 300)}...`)
+      .join('\n');
+  } else {
+    const relatedArticles = searchBlogKnowledgeBase(searchKeywords, 5);
+    blogKnowledgeContext = relatedArticles.length > 0
+      ? relatedArticles
+          .map((a, i) => `${i + 1}. "${a.title}" [${a.tags.join(', ')}]\n   ${a.coreContent.slice(0, 300)}...`)
+          .join('\n')
+      : '';
+  }
 
   const prompt = `Sen deneyimli bir marka strateji uzmanisin. Asagida sana ait dunya gorusu, temel inanclar ve dusunce yaklasimi tanimlanmistir. Bu cerceveden strateji degerlendirmesi yapacaksin.
 

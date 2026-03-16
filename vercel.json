@@ -40,7 +40,8 @@
     "api/telegram/link.ts": { "maxDuration": 10 },
     "api/cron/task-digest.ts": { "maxDuration": 60 },
     "api/cron/task-reminders.ts": { "maxDuration": 60 },
-    "api/tasks/score-delegation.ts": { "maxDuration": 30 }
+    "api/tasks/score-delegation.ts": { "maxDuration": 30 },
+    "api/approve-strategy.ts": { "maxDuration": 10 }
   },
   "crons": [
     {

@@ -3,11 +3,11 @@ import { motion } from 'framer-motion';
 import {
   Loader2, CheckCircle2, XCircle,
   Database, Search, Compass, Swords, Layers,
-  Globe, Users, BookOpen, Pen,
+  Globe, Users, BookOpen, Pen, ShieldCheck, FlaskConical,
 } from 'lucide-react';
 import type { AgentProgress, AgentName } from '@/shared/types/pipelineRun';
 
-export type AnalysisPhase = 'normalizing' | 'researching' | 'analyzing' | 'completed';
+export type AnalysisPhase = 'normalizing' | 'researching' | 'analyzing' | 'awaiting_approval' | 'completed';
 
 interface ProgressStep {
   id: AgentName;
@@ -24,6 +24,8 @@ const ALL_STEPS: ProgressStep[] = [
   { id: 'competitorDiscovery', label: 'Rakip Kesfetme', icon: <Users className="w-4 h-4" />, phase: 'analyzing' },
   { id: 'brandChallenger', label: 'Strateji Tartismasi', icon: <Swords className="w-4 h-4" />, phase: 'analyzing' },
   { id: 'blogStrategyAdvisor', label: 'Blog Strateji Danismani', icon: <BookOpen className="w-4 h-4" />, phase: 'analyzing' },
+  { id: 'consumerTest', label: 'Tuketici Testi', icon: <FlaskConical className="w-4 h-4" />, phase: 'analyzing' },
+  { id: 'strategistRevision', label: 'Strateji Revizyonu', icon: <ShieldCheck className="w-4 h-4" />, phase: 'analyzing' },
   { id: 'strategySynthesizer', label: 'Sentez & Rapor', icon: <Layers className="w-4 h-4" />, phase: 'analyzing' },
   { id: 'consultantIntroWriter', label: 'Danisman Girisi', icon: <Pen className="w-4 h-4" />, phase: 'analyzing' },
 ];
@@ -33,8 +35,18 @@ const PHASE_TO_STEP: Record<AnalysisPhase, number> = {
   normalizing: 0,
   researching: 1,
   analyzing: 2,
-  completed: 9,
+  awaiting_approval: 9,
+  completed: 11,
 };
+
+interface StrategyPreview {
+  archetype: string;
+  positioningStatement: string;
+  traits: string[];
+  tone: string;
+  differentiator: string;
+  consumerViability?: number;
+}
 
 interface Props {
   /** Real-time agent progress from Firestore (new) */
@@ -42,6 +54,10 @@ interface Props {
   /** Legacy phase-based progress (fallback) */
   phase?: AnalysisPhase;
   isLite?: boolean;
+  /** Approval UI */
+  strategyPreview?: StrategyPreview | null;
+  onApprove?: (note?: string) => void;
+  onReject?: () => void;
 }
 
 function formatDuration(ms: number): string {
@@ -49,9 +65,10 @@ function formatDuration(ms: number): string {
   return `${Math.round(ms / 1000)}s`;
 }
 
-const AnalysisProgressIndicator: React.FC<Props> = ({ agentProgress, phase = 'normalizing', isLite = false }) => {
+const AnalysisProgressIndicator: React.FC<Props> = ({ agentProgress, phase = 'normalizing', isLite = false, strategyPreview, onApprove, onReject }) => {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [phaseStartTime, setPhaseStartTime] = useState(0);
+  const [approvalNote, setApprovalNote] = useState('');
 
   useEffect(() => {
     const interval = setInterval(() => setElapsedSeconds((prev) => prev + 1), 1000);
@@ -65,6 +82,105 @@ const AnalysisProgressIndicator: React.FC<Props> = ({ agentProgress, phase = 'no
   const activeSteps = isLite
     ? ALL_STEPS.filter((s) => !liteSkipIds.includes(s.id))
     : ALL_STEPS;
+
+  // ============================
+  // MODE: Awaiting Approval
+  // ============================
+  if (phase === 'awaiting_approval' && strategyPreview) {
+    return (
+      <div className="text-center py-12">
+        <ShieldCheck className="w-12 h-12 text-amber-500 mx-auto mb-6" />
+        <h3 className="font-grotesk text-xl font-bold text-neutral-700 mb-2">
+          Strateji Onayı Bekleniyor
+        </h3>
+        <p className="font-grotesk text-sm text-neutral-500 mb-8">
+          Stratejist revizyonu tamamlandi. Sentez asamasina gecmeden once stratejiyi inceleyin.
+        </p>
+
+        {/* Strategy Preview Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-lg mx-auto bg-white border border-amber-200 rounded-xl p-6 text-left mb-6 shadow-sm"
+        >
+          <div className="space-y-4">
+            <div>
+              <span className="font-grotesk text-xs font-medium text-amber-600 uppercase tracking-wider">Arketip</span>
+              <p className="font-grotesk text-lg font-bold text-neutral-800 mt-1">{strategyPreview.archetype}</p>
+            </div>
+            <div>
+              <span className="font-grotesk text-xs font-medium text-amber-600 uppercase tracking-wider">Konumlandirma</span>
+              <p className="font-grotesk text-sm text-neutral-700 mt-1">{strategyPreview.positioningStatement}</p>
+            </div>
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <span className="font-grotesk text-xs font-medium text-amber-600 uppercase tracking-wider">Ton</span>
+                <p className="font-grotesk text-sm text-neutral-700 mt-1">{strategyPreview.tone}</p>
+              </div>
+              {strategyPreview.consumerViability != null && (
+                <div className="flex-shrink-0">
+                  <span className="font-grotesk text-xs font-medium text-amber-600 uppercase tracking-wider">Viability</span>
+                  <p className={`font-grotesk text-lg font-bold mt-1 ${
+                    strategyPreview.consumerViability >= 7 ? 'text-green-600' :
+                    strategyPreview.consumerViability >= 5 ? 'text-amber-600' : 'text-red-600'
+                  }`}>
+                    {strategyPreview.consumerViability}/10
+                  </p>
+                </div>
+              )}
+            </div>
+            <div>
+              <span className="font-grotesk text-xs font-medium text-amber-600 uppercase tracking-wider">Ozellikler</span>
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {strategyPreview.traits.map((trait, i) => (
+                  <span key={i} className="px-2 py-0.5 bg-amber-50 text-amber-700 rounded-full font-grotesk text-xs">
+                    {trait}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div>
+              <span className="font-grotesk text-xs font-medium text-amber-600 uppercase tracking-wider">Farklilastirici</span>
+              <p className="font-grotesk text-sm text-neutral-700 mt-1">{strategyPreview.differentiator}</p>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Admin Note */}
+        <div className="max-w-lg mx-auto mb-6">
+          <textarea
+            value={approvalNote}
+            onChange={(e) => setApprovalNote(e.target.value)}
+            placeholder="Admin notu ekleyin (opsiyonel — sentez asamasina iletilecek)..."
+            className="w-full px-4 py-3 border border-neutral-200 rounded-lg font-grotesk text-sm text-neutral-700 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-amber-300 resize-none"
+            rows={3}
+          />
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center justify-center gap-3">
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => onApprove?.(approvalNote || undefined)}
+            className="inline-flex items-center gap-2 px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-grotesk text-sm font-medium transition-colors"
+          >
+            <CheckCircle2 className="w-4 h-4" />
+            Onayla → Senteze Devam Et
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => onReject?.()}
+            className="inline-flex items-center gap-2 px-6 py-2.5 bg-white hover:bg-red-50 text-red-600 border border-red-200 rounded-lg font-grotesk text-sm font-medium transition-colors"
+          >
+            <XCircle className="w-4 h-4" />
+            Reddet
+          </motion.button>
+        </div>
+      </div>
+    );
+  }
 
   // ============================
   // MODE: Real-time (Firestore)

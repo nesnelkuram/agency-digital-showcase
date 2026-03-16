@@ -5,13 +5,15 @@ import { CBBE_PROMPT_SNIPPET } from '../frameworks/keller-cbbe';
 import { KANO_PROMPT_SNIPPET } from '../frameworks/kano-model';
 import { getSectorFrameworkConfig } from '../sectorFrameworks';
 import { searchKnowledgeCorpus, buildKnowledgeContext } from '../data/knowledgeCorpus';
+import { BLOG_PRINCIPLES, type BlogArticleSummary } from '../data/blogKnowledgeBase';
 import type { NormalizedData, ResearchFindings, StrategistOutput, BusinessContextInput } from '../types';
 
 export async function runBrandStrategist(
   normalizedData: NormalizedData,
   researchFindings: ResearchFindings | null,
   businessContext?: BusinessContextInput,
-  adminNotes?: string
+  adminNotes?: string,
+  semanticBlogResults?: Array<{ title: string; slug: string; content: string; score: number; tags: string[] }>,
 ): Promise<StrategistOutput> {
 
   // Build structured answers summary
@@ -136,6 +138,27 @@ ${bc.alternativeToUs ? `- Biz Olmasaydık Müşteri Ne Yapardı: ${bc.alternativ
   const relevantKnowledge = searchKnowledgeCorpus(searchTerms, { maxResults: 5 });
   const knowledgeContext = buildKnowledgeContext(relevantKnowledge, 2500);
 
+  // Blog knowledge base — founder's strategic philosophy (432 articles)
+  // Prefer semantic search results from Hetzner Qdrant if available, fallback to keyword
+  let blogContext = '';
+  if (semanticBlogResults && semanticBlogResults.length > 0) {
+    blogContext = `\n## Stratejik Danışman Perspektifi (engintezcan.com — 432 makaleden semantik arama ile en alakalı ${semanticBlogResults.length} tanesi)
+${semanticBlogResults.map((a, i) => `${i + 1}. "${a.title}" [${a.tags.join(', ')}] (skor: ${a.score.toFixed(2)})\n   ${a.content.slice(0, 500)}`).join('\n\n')}\n\nBu makalelerdeki ILKELERI stratejik kararlarinda referans al. Konumlandirma ve arketip seciminde bu felsefeyle UYUMLU ol.`;
+  } else {
+    const blogSearchTerms = [
+      normalizedData.sector,
+      normalizedData.businessName,
+      ...(businessContext?.competitors ? businessContext.competitors.split(',').slice(0, 2).map(s => s.trim()) : []),
+      ...(businessContext?.brandWhy ? businessContext.brandWhy.split(/\s+/).filter(w => w.length > 4).slice(0, 3) : []),
+      'konumlandırma', 'strateji', 'marka',
+    ].filter(Boolean);
+    const blogResults = searchBlogArticles(blogSearchTerms, 3);
+    blogContext = blogResults.length > 0
+      ? `\n## Stratejik Danışman Perspektifi (engintezcan.com — 432 makaleden en alakalı ${blogResults.length} tanesi)
+${blogResults.map((a, i) => `${i + 1}. "${a.title}" [${a.tags.join(', ')}]\n   ${a.coreContent.slice(0, 500)}`).join('\n\n')}\n\nBu makalelerdeki ILKELERI stratejik kararlarinda referans al. Konumlandirma ve arketip seciminde bu felsefeyle UYUMLU ol.`
+      : '';
+  }
+
   // Sector-specific cultural tensions (hardcoded, zero hallucination)
   const sectorEnrichment = getSectorEnrichment(normalizedData.sector);
   const culturalTensionsContext = sectorEnrichment?.culturalTensions?.length
@@ -145,7 +168,7 @@ ${sectorEnrichment.culturalTensions.map((ct, i) => `${i + 1}. BEKLENTİ: "${ct.e
     : '';
 
   const prompt = `Sen dunyanin en iyi marka stratejistlerinden birisin. Senden istenen bir form doldurmak DEGIL — gercek bir stratejik DUSUNME sureci yurutmek.
-${knowledgeContext ? `\n${knowledgeContext}` : ''}
+${knowledgeContext ? `\n${knowledgeContext}` : ''}${blogContext}
 
 ## ADIM 1: ONCE DUSUN — Musterinin Dunyasini Anla
 
@@ -346,4 +369,22 @@ ${bc?.customerPerception ? `\n16. MUSTERI ALGISI: "${bc.customerPerception}" —
     transformationStatement: parsed.transformationStatement || undefined,
     valueLevel: parsed.valueLevel || undefined,
   };
+}
+
+/** Search blog knowledge base by keyword frequency matching */
+function searchBlogArticles(keywords: string[], maxResults = 3): BlogArticleSummary[] {
+  const normalizedKeywords = keywords.map(k => k.toLowerCase().replace(/[^a-zçğıöşü0-9\s]/gi, ''));
+  const scored = BLOG_PRINCIPLES.map(article => {
+    const haystack = `${article.title} ${article.tags.join(' ')} ${article.excerpt} ${article.coreContent}`.toLowerCase();
+    let score = 0;
+    for (const kw of normalizedKeywords) {
+      if (kw && haystack.includes(kw)) score++;
+    }
+    return { article, score };
+  });
+  return scored
+    .filter(s => s.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, maxResults)
+    .map(s => s.article);
 }

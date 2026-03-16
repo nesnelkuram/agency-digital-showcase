@@ -276,6 +276,69 @@ export async function failRun(leadId: string, runId: string, errorMessage: strin
 }
 
 /**
+ * Pause pipeline for human approval (after strategist revision).
+ * Lock is extended to allow hours for review.
+ */
+export async function pauseForApproval(
+  leadId: string,
+  runId: string,
+  strategyPreview: PipelineRunDoc['strategyPreview'],
+): Promise<void> {
+  const db = safeGetDb();
+  if (!db) return;
+  const now = Date.now();
+  const APPROVAL_LOCK_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+  try {
+    await db.collection('brand_leads').doc(leadId).update({
+      'pipelineRun.approvalStatus': 'pending',
+      'pipelineRun.approvalRequestedAt': now,
+      'pipelineRun.strategyPreview': strategyPreview,
+      'pipelineRun.lockExpiresAt': now + APPROVAL_LOCK_MS,
+      'pipelineRun.updatedAt': now,
+    });
+  } catch (error) {
+    console.error('[checkpoint] pauseForApproval failed:', error);
+  }
+}
+
+/**
+ * Resolve human approval (approve or reject).
+ */
+export async function resolveApproval(
+  leadId: string,
+  runId: string,
+  approved: boolean,
+  userId: string,
+  userName: string,
+  note?: string,
+): Promise<void> {
+  const db = safeGetDb();
+  if (!db) return;
+  const now = Date.now();
+
+  try {
+    const updateData: Record<string, any> = {
+      'pipelineRun.approvalStatus': approved ? 'approved' : 'rejected',
+      'pipelineRun.approvalRespondedAt': now,
+      'pipelineRun.approvalBy': userId,
+      'pipelineRun.approvalByName': userName,
+      'pipelineRun.updatedAt': now,
+    };
+    if (note) {
+      updateData['pipelineRun.approvalNote'] = note;
+    }
+    // Refresh lock for resume
+    if (approved) {
+      updateData['pipelineRun.lockExpiresAt'] = now + LOCK_DURATION_MS;
+    }
+    await db.collection('brand_leads').doc(leadId).update(updateData);
+  } catch (error) {
+    console.error('[checkpoint] resolveApproval failed:', error);
+  }
+}
+
+/**
  * Store drInteractionId in checkpoint
  */
 export async function checkpointDrInteractionId(leadId: string, runId: string, drInteractionId: string): Promise<void> {

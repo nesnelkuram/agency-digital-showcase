@@ -281,15 +281,31 @@ const BrandStrategyWizard: React.FC = () => {
 
   const currentQuestion = questions[currentStep];
 
+  // Check if a question's condition is met (for conditional business context questions)
+  const isConditionMet = (q: Question): boolean => {
+    if (!q.condition) return true;
+    const val = (businessContext as any)[q.condition.key];
+    if (Array.isArray(val)) return val.includes(q.condition.includes);
+    return val === q.condition.includes;
+  };
+
   const handleNext = () => {
-    if (currentStep < questions.length - 1) {
-      setCurrentStep((prev) => prev + 1);
+    let next = currentStep + 1;
+    while (next < questions.length && !isConditionMet(questions[next])) {
+      next++;
+    }
+    if (next < questions.length) {
+      setCurrentStep(next);
     }
   };
 
   const handleBack = () => {
-    if (currentStep > 0) {
-      setCurrentStep((prev) => prev - 1);
+    let prev = currentStep - 1;
+    while (prev > 0 && !isConditionMet(questions[prev])) {
+      prev--;
+    }
+    if (prev >= 0) {
+      setCurrentStep(prev);
     }
   };
 
@@ -325,13 +341,15 @@ const BrandStrategyWizard: React.FC = () => {
   };
 
   const handleBusinessContextUpdate = (key: string, value: string | string[]) => {
+    // Strip @ prefix from Instagram handle
+    if (key === 'instagramHandle' && typeof value === 'string') {
+      value = value.replace(/^@/, '').trim();
+    }
     setBusinessContext((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleSkipContextQuestion = () => {
-    if (currentStep < questions.length - 1) {
-      setCurrentStep((prev) => prev + 1);
-    }
+    handleNext();
   };
 
   // Calculate stage result based on scores

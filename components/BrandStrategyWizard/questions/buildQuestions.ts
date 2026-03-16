@@ -53,6 +53,7 @@ export function buildQuestions(config: SectorQuestionConfig): Question[] {
       placeholder: q.placeholder,
       // Store the context key in the action field for identification
       action: `ctx:${q.key}:${q.required ? 'required' : 'optional'}`,
+      condition: q.condition,
     });
   });
 

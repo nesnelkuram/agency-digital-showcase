@@ -1,5 +1,5 @@
 import { generateJSON } from '../geminiClient';
-import type { NormalizedData, ResearchFindings, StrategistOutput, ChallengerOutput, BlogAdvisorOutput, SynthesizedAnalysis, BusinessContextInput, DigitalPresenceAnalysis, CompetitorDiscoveryOutput } from '../types';
+import type { NormalizedData, ResearchFindings, StrategistOutput, ChallengerOutput, BlogAdvisorOutput, SynthesizedAnalysis, BusinessContextInput, DigitalPresenceAnalysis, CompetitorDiscoveryOutput, ConsumerTestOutput } from '../types';
 import { getSectorEnrichment } from '../sectorEnrichment';
 import { getSectorFrameworkConfig } from '../sectorFrameworks';
 import { FOGG_PROMPT_SNIPPET } from '../frameworks/fogg-behavior';
@@ -13,6 +13,7 @@ export async function runStrategySynthesizer(
   businessContext?: BusinessContextInput,
   digitalPresence?: DigitalPresenceAnalysis | null,
   competitorDiscovery?: CompetitorDiscoveryOutput | null,
+  consumerTestResult?: ConsumerTestOutput | null,
   adminNotes?: string,
 ): Promise<SynthesizedAnalysis> {
 
@@ -172,9 +173,32 @@ Firsatlar: ${competitorDiscovery.competitiveOpportunities.join('; ') || 'Bilgi y
 Dijital Benchmark: Web kalite ort. ${competitorDiscovery.digitalBenchmark.avgWebsiteQuality}/10, Sosyal medya ort. ${competitorDiscovery.digitalBenchmark.avgSocialFollowing}`;
   }
 
-  const expertCount = 1 + (challengerOutput ? 1 : 0) + (blogAdvisorOutput ? 1 : 0);
-  const debateInstruction = expertCount === 3
-    ? 'Uc farkli uzmanin goruslerini sentezlemen gerekiyor: Strateji uzmani, seytan avukati ve stratejik felsefe danismani. Her ucunun en guclu argumanlarin birlestirerek, cesur ama temelli nihai stratejiyi olustur.'
+  // Build consumer test context (if available)
+  let consumerTestContext = '';
+  if (consumerTestResult) {
+    const personaSummaries = consumerTestResult.personas?.slice(0, 4).map((p) =>
+      `- ${p.personaLabel} (${p.demographics}): Uyum=${p.fitScore}/10. Guclu: ${p.fitReasons.slice(0, 2).join('; ')}. Zayif: ${p.gapReasons.slice(0, 2).join('; ')}`
+    ).join('\n') || '';
+    const jtbdSummaries = consumerTestResult.jtbdScenarios?.slice(0, 4).map((j) =>
+      `- "${j.jobStatement}" (Oncelik: ${j.priority}): ${j.currentSolution} → ${j.brandFit}`
+    ).join('\n') || '';
+    consumerTestContext = `\n\n## Tuketici Testi Sonuclari (Sanal Persona Dogrulamasi)
+- Genel Uygulanabilirlik Skoru: ${consumerTestResult.overallViabilityScore}/100
+- En Guclu Uyum: ${consumerTestResult.strongestFit}
+- En Zayif Uyum: ${consumerTestResult.weakestFit}
+${personaSummaries ? `\n### Persona Uyum Analizi\n${personaSummaries}` : ''}
+${jtbdSummaries ? `\n### JTBD Senaryolari (Jobs-to-be-Done)\n${jtbdSummaries}` : ''}
+${consumerTestResult.crossPersonaConcerns?.length ? `\n### Capraz Persona Kaygilari\n${consumerTestResult.crossPersonaConcerns.map(c => `- ${c}`).join('\n')}` : ''}
+${consumerTestResult.strategyRefinements?.length ? `\n### Strateji Iyilestirme Onerileri\n${consumerTestResult.strategyRefinements.map(r => `- ${r}`).join('\n')}` : ''}`;
+  }
+
+  const expertCount = 1 + (challengerOutput ? 1 : 0) + (blogAdvisorOutput ? 1 : 0) + (consumerTestResult ? 1 : 0);
+  const expertNames: string[] = ['Strateji uzmani'];
+  if (challengerOutput) expertNames.push('seytan avukati');
+  if (blogAdvisorOutput) expertNames.push('stratejik felsefe danismani');
+  if (consumerTestResult) expertNames.push('tuketici testi');
+  const debateInstruction = expertCount >= 3
+    ? `${expertCount} farkli uzmanin goruslerini sentezlemen gerekiyor: ${expertNames.join(', ')}. Her birinin en guclu argumanlarin birlestirerek, cesur ama temelli nihai stratejiyi olustur.${consumerTestResult ? ' Tuketici testi sonuclarini strateji kararlarinda ZORUNLU olarak dikkate al — dusuk uyum gosteren persona segmentlerinde stratejiyi revize et.' : ''}`
     : challengerOutput
     ? 'Iki farkli uzmanin goruslerini inceleyip en iyi stratejiyi sentezlemen gerekiyor. Strateji uzmaninin onerisiyle seytan avukatinin elestirisini dengeleyerek, en guclu ve tutarli sonucu olustur.'
     : blogAdvisorOutput
@@ -254,6 +278,7 @@ ${blogAdvisorSummary}
 ${researchContext}${sectorSpecificContext}
 ${digitalPresenceContext}
 ${competitorDiscoveryContext}
+${consumerTestContext}
 
 ${sourceUrlsList ? `## Arastirma Kaynaklari\n${sourceUrlsList}` : ''}
 

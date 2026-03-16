@@ -60,13 +60,36 @@ export const businessContextConfig: BusinessContextConfig = {
       ],
     },
 
-    // 5. Instagram Takipçi Aralığı
+    // 4b. Web Sitesi URL (koşullu — sadece "website" seçildiyse)
+    {
+      type: 'text_area',
+      key: 'websiteUrl',
+      script: "Web sitenizin adresini yazın.",
+      text: "Web Sitesi Adresi",
+      required: false,
+      placeholder: "Örn: https://www.markaadi.com",
+      condition: { key: 'digitalPresence', includes: 'website' },
+    },
+
+    // 4c. Instagram Kullanıcı Adı (koşullu — sadece "instagram" seçildiyse)
+    {
+      type: 'text_area',
+      key: 'instagramHandle',
+      script: "Instagram kullanıcı adınızı yazın.",
+      text: "Instagram Kullanıcı Adı",
+      required: false,
+      placeholder: "Örn: @markaadi",
+      condition: { key: 'digitalPresence', includes: 'instagram' },
+    },
+
+    // 5. Instagram Takipçi Aralığı (koşullu — sadece "instagram" seçildiyse)
     {
       type: 'selection_list',
       key: 'instagramFollowers',
       script: "Instagram hesabınızın takipçi aralığı nedir?",
       text: "Instagram Takipçi",
       required: true,
+      condition: { key: 'digitalPresence', includes: 'instagram' },
       options: [
         { id: 'no_account', title: "Hesabımız yok" },
         { id: '0_1k', title: "0 - 1.000" },

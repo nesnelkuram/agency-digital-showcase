@@ -68,6 +68,51 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
       actionPlan: synthesized.actionPlan,
       evidenceSummary: synthesized.evidenceSummary,
 
+      // === Pipeline upgrade v4 fields ===
+
+      // Evidence & confidence
+      evidenceSummaryV2: state.evidenceSummary || undefined,
+      frameworkScores: state.frameworkScores || undefined,
+      consensusResults: state.consensusResults || undefined,
+
+      // Consumer test (JTBD dahil)
+      consumerTest: state.consumerTest
+        ? {
+            overallViabilityScore: state.consumerTest.overallViabilityScore,
+            personas: state.consumerTest.personas,
+            jtbdScenarios: state.consumerTest.jtbdScenarios,
+            strongestFit: state.consumerTest.strongestFit,
+            weakestFit: state.consumerTest.weakestFit,
+            crossPersonaConcerns: state.consumerTest.crossPersonaConcerns,
+            strategyRefinements: state.consumerTest.strategyRefinements,
+            marketReadiness: state.consumerTest.marketReadiness,
+          }
+        : undefined,
+
+      // Risk mitigation (quantitative EV)
+      riskMitigationPlans: state.challengerOutput?.riskMitigationPlans || undefined,
+
+      // KPI & scenarios (with probability weights)
+      kpiFramework: synthesized.kpiFramework || undefined,
+      strategyScenarios: synthesized.strategyScenarios || undefined,
+
+      // Strategic depth, brand character, quality metrics, narrative
+      strategicDepth: synthesized.strategicDepth || undefined,
+      brandCharacter: synthesized.brandCharacter || undefined,
+      qualityMetrics: synthesized.qualityMetrics || undefined,
+      brandNarrative: synthesized.brandNarrative || undefined,
+      brandMaturity: state.normalizedData?.brandMaturity || undefined,
+
+      // Brand Value Maximizer outputs
+      diagnosisSummary: state.valueMaximizerOutput?.diagnosisSummary || undefined,
+      emotionalNarrative: state.valueMaximizerOutput?.emotionalNarrative || undefined,
+      revenueImpact: state.valueMaximizerOutput?.revenueImpact || undefined,
+      consultantIntro: state.valueMaximizerOutput?.consultantIntro || synthesized.consultantIntro || '',
+
+      // intiba engagement
+      intibaEngagement: synthesized.intibaEngagement || undefined,
+      perceptualMap: synthesized.perceptualMap || undefined,
+
       debate: state.strategistOutput
         ? {
             strategistPosition: `${state.strategistOutput.archetype}: ${state.strategistOutput.positioningStatement}`,
@@ -90,7 +135,7 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
         : undefined,
 
       pipelineMetadata: {
-        version: '3.0.0',
+        version: '4.0.0',
         agentsRun: Object.keys(state.timings).filter((k) => k !== 'total'),
         totalDuration: state.timings.total || 0,
         agentDurations: Object.fromEntries(

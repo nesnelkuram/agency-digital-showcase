@@ -146,6 +146,9 @@ const LeadDetailPage: React.FC = () => {
         setStrategyPreview(result.strategyPreview);
         setAnalyzing(false);
         return { status: 'awaiting_approval' };
+      } else if (result.status === 'delegated_to_hetzner') {
+        console.log(`[AsyncPipeline] Delegated to Hetzner (jobId=${result.jobId}) — watching Firestore`);
+        return { status: 'delegated_to_hetzner' };
       } else if (result.status === 'pipeline_partial') {
         console.log(`[AsyncPipeline] Pipeline partial (phase=${result.phase}), continuing...`);
       } else if (result.researchFindings) {
@@ -270,6 +273,14 @@ const LeadDetailPage: React.FC = () => {
 
       if (result.status === 'awaiting_approval') return; // Already handled in runPipelineContinue
 
+      if (result.status === 'delegated_to_hetzner') {
+        // Hetzner runs async — it writes directly to Firestore
+        // useAnalysisProgress hook picks up real-time updates
+        // Keep analyzing=true so spinner shows, useEffect detects completion
+        console.log('[AsyncPipeline] Delegated to Hetzner — watching Firestore for completion');
+        return;
+      }
+
       if (result.status === 'completed' && result.analysis) {
         console.log(`[AsyncPipeline] COMPLETED: agents=[${result.analysis.pipelineMetadata?.agentsRun?.join(',') || 'N/A'}], fallback=${result.analysis.pipelineMetadata?.fallbackUsed}, researchMethod=${result.analysis.pipelineMetadata?.researchMethod}, totalDuration=${result.analysis.pipelineMetadata?.totalDuration}ms`);
         const aiAnalysis = { ...result.analysis, analyzedAt: new Date() };
@@ -361,6 +372,28 @@ const LeadDetailPage: React.FC = () => {
       setStrategyPreview(pipelineProgress.strategyPreview);
     }
   }, [pipelineProgress?.approvalStatus]);
+
+  // Detect Hetzner pipeline completion via Firestore real-time updates
+  useEffect(() => {
+    if (!analyzing) return;
+    if (pipelineProgress?.status === 'completed') {
+      console.log('[AsyncPipeline] Hetzner pipeline completed — reloading lead');
+      (async () => {
+        try {
+          const updatedLead = await getBrandLead(tenantId, id!);
+          setLead(updatedLead);
+          setActiveTab('ai');
+        } catch (e) {
+          console.error('[AsyncPipeline] Failed to reload lead:', e);
+        } finally {
+          setAnalyzing(false);
+        }
+      })();
+    } else if (pipelineProgress?.status === 'failed') {
+      setAnalyzeError('Pipeline hatasi (Hetzner)');
+      setAnalyzing(false);
+    }
+  }, [pipelineProgress?.status, analyzing]);
 
   // Load lead
   useEffect(() => {
