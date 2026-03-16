@@ -1,3 +1,3 @@
-public/makaleler/
-*.md
-.claude/
+api/**/*.mjs
+api/_bundles/*.mjs
+api/_lib/gemini-bundle.mjs

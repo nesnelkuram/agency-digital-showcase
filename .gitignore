@@ -42,3 +42,8 @@ public/videos/full/
 
 # Generated API bundles (built by esbuild during vercel-build)
 api/**/*.mjs
+
+# Build artifacts
+api/**/*.mjs
+api/_bundles/
+api/_lib/gemini-bundle.mjs
