@@ -1,5 +1,3 @@
-import '../env.js';
-
 const DRIVE_API_BASE = 'https://www.googleapis.com/drive/v3';
 
 export interface GoogleDriveCredentials {
