@@ -140,20 +140,20 @@ ${blogAdvisorOutput.unconventionalInsights.map((i) => `  - ${i}`).join('\n')}`;
     if (digitalPresence.website && digitalPresence.website.status === 'analyzed') {
       const w = digitalPresence.website;
       parts.push(`Web Sitesi (${w.url}): Tasarim kalitesi ${w.designQuality}/10. ${w.overallImpression}`);
-      if (w.products.length > 0) parts.push(`  Urunler: ${w.products.slice(0, 5).map(p => `${p.name}${p.price ? ` (${p.price})` : ''}`).join(', ')}`);
-      if (w.strengths.length > 0) parts.push(`  Web Guclu: ${w.strengths.join('; ')}`);
-      if (w.weaknesses.length > 0) parts.push(`  Web Zayif: ${w.weaknesses.join('; ')}`);
+      if (w.products?.length > 0) parts.push(`  Urunler: ${w.products.slice(0, 5).map(p => `${p.name}${p.price ? ` (${p.price})` : ''}`).join(', ')}`);
+      if (w.strengths?.length > 0) parts.push(`  Web Guclu: ${w.strengths.join('; ')}`);
+      if (w.weaknesses?.length > 0) parts.push(`  Web Zayif: ${w.weaknesses.join('; ')}`);
     }
     if (digitalPresence.instagram && digitalPresence.instagram.status === 'analyzed') {
       const ig = digitalPresence.instagram;
       parts.push(`Instagram (@${ig.handle}): Etkilesim ${ig.engagementLevel}, paylasim sikligi ${ig.postingFrequency || 'bilinmiyor'}, gorsel tarzi: ${ig.visualStyle}`);
-      if (ig.contentThemes.length > 0) parts.push(`  Icerik temalari: ${ig.contentThemes.join(', ')}`);
-      if (ig.strengths.length > 0) parts.push(`  IG Guclu: ${ig.strengths.join('; ')}`);
-      if (ig.weaknesses.length > 0) parts.push(`  IG Zayif: ${ig.weaknesses.join('; ')}`);
+      if (ig.contentThemes?.length > 0) parts.push(`  Icerik temalari: ${ig.contentThemes.join(', ')}`);
+      if (ig.strengths?.length > 0) parts.push(`  IG Guclu: ${ig.strengths.join('; ')}`);
+      if (ig.weaknesses?.length > 0) parts.push(`  IG Zayif: ${ig.weaknesses.join('; ')}`);
     }
     parts.push(`Dijital Olgunluk: ${digitalPresence.digitalMaturityLevel} (${digitalPresence.overallDigitalScore}/10)`);
-    if (digitalPresence.criticalGaps.length > 0) parts.push(`Kritik Eksikler: ${digitalPresence.criticalGaps.join('; ')}`);
-    if (digitalPresence.quickWins.length > 0) parts.push(`Hizli Kazanimlar: ${digitalPresence.quickWins.join('; ')}`);
+    if (digitalPresence.criticalGaps?.length > 0) parts.push(`Kritik Eksikler: ${digitalPresence.criticalGaps.join('; ')}`);
+    if (digitalPresence.quickWins?.length > 0) parts.push(`Hizli Kazanimlar: ${digitalPresence.quickWins.join('; ')}`);
     digitalPresenceContext = `\n\n## Dijital Varlik Analizi\n${parts.join('\n')}`;
   }
 
@@ -162,22 +162,22 @@ ${blogAdvisorOutput.unconventionalInsights.map((i) => `  - ${i}`).join('\n')}`;
   if (competitorDiscovery) {
     const allCompetitors = [...competitorDiscovery.knownCompetitors, ...competitorDiscovery.discoveredCompetitors];
     const competitorLines = allCompetitors.slice(0, 10).map(c =>
-      `- ${c.name} (${c.source}): ${c.positioning}. Fiyat: ${c.priceSegment}. Dijital: ${c.digitalPresenceScore}/10. Guclu: ${c.strengths.slice(0, 2).join(', ')}. Zayif: ${c.weaknesses.slice(0, 2).join(', ')}`
+      `- ${c.name} (${c.source}): ${c.positioning}. Fiyat: ${c.priceSegment}. Dijital: ${c.digitalPresenceScore}/10. Guclu: ${(c.strengths || []).slice(0, 2).join(', ')}. Zayif: ${(c.weaknesses || []).slice(0, 2).join(', ')}`
     ).join('\n');
     competitorDiscoveryContext = `\n\n## Genisletilmis Rakip Analizi (${allCompetitors.length} rakip)
 Rekabet Ortami: ${competitorDiscovery.competitiveLandscapeSummary}
 Pazar Yogunlugu: ${competitorDiscovery.marketConcentration}
 ${competitorLines}
-Giris Engelleri: ${competitorDiscovery.entryBarriers.join('; ') || 'Bilgi yok'}
-Firsatlar: ${competitorDiscovery.competitiveOpportunities.join('; ') || 'Bilgi yok'}
-Dijital Benchmark: Web kalite ort. ${competitorDiscovery.digitalBenchmark.avgWebsiteQuality}/10, Sosyal medya ort. ${competitorDiscovery.digitalBenchmark.avgSocialFollowing}`;
+Giris Engelleri: ${competitorDiscovery.entryBarriers?.join('; ') || 'Bilgi yok'}
+Firsatlar: ${competitorDiscovery.competitiveOpportunities?.join('; ') || 'Bilgi yok'}
+Dijital Benchmark: Web kalite ort. ${competitorDiscovery.digitalBenchmark?.avgWebsiteQuality ?? 'N/A'}/10, Sosyal medya ort. ${competitorDiscovery.digitalBenchmark?.avgSocialFollowing ?? 'N/A'}`;
   }
 
   // Build consumer test context (if available)
   let consumerTestContext = '';
   if (consumerTestResult) {
     const personaSummaries = consumerTestResult.personas?.slice(0, 4).map((p) =>
-      `- ${p.personaLabel} (${p.demographics}): Uyum=${p.fitScore}/10. Guclu: ${p.fitReasons.slice(0, 2).join('; ')}. Zayif: ${p.gapReasons.slice(0, 2).join('; ')}`
+      `- ${p.personaLabel} (${p.demographics}): Uyum=${p.fitScore}/10. Guclu: ${(p.fitReasons || []).slice(0, 2).join('; ')}. Zayif: ${(p.gapReasons || []).slice(0, 2).join('; ')}`
     ).join('\n') || '';
     const jtbdSummaries = consumerTestResult.jtbdScenarios?.slice(0, 4).map((j) =>
       `- "${j.jobStatement}" (Oncelik: ${j.priority}): ${j.currentSolution} → ${j.brandFit}`
@@ -233,7 +233,7 @@ ${bc.futureVision ? `- 3 Yıllık Vizyon: ${bc.futureVision}` : ''}
     ? `\n## Marka Olgunluk Seviyesi
 - Seviye: ${maturity.level} (${maturity.score}/12)
 - Rapor Odagi: ${maturity.reportFocus}
-- Faktorler: Is yasi=${maturity.factors.businessAge}, Marka varligi=${maturity.factors.brandAssets}, Dijital=${maturity.factors.digitalPresence}, Kitle=${maturity.factors.audienceSize}`
+- Faktorler: Is yasi=${maturity.factors?.businessAge ?? 'N/A'}, Marka varligi=${maturity.factors?.brandAssets ?? 'N/A'}, Dijital=${maturity.factors?.digitalPresence ?? 'N/A'}, Kitle=${maturity.factors?.audienceSize ?? 'N/A'}`
     : '';
 
   // Budget-calibrated action plan instructions

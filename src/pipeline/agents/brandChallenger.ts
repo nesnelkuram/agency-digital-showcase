@@ -16,7 +16,7 @@ export async function runBrandChallenger(
     const competitorSummary = researchFindings.competitors
       .map((c) => `- ${c.name}${c.website ? ` (${c.website})` : ''}: ${c.positioning}
     Olcek: ${c.estimatedScale || 'Bilinmiyor'} | Sosyal: ${c.socialPresence || 'Bilinmiyor'}
-    Guclu: ${c.strengths.join(', ')} | Zayif: ${c.weaknesses.join(', ')}`)
+    Guclu: ${(c.strengths || []).join(', ')} | Zayif: ${(c.weaknesses || []).join(', ')}`)
       .join('\n');
 
     const marketInfo = researchFindings.marketData;
@@ -29,14 +29,14 @@ export async function runBrandChallenger(
 ${competitorSummary || 'Bilgi yok'}
 
 ### Pazar Verileri
-- Pazar Buyuklugu: ${marketInfo.marketSize}
-- Buyume Hizi: ${marketInfo.growthRate}
-- Tuketici Trendleri: ${marketInfo.consumerTrends.join('; ') || 'Bilgi yok'}
+- Pazar Buyuklugu: ${marketInfo?.marketSize || 'Bilgi yok'}
+- Buyume Hizi: ${marketInfo?.growthRate || 'Bilgi yok'}
+- Tuketici Trendleri: ${marketInfo?.consumerTrends?.join('; ') || 'Bilgi yok'}
 
 ### Hedef Kitle Verileri
-- Demografi: ${audience.demographics}
-- Acil Ihtiyaclar: ${audience.painPoints.join('; ') || 'Bilgi yok'}
-- Satin Alma: ${audience.purchaseBehavior}
+- Demografi: ${audience?.demographics || 'Bilgi yok'}
+- Acil Ihtiyaclar: ${audience?.painPoints?.join('; ') || 'Bilgi yok'}
+- Satin Alma: ${audience?.purchaseBehavior || 'Bilgi yok'}
 
 ### Firsatlar
 ${researchFindings.opportunities.map((o) => `- ${o}`).join('\n') || 'Bilgi yok'}
@@ -66,7 +66,7 @@ ${researchFindings.sectorBenchmarks.map((b) => `- ${b}`).join('\n') || 'Bilgi yo
   const maturityContext = maturity
     ? `\n## Marka Olgunluk Seviyesi
 - Seviye: ${maturity.level} (Skor: ${maturity.score}/12)
-- Faktörler: İşletme Yaşı=${maturity.factors.businessAge}, Marka Varlıkları=${maturity.factors.brandAssets}, Dijital Varlık=${maturity.factors.digitalPresence}, Kitle Büyüklüğü=${maturity.factors.audienceSize}
+- Faktörler: İşletme Yaşı=${maturity.factors?.businessAge ?? 'N/A'}, Marka Varlıkları=${maturity.factors?.brandAssets ?? 'N/A'}, Dijital Varlık=${maturity.factors?.digitalPresence ?? 'N/A'}, Kitle Büyüklüğü=${maturity.factors?.audienceSize ?? 'N/A'}
 - Rapor Odağı: ${maturity.reportFocus}`
     : '';
 
