@@ -386,6 +386,45 @@ export function taskDigestEmail(params: {
   return { subject, html };
 }
 
+// =========================================================
+// Proposal Sent (→ Client)
+// =========================================================
+export function proposalSentEmail(params: {
+  recipientName: string;
+  companyName: string;
+  projectTitle: string;
+  proposalNumber: string;
+  grandTotal: string;
+  validityDays: number;
+  shareUrl: string;
+  senderName: string;
+  servicesSummary?: string;
+}): { subject: string; html: string } {
+  const subject = `${params.companyName} — Hizmet Teklifiniz Hazir (#${params.proposalNumber})`;
+  const html = wrapHtml(subject, `
+    <span class="badge badge-blue">Hizmet Teklifi</span>
+    <p>Sayin <strong>${params.recipientName}</strong>,</p>
+    <p><strong>${params.senderName}</strong> olarak sizin icin hazirlanan hizmet teklifini ilginize sunariz.</p>
+    <div class="metadata">
+      <p><strong>Teklif No:</strong> ${params.proposalNumber}</p>
+      <p><strong>Proje:</strong> ${params.projectTitle}</p>
+      ${params.servicesSummary ? `<p><strong>Hizmetler:</strong> ${params.servicesSummary}</p>` : ''}
+      <p><strong>Toplam Tutar:</strong> ${params.grandTotal} TL (KDV dahil)</p>
+      <p><strong>Gecerlilik:</strong> ${params.validityDays} gun</p>
+    </div>
+    <p>Teklifin detaylarini incelemek icin asagidaki butona tiklayin:</p>
+    <div style="text-align:center;">
+      <a href="${params.shareUrl}" class="cta">Teklifi Incele</a>
+    </div>
+    <div class="link-box">
+      Link calismazsa bu adresi tarayiciniza kopyalayin:<br>${params.shareUrl}
+    </div>
+    <hr class="divider">
+    <p style="font-size:13px; color:#737373;">Herhangi bir sorunuz varsa dogrudan bu e-postaya yanit verebilirsiniz. Teklifiniz ${params.validityDays} gun boyunca gecerlidir.</p>
+  `);
+  return { subject, html };
+}
+
 export function wizardInvitationEmail(params: {
   recipientName: string;
   businessName: string;

@@ -100,6 +100,9 @@ const ProposalViewPage: React.FC = () => {
   const [editProjectDescription, setEditProjectDescription] = useState('');
   const [editValidityDays, setEditValidityDays] = useState(30);
   const [showPaymentPlans, setShowPaymentPlans] = useState(true);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
 
   const { can } = usePermission();
@@ -617,6 +620,66 @@ const ProposalViewPage: React.FC = () => {
     }
   };
 
+  const handleSendEmail = async () => {
+    if (!proposal || !db) return;
+    setIsSendingEmail(true);
+
+    try {
+      // Ensure share token exists
+      let token = proposal.shareToken;
+      if (!token) {
+        token = crypto.randomUUID().replace(/-/g, '').slice(0, 16);
+        if (proposal.id) {
+          await updateDoc(doc(db, 'proposals', proposal.id), { shareToken: token });
+        }
+        setProposal({ ...proposal, shareToken: token });
+      }
+
+      const shareUrl = `${window.location.origin}/teklif/${token}`;
+      const servicesSummary = proposal.serviceLines.map(l => l.name).join(', ');
+
+      const res = await fetch('/api/send-proposal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recipientEmail: proposal.clientEmail,
+          recipientName: proposal.clientName,
+          companyName: proposal.companyName,
+          projectTitle: proposal.projectTitle,
+          proposalNumber: proposal.proposalNumber,
+          grandTotal: formatCurrency(proposal.grandTotal),
+          validityDays: proposal.validityDays,
+          shareUrl,
+          senderName: proposal.companyTitle,
+          servicesSummary,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'E-posta gonderilemedi');
+      }
+
+      // Update proposal status to 'sent'
+      if (proposal.id) {
+        await updateDoc(doc(db, 'proposals', proposal.id), {
+          status: 'sent',
+          sentAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+        setProposal({ ...proposal, status: 'sent' as ProposalDocStatus, shareToken: token });
+      }
+
+      setEmailSent(true);
+      setTimeout(() => { setEmailSent(false); setShowEmailModal(false); }, 2000);
+    } catch (err: any) {
+      console.error('Send proposal email error:', err);
+      alert(err.message || 'E-posta gonderilemedi');
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
   // Odeme planlari yeniden hesapla
   const recalculatedPlans = useMemo(() => {
     if (!proposal) return [];
@@ -734,6 +797,17 @@ const ProposalViewPage: React.FC = () => {
                 <Link className="w-4 h-4" />
               )}
               {linkCopied ? 'Kopyalandı!' : proposal.shareToken ? 'Link Kopyala' : 'Link Oluştur'}
+            </motion.button>
+          )}
+          {proposal?.id && proposal.clientEmail && (
+            <motion.button
+              onClick={() => setShowEmailModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-full font-grotesk text-sm font-medium hover:bg-indigo-700 transition-colors"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Send className="w-4 h-4" />
+              E-posta Gonder
             </motion.button>
           )}
           <motion.button
@@ -1489,6 +1563,75 @@ const ProposalViewPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Email Send Modal */}
+      {showEmailModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 print:hidden">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-xl"
+          >
+            {emailSent ? (
+              <div className="text-center py-6">
+                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
+                <p className="font-grotesk text-lg font-bold text-[#171717]">Teklif Gonderildi!</p>
+                <p className="font-grotesk text-sm text-neutral-500 mt-1">
+                  E-posta {proposal.clientEmail} adresine gonderildi.
+                </p>
+              </div>
+            ) : (
+              <>
+                <h3 className="font-grotesk text-lg font-bold text-[#171717] mb-4 flex items-center gap-2">
+                  <Send className="w-5 h-5" />
+                  Teklifi E-posta ile Gonder
+                </h3>
+                <div className="space-y-3 mb-6">
+                  <div className="bg-neutral-50 rounded-xl p-4 space-y-2">
+                    <p className="font-grotesk text-sm text-neutral-600">
+                      <strong>Alici:</strong> {proposal.clientName}
+                    </p>
+                    <p className="font-grotesk text-sm text-neutral-600">
+                      <strong>E-posta:</strong> {proposal.clientEmail || '—'}
+                    </p>
+                    <p className="font-grotesk text-sm text-neutral-600">
+                      <strong>Teklif:</strong> {proposal.proposalNumber} — {proposal.projectTitle}
+                    </p>
+                    <p className="font-grotesk text-sm text-neutral-600">
+                      <strong>Tutar:</strong> {formatCurrency(proposal.grandTotal)} TL
+                    </p>
+                  </div>
+                  <p className="font-grotesk text-xs text-neutral-400">
+                    Musteriye teklif linki iceren bir e-posta gonderilecektir. Teklif durumu &quot;Gonderildi&quot; olarak guncellenecektir.
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowEmailModal(false)}
+                    className="flex-1 px-4 py-2.5 border border-neutral-300 text-neutral-700 rounded-full font-grotesk text-sm font-medium hover:bg-neutral-50 transition-colors"
+                  >
+                    Iptal
+                  </button>
+                  <motion.button
+                    onClick={handleSendEmail}
+                    disabled={isSendingEmail || !proposal.clientEmail}
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-full font-grotesk text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    {isSendingEmail ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Send className="w-4 h-4" />
+                    )}
+                    {isSendingEmail ? 'Gonderiliyor...' : 'Gonder'}
+                  </motion.button>
+                </div>
+              </>
+            )}
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };
