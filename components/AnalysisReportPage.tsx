@@ -196,26 +196,37 @@ function OverallConfidenceBanner({ score, totalClaims, verifiedClaims, strongest
 }) {
   const level = getConfidenceLevelFromScore(score);
   const color = CONFIDENCE_COLORS[level];
+
+  let contextText: string;
+  if (score < 40) {
+    contextText = 'Bu analiz harici arastirma verisi olmadan olusturuldu. Sektor arastirmasi eklenerek skor arttirilabilir.';
+  } else if (score < 70) {
+    contextText = 'Analiz kismi arastirma verisiyle desteklenmis.';
+  } else {
+    contextText = 'Analiz kapsamli arastirma verisiyle guclendirilmis.';
+  }
+
   return (
     <div className={`bg-${color}-50 border border-${color}-200 rounded-2xl p-4 sm:p-5`}>
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
           <Shield className={`w-4 h-4 text-${color}-600`} />
-          <h3 className="font-commons text-sm font-semibold text-gray-900">Rapor Guvenilirlik Skoru</h3>
+          <h3 className="font-commons text-sm font-semibold text-gray-900">Arastirma Destekleme Skoru</h3>
         </div>
         <div className="flex items-center gap-2">
           <span className={`font-commons text-xl font-bold text-${color}-700`}>{score}/100</span>
           <ConfidenceBadge level={level} />
         </div>
       </div>
+      <p className={`font-commons text-[11px] text-${color}-700 mb-3`}>{contextText}</p>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="text-center">
           <p className="font-commons text-lg font-bold text-gray-900">{totalClaims}</p>
           <p className="font-commons text-[10px] text-gray-500">Toplam Iddia</p>
         </div>
         <div className="text-center">
-          <p className="font-commons text-lg font-bold text-emerald-600">{verifiedClaims}</p>
-          <p className="font-commons text-[10px] text-gray-500">Dogrulanmis</p>
+          <p className="font-commons text-lg font-bold text-emerald-600">{verifiedClaims > 0 ? verifiedClaims : '-'}</p>
+          <p className="font-commons text-[10px] text-gray-500">{verifiedClaims > 0 ? 'Arastirmali Iddia' : 'Arastirma Yok'}</p>
         </div>
         <div className="text-center">
           <p className="font-commons text-[11px] font-medium text-emerald-700 truncate">{strongestSection || '-'}</p>
@@ -354,17 +365,6 @@ const AnalysisReportPage: React.FC = () => {
             {formatDate(a.analyzedAt)}
           </p>
         </SectionCard>
-
-        {/* 1b. OVERALL CONFIDENCE BANNER */}
-        {a.evidenceSummaryV2 && (
-          <OverallConfidenceBanner
-            score={a.evidenceSummaryV2.overallConfidence}
-            totalClaims={a.evidenceSummaryV2.totalClaims}
-            verifiedClaims={a.evidenceSummaryV2.verifiedClaims}
-            strongestSection={a.evidenceSummaryV2.strongestSection}
-            weakestSection={a.evidenceSummaryV2.weakestSection}
-          />
-        )}
 
         {/* 2. CONSULTANT INTRO */}
         {a.consultantIntro && (

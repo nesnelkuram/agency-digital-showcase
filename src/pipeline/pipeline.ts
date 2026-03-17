@@ -462,9 +462,39 @@ export function buildPipelineEvidence(state: PipelineState): {
       'Nihai sentez raporu',
       hasResearch ? 'framework' : 'ai_inference',
       sa.evidenceSummary.keySourceUrls?.map(s => s.url) || [],
-      hasResearch ? 60 : 30,
+      hasResearch ? 60 : 40,
       state.challengerOutput ? [] : ['Eleştirel analiz olmadan sentez yapılmış'],
     ));
+
+    if (sa.messagingArchitecture) {
+      synthChains.push(createEvidence(
+        'Mesajlaşma mimarisi',
+        'framework',
+        [],
+        45,
+        ['AI üretimi — gerçek pazar testi yapılmamış'],
+      ));
+    }
+
+    if (sa.customerJourney && sa.customerJourney.length > 0) {
+      synthChains.push(createEvidence(
+        'Müşteri yolculuğu haritası',
+        'ai_inference',
+        [],
+        40,
+        ['Sentetik yolculuk — gerçek kullanıcı gözlemi değil'],
+      ));
+    }
+
+    if (sa.kpiFramework) {
+      synthChains.push(createEvidence(
+        'KPI çerçevesi',
+        'framework',
+        [],
+        40,
+        ['Sektör kıyaslaması olmadan üretilmiş'],
+      ));
+    }
 
     const synthSection = buildSectionEvidence('Nihai Sentez', synthChains);
     sections.push(calibrateSection(synthSection, signals));
