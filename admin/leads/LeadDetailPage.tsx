@@ -366,9 +366,10 @@ const LeadDetailPage: React.FC = () => {
     }
   };
 
-  // Restore approval state from Firestore on mount/refresh
+  // Restore approval state from Firestore (mount/refresh or Hetzner approval gate)
   useEffect(() => {
-    if (pipelineProgress?.approvalStatus === 'pending' && pipelineProgress?.strategyPreview && !analyzing) {
+    if (pipelineProgress?.approvalStatus === 'pending' && pipelineProgress?.strategyPreview) {
+      setAnalyzing(false);
       setAnalysisPhase('awaiting_approval');
       setStrategyPreview(pipelineProgress.strategyPreview);
     }
