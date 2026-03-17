@@ -113,6 +113,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         authUrl = url.toString();
         break;
       }
+      case 'google_drive': {
+        const clientId = (process.env.GOOGLE_DRIVE_CLIENT_ID || process.env.GOOGLE_ADS_CLIENT_ID || '').trim();
+        if (!clientId) {
+          return res.status(500).json({ error: 'Google Drive client ID not configured' });
+        }
+        const scopes = [
+          'https://www.googleapis.com/auth/drive',
+          'https://www.googleapis.com/auth/userinfo.email',
+        ].join(' ');
+        const url = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+        url.searchParams.set('client_id', clientId);
+        url.searchParams.set('redirect_uri', callbackUri);
+        url.searchParams.set('scope', scopes);
+        url.searchParams.set('response_type', 'code');
+        url.searchParams.set('access_type', 'offline');
+        url.searchParams.set('prompt', 'consent');
+        url.searchParams.set('state', String(state || '{}'));
+        authUrl = url.toString();
+        break;
+      }
       default:
         return res.status(400).json({ error: `Unsupported platform: ${platform}` });
     }

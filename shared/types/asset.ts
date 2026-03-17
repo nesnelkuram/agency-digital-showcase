@@ -72,6 +72,24 @@ export interface GoogleDriveFolder {
   parents?: string[];
 }
 
+export interface DriveUploadSession {
+  id: string;
+  tenantId: string;
+  userId: string;
+  sessionUri: string;
+  fileName: string;
+  mimeType: string;
+  fileSize: number;
+  uploadedBytes: number;
+  targetDriveFolderId?: string;
+  assetFolderId?: string;
+  status: 'active' | 'paused' | 'completed' | 'failed' | 'expired';
+  driveFileId?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  expiresAt: Date;
+}
+
 // Helper to determine asset type from mime type
 export function getAssetTypeFromMimeType(mimeType: string): AssetType {
   if (mimeType.startsWith('image/')) return 'image';

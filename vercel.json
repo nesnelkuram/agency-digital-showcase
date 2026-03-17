@@ -41,7 +41,9 @@
     "api/cron/task-digest.ts": { "maxDuration": 60 },
     "api/cron/task-reminders.ts": { "maxDuration": 60 },
     "api/tasks/score-delegation.ts": { "maxDuration": 30 },
-    "api/approve-strategy.ts": { "maxDuration": 10 }
+    "api/approve-strategy.ts": { "maxDuration": 10 },
+    "api/drive/sync.ts": { "maxDuration": 60 },
+    "api/drive/import.ts": { "maxDuration": 60 }
   },
   "crons": [
     {

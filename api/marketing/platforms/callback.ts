@@ -459,6 +459,99 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
       return res.redirect(`${fallbackPath}?selectAccount=${pickerData}`);
     }
 
+    // ── Google Drive OAuth callback ──
+    if (platform === 'google_drive') {
+      const clientId = (process.env.GOOGLE_DRIVE_CLIENT_ID || process.env.GOOGLE_ADS_CLIENT_ID || '').trim();
+      const clientSecret = (process.env.GOOGLE_DRIVE_CLIENT_SECRET || process.env.GOOGLE_ADS_CLIENT_SECRET || '').trim();
+      if (!clientId || !clientSecret) {
+        return res.redirect(
+          `${fallbackPath}?error=${encodeURIComponent('Google Drive OAuth credentials not configured')}`
+        );
+      }
+
+      // Exchange code for tokens
+      const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          code: String(code),
+          client_id: clientId,
+          client_secret: clientSecret,
+          redirect_uri: redirectUri,
+          grant_type: 'authorization_code',
+        }),
+      });
+      const tokenData = await tokenRes.json();
+
+      if (tokenData.error) {
+        throw new Error(`Google Drive OAuth error: ${tokenData.error_description || tokenData.error}`);
+      }
+
+      const accessToken = tokenData.access_token;
+      const refreshToken = tokenData.refresh_token;
+      const expiresIn = tokenData.expires_in || 3600;
+
+      // Get user info
+      const userRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const userData = await userRes.json();
+      const userEmail = userData.email || '';
+      const userName = userData.name || userEmail || 'Google Drive';
+
+      console.log(`[platform-callback] Google Drive connected: ${userEmail}`);
+
+      // Save to platform_accounts — we need tenantId from auth context or state
+      // Since this is withAuthOptional, tenantId may come from auth or state
+      const tenantId = (req as any).tenantId || stateData.projectId || '';
+
+      if (tenantId) {
+        try {
+          const { getAdminDb } = await import('../../_lib/firebaseAdmin.js');
+          const db = getAdminDb();
+
+          // Check if already connected, update if so
+          const existing = await db
+            .collection('platform_accounts')
+            .where('tenantId', '==', tenantId)
+            .where('platform', '==', 'google_drive')
+            .limit(1)
+            .get();
+
+          const accountData = {
+            tenantId,
+            platform: 'google_drive',
+            status: 'connected',
+            accountName: userName,
+            email: userEmail,
+            accessToken,
+            refreshToken,
+            tokenExpiresAt: Date.now() + expiresIn * 1000,
+            metadata: {
+              accessToken,
+              refreshToken,
+              email: userEmail,
+              userName,
+            },
+            updatedAt: new Date(),
+          };
+
+          if (existing.empty) {
+            await db.collection('platform_accounts').doc().set({
+              ...accountData,
+              createdAt: new Date(),
+            });
+          } else {
+            await existing.docs[0].ref.update(accountData);
+          }
+        } catch (err: any) {
+          console.warn('[platform-callback] Failed to save Google Drive credentials:', err.message);
+        }
+      }
+
+      return res.redirect(`${fallbackPath}?connected=google_drive`);
+    }
+
     // ── Unsupported platforms ──
     return res.redirect(
       `${fallbackPath}?error=${encodeURIComponent(`Unsupported platform: ${platform}`)}`

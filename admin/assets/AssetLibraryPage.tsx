@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ImageIcon,
@@ -21,11 +21,19 @@ import {
   AlertCircle,
   X,
   Check,
+  HardDrive,
 } from 'lucide-react';
 import { useAssetManagement } from '@/shared/hooks/useAssetManagement';
+import { useGoogleDrive } from '@/shared/hooks/useGoogleDrive';
+import { useDriveUpload } from '@/shared/hooks/useDriveUpload';
 import { Asset, AssetFolder, AssetType, formatFileSize } from '@/shared/types/asset';
+import DriveConnectPrompt from './components/DriveConnectPrompt';
+import DriveFileBrowser from './components/DriveFileBrowser';
+import DriveUploadQueue from './components/DriveUploadQueue';
 
 // ─── Type helpers ───────────────────────────────────────────────────────────
+
+type SourceTab = 'local' | 'google_drive';
 
 const TYPE_ICONS: Record<AssetType, React.ReactNode> = {
   image: <ImageIcon className="w-5 h-5 text-blue-500" />,
@@ -95,6 +103,9 @@ const AssetCard: React.FC<{
           <p className="font-grotesk text-sm font-medium text-[#171717] truncate">{asset.name}</p>
           <p className="font-grotesk text-xs text-neutral-400">
             {TYPE_LABELS[asset.type]} • {formatFileSize(asset.metadata.size)}
+            {asset.source === 'google_drive' && (
+              <span className="ml-1 text-blue-500">• Drive</span>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -135,6 +146,14 @@ const AssetCard: React.FC<{
         <p className="font-grotesk text-xs font-medium text-[#171717] truncate">{asset.name}</p>
         <p className="font-grotesk text-xs text-neutral-400 mt-0.5">{formatFileSize(asset.metadata.size)}</p>
       </div>
+      {/* Drive badge */}
+      {asset.source === 'google_drive' && (
+        <div className="absolute top-2 left-2">
+          <span className="px-1.5 py-0.5 bg-blue-100 text-blue-600 rounded text-[10px] font-grotesk font-medium">
+            Drive
+          </span>
+        </div>
+      )}
       {/* Actions overlay */}
       <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         <button
@@ -174,17 +193,23 @@ const AssetLibraryPage: React.FC = () => {
     deleteFolder,
   } = useAssetManagement();
 
+  const drive = useGoogleDrive();
+  const driveUpload = useDriveUpload();
+
+  const [activeTab, setActiveTab] = useState<SourceTab>('local');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<AssetType | 'all'>('all');
   const [showNewFolderInput, setShowNewFolderInput] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
   const [breadcrumbs, setBreadcrumbs] = useState<{ id: string | null; name: string }[]>([
     { id: null, name: 'Tüm Dosyalar' },
   ]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const driveUploadInputRef = useRef<HTMLInputElement>(null);
 
   const navigateToFolder = (folder: AssetFolder) => {
     setBreadcrumbs((prev) => [...prev, { id: folder.id, name: folder.name }]);
@@ -209,9 +234,17 @@ const AssetLibraryPage: React.FC = () => {
 
   const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    const files = Array.from(e.dataTransfer.files);
-    for (const file of files) {
-      await uploadFile(file, currentFolderId ?? undefined);
+    if (activeTab === 'google_drive') {
+      // Upload to Drive
+      const files = Array.from(e.dataTransfer.files);
+      if (files.length > 0) {
+        await driveUpload.addFiles(files, drive.currentFolderId || undefined);
+      }
+    } else {
+      const files = Array.from(e.dataTransfer.files);
+      for (const file of files) {
+        await uploadFile(file, currentFolderId ?? undefined);
+      }
     }
   };
 
@@ -227,6 +260,28 @@ const AssetLibraryPage: React.FC = () => {
       setCopiedId(asset.id);
       setTimeout(() => setCopiedId(null), 2000);
     });
+  };
+
+  const handleDriveImport = useCallback(async (fileId: string, mode: 'link' | 'copy') => {
+    await drive.importFile(fileId, currentFolderId || undefined, mode);
+  }, [drive, currentFolderId]);
+
+  const handleDriveSync = useCallback(async () => {
+    setSyncing(true);
+    await drive.syncDrive();
+    setSyncing(false);
+  }, [drive]);
+
+  const handleDriveUpload = useCallback(() => {
+    driveUploadInputRef.current?.click();
+  }, []);
+
+  const handleDriveUploadFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      await driveUpload.addFiles(files, drive.currentFolderId || undefined);
+    }
+    if (driveUploadInputRef.current) driveUploadInputRef.current.value = '';
   };
 
   const filteredAssets = useMemo(() => {
@@ -256,268 +311,343 @@ const AssetLibraryPage: React.FC = () => {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowNewFolderInput(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 border border-neutral-200 text-neutral-700 rounded-full font-grotesk text-sm hover:bg-neutral-50 transition-colors"
-          >
-            <FolderPlus className="w-4 h-4" />
-            Klasör
-          </button>
-          <motion.button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[#171717] text-white rounded-full font-grotesk text-sm font-medium hover:bg-neutral-800 transition-colors disabled:opacity-60"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            {uploading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                {uploadProgress > 0 ? `${uploadProgress}%` : 'Yükleniyor...'}
-              </>
-            ) : (
-              <>
-                <Upload className="w-4 h-4" />
-                Dosya Yükle
-              </>
-            )}
-          </motion.button>
+          {activeTab === 'local' && (
+            <>
+              <button
+                onClick={() => setShowNewFolderInput(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 border border-neutral-200 text-neutral-700 rounded-full font-grotesk text-sm hover:bg-neutral-50 transition-colors"
+              >
+                <FolderPlus className="w-4 h-4" />
+                Klasör
+              </button>
+              <motion.button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-[#171717] text-white rounded-full font-grotesk text-sm font-medium hover:bg-neutral-800 transition-colors disabled:opacity-60"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                {uploading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    {uploadProgress > 0 ? `${uploadProgress}%` : 'Yükleniyor...'}
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4" />
+                    Dosya Yükle
+                  </>
+                )}
+              </motion.button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                className="hidden"
+                onChange={handleFileUpload}
+                accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+              />
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Source Tabs */}
+      <div className="flex items-center gap-1 bg-neutral-100 rounded-lg p-1 w-fit">
+        <button
+          onClick={() => setActiveTab('local')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-md font-grotesk text-sm font-medium transition-colors ${
+            activeTab === 'local'
+              ? 'bg-white shadow-sm text-[#171717]'
+              : 'text-neutral-500 hover:text-neutral-700'
+          }`}
+        >
+          <Upload className="w-4 h-4" />
+          Yerel
+        </button>
+        <button
+          onClick={() => setActiveTab('google_drive')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-md font-grotesk text-sm font-medium transition-colors ${
+            activeTab === 'google_drive'
+              ? 'bg-white shadow-sm text-[#171717]'
+              : 'text-neutral-500 hover:text-neutral-700'
+          }`}
+        >
+          <HardDrive className="w-4 h-4" />
+          Google Drive
+          {drive.isConnected && drive.connectionEmail && (
+            <span className="w-2 h-2 rounded-full bg-green-500" />
+          )}
+        </button>
+      </div>
+
+      {/* ── Google Drive Tab ── */}
+      {activeTab === 'google_drive' && (
+        <>
+          {!drive.isConnected ? (
+            <DriveConnectPrompt onConnect={drive.connect} />
+          ) : (
+            <DriveFileBrowser
+              onImportFile={handleDriveImport}
+              onSync={handleDriveSync}
+              onUploadToDrive={handleDriveUpload}
+              syncing={syncing}
+              lastSyncAt={drive.lastSyncAt}
+            />
+          )}
+
+          {/* Hidden file input for Drive upload */}
           <input
-            ref={fileInputRef}
+            ref={driveUploadInputRef}
             type="file"
             multiple
             className="hidden"
-            onChange={handleFileUpload}
-            accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+            onChange={handleDriveUploadFiles}
           />
-        </div>
-      </div>
 
-      {/* New Folder Input */}
-      <AnimatePresence>
-        {showNewFolderInput && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="flex items-center gap-2 bg-white rounded-xl border border-neutral-200 p-3">
-              <Folder className="w-5 h-5 text-amber-500 flex-shrink-0" />
-              <input
-                type="text"
-                value={newFolderName}
-                onChange={(e) => setNewFolderName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleCreateFolder();
-                  if (e.key === 'Escape') { setShowNewFolderInput(false); setNewFolderName(''); }
-                }}
-                placeholder="Klasör adı..."
-                className="flex-1 font-grotesk text-sm focus:outline-none bg-transparent"
-                autoFocus
-              />
-              <button onClick={handleCreateFolder} className="p-1.5 bg-[#171717] text-white rounded-lg hover:bg-neutral-800 transition-colors">
-                <Check className="w-4 h-4" />
-              </button>
-              <button onClick={() => { setShowNewFolderInput(false); setNewFolderName(''); }} className="p-1.5 text-neutral-400 hover:text-neutral-700 rounded-lg hover:bg-neutral-100 transition-colors">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Breadcrumbs */}
-      {breadcrumbs.length > 1 && (
-        <div className="flex items-center gap-1 flex-wrap">
-          {breadcrumbs.map((crumb, i) => (
-            <React.Fragment key={i}>
-              {i > 0 && <ChevronRight className="w-3.5 h-3.5 text-neutral-400" />}
-              <button
-                onClick={() => navigateBreadcrumb(i)}
-                className={`flex items-center gap-1 font-grotesk text-sm transition-colors ${
-                  i === breadcrumbs.length - 1
-                    ? 'text-[#171717] font-medium'
-                    : 'text-neutral-400 hover:text-neutral-700'
-                }`}
-              >
-                {i === 0 && <Home className="w-3.5 h-3.5" />}
-                {crumb.name}
-              </button>
-            </React.Fragment>
-          ))}
-        </div>
-      )}
-
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-3">
-        {/* Search */}
-        <div className="relative flex-1 min-w-48">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Dosya ara..."
-            className="w-full pl-9 pr-4 py-2 border border-neutral-200 rounded-lg font-grotesk text-sm focus:outline-none focus:border-neutral-400 bg-neutral-50 transition-colors"
-          />
-        </div>
-
-        {/* Type filter */}
-        <div className="flex items-center gap-1 flex-wrap">
-          {typeOptions.map((type) => {
-            const count = type === 'all' ? assets.length : assets.filter((a) => a.type === type).length;
-            if (type !== 'all' && count === 0) return null;
-            return (
-              <button
-                key={type}
-                onClick={() => setTypeFilter(type)}
-                className={`px-3 py-1.5 rounded-full font-grotesk text-xs font-medium transition-colors ${
-                  typeFilter === type
-                    ? 'bg-[#171717] text-white'
-                    : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-                }`}
-              >
-                {type === 'all' ? 'Tümü' : TYPE_LABELS[type]} {type !== 'all' && `(${count})`}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* View toggle */}
-        <div className="flex items-center gap-1 bg-neutral-100 rounded-lg p-1 ml-auto">
-          <button
-            onClick={() => setViewMode('grid')}
-            className={`p-1.5 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-white shadow-sm text-[#171717]' : 'text-neutral-400 hover:text-neutral-700'}`}
-          >
-            <Grid3X3 className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => setViewMode('list')}
-            className={`p-1.5 rounded-md transition-colors ${viewMode === 'list' ? 'bg-white shadow-sm text-[#171717]' : 'text-neutral-400 hover:text-neutral-700'}`}
-          >
-            <List className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* Error */}
-      {error && (
-        <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-xl">
-          <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
-          <p className="font-grotesk text-sm text-red-600">{error}</p>
-        </div>
-      )}
-
-      {/* Loading */}
-      {loading && (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="w-6 h-6 animate-spin text-neutral-400" />
-        </div>
-      )}
-
-      {/* Content */}
-      {!loading && (
-        <>
-          {/* Folders */}
-          {folders.length > 0 && (
-            <div>
-              <p className="font-grotesk text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-3">
-                Klasörler ({folders.length})
-              </p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                {folders.map((folder, i) => (
-                  <motion.div
-                    key={folder.id}
-                    initial={{ opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2, delay: i * 0.03 }}
-                  >
-                    <FolderCard
-                      folder={folder}
-                      onOpen={() => navigateToFolder(folder)}
-                      onDelete={() => deleteFolder(folder.id)}
-                    />
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Assets */}
-          {filteredAssets.length > 0 && (
-            <div>
-              <p className="font-grotesk text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-3">
-                Dosyalar ({filteredAssets.length})
-              </p>
-              {viewMode === 'grid' ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                  {filteredAssets.map((asset, i) => (
-                    <motion.div
-                      key={asset.id}
-                      initial={{ opacity: 0, y: 4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.2, delay: i * 0.02 }}
-                    >
-                      <AssetCard
-                        asset={asset}
-                        viewMode="grid"
-                        onDelete={() => deleteAsset(asset.id)}
-                        onCopyLink={() => handleCopyLink(asset)}
-                        copiedId={copiedId}
-                      />
-                    </motion.div>
-                  ))}
-                </div>
-              ) : (
-                <div className="bg-white rounded-xl border border-neutral-100 overflow-hidden">
-                  {filteredAssets.map((asset, i) => (
-                    <motion.div
-                      key={asset.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.15, delay: i * 0.02 }}
-                    >
-                      <AssetCard
-                        asset={asset}
-                        viewMode="list"
-                        onDelete={() => deleteAsset(asset.id)}
-                        onCopyLink={() => handleCopyLink(asset)}
-                        copiedId={copiedId}
-                      />
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Empty state */}
-          {folders.length === 0 && filteredAssets.length === 0 && (
-            <div
-              className="flex flex-col items-center justify-center py-20 bg-white rounded-xl border-2 border-dashed border-neutral-200 cursor-pointer hover:border-neutral-300 transition-colors"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Upload className="w-10 h-10 text-neutral-300 mb-3" />
-              <p className="font-grotesk font-semibold text-neutral-500">
-                {search || typeFilter !== 'all' ? 'Eşleşen dosya bulunamadı' : 'Dosya yok'}
-              </p>
-              {!search && typeFilter === 'all' && (
-                <p className="font-grotesk text-sm text-neutral-400 mt-1">
-                  Tıklayın veya sürükleyip bırakın
-                </p>
-              )}
-            </div>
+          {/* Upload queue */}
+          {driveUpload.uploads.length > 0 && (
+            <DriveUploadQueue
+              uploads={driveUpload.uploads}
+              onPause={driveUpload.pauseUpload}
+              onResume={driveUpload.resumeUpload}
+              onCancel={driveUpload.cancelUpload}
+              onClearCompleted={driveUpload.clearCompleted}
+            />
           )}
         </>
       )}
 
-      {/* Tag filter info */}
-      {filteredAssets.length > 0 && (
-        <p className="font-grotesk text-xs text-neutral-400 text-center pb-2">
-          <Tag className="w-3 h-3 inline mr-1" />
-          Etiket yönetimi yakında
-        </p>
+      {/* ── Local Tab ── */}
+      {activeTab === 'local' && (
+        <>
+          {/* New Folder Input */}
+          <AnimatePresence>
+            {showNewFolderInput && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="flex items-center gap-2 bg-white rounded-xl border border-neutral-200 p-3">
+                  <Folder className="w-5 h-5 text-amber-500 flex-shrink-0" />
+                  <input
+                    type="text"
+                    value={newFolderName}
+                    onChange={(e) => setNewFolderName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleCreateFolder();
+                      if (e.key === 'Escape') { setShowNewFolderInput(false); setNewFolderName(''); }
+                    }}
+                    placeholder="Klasör adı..."
+                    className="flex-1 font-grotesk text-sm focus:outline-none bg-transparent"
+                    autoFocus
+                  />
+                  <button onClick={handleCreateFolder} className="p-1.5 bg-[#171717] text-white rounded-lg hover:bg-neutral-800 transition-colors">
+                    <Check className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => { setShowNewFolderInput(false); setNewFolderName(''); }} className="p-1.5 text-neutral-400 hover:text-neutral-700 rounded-lg hover:bg-neutral-100 transition-colors">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Breadcrumbs */}
+          {breadcrumbs.length > 1 && (
+            <div className="flex items-center gap-1 flex-wrap">
+              {breadcrumbs.map((crumb, i) => (
+                <React.Fragment key={i}>
+                  {i > 0 && <ChevronRight className="w-3.5 h-3.5 text-neutral-400" />}
+                  <button
+                    onClick={() => navigateBreadcrumb(i)}
+                    className={`flex items-center gap-1 font-grotesk text-sm transition-colors ${
+                      i === breadcrumbs.length - 1
+                        ? 'text-[#171717] font-medium'
+                        : 'text-neutral-400 hover:text-neutral-700'
+                    }`}
+                  >
+                    {i === 0 && <Home className="w-3.5 h-3.5" />}
+                    {crumb.name}
+                  </button>
+                </React.Fragment>
+              ))}
+            </div>
+          )}
+
+          {/* Toolbar */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Search */}
+            <div className="relative flex-1 min-w-48">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Dosya ara..."
+                className="w-full pl-9 pr-4 py-2 border border-neutral-200 rounded-lg font-grotesk text-sm focus:outline-none focus:border-neutral-400 bg-neutral-50 transition-colors"
+              />
+            </div>
+
+            {/* Type filter */}
+            <div className="flex items-center gap-1 flex-wrap">
+              {typeOptions.map((type) => {
+                const count = type === 'all' ? assets.length : assets.filter((a) => a.type === type).length;
+                if (type !== 'all' && count === 0) return null;
+                return (
+                  <button
+                    key={type}
+                    onClick={() => setTypeFilter(type)}
+                    className={`px-3 py-1.5 rounded-full font-grotesk text-xs font-medium transition-colors ${
+                      typeFilter === type
+                        ? 'bg-[#171717] text-white'
+                        : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                    }`}
+                  >
+                    {type === 'all' ? 'Tümü' : TYPE_LABELS[type]} {type !== 'all' && `(${count})`}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* View toggle */}
+            <div className="flex items-center gap-1 bg-neutral-100 rounded-lg p-1 ml-auto">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-1.5 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-white shadow-sm text-[#171717]' : 'text-neutral-400 hover:text-neutral-700'}`}
+              >
+                <Grid3X3 className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-1.5 rounded-md transition-colors ${viewMode === 'list' ? 'bg-white shadow-sm text-[#171717]' : 'text-neutral-400 hover:text-neutral-700'}`}
+              >
+                <List className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Error */}
+          {error && (
+            <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-xl">
+              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+              <p className="font-grotesk text-sm text-red-600">{error}</p>
+            </div>
+          )}
+
+          {/* Loading */}
+          {loading && (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="w-6 h-6 animate-spin text-neutral-400" />
+            </div>
+          )}
+
+          {/* Content */}
+          {!loading && (
+            <>
+              {/* Folders */}
+              {folders.length > 0 && (
+                <div>
+                  <p className="font-grotesk text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-3">
+                    Klasörler ({folders.length})
+                  </p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                    {folders.map((folder, i) => (
+                      <motion.div
+                        key={folder.id}
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.2, delay: i * 0.03 }}
+                      >
+                        <FolderCard
+                          folder={folder}
+                          onOpen={() => navigateToFolder(folder)}
+                          onDelete={() => deleteFolder(folder.id)}
+                        />
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Assets */}
+              {filteredAssets.length > 0 && (
+                <div>
+                  <p className="font-grotesk text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-3">
+                    Dosyalar ({filteredAssets.length})
+                  </p>
+                  {viewMode === 'grid' ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                      {filteredAssets.map((asset, i) => (
+                        <motion.div
+                          key={asset.id}
+                          initial={{ opacity: 0, y: 4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.2, delay: i * 0.02 }}
+                        >
+                          <AssetCard
+                            asset={asset}
+                            viewMode="grid"
+                            onDelete={() => deleteAsset(asset.id)}
+                            onCopyLink={() => handleCopyLink(asset)}
+                            copiedId={copiedId}
+                          />
+                        </motion.div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="bg-white rounded-xl border border-neutral-100 overflow-hidden">
+                      {filteredAssets.map((asset, i) => (
+                        <motion.div
+                          key={asset.id}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ duration: 0.15, delay: i * 0.02 }}
+                        >
+                          <AssetCard
+                            asset={asset}
+                            viewMode="list"
+                            onDelete={() => deleteAsset(asset.id)}
+                            onCopyLink={() => handleCopyLink(asset)}
+                            copiedId={copiedId}
+                          />
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Empty state */}
+              {folders.length === 0 && filteredAssets.length === 0 && (
+                <div
+                  className="flex flex-col items-center justify-center py-20 bg-white rounded-xl border-2 border-dashed border-neutral-200 cursor-pointer hover:border-neutral-300 transition-colors"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload className="w-10 h-10 text-neutral-300 mb-3" />
+                  <p className="font-grotesk font-semibold text-neutral-500">
+                    {search || typeFilter !== 'all' ? 'Eşleşen dosya bulunamadı' : 'Dosya yok'}
+                  </p>
+                  {!search && typeFilter === 'all' && (
+                    <p className="font-grotesk text-sm text-neutral-400 mt-1">
+                      Tıklayın veya sürükleyip bırakın
+                    </p>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Tag filter info */}
+          {filteredAssets.length > 0 && (
+            <p className="font-grotesk text-xs text-neutral-400 text-center pb-2">
+              <Tag className="w-3 h-3 inline mr-1" />
+              Etiket yönetimi yakında
+            </p>
+          )}
+        </>
       )}
     </div>
   );

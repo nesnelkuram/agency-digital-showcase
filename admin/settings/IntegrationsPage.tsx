@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronLeft, CheckCircle, Clock, ExternalLink } from 'lucide-react';
+import { getAuth } from 'firebase/auth';
 
 interface Integration {
   id: string;
@@ -9,6 +10,7 @@ interface Integration {
   logo: string;
   status: 'connected' | 'coming_soon' | 'available';
   connectLabel?: string;
+  dynamicStatus?: boolean;
 }
 
 const integrations: Integration[] = [
@@ -24,7 +26,8 @@ const integrations: Integration[] = [
     name: 'Google Drive',
     description: 'Drive dosyalarına doğrudan erişin ve projelere yükleyin.',
     logo: '📁',
-    status: 'coming_soon',
+    status: 'available',
+    dynamicStatus: true,
   },
   {
     id: 'slack',
@@ -77,6 +80,46 @@ const statusBadge = {
 };
 
 const IntegrationsPage: React.FC = () => {
+  const [driveConnected, setDriveConnected] = useState(false);
+  const [driveEmail, setDriveEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    const checkDriveStatus = async () => {
+      try {
+        const auth = getAuth();
+        const user = auth.currentUser;
+        if (!user) return;
+        const token = await user.getIdToken();
+        const resp = await fetch('/api/drive/connection-status', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          setDriveConnected(data.connected);
+          setDriveEmail(data.email || null);
+        }
+      } catch { /* ignore */ }
+    };
+    checkDriveStatus();
+  }, []);
+
+  const getIntegrationStatus = (integration: Integration) => {
+    if (integration.id === 'google-drive' && integration.dynamicStatus) {
+      return driveConnected ? 'connected' : 'available';
+    }
+    return integration.status;
+  };
+
+  const handleConnect = (integration: Integration) => {
+    if (integration.id === 'google-drive') {
+      const state = JSON.stringify({
+        platform: 'google_drive',
+        redirectPath: '/admin/settings/integrations',
+      });
+      window.location.href = `/api/marketing/platforms/connect?platform=google_drive&state=${encodeURIComponent(state)}`;
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-2xl">
       {/* Header */}
@@ -119,11 +162,24 @@ const IntegrationsPage: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center justify-between mt-3 pt-3 border-t border-neutral-50">
-              {statusBadge[integration.status]}
-              {integration.status === 'connected' && (
-                <button className="flex items-center gap-1 font-grotesk text-xs text-neutral-400 hover:text-neutral-600 transition-colors">
-                  Yönet
-                  <ExternalLink className="w-3 h-3" />
+              {statusBadge[getIntegrationStatus(integration)]}
+              {getIntegrationStatus(integration) === 'connected' && (
+                <div className="flex items-center gap-2">
+                  {integration.id === 'google-drive' && driveEmail && (
+                    <span className="font-grotesk text-xs text-neutral-400">{driveEmail}</span>
+                  )}
+                  <button className="flex items-center gap-1 font-grotesk text-xs text-neutral-400 hover:text-neutral-600 transition-colors">
+                    Yönet
+                    <ExternalLink className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
+              {getIntegrationStatus(integration) === 'available' && (
+                <button
+                  onClick={() => handleConnect(integration)}
+                  className="px-3 py-1 bg-blue-600 text-white rounded-full font-grotesk text-xs font-medium hover:bg-blue-700 transition-colors"
+                >
+                  Bağla
                 </button>
               )}
             </div>
