@@ -99,6 +99,7 @@ const ProposalViewPage: React.FC = () => {
   const [editClientAddress, setEditClientAddress] = useState('');
   const [editProjectDescription, setEditProjectDescription] = useState('');
   const [editValidityDays, setEditValidityDays] = useState(30);
+  const [showPaymentPlans, setShowPaymentPlans] = useState(true);
   const printRef = useRef<HTMLDivElement>(null);
 
   const { can } = usePermission();
@@ -121,7 +122,9 @@ const ProposalViewPage: React.FC = () => {
     try {
       const docSnap = await getDoc(doc(db, 'proposals', proposalId));
       if (docSnap.exists()) {
-        setProposal({ id: docSnap.id, ...docSnap.data() } as ProposalDocument);
+        const data = docSnap.data();
+        setProposal({ id: docSnap.id, ...data } as ProposalDocument);
+        if (data.showPaymentPlans === false) setShowPaymentPlans(false);
       }
     } catch (err) {
       console.error('Error loading proposal:', err);
@@ -486,6 +489,7 @@ const ProposalViewPage: React.FC = () => {
         validUntil: Timestamp.fromDate(validUntilDate),
         terms: editTerms,
         economicParameters: editParams,
+        showPaymentPlans,
         proposalNumber: proposal.id ? proposal.proposalNumber : generateProposalNumber(nextNumber),
         status: proposal.id ? proposal.status : 'ready',
         createdAt: serverTimestamp(),
@@ -843,6 +847,17 @@ const ProposalViewPage: React.FC = () => {
                 className="w-full px-3 py-2 rounded-lg border border-amber-200 font-grotesk text-sm focus:outline-none focus:border-amber-400 bg-white"
               />
             </div>
+            <div>
+              <label className="flex items-center gap-2 font-grotesk text-xs text-amber-700 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showPaymentPlans}
+                  onChange={(e) => setShowPaymentPlans(e.target.checked)}
+                  className="w-4 h-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
+                />
+                Odeme Planlari & Iskonto Goster
+              </label>
+            </div>
           </div>
           {/* Service Lines Editor */}
           <div className="mt-5 border-t border-amber-200 pt-5">
@@ -1141,7 +1156,8 @@ const ProposalViewPage: React.FC = () => {
           </div>
         </div>
 
-        {/* PAYMENT PLANS - Ana ozellik */}
+        {/* PAYMENT PLANS - Opsiyonel */}
+        {showPaymentPlans && activePlans.length > 0 && (
         <div className="p-8 md:p-12 border-b border-neutral-100">
           <h2 className="font-grotesk text-xl font-bold text-[#171717] mb-2 flex items-center gap-2">
             <BadgePercent className="w-5 h-5" />
@@ -1373,6 +1389,7 @@ const ProposalViewPage: React.FC = () => {
             </div>
           )}
         </div>
+        )}
 
         {/* Terms & Conditions */}
         <div className="p-8 md:p-12 border-b border-neutral-100">
