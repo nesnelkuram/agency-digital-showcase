@@ -535,7 +535,7 @@ const ProposalSharePage: React.FC = () => {
         </div>
 
         {/* ── Payment Plans ────────────────────── */}
-        {calculated.paymentPlans.length > 0 && (
+        {calculated.paymentPlans.length > 0 && (proposal as any).showPaymentPlans !== false && (
           <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
             <div className="p-6 border-b border-neutral-100">
               <h2 className="font-grotesk text-base font-bold text-[#171717]">
