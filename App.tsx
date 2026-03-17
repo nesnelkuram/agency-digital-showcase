@@ -24,6 +24,7 @@ const AdminApp = lazy(() => import('./admin/AdminApp'));
 const LoginPage = lazy(() => import('./admin/auth/LoginPage'));
 const JoinPage = lazy(() => import('./admin/auth/JoinPage'));
 const PortalApp = lazy(() => import('./portal/PortalApp'));
+const AgentOfficeSimulator = lazy(() => import('./components/AgentOfficeSimulator'));
 const FeedbackSharePage = lazy(() => import('./components/FeedbackSharePage'));
 const AnalysisReportPage = lazy(() => import('./components/AnalysisReportPage'));
 const ContentPlanSharePage = lazy(() => import('./components/ContentPlanSharePage'));
@@ -255,6 +256,16 @@ const App: React.FC = () => {
           element={
             <Suspense fallback={<div className="min-h-screen" style={{ backgroundColor: '#ebeef8' }} />}>
               <BrandStrategyWizard />
+            </Suspense>
+          }
+        />
+
+        {/* Agent Office Simulator — Pipeline Visualizer */}
+        <Route
+          path="/pipeline-visualizer"
+          element={
+            <Suspense fallback={<div className="min-h-screen bg-[#05050f]" />}>
+              <AgentOfficeSimulator />
             </Suspense>
           }
         />
