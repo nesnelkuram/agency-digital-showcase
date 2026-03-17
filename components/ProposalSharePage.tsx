@@ -18,7 +18,7 @@ import {
   MessageCircle,
 } from 'lucide-react';
 import { db } from '@/lib/firebase/config';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { formatCurrency } from '@/shared/types/pricing';
 import type { ProposalDocument, ProposalServiceLine, PrepaymentTier } from '@/shared/types/pricing/proposal';
 import {
@@ -95,6 +95,7 @@ const ProposalSharePage: React.FC = () => {
         if (snap.empty) {
           setNotFound(true);
         } else {
+          const docRef = snap.docs[0].ref;
           const data = { id: snap.docs[0].id, ...snap.docs[0].data() } as ProposalDocument;
           setProposal(data);
           setLines(
@@ -104,6 +105,22 @@ const ProposalSharePage: React.FC = () => {
               original: l,
             }))
           );
+
+          // Track view: update viewedAt + log activity
+          try {
+            if (!data.viewedAt) {
+              await updateDoc(doc(db!, 'proposals', data.id), {
+                viewedAt: serverTimestamp(),
+                status: data.status === 'sent' ? 'viewed' : data.status,
+              });
+            }
+            await addDoc(collection(docRef, 'activity'), {
+              type: 'viewed',
+              createdAt: new Date(),
+            });
+          } catch (viewErr) {
+            console.error('View tracking error (non-fatal):', viewErr);
+          }
         }
       } catch (err) {
         console.error('Error loading shared proposal:', err);

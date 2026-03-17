@@ -35,6 +35,7 @@ import {
   updateDoc,
   collection,
   getDocs,
+  onSnapshot,
   query,
   orderBy,
   limit,
@@ -103,6 +104,7 @@ const ProposalViewPage: React.FC = () => {
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [activity, setActivity] = useState<Array<{ id: string; type: string; recipientEmail?: string; recipientName?: string; subject?: string; createdAt: any; ip?: string }>>([]);
   const printRef = useRef<HTMLDivElement>(null);
 
   const { can } = usePermission();
@@ -119,6 +121,19 @@ const ProposalViewPage: React.FC = () => {
       loadLeadAndGenerate(leadId);
     }
   }, [id, quoteId, leadId]);
+
+  // Real-time activity feed
+  useEffect(() => {
+    if (!id || !db) return;
+    const q = query(
+      collection(db, 'proposals', id, 'activity'),
+      orderBy('createdAt', 'desc')
+    );
+    const unsub = onSnapshot(q, (snap) => {
+      setActivity(snap.docs.map(d => ({ id: d.id, ...d.data() } as any)));
+    });
+    return () => unsub();
+  }, [id]);
 
   const loadProposal = async (proposalId: string) => {
     if (!db) return;
@@ -647,6 +662,7 @@ const ProposalViewPage: React.FC = () => {
           companyName: proposal.companyName,
           projectTitle: proposal.projectTitle,
           proposalNumber: proposal.proposalNumber,
+          proposalId: proposal.id,
           grandTotal: formatCurrency(proposal.grandTotal),
           validityDays: proposal.validityDays,
           shareUrl,
@@ -1563,6 +1579,53 @@ const ProposalViewPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Activity Timeline */}
+      {proposal?.id && activity.length > 0 && (
+        <div className="bg-white rounded-2xl border border-neutral-200 p-6 print:hidden">
+          <h3 className="font-grotesk text-sm font-bold text-[#171717] mb-4">Aktivite</h3>
+          <div className="space-y-3">
+            {activity.map((evt) => {
+              const date = evt.createdAt?.toDate
+                ? evt.createdAt.toDate()
+                : evt.createdAt?.seconds
+                ? new Date(evt.createdAt.seconds * 1000)
+                : new Date(evt.createdAt);
+              const timeStr = date.toLocaleDateString('tr-TR', {
+                day: '2-digit', month: 'short', year: 'numeric',
+                hour: '2-digit', minute: '2-digit',
+              });
+
+              const icons: Record<string, { icon: string; color: string; label: string }> = {
+                email_sent: { icon: '📧', color: 'bg-indigo-100 text-indigo-700', label: 'E-posta Gonderildi' },
+                viewed: { icon: '👁', color: 'bg-purple-100 text-purple-700', label: 'Goruntulendi' },
+                created: { icon: '📄', color: 'bg-blue-100 text-blue-700', label: 'Olusturuldu' },
+                accepted: { icon: '✓', color: 'bg-green-100 text-green-700', label: 'Kabul Edildi' },
+                rejected: { icon: '✕', color: 'bg-red-100 text-red-700', label: 'Reddedildi' },
+              };
+              const info = icons[evt.type] || { icon: '•', color: 'bg-neutral-100 text-neutral-700', label: evt.type };
+
+              return (
+                <div key={evt.id} className="flex items-start gap-3">
+                  <span className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm ${info.color}`}>
+                    {info.icon}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-grotesk text-sm font-medium text-[#171717]">{info.label}</p>
+                    {evt.recipientEmail && (
+                      <p className="font-grotesk text-xs text-neutral-500">{evt.recipientName} ({evt.recipientEmail})</p>
+                    )}
+                    {evt.ip && (
+                      <p className="font-grotesk text-xs text-neutral-400">IP: {evt.ip}</p>
+                    )}
+                    <p className="font-grotesk text-xs text-neutral-400 mt-0.5">{timeStr}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Email Send Modal */}
       {showEmailModal && (

@@ -409,7 +409,17 @@ service cloud.firestore {
                   || isSuperAdmin()
                   || (isAuthenticated() && canViewPricing());
       allow create: if isSuperAdmin() || (isAuthenticated() && canViewPricing());
-      allow update, delete: if isSuperAdmin() || (isAuthenticated() && canViewPricing());
+      allow update: if resource.data.shareToken != null
+                    || isSuperAdmin()
+                    || (isAuthenticated() && canViewPricing());
+      allow delete: if isSuperAdmin() || (isAuthenticated() && canViewPricing());
+
+      // Proposal activity log — append-only
+      match /activity/{eventId} {
+        allow read: if isSuperAdmin() || (isAuthenticated() && canViewPricing());
+        allow create: if true; // Public share page can log 'viewed' events
+        allow update, delete: if false;
+      }
     }
 
     match /pricing_quotes/{quoteId} {
