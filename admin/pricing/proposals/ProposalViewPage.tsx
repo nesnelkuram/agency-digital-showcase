@@ -966,7 +966,7 @@ const ProposalViewPage: React.FC = () => {
       )}
 
       {/* PROPOSAL DOCUMENT */}
-      <div ref={printRef} className="bg-white rounded-2xl border border-neutral-200 overflow-hidden print:border-none print:rounded-none print:shadow-none">
+      <div ref={printRef} className="proposal-print-root bg-white rounded-2xl border border-neutral-200 overflow-hidden print:border-none print:rounded-none print:shadow-none">
 
         {/* Letterhead */}
         <div className="bg-[#171717] text-white p-8 md:p-12">
