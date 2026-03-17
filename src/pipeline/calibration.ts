@@ -36,8 +36,12 @@ export function calibrateConfidence(
   // Start from raw confidence, apply adjustments
   let adjustment = 0;
 
-  if (signals.hasResearchData && chain.evidenceType === 'research') {
-    adjustment += CALIBRATION_WEIGHTS.researchData;
+  if (signals.hasResearchData) {
+    // Research bonus applies to all evidence types when research data is available
+    // (research grounds the entire analysis, not just research-type claims)
+    adjustment += chain.evidenceType === 'research'
+      ? CALIBRATION_WEIGHTS.researchData
+      : Math.round(CALIBRATION_WEIGHTS.researchData * 0.5);
   }
   if (signals.hasFrameworkScore) {
     adjustment += CALIBRATION_WEIGHTS.frameworkScore;
@@ -48,7 +52,8 @@ export function calibrateConfidence(
   if (signals.hasMultiModelConsensus) {
     adjustment += CALIBRATION_WEIGHTS.multiModelConsensus;
   }
-  if (signals.hasClientData && chain.evidenceType === 'client_data') {
+  if (signals.hasClientData) {
+    // Client data (wizard answers) supports all claims, not just client_data type
     adjustment += CALIBRATION_WEIGHTS.clientData;
   }
   if (signals.hasConflictingEvidence) {

@@ -287,7 +287,7 @@ export function buildPipelineEvidence(state: PipelineState): {
     !!(state.strategistOutput?._frameworkScores?.length),
     !!(state.consensusResults?.length),
     dataQuality,
-    !!(state.challengerOutput?.challengePoints?.length),
+    false, // challengePoints are constructive, not conflicting evidence
   );
 
   // Section: Research
@@ -296,10 +296,10 @@ export function buildPipelineEvidence(state: PipelineState): {
     const rf = state.researchFindings;
 
     researchChains.push(createEvidence(
-      `Pazar verisi: ${rf.marketData.marketSize}`,
+      `Pazar verisi: ${rf.marketData?.marketSize || 'Bilgi yok'}`,
       'research',
       rf.sourceUrls?.map(s => s.url) || [],
-      hasResearch ? 75 : 20,
+      hasResearch ? 80 : 20,
       [],
       'Pazar büyüklüğü kaynağı doğrulanarak',
     ));
