@@ -254,6 +254,17 @@ const AnalysisReportPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
+  // Tab state must be declared before early returns (Rules of Hooks)
+  const [activeTab, setActiveTab] = useState<string>('all');
+
+  const tabs = [
+    { id: 'all', label: 'Tumu' },
+    { id: 'kimlik', label: 'Marka Kimligi' },
+    { id: 'hedef', label: 'Hedef Kitle' },
+    { id: 'aksiyon', label: 'Ne Yapmali' },
+    { id: 'pazar', label: 'Pazar Analizi' },
+  ];
+
   useEffect(() => {
     if (!shareToken) { setError(true); setLoading(false); return; }
 
@@ -272,6 +283,22 @@ const AnalysisReportPage: React.FC = () => {
 
     return () => { document.head.removeChild(meta); };
   }, [shareToken]);
+
+  // URL hash routing
+  useEffect(() => {
+    const hash = window.location.hash.replace('#', '');
+    if (hash && tabs.some(t => t.id === hash)) {
+      setActiveTab(hash);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab !== 'all') {
+      window.location.hash = activeTab;
+    } else {
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+  }, [activeTab]);
 
   if (loading) {
     return (
@@ -305,33 +332,6 @@ const AnalysisReportPage: React.FC = () => {
   const businessName = lead.contact.businessName;
   const sector = SECTOR_LABELS[lead.sector] || lead.sector;
   const bc = lead.wizard?.businessContext;
-
-  const [activeTab, setActiveTab] = useState<string>('all');
-
-  // Tab definitions
-  const tabs = [
-    { id: 'all', label: 'Tumu' },
-    { id: 'kimlik', label: 'Marka Kimligi' },
-    { id: 'hedef', label: 'Hedef Kitle' },
-    { id: 'aksiyon', label: 'Ne Yapmali' },
-    { id: 'pazar', label: 'Pazar Analizi' },
-  ];
-
-  // URL hash routing
-  useEffect(() => {
-    const hash = window.location.hash.replace('#', '');
-    if (hash && tabs.some(t => t.id === hash)) {
-      setActiveTab(hash);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (activeTab !== 'all') {
-      window.location.hash = activeTab;
-    } else {
-      history.replaceState(null, '', window.location.pathname + window.location.search);
-    }
-  }, [activeTab]);
 
   const showSection = (group: string) => activeTab === 'all' || activeTab === group;
 
