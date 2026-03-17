@@ -5,6 +5,7 @@ import { runBrandStrategist } from './agents/brandStrategist';
 import { runBrandChallenger } from './agents/brandChallenger';
 import { runBlogStrategyAdvisor } from './agents/blogStrategyAdvisor';
 import { runStrategySynthesizer } from './agents/strategySynthesizer';
+import { runDeliverableEnricher } from './agents/deliverableEnricher';
 import { buildEvidenceSummary, buildSectionEvidence, createEvidence, getConfidenceLevel } from './evidence';
 import type { EvidenceChain, SectionEvidence, FrameworkScore } from './evidence';
 import { buildCalibrationSignals, calibrateSection } from './calibration';
@@ -24,6 +25,7 @@ export { runDigitalPresenceAnalyzer } from './agents/digitalPresenceAnalyzer';
 export { runCompetitorDiscovery } from './agents/competitorDiscovery';
 export { runBrandStrategistRevision } from './agents/brandStrategistRevision';
 export { runConsumerTest } from './agents/consumerTest';
+export { runDeliverableEnricher } from './agents/deliverableEnricher';
 export { runStrategyHealthComparator } from './agents/strategyHealthComparator';
 export { fetchAndParseWebsite } from './utils/websiteFetcher';
 // Ensure sector enrichment modules are registered
@@ -246,6 +248,40 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineState> 
       error: 'Fallback used — strategist output mapped directly',
       timestamp: Date.now(),
     });
+  }
+
+  // Step 4b: Agent 5b (Deliverable Enricher) — runs after synthesizer, uses Flash model
+  if (state.synthesizedAnalysis && remainingTime(startTime) > 5_000) {
+    try {
+      const enricherOutput = await runDeliverableEnricher(
+        state.synthesizedAnalysis,
+        normalizedData.businessName,
+        normalizedData.sector,
+        normalizedData.brandMaturity?.level,
+      );
+      // Merge enricher outputs into synthesized analysis
+      if (enricherOutput.messagingArchitecture) {
+        state.synthesizedAnalysis.messagingArchitecture = enricherOutput.messagingArchitecture;
+      }
+      if (enricherOutput.customerJourney?.length > 0) {
+        state.synthesizedAnalysis.customerJourney = enricherOutput.customerJourney;
+      }
+      if (enricherOutput.socialMediaTemplates?.length > 0) {
+        state.synthesizedAnalysis.socialMediaTemplates = enricherOutput.socialMediaTemplates;
+      }
+      console.log('[Pipeline] DeliverableEnricher completed:', {
+        hasMessaging: !!enricherOutput.messagingArchitecture,
+        journeyStages: enricherOutput.customerJourney?.length || 0,
+        templates: enricherOutput.socialMediaTemplates?.length || 0,
+      });
+    } catch (err) {
+      console.error('[Pipeline] DeliverableEnricher failed (non-fatal):', err);
+      state.errors.push({
+        agent: 'deliverableEnricher',
+        error: err instanceof Error ? err.message : String(err),
+        timestamp: Date.now(),
+      });
+    }
   }
 
   // Step 5: Build Evidence Summary & Calibrate

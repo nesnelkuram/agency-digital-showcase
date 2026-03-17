@@ -729,6 +729,11 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
       competitorDiscovery: competitorDiscovery || undefined,
       consumerTest: consumerTestResult || undefined,
 
+      // Deliverable Enricher outputs
+      messagingArchitecture: synthesized.messagingArchitecture || undefined,
+      customerJourney: synthesized.customerJourney || undefined,
+      socialMediaTemplates: synthesized.socialMediaTemplates || undefined,
+
       // Faz 2 — Strategic depth outputs
       brandNarrative: synthesized.brandNarrative || undefined,
       intibaEngagement: synthesized.intibaEngagement || undefined,

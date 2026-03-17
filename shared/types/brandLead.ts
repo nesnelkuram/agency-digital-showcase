@@ -487,6 +487,45 @@ export interface AIAnalysis {
     aggressive: { description: string; investmentLevel: string; expectedOutcome: string; timeframe: string; risk: string };
   };
 
+  // Faz B — Mesajlaşma Mimarisi
+  messagingArchitecture?: {
+    coreMessage: string;
+    taglineCandidates: string[];
+    elevatorPitches: {
+      thirtySecond: string;
+      twoMinute: string;
+      investor: string;
+    };
+    audienceMessages: Array<{
+      segment: string;
+      headline: string;
+      subheadline: string;
+      proof: string;
+    }>;
+  };
+
+  // Faz C — Müşteri Yolculuğu
+  customerJourney?: Array<{
+    stage: 'farkindalik' | 'ilgi' | 'degerlendirme' | 'satin_alma' | 'sadakat';
+    stageLabel: string;
+    customerAction: string;
+    touchpoints: string[];
+    emotion: string;
+    brandOpportunity: string;
+    contentType: string;
+  }>;
+
+  // Faz C — Sosyal Medya İçerik Şablonları
+  socialMediaTemplates?: Array<{
+    pillar: string;
+    platform: string;
+    format: string;
+    hookLine: string;
+    bodyTemplate: string;
+    callToAction: string;
+    exampleCaption: string;
+  }>;
+
   // Faz 2 — Risk Azaltma Planları (brandChallenger, enhanced with quantitative scoring)
   riskMitigationPlans?: Array<{
     risk: string;

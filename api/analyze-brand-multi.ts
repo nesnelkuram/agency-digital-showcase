@@ -109,6 +109,11 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
       revenueImpact: state.valueMaximizerOutput?.revenueImpact || undefined,
       consultantIntro: state.valueMaximizerOutput?.consultantIntro || synthesized.consultantIntro || '',
 
+      // Deliverable Enricher outputs
+      messagingArchitecture: synthesized.messagingArchitecture || undefined,
+      customerJourney: synthesized.customerJourney || undefined,
+      socialMediaTemplates: synthesized.socialMediaTemplates || undefined,
+
       // intiba engagement
       intibaEngagement: synthesized.intibaEngagement || undefined,
       perceptualMap: synthesized.perceptualMap || undefined,
