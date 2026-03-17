@@ -167,6 +167,7 @@ const LeadDetailPage: React.FC = () => {
     setAnalyzing(true);
     setAnalyzeError(null);
     setAnalysisPhase('normalizing');
+    setActiveTab('ai');
 
     try {
       // Lite mode: use legacy sync endpoint
