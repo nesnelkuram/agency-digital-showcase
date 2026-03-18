@@ -357,7 +357,16 @@ export function renderFrame(ctx: CanvasRenderingContext2D, state: SimulationStat
     let badge = '';
     let badgeColor = '#555';
     switch (agentState.status) {
-      case 'working': badge = 'ÇALIŞIYOR'; badgeColor = agent.color; break;
+      case 'working':
+        // Tarık shows DEEP RESEARCH badge while working
+        if (agent.id === 'tarik') {
+          badge = 'DEEP-RES';
+          badgeColor = '#ff6b35';
+        } else {
+          badge = 'ÇALIŞIYOR';
+          badgeColor = agent.color;
+        }
+        break;
       case 'done': badge = 'TAMAM'; badgeColor = '#00ff41'; break;
       case 'waiting': badge = 'BEKLE'; badgeColor = '#facc15'; break;
       case 'error': badge = 'HATA'; badgeColor = '#ff0000'; break;
@@ -365,6 +374,20 @@ export function renderFrame(ctx: CanvasRenderingContext2D, state: SimulationStat
     }
     if (badge) {
       drawPixelText(ctx, badge, ax, ay + 20, hexToRgba(badgeColor, 0.75), 4);
+    }
+
+    // Tarık: pulsing "DR" beacon above head while working
+    if (agent.id === 'tarik' && agentState.status === 'working') {
+      const headY = ay - 39;
+      const beaconAlpha = 0.6 + 0.4 * Math.sin(tick * 0.003);
+      ctx.font = '7px "Press Start 2P", monospace';
+      ctx.fillStyle = hexToRgba('#ff6b35', beaconAlpha);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowBlur = 8;
+      ctx.shadowColor = '#ff6b35';
+      ctx.fillText('DR', ax, headY - 22);
+      ctx.shadowBlur = 0;
     }
 
     // Selected highlight box (sized for 16-row sprite: 24×48px)

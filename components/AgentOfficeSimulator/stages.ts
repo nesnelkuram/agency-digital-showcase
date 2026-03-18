@@ -35,10 +35,10 @@ export const AGENT_CONFIGS: AgentConfig[] = [
   {
     id: 'tarik',
     name: 'Tarık',
-    role: 'Sector Researcher',
+    role: 'Deep Researcher',
     color: '#ff6b35',
     x: 350, y: 175,
-    description: 'Sektör verisi, rakip analizi ve pazar araştırması yapar',
+    description: 'Önce Gemini Deep Research (async, ~240s). Timeout/hata varsa Grounding fallback: rakip + pazar + trend sorguları paralel. Pipelinin en yavaş ajanı — bottleneck.',
     spriteVariant: 2,
   },
   {
@@ -200,9 +200,9 @@ export const STAGES: StageConfig[] = [
   },
   {
     id: 'parallel_phase1',
-    label: 'Normalizasyon + Araştırma',
+    label: 'Norm + Deep Research',
     agentIds: ['nisan', 'tarik', 'webfetcher'],
-    durationMs: 12000,
+    durationMs: 18000, // Tarık is bottleneck (Deep Research ~240s real, shown as 18s at 1x)
     outPackets: [],
     // No packets yet — delegation happens next, then agents start on Hetzner
   },
