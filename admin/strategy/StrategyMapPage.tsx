@@ -58,16 +58,20 @@ export default function StrategyMapPage() {
 
   useEffect(() => {
     fetch('/makaleler/strategy_map.json')
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status} — dosya bulunamadı`);
+        const contentType = res.headers.get('content-type') || '';
+        if (contentType.includes('html')) {
+          throw new Error('not_generated');
+        }
         return res.json() as Promise<StrategyMap>;
       })
       .then((json) => {
         setData(json);
         setLoading(false);
       })
-      .catch((err) => {
-        setError(err.message);
+      .catch((err: Error) => {
+        setError(err.message === 'not_generated' ? 'not_generated' : err.message);
         setLoading(false);
       });
   }, []);
@@ -119,13 +123,26 @@ export default function StrategyMapPage() {
       )}
 
       {error && (
-        <div className="bg-red-950 border border-red-800 rounded-lg p-6 text-red-300">
-          <p className="font-medium">Yükleme hatası</p>
-          <p className="text-sm mt-1 text-red-400">{error}</p>
-          <p className="text-xs mt-2 text-red-500">
-            Strateji haritasını oluşturmak için{' '}
-            <code className="font-mono">node scripts/build-strategy-map.mjs</code> komutunu çalıştırın.
-          </p>
+        <div className={`border rounded-lg p-6 ${error === 'not_generated' ? 'bg-amber-950 border-amber-800 text-amber-300' : 'bg-red-950 border-red-800 text-red-300'}`}>
+          {error === 'not_generated' ? (
+            <>
+              <p className="font-medium">Strateji haritası henüz oluşturulmamış</p>
+              <p className="text-sm mt-2 text-amber-400">
+                Terminalde şu komutu çalıştır:
+              </p>
+              <pre className="mt-2 bg-black/40 rounded px-3 py-2 text-sm font-mono text-amber-200">
+                node scripts/build-strategy-map.mjs
+              </pre>
+              <p className="text-xs mt-2 text-amber-500">
+                432 makaleyi işler (~2-3 dakika), ardından sayfayı yenile.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="font-medium">Yükleme hatası</p>
+              <p className="text-sm mt-1 text-red-400">{error}</p>
+            </>
+          )}
         </div>
       )}
 

@@ -1,0 +1,1982 @@
+{
+  "meta": {
+    "generatedAt": "2026-03-18T20:08:42.827Z",
+    "totalArticles": 432,
+    "totalPatterns": 21,
+    "isDryRun": false
+  },
+  "patterns": [
+    {
+      "id": "generic_any_001",
+      "sector": "generic",
+      "brandMaturity": "any",
+      "approach": "Yıkıcı inovasyonun şirketler üzerindeki etkilerini anlamak ve bu değişime ayak uydurmak için stratejiler geliştirmek.",
+      "insight": "Başarılı şirketler, yıkıcı inovasyonu göz ardı ederek kendi sonlarını hazırlayabilirler; bu nedenle sürekli öğrenme ve adaptasyon önemlidir.",
+      "successPattern": null,
+      "avoidPattern": null,
+      "sourceArticles": [
+        {
+          "slug": "harvard-notlari-basarili-sirketler-neden-kendi-mezarlarini-kazar",
+          "title": "📌Başarılı şirketler neden kendi mezarlarını kazar? (Harvard Notları - 1)"
+        },
+        {
+          "slug": "asimetrik-sicrama",
+          "title": "📌Asimetrik sıçrama"
+        },
+        {
+          "slug": "pazarlama-neden-care-degil",
+          "title": "🎖️Pazarlama neden çare değil?"
+        },
+        {
+          "slug": "musteriyi-anlama",
+          "title": "📌Müşteriyi anlama"
+        },
+        {
+          "slug": "persona-yalani-teoman-ve-ali-koc",
+          "title": "📌Persona Yalanı - Teoman ve Ali Koç"
+        },
+        {
+          "slug": "influencer-bagimliligi",
+          "title": "🎖️Influencer bağımlılığı"
+        },
+        {
+          "slug": "aynaya-bak",
+          "title": "🎖️Aynaya bak"
+        },
+        {
+          "slug": "gayrinizami-strateji-matrisi",
+          "title": "🎖️Gayrinizami Strateji Matrisi"
+        },
+        {
+          "slug": "aslan-besliyorsan",
+          "title": "📌Aslan besliyorsan..."
+        },
+        {
+          "slug": "farklilasma-imkansiz-degil",
+          "title": "🎖️Farklılaşma imkansız değil"
+        },
+        {
+          "slug": "vaka-analizi-01",
+          "title": "Vaka Analizi #01"
+        },
+        {
+          "slug": "basparmaginiz-kac-milyon-dolar-eder",
+          "title": "🎖️Başparmağınız kaç milyon dolar eder?"
+        },
+        {
+          "slug": "yagmuru-sevmek",
+          "title": "📌Yağmuru sevmek"
+        },
+        {
+          "slug": "mesele-zipirlik-degil",
+          "title": "🎖️Mesele zıpırlık değil"
+        },
+        {
+          "slug": "dugumu-cozmek-5-5-final",
+          "title": "🧶 Düğümü Çözmek (5/5) Final"
+        },
+        {
+          "slug": "dugumu-cozmek-4-5-eylem-nerede",
+          "title": "🧶 Düğümü Çözmek (4/5) Eylem nerede?"
+        },
+        {
+          "slug": "dugumu-cozmek-3-5-pusula-neyi-gosteriyor",
+          "title": "🧶 Düğümü Çözmek (3/5) Pusula Neyi Gösteriyor?"
+        },
+        {
+          "slug": "dugumu-cozmek-2-5-semptom-mu-hastalik-mi-teshis",
+          "title": "🧶 Düğümü Çözmek (2/5) Semptom mu, Hastalık mı? (Teşhis)"
+        },
+        {
+          "slug": "dugumu-cozmek-1-5-neden-harekete-gecemiyoruz",
+          "title": "🧶Düğümü Çözmek (1/5) Neden Harekete Geçemiyoruz?"
+        },
+        {
+          "slug": "hedef-asuresi",
+          "title": "🎖️Hedef aşuresi"
+        },
+        {
+          "slug": "yaraticilik-dogustan-gelmez-ogrenilebilir",
+          "title": "📌Yaratıcılık Doğuştan Gelmez. Öğrenilebilir."
+        },
+        {
+          "slug": "laf-salatasi",
+          "title": "🎖️Laf salatası"
+        },
+        {
+          "slug": "isin-dnasindan-markanin-dnasina",
+          "title": "📌İşin DNA'sından markanın DNA'sına"
+        },
+        {
+          "slug": "rakip-analizi-cercevesi",
+          "title": "📌Rakip analizi çerçevesi"
+        },
+        {
+          "slug": "bes-gizli-dusman",
+          "title": "📌Beş gizli düşman"
+        },
+        {
+          "slug": "gayrinizami-mucadelede-karsiniza-cikacak-5-pazarlamaci-tipi",
+          "title": "🎖️Gayrinizami mücadelede karşınıza çıkacak 5 pazarlamacı tipi"
+        },
+        {
+          "slug": "donuk-medya",
+          "title": "📌Donuk medya"
+        },
+        {
+          "slug": "ninja",
+          "title": "🎖️Ninja"
+        },
+        {
+          "slug": "inek-testi",
+          "title": "📌İnek testi"
+        },
+        {
+          "slug": "gayrinizami-pazarlama",
+          "title": "🎖️Gayrinizami Pazarlama"
+        },
+        {
+          "slug": "5-adimda-ozellik-odakli-farklilasma",
+          "title": "📌5 adımda özellik odaklı farklılaşma"
+        },
+        {
+          "slug": "sosyal-medyada-ucuncu-yol",
+          "title": "📌Sosyal medyada üçüncü yol"
+        },
+        {
+          "slug": "en-iyi-tercih",
+          "title": "📌En iyi tercih"
+        },
+        {
+          "slug": "sezarin-fiyati",
+          "title": "🎖️Sezar'ın fiyatı"
+        },
+        {
+          "slug": "idare-eder-modu",
+          "title": "📌İdare eder modu"
+        },
+        {
+          "slug": "uygulamada-basarinin-5-altin-kurali-2",
+          "title": "📌Uygulamada Başarının 5 Altın Kuralı"
+        },
+        {
+          "slug": "hollywoodun-sirri",
+          "title": "🎖️Hollywood'un sırrı"
+        },
+        {
+          "slug": "musteri-olmayanlar",
+          "title": "📌Müşteri olmayanlar"
+        },
+        {
+          "slug": "grafik-tasarim-karari",
+          "title": "📌Grafik tasarım kararı"
+        },
+        {
+          "slug": "malibudaki-ev",
+          "title": "🎖️Malibu'daki ev"
+        },
+        {
+          "slug": "demir-sansolyenin-duellosu",
+          "title": "🎖️Demir Şansölye'nin düellosu"
+        },
+        {
+          "slug": "sabotaj",
+          "title": "📌Sabotaj"
+        },
+        {
+          "slug": "krokinin-onemi",
+          "title": "📌Krokinin önemi"
+        },
+        {
+          "slug": "mantiksiz-dusunun",
+          "title": "📌Mantıksız düşünün"
+        },
+        {
+          "slug": "markaniz-icin-5000-yillik-yontem",
+          "title": "🎖️Markanız için 5000 yıllık yöntem"
+        },
+        {
+          "slug": "sinirlandirin",
+          "title": "🎖️Sınırlandırın"
+        },
+        {
+          "slug": "kizim-sana-soyluyorum",
+          "title": "📌Kızım sana söylüyorum"
+        },
+        {
+          "slug": "misilleme",
+          "title": "📌Misilleme"
+        },
+        {
+          "slug": "kontrol-listesi",
+          "title": "📌 Kontrol listesi"
+        },
+        {
+          "slug": "esekli-yazi",
+          "title": "📌Eşekli yazı"
+        },
+        {
+          "slug": "transfer-yontemi",
+          "title": "🎖️Transfer yöntemi"
+        },
+        {
+          "slug": "turuncu-yelek",
+          "title": "📌Turuncu yelek"
+        },
+        {
+          "slug": "gurultu-ve-stratejiyi-tehdit-eden-5-etkisi",
+          "title": "📌Gürültü ve stratejiyi tehdit eden 5 etkisi"
+        },
+        {
+          "slug": "kiymeti-pek-bilinmeyen-5-onemli-ilke",
+          "title": "📌Kıymeti pek bilinmeyen 5 önemli ilke"
+        },
+        {
+          "slug": "yatarken-ne-giyerdi",
+          "title": "📮Yatarken ne giyerdi?"
+        },
+        {
+          "slug": "sinsi-veri",
+          "title": "📮Sinsi veri"
+        },
+        {
+          "slug": "dataizm-zincirinden-kurtulun-2",
+          "title": "🎖️Dataizm zincirinden kurtulun"
+        },
+        {
+          "slug": "rol-yapmayin-lutfen",
+          "title": "📮Rol yapmayın lütfen!"
+        },
+        {
+          "slug": "yol-bagimliligi",
+          "title": "🎖️Yol bağımlılığı"
+        },
+        {
+          "slug": "buz-kutusu",
+          "title": "📮Buz kutusu"
+        },
+        {
+          "slug": "celisen-amaclar",
+          "title": "📮Çelişen amaçlar"
+        },
+        {
+          "slug": "musteri-zihninin-fotografi-2",
+          "title": "📌Müşteri zihninin fotoğrafı"
+        },
+        {
+          "slug": "platonik-ticaret",
+          "title": "📮Platonik ticaret"
+        },
+        {
+          "slug": "kelek-strateji",
+          "title": "📮Kelek strateji"
+        },
+        {
+          "slug": "motor-mu-kanat-mi",
+          "title": "📮Motor mu, kanat mı?"
+        },
+        {
+          "slug": "dunya-markanizi-nasil-goruyor-2",
+          "title": "📮Dünya, markanızı nasıl görüyor?"
+        },
+        {
+          "slug": "ozellikler-2",
+          "title": "📌Özellikler"
+        },
+        {
+          "slug": "irade-meselesi",
+          "title": "📮İrade meselesi"
+        },
+        {
+          "slug": "untitled-2",
+          "title": "📮Pazarlama değil rekabet"
+        },
+        {
+          "slug": "tek-seansta-tedavi",
+          "title": "📮Tek seansta tedavi"
+        },
+        {
+          "slug": "subliminal-tokat",
+          "title": "📮Subliminal tokat"
+        },
+        {
+          "slug": "savas-baris-ve-enistem",
+          "title": "📮Savaş, barış ve eniştem"
+        },
+        {
+          "slug": "calma-sanati-ve-yaraticilik",
+          "title": "📌Çalma sanatı ve yaratıcılık"
+        },
+        {
+          "slug": "limited-post-27",
+          "title": "📰Limited Post #27"
+        },
+        {
+          "slug": "nazik-bir-soz",
+          "title": "📮Nazik bir söz"
+        },
+        {
+          "slug": "tekrarin-4-formu",
+          "title": "📌Tekrarın 4 formu"
+        },
+        {
+          "slug": "sistematik-tekrar",
+          "title": "📮Sistematik tekrar"
+        },
+        {
+          "slug": "ilk-dugme",
+          "title": "📮İlk düğme"
+        },
+        {
+          "slug": "6-punto-ile-kultur-insa-etmek",
+          "title": "🎖️6 punto ile kültür inşa etmek"
+        },
+        {
+          "slug": "dusman-nasil-secilir",
+          "title": "📮Düşman nasıl seçilir?"
+        },
+        {
+          "slug": "dusmanin-faydasi",
+          "title": "📮Düşmanın faydası"
+        },
+        {
+          "slug": "karambol",
+          "title": "📮Karambol"
+        },
+        {
+          "slug": "markanizin-evanjelisti-var-mi",
+          "title": "📮Markanızın evanjelisti var mı?"
+        },
+        {
+          "slug": "yildirim-aski",
+          "title": "📮Yıldırım aşkı"
+        },
+        {
+          "slug": "begenmeyebilirsiniz",
+          "title": "📮Beğenmeyebilirsiniz"
+        },
+        {
+          "slug": "kagittan-kaplan",
+          "title": "📮Kağıttan kaplan"
+        },
+        {
+          "slug": "nefes-nefese",
+          "title": "📮Nefes nefese"
+        },
+        {
+          "slug": "yorum-farki",
+          "title": "📌Yorum farkı"
+        },
+        {
+          "slug": "saddam-neye-guvendi",
+          "title": "📮Saddam neye güvendi?"
+        },
+        {
+          "slug": "mutfak-sirlari",
+          "title": "📮Mutfak sırları"
+        },
+        {
+          "slug": "hangi-sigir-kimin-sigiri",
+          "title": "📮Hangi sığır kimin sığırı"
+        },
+        {
+          "slug": "angora-tavsani-seven-soforler",
+          "title": "📮Angora Tavşanı Seven Şoförler"
+        },
+        {
+          "slug": "akilda-kalmanin-basit-yolu",
+          "title": "📮Akılda kalmanın basit yolu"
+        },
+        {
+          "slug": "tembellestiler",
+          "title": "📮Tembelleştiler"
+        },
+        {
+          "slug": "cozum-degil-yon",
+          "title": "📌Çözüm değil, yön"
+        },
+        {
+          "slug": "yuk-beygirini-yormayin",
+          "title": "📮Yük beygirini yormayın"
+        },
+        {
+          "slug": "markalari-buyuten-engeller",
+          "title": "📮Markaları büyüten engeller"
+        },
+        {
+          "slug": "shakespeareden-daha-mi-iyisiniz-2",
+          "title": "📮Shakespeare’den daha mı iyisiniz?"
+        },
+        {
+          "slug": "sehirdeki-kaplan",
+          "title": "📌Şehirdeki kaplan"
+        },
+        {
+          "slug": "devrimci-dusunce-sureci",
+          "title": "📌Devrimci düşünce süreci"
+        },
+        {
+          "slug": "uygulamada-fanatizmin-3-faydasi",
+          "title": "🎖️Uygulamada fanatizmin 3 faydası"
+        },
+        {
+          "slug": "marka-yonetimi",
+          "title": "🎖️Marka yönetimi"
+        },
+        {
+          "slug": "lincolnun-komutani-2",
+          "title": "📌Lincoln'ün komutanı"
+        },
+        {
+          "slug": "hikaye-yaratmak-anlatmak-degil-yaratmak",
+          "title": "🎖️Hikaye yaratmak (Anlatmak değil, yaratmak.)"
+        },
+        {
+          "slug": "eldiven-tapinagi",
+          "title": "📌Eldiven tapınağı"
+        },
+        {
+          "slug": "minik-ariza",
+          "title": "📌 Minik arıza"
+        },
+        {
+          "slug": "pratikte-konumlandirma-4-2",
+          "title": "📌Pratikte konumlandırma 4 - Gereksiz korku"
+        },
+        {
+          "slug": "doz-ayari-2",
+          "title": "🎖️Doz ayarı"
+        },
+        {
+          "slug": "pratikte-konumlandirma-3-baslangic-2",
+          "title": "📌Pratikte konumlandırma 3 - Başlangıç"
+        },
+        {
+          "slug": "postanin-gucu",
+          "title": "Postanın gücü📪"
+        },
+        {
+          "slug": "pratikte-konumlandirma-2",
+          "title": "📌Pratikte konumlandırma 2"
+        },
+        {
+          "slug": "gormeden-inanmak",
+          "title": "🎖️Görmeden inanmak"
+        },
+        {
+          "slug": "pratikte-konumlandirma",
+          "title": "📌Pratikte konumlandırma"
+        },
+        {
+          "slug": "gorunmeyen-cozumler",
+          "title": "🗝️Görünmeyen çözümler"
+        },
+        {
+          "slug": "markalamanin-organik-yolu",
+          "title": "🎖️Markalamanın organik yolu"
+        },
+        {
+          "slug": "kantin-kategorik-imperatifi",
+          "title": "📌Kant’ın kategorik imperatifi"
+        },
+        {
+          "slug": "acimasiz-yazi-2",
+          "title": "🗝️Acımasız yazı"
+        },
+        {
+          "slug": "6-olasi-tehdit",
+          "title": "6 olası tehdit📌"
+        },
+        {
+          "slug": "eliniz-ve-kalbiniz",
+          "title": "🎖️Eliniz ve kalbiniz"
+        },
+        {
+          "slug": "dogru-karar-vermenin-yolu",
+          "title": "Doğru karar vermenin yolu"
+        },
+        {
+          "slug": "mick-jaggerin-dansi",
+          "title": "Mick Jagger'ın dansı📌"
+        },
+        {
+          "slug": "markanin-sirket-icindeki-rolu",
+          "title": "🎖️Markanın şirket içindeki rolü"
+        },
+        {
+          "slug": "yeterince-net-misiniz",
+          "title": "Yeterince net misiniz?"
+        },
+        {
+          "slug": "karar-vermenin-maliyeti",
+          "title": "Karar vermenin maliyeti"
+        },
+        {
+          "slug": "peter-pan",
+          "title": "🎖️Peter Pan"
+        },
+        {
+          "slug": "fiyatlandirmanin-hedefi-2",
+          "title": "📌Fiyatlandırma hedefi"
+        },
+        {
+          "slug": "yonetim-ve-strateji-gozden-kacan-fark",
+          "title": "Yönetim ve Strateji: Gözden Kaçan Fark📌"
+        },
+        {
+          "slug": "vermeden-almak",
+          "title": "Vermeden almak?"
+        },
+        {
+          "slug": "yenilik-nerede",
+          "title": "Yenilik nerede?📌"
+        },
+        {
+          "slug": "buzdagi-2",
+          "title": "Buzdağı📌"
+        },
+        {
+          "slug": "ahududu",
+          "title": "Ahududu"
+        },
+        {
+          "slug": "rekabetin-otesine-gecmek-icin",
+          "title": "Rekabetin ötesine geçmek için"
+        },
+        {
+          "slug": "iletisimin-4-hedefi-2",
+          "title": "İletişimin 4 hedefi📌"
+        },
+        {
+          "slug": "populerlik-noktasi",
+          "title": "📌Popülerlik noktası"
+        },
+        {
+          "slug": "om-mani-padme-hum",
+          "title": "📌Om Mani Padme Hum"
+        },
+        {
+          "slug": "uzmanlasmanin-getirdigi-zenginlik-3",
+          "title": "Uzmanlaşmanın getirdiği zenginlik #3"
+        },
+        {
+          "slug": "bir-markayi-doguran-yasatan-olduren",
+          "title": "Bir markayı doğuran, yaşatan ve öldüren 3 farklı şey"
+        },
+        {
+          "slug": "uzmanlasmanin-getirdigi-zenginlik-2",
+          "title": "Uzmanlaşmanın getirdiği zenginlik #2"
+        },
+        {
+          "slug": "uzmanlasmanin-getirdigi-zenginlik-1",
+          "title": "Uzmanlaşmanın getirdiği zenginlik #1"
+        },
+        {
+          "slug": "swotu-tersten-gormek",
+          "title": "🎖️SWOT'u tersten görmek"
+        },
+        {
+          "slug": "yaratici-stratejiler-icin-3-ilke-2",
+          "title": "📌Yaratıcı stratejiler için 3 ilke"
+        },
+        {
+          "slug": "korlugun-tedavisi-2",
+          "title": "Körlüğün tedavisi📌"
+        },
+        {
+          "slug": "dusman-kim",
+          "title": "Düşman kim?📌"
+        },
+        {
+          "slug": "buyuk-fikir-nasil-bulunur",
+          "title": "Büyük fikre giden yol"
+        },
+        {
+          "slug": "yonetici-agzi",
+          "title": "Yönetici ağzı📌"
+        },
+        {
+          "slug": "kralin-kici",
+          "title": "🎖️Kralın kıçı"
+        },
+        {
+          "slug": "markanizin-kirmasi-gereken-kilit",
+          "title": "Markanızın kırması gereken kilit"
+        },
+        {
+          "slug": "riskli-bir-gosteri",
+          "title": "Riskli bir gösteri📌"
+        },
+        {
+          "slug": "bilyeli-rulman",
+          "title": "Bilyeli rulman ☕️"
+        },
+        {
+          "slug": "veriye-karsi-din-ve-ideoloji",
+          "title": "🎖️Veriye karşı din ve ideoloji"
+        },
+        {
+          "slug": "kotu-iyiden-guclu-mudur",
+          "title": "Kötü iyiden güçlü müdür?📌"
+        },
+        {
+          "slug": "arada-kalanlar",
+          "title": "Arada kalanlar📌"
+        },
+        {
+          "slug": "yuksek-fiyata-satmanin-matematigi",
+          "title": "Yüksek fiyata satmanın matematiği📌"
+        },
+        {
+          "slug": "tasarim-nasil-secilir",
+          "title": "Tasarım nasıl seçilir?📌"
+        },
+        {
+          "slug": "vasata-ceken-tavsiyeler",
+          "title": "Vasata çeken tavsiyeler📌"
+        },
+        {
+          "slug": "gucun-zayifligi",
+          "title": "📌Gücün zayıflığı"
+        },
+        {
+          "slug": "tanitimin-2-asamasi",
+          "title": "📌Tanıtımın 2 aşaması"
+        },
+        {
+          "slug": "medyanin-3-turu-ve-ates-hatti",
+          "title": "Medyanın 3 türü ve ateş hattı📌"
+        },
+        {
+          "slug": "ilham-nerede",
+          "title": "İlham nerede?📌"
+        },
+        {
+          "slug": "surtunme",
+          "title": "Sürtünme"
+        },
+        {
+          "slug": "dusuk-fiyatli-rakiple-mucadele",
+          "title": "Düşük fiyatlı rakiple mücadele📌"
+        },
+        {
+          "slug": "kilciksiz-markalama-reklam-nedir",
+          "title": "🐟Kılçıksız Markalama: Reklam nedir?"
+        },
+        {
+          "slug": "rakiplerin-buyuklugu",
+          "title": "Rakiplerin büyüklüğü📌"
+        },
+        {
+          "slug": "kilciksiz-markalama-360-derece-pazarlama-iletisimi-nedir",
+          "title": "🐟Kılçıksız Markalama: 360 derece pazarlama iletişimi nedir?"
+        },
+        {
+          "slug": "kilciksiz-markalama-marka-mimarisi-nedir",
+          "title": "🐟Kılçıksız Markalama: Marka mimarisi nedir?"
+        },
+        {
+          "slug": "pazardaki-demokrasi",
+          "title": "💳 Pazardaki demokrasi"
+        },
+        {
+          "slug": "pisa-kulesi",
+          "title": "Pisa Kulesi📌"
+        },
+        {
+          "slug": "kilciksiz-markalama-mecra-nedir",
+          "title": "🐟Kılçıksız Markalama: Mecra nedir?"
+        },
+        {
+          "slug": "bu-ne-curet",
+          "title": "Bu ne cüret!📌"
+        },
+        {
+          "slug": "markalasma-nihai-hedef-mi",
+          "title": "Gerçekten markalaşabilir miyiz?"
+        },
+        {
+          "slug": "kilciksiz-markalama-kanca-nedir",
+          "title": "🐟Kılçıksız Markalama: Kanca nedir?"
+        },
+        {
+          "slug": "1-bakis-acisi-4-etki",
+          "title": "1 bakış açısı ve 4 etki📌"
+        },
+        {
+          "slug": "12den-vurmak",
+          "title": "12'den vurmak📌"
+        },
+        {
+          "slug": "kilciksiz-markalama-pazarlamada-arastirma-nedir",
+          "title": "🐟Kılçıksız Markalama: Pazarlamada araştırma nedir?"
+        },
+        {
+          "slug": "limited-post-25",
+          "title": "📰Limited Post #25"
+        },
+        {
+          "slug": "profesorun-boyu-ve-kolomb-yanilgisi",
+          "title": "Profesörün boyu, rakibin gücü ve Kolomb yanılgısı 📌"
+        },
+        {
+          "slug": "kilciksiz-markalama-yaraticilik-nedir",
+          "title": "🐟Kılçıksız Markalama: Yaratıcılık nedir?"
+        },
+        {
+          "slug": "kopekbaliginin-burnu",
+          "title": "Köpekbalığının burnu📌"
+        },
+        {
+          "slug": "2023un-en-cok-okunanlari",
+          "title": "Yılın en çok okunanları - 2023"
+        },
+        {
+          "slug": "tum-sirket-tasarimci-olursa",
+          "title": "Tüm şirket tasarımcı olursa📌"
+        },
+        {
+          "slug": "kilciksiz-markalama-icerik-pazarlama-nedir",
+          "title": "🐟Kılçıksız Markalama: İçerikle pazarlama nedir?"
+        },
+        {
+          "slug": "turbe-ziyareti",
+          "title": "Türbe ziyareti"
+        },
+        {
+          "slug": "elini-sallasa-ellisi",
+          "title": "Elini sallasa ellisi"
+        },
+        {
+          "slug": "tabulari-kurcalayin",
+          "title": "Tabuları kurcalayın📌"
+        },
+        {
+          "slug": "kilciksiz-markalama-rekabet-avantaji-nedir",
+          "title": "🐟Kılçıksız Markalama: Rekabet avantajı nedir?"
+        },
+        {
+          "slug": "rosehill-premium",
+          "title": "Rosehill Premium"
+        },
+        {
+          "slug": "atin-aynisi",
+          "title": "Atın aynısı"
+        },
+        {
+          "slug": "hangi-hikayeler-sattirir",
+          "title": "Hangi hikayeler sattırır?"
+        },
+        {
+          "slug": "limited-post-24",
+          "title": "📰Limited Post #24"
+        },
+        {
+          "slug": "stratejinin-dogasi",
+          "title": "Stratejinin doğası📌"
+        },
+        {
+          "slug": "kilciksiz-markalama-fiyat-nedir",
+          "title": "🐟Kılçıksız Markalama: Fiyat nedir?"
+        },
+        {
+          "slug": "limited-post-23",
+          "title": "📰Limited Post #23"
+        },
+        {
+          "slug": "odagi-kategorilere-ayirmak",
+          "title": "Odağı kategorilere ayırmak📌"
+        },
+        {
+          "slug": "dunun-gunesi",
+          "title": "Dünün güneşi📌"
+        },
+        {
+          "slug": "kilciksiz-markalama-pazarlama-plani-nedir",
+          "title": "🐟Kılçıksız Markalama: Pazarlama planı nedir?"
+        },
+        {
+          "slug": "dunyanin-en-basit-pazarlama-plani",
+          "title": "3 aşamalı basit bir pazarlama planı📌"
+        },
+        {
+          "slug": "limited-post-22",
+          "title": "📰Limited Post #22"
+        },
+        {
+          "slug": "kilciksiz-markalama-dikkat-nedir",
+          "title": "🐟Kılçıksız Markalama: Dikkat nedir?"
+        },
+        {
+          "slug": "kirmizi-telefon",
+          "title": "Kırmızı telefon📌"
+        },
+        {
+          "slug": "kilciksiz-markalama-misyon-ve-vizyon-nedir",
+          "title": "🐟Kılçıksız Markalama: Misyon ve vizyon nedir?"
+        },
+        {
+          "slug": "limited-post-21",
+          "title": "📰Limited Post #21"
+        },
+        {
+          "slug": "kilciksiz-markalama-pazarlama-karmasi-nedir",
+          "title": "🐟Kılçıksız Markalama: Pazarlama karması nedir?"
+        },
+        {
+          "slug": "farklilasmanin-en-buyuk-dusmani-buyume-aski",
+          "title": "Farklılaşmanın en büyük düşmanı: Büyüme aşkı📌"
+        },
+        {
+          "slug": "stratejik-hamburger",
+          "title": "Stratejik hamburger📌"
+        },
+        {
+          "slug": "kilciksiz-markalama-sponsorluk-nedir",
+          "title": "🐟Kılçıksız Markalama: Sponsorluk nedir?"
+        },
+        {
+          "slug": "limited-post-20",
+          "title": "📰Limited Post #20"
+        },
+        {
+          "slug": "limited-post-19",
+          "title": "📰Limited Post #19"
+        },
+        {
+          "slug": "hayalet-zafer",
+          "title": "Hayalet zafer📌"
+        },
+        {
+          "slug": "kilciksiz-markalama-rakip-nedir",
+          "title": "🐟Kılçıksız Markalama: Rakip nedir?"
+        },
+        {
+          "slug": "kilciksiz-markalama-influencer-nedir",
+          "title": "🐟Kılçıksız Markalama: Influencer nedir?"
+        },
+        {
+          "slug": "formuldeki-eksik-zaman",
+          "title": "Formüldeki eksik: Zaman📌"
+        },
+        {
+          "slug": "bir-bardak-bakteri",
+          "title": "Bir bardak bakteri📌"
+        },
+        {
+          "slug": "kilciksiz-markalama-hedef-kitle-nedir",
+          "title": "🐟Kılçıksız Markalama: Hedef kitle nedir?"
+        },
+        {
+          "slug": "limited-post-18",
+          "title": "📰Limited Post #18"
+        },
+        {
+          "slug": "yasak-elma-yavru-kopek",
+          "title": "📌Yasak elma: Yavru köpek yaklaşımı🍎"
+        },
+        {
+          "slug": "kilciksiz-markalama-farklilasma-nedir",
+          "title": "🐟Kılçıksız Markalama: Farklılaşma nedir?"
+        },
+        {
+          "slug": "limited-post-17",
+          "title": "📰Limited Post #17"
+        },
+        {
+          "slug": "yasak-elma-urun-cesitliligi",
+          "title": "📌Yasak elma: Ürün çeşitliliği🍎"
+        },
+        {
+          "slug": "kilciksiz-markalama-deger-nedir",
+          "title": "🐟Kılçıksız Markalama: Değer nedir?"
+        },
+        {
+          "slug": "kilciksiz-markalama-strateji-nedir",
+          "title": "🐟Kılçıksız Markalama: Strateji nedir?"
+        },
+        {
+          "slug": "kilciksiz-markalama-halkla-iliskiler-pr-nedir",
+          "title": "🐟Kılçıksız Markalama: Halkla ilişkiler, PR nedir?"
+        },
+        {
+          "slug": "limited-post-15",
+          "title": "📰Limited Post #15"
+        },
+        {
+          "slug": "limited-post-16",
+          "title": "📰Limited Post #16"
+        },
+        {
+          "slug": "yasak-elma-eklemek",
+          "title": "📌Yasak elma: Eklemek🍎"
+        },
+        {
+          "slug": "hikayeyi-koklamak",
+          "title": "Hikayeyi koklamak📌"
+        },
+        {
+          "slug": "kilciksiz-markalama-konumlandirma-nedir",
+          "title": "🐟Kılçıksız Markalama: Konumlandırma nedir?"
+        },
+        {
+          "slug": "yasak-elma-musteri-ihtiyaclari",
+          "title": "📌Yasak elma: Müşteri ihtiyaçları 🍎"
+        },
+        {
+          "slug": "kilciksiz-markalama-marka-nedir",
+          "title": "🐟Kılçıksız Markalama: Marka nedir?"
+        },
+        {
+          "slug": "konumlandirmanin-masturbasyondan-farki",
+          "title": "Konumlandırmanın mastürbasyondan farkı"
+        },
+        {
+          "slug": "yasak-elma-heves-etmek",
+          "title": "📌Yasak elma: Heves etmek 🍎"
+        },
+        {
+          "slug": "limited-post-13",
+          "title": "📰Limited Post #13"
+        },
+        {
+          "slug": "kilciksiz-markalama",
+          "title": "Kılçıksız Markalama"
+        },
+        {
+          "slug": "yasak-elma-soyutluk",
+          "title": "📌Yasak elma: Soyutluk 🍎"
+        },
+        {
+          "slug": "konumlandirma-sadece-pazarlamayla-olmaz",
+          "title": "Konumlandırma sadece pazarlamayla olmaz📌"
+        },
+        {
+          "slug": "limited-post-12",
+          "title": "📰Limited Post #12"
+        },
+        {
+          "slug": "ilke-12-markana-asik-olma",
+          "title": "İlke #12: Markana aşık olma!"
+        },
+        {
+          "slug": "limited-post-11",
+          "title": "📰Limited Post #11"
+        },
+        {
+          "slug": "kaos-ortaminda-pazarlama",
+          "title": "Kaos ortamında pazarlama📌"
+        },
+        {
+          "slug": "marka-konumlandirma-nedir",
+          "title": "Marka konumlandırma nedir?"
+        },
+        {
+          "slug": "ilke-11-hizli-yukselis-bekleme-sabret",
+          "title": "İlke #11: Hızlı yükseliş bekleme, sabret"
+        },
+        {
+          "slug": "hedef-kitlenin-gizli-hedefi",
+          "title": "Hedef kitlenin gizli hedefi📌"
+        },
+        {
+          "slug": "limited-post-10",
+          "title": "📰Limited Post #10"
+        },
+        {
+          "slug": "karpuzun-fiyati",
+          "title": "Karpuzun fiyatı📌"
+        },
+        {
+          "slug": "ilke-10-karmasikligin-degil-basitligin-pesinden-kos",
+          "title": "İlke #10: Karmaşıklığın değil basitliğin peşinden koş"
+        },
+        {
+          "slug": "limited-post-9",
+          "title": "📰Limited Post #9"
+        },
+        {
+          "slug": "bir-dalda-kac-kiraz",
+          "title": "Bir dalda kaç kiraz?📌"
+        },
+        {
+          "slug": "ilke-8",
+          "title": "İlke #8: Reklam peşinde koşma, haber olmanın peşinde koş"
+        },
+        {
+          "slug": "ayrismanin-avantajlari",
+          "title": "Ayrışmanın avantajları📌"
+        },
+        {
+          "slug": "limited-post-8",
+          "title": "📰Limited Post #8"
+        },
+        {
+          "slug": "ilke-7-tek-bir-kavrama-sahip-cik",
+          "title": "İlke #7: Odağı daralt, markayı genişletme"
+        },
+        {
+          "slug": "guclu-markalar-yaratmak-icin-firsatlar-ayrisma",
+          "title": "Güçlü markalar yaratmak için fırsatlar: Ayrışma📌"
+        },
+        {
+          "slug": "ilke-6-tek-bir-kavrama-sahip-cik",
+          "title": "İlke #6: Tek bir kavrama sahip çık"
+        },
+        {
+          "slug": "limited-post-7",
+          "title": "📰Limited Post #7"
+        },
+        {
+          "slug": "konumlandirma-rakiple-yapilir",
+          "title": "Konumlandırma rakiple yapılır📌"
+        },
+        {
+          "slug": "ilke-5-urune-degil-markaya-odaklan",
+          "title": "İlke #5: Ürüne değil, markaya odaklan"
+        },
+        {
+          "slug": "limited-post-6",
+          "title": "📰Limited Post #6"
+        },
+        {
+          "slug": "3-farkli-evren",
+          "title": "3 farklı evren📌"
+        },
+        {
+          "slug": "kotu-urunle-basarili-olmanin-yolu",
+          "title": "Kötü bir ürünle başarılı olmanın yolu📌"
+        },
+        {
+          "slug": "ilke-4-rekabetten-korkma-rekabeti-sev",
+          "title": "İlke #4: Rekabetten korkma, rekabeti sev"
+        },
+        {
+          "slug": "limited-post-5",
+          "title": "📰Limited Post #5"
+        },
+        {
+          "slug": "ilke-3-daha-iyisinin-degil-daha-farklinin-pesinde-kos",
+          "title": "İlke #3: Daha iyinin değil, daha farklının peşinde koş"
+        },
+        {
+          "slug": "bilginin-fazlasi",
+          "title": "Bilginin fazlası📌"
+        },
+        {
+          "slug": "bozuk-olmasa-da-tamir-etmeli-mi",
+          "title": "Süper kahraman yanılsaması📌"
+        },
+        {
+          "slug": "ilke-2-uzun-vadede-isimler-savasir",
+          "title": "İlke #2: Uzun vadede isimler savaşır"
+        },
+        {
+          "slug": "verimlilik-sart-mi",
+          "title": "Verimlilik şart mı?📌"
+        },
+        {
+          "slug": "ilke-1",
+          "title": "İlke #1: Gerçeklerle değil, algılarla ilgilen"
+        },
+        {
+          "slug": "limited-post-4",
+          "title": "📰Limited Post #4"
+        },
+        {
+          "slug": "paranoya-gerekli-mi",
+          "title": "Paranoya gerekli mi?📌"
+        },
+        {
+          "slug": "limited-post-3",
+          "title": "📰Limited Post #3"
+        },
+        {
+          "slug": "yanlis-teshis-pazarlama-miyoplugu",
+          "title": "Yanlış teşhis: Pazarlama miyopluğu📌"
+        },
+        {
+          "slug": "limitedpost-2",
+          "title": "📰Limited Post #2"
+        },
+        {
+          "slug": "kopegi-isiran-markalar",
+          "title": "Köpeği ısıran markalar 📌"
+        },
+        {
+          "slug": "beyin-firtinasindan-fikir-cikmaz",
+          "title": "Beyin fırtınasından fikir çıkmaz"
+        },
+        {
+          "slug": "stratejik-kare-ve-savunma-savasi",
+          "title": "Stratejik kare ve savunma savaşı (1/4)📌"
+        },
+        {
+          "slug": "influencerlari-rahat-birakiniz",
+          "title": "Influencer’ları rahat bırakınız!"
+        },
+        {
+          "slug": "stratejik-kare-ve-kanat-savasi-2-4",
+          "title": "Stratejik kare ve kanat savaşı (3/4)📌"
+        },
+        {
+          "slug": "limited-1",
+          "title": "📰Limited Post #1"
+        },
+        {
+          "slug": "stratejik-kare-ve-gerilla-savasi-4-4",
+          "title": "Stratejik kare ve gerilla savaşı (4/4)📌"
+        },
+        {
+          "slug": "tuketiciye-soru-sorulur-mu",
+          "title": "Tüketiciye soru sorulur mu?"
+        },
+        {
+          "slug": "2022nin-en-cok-okunanlari",
+          "title": "Yılın en çok okunanları"
+        },
+        {
+          "slug": "eltiler-yarisiyor",
+          "title": "Eltiler yarışıyor"
+        },
+        {
+          "slug": "sirketiniz-ucuyor-mu",
+          "title": "Şirketiniz uçuyor mu?📌"
+        },
+        {
+          "slug": "kacinmaniz-gereken-bariz-pazarlama-hatalari",
+          "title": "Kaçınmanız gereken bariz pazarlama hataları📌 (4/4)"
+        },
+        {
+          "slug": "bariz-olanin-onundeki-engeller",
+          "title": "Bariz olanın önündeki engeller(3/4)📌"
+        },
+        {
+          "slug": "bariz-olani-anlamak-icin-5-soru",
+          "title": "Bariz olanı anlamak için 5 soru📌 (2/4)"
+        },
+        {
+          "slug": "pazarlamaya-yeni-tanim",
+          "title": "Pazarlamaya yeni tanım📌"
+        },
+        {
+          "slug": "konumlandirma-ve-asiri-sadelestirme",
+          "title": "Konumlandırma ve aşırı sadeleştirme"
+        },
+        {
+          "slug": "ozelligin-ozelligi",
+          "title": "Özelliğin özelliği📌"
+        },
+        {
+          "slug": "urunu-ilgi-cekici-hale-getirmek",
+          "title": "Ürünü ilgi çekici hâle getirmek📌"
+        },
+        {
+          "slug": "markalarin-kontrol-listesi",
+          "title": "Kontrol listesi📌"
+        },
+        {
+          "slug": "yeni-yil-icin-5-oneri",
+          "title": "Yeni yıl için 5 öneri📌"
+        },
+        {
+          "slug": "karmasik-bir-urunu-anlatmanin-2-basit-yolu",
+          "title": "Karmaşık bir ürünü anlatmanın 2 basit yolu"
+        },
+        {
+          "slug": "reklam-yazmanin-ilk-adimi",
+          "title": "Reklam yazmanın ilk adımı"
+        },
+        {
+          "slug": "platon-ve-magaradaki-pazarlamacilar",
+          "title": "Platon ve mağaradaki pazarlamacılar"
+        },
+        {
+          "slug": "hikayeler-hakkinda-anlatilan-hikayeler",
+          "title": "Hikaye anlatmayın, anlattırın"
+        },
+        {
+          "slug": "aptal-gibi-gorunmekten-korkmayin-2",
+          "title": "Pazarlama dünyasındaki legal dolandırıcılık yöntemi"
+        },
+        {
+          "slug": "sirketiniz-hangisine-benziyor",
+          "title": "Şirketiniz hangisine benziyor?📌"
+        },
+        {
+          "slug": "odagi-secmek",
+          "title": "Odağı seçmek 📌"
+        },
+        {
+          "slug": "kirpik-bill-gates-minik-kus-ve-steve-jobs",
+          "title": "Kırpık, Bill Gates, Minik Kuş ve Steve Jobs 📌"
+        },
+        {
+          "slug": "buzla-kapli-toz",
+          "title": "Buzla kaplı toz 📌"
+        },
+        {
+          "slug": "taktik-ve-strateji",
+          "title": "Taktik ve strateji 📌"
+        },
+        {
+          "slug": "yeni-fikirlerin-hizi",
+          "title": "Yeni fikirlerin hızı📌"
+        },
+        {
+          "slug": "tunel-kazicilar",
+          "title": "Tünel kazıcılar📌"
+        },
+        {
+          "slug": "husnukuruntu",
+          "title": "Hüsnükuruntu"
+        },
+        {
+          "slug": "plaza-turkcesinin-milyonlarca-dolarlik-maliyeti",
+          "title": "Plaza Türkçesinin milyonlarca dolarlık maliyeti"
+        },
+        {
+          "slug": "karmasadan-kaciniz",
+          "title": "Karmaşadan kaçınız"
+        },
+        {
+          "slug": "marka-konumlandirma-hakkinda-soylenen-en-buyuk-yalan",
+          "title": "Marka konumlandırma hakkında söylenen en büyük yalan"
+        },
+        {
+          "slug": "seo-zihninizi-tembellestiriyor-olabilir",
+          "title": "Markanız için SEO'nun zararları"
+        },
+        {
+          "slug": "odaklanmanin-gucu",
+          "title": "Odaklanmanın gücü"
+        },
+        {
+          "slug": "konumlandirmanin-cevap-vermeye-calistigi-tek-soru",
+          "title": "Konumlandırmanın cevap vermeye çalıştığı tek soru"
+        },
+        {
+          "slug": "back-to-the-starbucks",
+          "title": "Back to the Starbucks"
+        },
+        {
+          "slug": "kopyalanamayacak-tek-sey",
+          "title": "Kopyalanamayacak tek şey"
+        },
+        {
+          "slug": "muhafazakar-pazarlamacilar",
+          "title": "Muhafazakar Pazarlamacılar"
+        },
+        {
+          "slug": "kalite-pazarlama-icin-anlamsiz-bir-kelime",
+          "title": "Kalite, pazarlama için anlamsız bir kelime"
+        },
+        {
+          "slug": "stratejinizi-test-etmenin-en-ucuz-ve-en-basit-yolu",
+          "title": "Stratejinizi test etmenin en ucuz ve en basit yolu"
+        },
+        {
+          "slug": "etkili-bir-marka-stratejisi-olusturmanin-ilk-sarti",
+          "title": "Etkili bir marka stratejisi oluşturmanın ilk şartı"
+        },
+        {
+          "slug": "baska-bir-sey-cemil-bey",
+          "title": "Başka bir şey Cemil bey"
+        },
+        {
+          "slug": "baska-bir-ajansin-kasasinda-saklanan-bir-kitap-ogilvynin-hayatini-nasil-degistirdi",
+          "title": "Başka bir ajansın kasasında saklanan bir kitap, Ogilvy’nin hayatını nasıl değiştirdi?"
+        },
+        {
+          "slug": "markalari-buyuten-nedir",
+          "title": "Markaları büyüten nedir?"
+        },
+        {
+          "slug": "marka-olmak-mi-tercih-edilen-bir-marka-olmak-mi",
+          "title": "Marka olmak mı, tercih edilen bir marka olmak mı?"
+        }
+      ],
+      "confidence": 1
+    },
+    {
+      "id": "generic_emerging_001",
+      "sector": "generic",
+      "brandMaturity": "emerging",
+      "approach": "Kısıtlı kaynaklarla yaratıcı ve sıra dışı pazarlama yöntemleri geliştirmek.",
+      "insight": "Kaynak sıkıntısı, yaratıcılığı tetikleyebilir ve markaları geleneksel olmayan çözümler bulmaya zorlayabilir.",
+      "successPattern": "Kısıtlı bütçeyle büyük etki yaratmayı sağlar.",
+      "avoidPattern": "Geleneksel pazarlama yöntemlerine körü körüne bağlı kalmaktan kaçının.",
+      "sourceArticles": [
+        {
+          "slug": "paraniz-yoksa-dusunmek-zorundasiniz",
+          "title": "🎖️Paranız yoksa düşünmek zorundasınız"
+        },
+        {
+          "slug": "cok-calismak-kurtarmaz",
+          "title": "🎖️Çok çalışmak kurtarmaz"
+        },
+        {
+          "slug": "elinizde-silah-var",
+          "title": "🎖️Elinizde silah var"
+        },
+        {
+          "slug": "buyumenin-buyusu",
+          "title": "🎖️Büyümenin büyüsü"
+        },
+        {
+          "slug": "canavarin-cesareti",
+          "title": "🎖️Canavarın cesareti"
+        },
+        {
+          "slug": "poponuz-icin-cadillac-deneyimi",
+          "title": "🎖️Poponuz için Cadillac deneyimi"
+        },
+        {
+          "slug": "daha-iyi-olmaniz-iyi-degil",
+          "title": "📮Daha iyi olmanız iyi değil"
+        },
+        {
+          "slug": "limited-post-26",
+          "title": "📰Limited Post #26"
+        },
+        {
+          "slug": "yolunuzu-tikayan-5-engel-4",
+          "title": "Yolunuzu tıkayan 5 engel #4"
+        },
+        {
+          "slug": "yolunuzu-tikayan-5-engel-3",
+          "title": "Yolunuzu tıkayan 5 engel #3"
+        },
+        {
+          "slug": "yolunuzu-tikayan-5-engel-2",
+          "title": "Yolunuzu tıkayan 5 engel #2"
+        },
+        {
+          "slug": "yolunuzu-tikayan-5-olasi-engel-1",
+          "title": "Yolunuzu tıkayan 5 engel #1"
+        },
+        {
+          "slug": "hangi-riski-almali",
+          "title": "🎖️Hangi riski almalı?"
+        },
+        {
+          "slug": "yolunuzu-tikayan-5-engel-5",
+          "title": "Yolunuzu tıkayan 5 engel #5"
+        },
+        {
+          "slug": "dev-butceli-rakiplerle-nasil-savasilir",
+          "title": "🎖️Dev bütçeli rakiplerle nasıl savaşılır?"
+        },
+        {
+          "slug": "hokus-fokus-agustos",
+          "title": "🐇 Hokus Fokus - Ağustos"
+        },
+        {
+          "slug": "hokus-fokus-genel01",
+          "title": "HOKUS FOKUS"
+        },
+        {
+          "slug": "sartlara-isyan",
+          "title": "🎖️Şartlara isyan"
+        },
+        {
+          "slug": "3-genel-rekabet-stratejisi-ve-gayrinizami-markalarin-uygulama-sirri",
+          "title": "🎖️3 genel rekabet stratejisi ve gayrinizami markaların uygulamadaki sırrı"
+        },
+        {
+          "slug": "boyle-cok-daha-guzelsin",
+          "title": "🎖️Böyle çok daha güzelsin"
+        },
+        {
+          "slug": "asiriligin-faydasi",
+          "title": "🎖️Aşırılığın faydası"
+        },
+        {
+          "slug": "3-gayrinizami-soru",
+          "title": "3 gayrinizami soru ve 3 cevap"
+        },
+        {
+          "slug": "hafifleyin",
+          "title": "Hafifleyin"
+        },
+        {
+          "slug": "modanin-kitabi",
+          "title": "Modanın kitabı📌"
+        },
+        {
+          "slug": "gayrinizami-markalama",
+          "title": "Gayrinizami markalama"
+        },
+        {
+          "slug": "kisalar-18subat24",
+          "title": "Kısalar"
+        },
+        {
+          "slug": "havadan-sudan-bahsetmek",
+          "title": "Havadan sudan bahsetmek📌"
+        },
+        {
+          "slug": "gerilla-pazarlama",
+          "title": "Wall Street'ten Levent'e: Bir gerilla pazarlama dersi"
+        },
+        {
+          "slug": "premium-algilanmak-isteyen-urkek-ceylanlar",
+          "title": "Premium algılanmak isteyen ürkek ceylanlar"
+        },
+        {
+          "slug": "buyumek-ve-hayatta-kalmak-farkli-seyler",
+          "title": "Büyümek ve hayatta kalmak farklı şeyler"
+        },
+        {
+          "slug": "orta-marka-tuzagi",
+          "title": "Orta marka tuzağı"
+        }
+      ],
+      "confidence": 1
+    },
+    {
+      "id": "generic_pre_brand_001",
+      "sector": "generic",
+      "brandMaturity": "pre_brand",
+      "approach": "Kısıtlı pazarlama bütçesine sahip markaların, dikkat çekici ve yaratıcı olması gerekliliği.",
+      "insight": "Sınırlı kaynaklara sahip markalar, sıkıcı ve geleneksel yaklaşımlardan kaçınarak, özgün ve akılda kalıcı bir marka kimliği oluşturmalıdır.",
+      "successPattern": "Markanın farkındalığını artırır ve rekabette öne çıkmasını sağlar.",
+      "avoidPattern": "Markanın görünmez olmasına ve potansiyel müşterileri kaybetmesine neden olur.",
+      "sourceArticles": [
+        {
+          "slug": "fakirseniz-sikici-olamazsiniz",
+          "title": "🎖️Fakirseniz sıkıcı olamazsınız"
+        },
+        {
+          "slug": "saksiyi-calistirin",
+          "title": "🎖️Saksıyı çalıştırın"
+        },
+        {
+          "slug": "isim-secmek",
+          "title": "📮İsim seçmek"
+        },
+        {
+          "slug": "mukemmel-yazi",
+          "title": "📮Mükemmel yazı"
+        },
+        {
+          "slug": "urune-nis-pazar-bulunmaz",
+          "title": "📮Ürüne niş pazar bulunmaz"
+        },
+        {
+          "slug": "girisimcilerin-teptigi-en-buyuk-firsat",
+          "title": "Yeni bir marka yaratan girişimcilerin teptiği en büyük fırsat 📌"
+        },
+        {
+          "slug": "markalarin-kaderini-belirleyen-sure",
+          "title": "Markaların kaderini belirleyen süre: 6 dakika 42 saniye 📌"
+        },
+        {
+          "slug": "en-az-marka-ismi-kadar-onemli-olan-baska-bir-isim",
+          "title": "En az marka ismi kadar önemli olan başka bir isim"
+        },
+        {
+          "slug": "yeni-markalar-icin-2-temel-strateji-prensibi",
+          "title": "Yeni markalar için 2 temel strateji prensibi"
+        },
+        {
+          "slug": "2-adim-kurali",
+          "title": "Girişimciler için 2 adım kuralı"
+        },
+        {
+          "slug": "markalarin-eklediklerine-degil-cikardiklarina-bakin",
+          "title": "Markaların eklediklerine değil, çıkardıklarına bakın"
+        },
+        {
+          "slug": "bu-bir-uyaridir",
+          "title": "Bu bir uyarıdır"
+        },
+        {
+          "slug": "buyumek-icin-hedefi-daraltin",
+          "title": "Büyümek için hedefi daraltın"
+        },
+        {
+          "slug": "yeni-markanizin-1000-kisiye-ihtiyaci-var",
+          "title": "Yeni markanızın 1000 kişiye ihtiyacı var"
+        },
+        {
+          "slug": "goz-mu-kulak-mi",
+          "title": "Göz mü, kulak mı?"
+        },
+        {
+          "slug": "ortak-akil-yontemini-bosverin",
+          "title": "Ortak akıl yöntemini boşverin"
+        },
+        {
+          "slug": "yeni-bir-marka-yaratirken-asil-risk",
+          "title": "Yeni bir marka yaratırken asıl risk…"
+        },
+        {
+          "slug": "markaniz-bir-super-kahraman-degil",
+          "title": "Markanız bir süper kahraman değil. Belediye başkanı da değil."
+        },
+        {
+          "slug": "yeni-bir-marka-yaratan-girisimcilerin-kafasini-karistiran-pazarlama-aforizmalari",
+          "title": "Yeni bir marka yaratan girişimcilerin kafasını karıştıran pazarlama aforizmaları"
+        },
+        {
+          "slug": "neden-bazi-yeni-markalar-serdar-ortac-gibi-dusunuyor",
+          "title": "Neden bazı yeni markalar Serdar Ortaç gibi düşünüyor?"
+        },
+        {
+          "slug": "yeni-bir-marka-yaratirken-vereceginiz-en-hayati-karar",
+          "title": "Yeni bir marka yaratırken vereceğiniz en hayati karar"
+        }
+      ],
+      "confidence": 1
+    },
+    {
+      "id": "tech_mature_001",
+      "sector": "tech",
+      "brandMaturity": "mature",
+      "approach": "Sektördeki genel kabulleri yıkarak, yenilikçi teknolojiler geliştirmek ve rekabette öne geçmek.",
+      "insight": "Genel kabullerin dışına çıkarak, sektörde devrim yaratmak mümkündür.",
+      "successPattern": null,
+      "avoidPattern": null,
+      "sourceArticles": [
+        {
+          "slug": "nvidianin-sirri",
+          "title": "📌Nvidia'nın sırrı"
+        },
+        {
+          "slug": "en-cok-sorulan-soru-applein-marka-konumlandirmasi-ne",
+          "title": "En çok sorulan soru: Apple’ın marka konumlandırması ne?"
+        },
+        {
+          "slug": "jeffin-bebegi",
+          "title": "Jeff'in bebeği"
+        },
+        {
+          "slug": "bir-basarisizlik-hikayesi",
+          "title": "📌 Bir başarısızlık hikayesi"
+        },
+        {
+          "slug": "2-ceo-1-general",
+          "title": "2 CEO 1 general📌"
+        },
+        {
+          "slug": "amazon-ve-delfi-kahini",
+          "title": "Amazon ve Delfi Kâhini"
+        },
+        {
+          "slug": "konumlandirma-kasintiyi-giderir",
+          "title": "Konumlandırma kaşıntıyı giderir📌"
+        },
+        {
+          "slug": "bir-sehir-efsanesi-apple-reklamlari",
+          "title": "Bir şehir efsanesi: Apple reklamları"
+        },
+        {
+          "slug": "elon-musk-marka-yonetimi",
+          "title": "Elon Musk: Marka yönetimi ne kadar doğru?"
+        }
+      ],
+      "confidence": 0.93
+    },
+    {
+      "id": "fmcg_any_001",
+      "sector": "fmcg",
+      "brandMaturity": "any",
+      "approach": "Pazarın devini en büyük gücüyle tuzağa düşürerek, rekabette avantaj elde etmek.",
+      "insight": "Başarılı bir pazarlama stratejisi, sadece iyi bir video üretmek değil, aynı zamanda rakibin zayıf noktalarını kullanarak onu tuzağa düşürmektir.",
+      "successPattern": null,
+      "avoidPattern": null,
+      "sourceArticles": [
+        {
+          "slug": "meshur-1-milyar-dolarlik-video-ve-arkasindaki-asil-sir",
+          "title": "🎖️Meşhur 1 milyar dolarlık video ve arkasındaki asıl sır"
+        },
+        {
+          "slug": "firinci-levynin-ekmegi",
+          "title": "📌Fırıncı Levy'nin ekmeği"
+        },
+        {
+          "slug": "sari-bikini",
+          "title": "🎖️Sarı bikini"
+        },
+        {
+          "slug": "kaybettigin-ruhu-geri-alamazsin-2",
+          "title": "🎖️Kaybettiğin ruhu geri alamazsın"
+        },
+        {
+          "slug": "yozgat-bogazliyandaki-soya-sutu-pazari",
+          "title": "Yozgat Boğazlıyan'daki soya sütü pazarı📌"
+        },
+        {
+          "slug": "matematigi-dovmek",
+          "title": "Matematiği dövmek📌"
+        },
+        {
+          "slug": "ilke-9-yeni-markalar-yaratmaktan-korkma",
+          "title": "İlke #9: Yeni markalar yaratmaktan korkma"
+        },
+        {
+          "slug": "ders-gibi-2-reklam-filmi",
+          "title": "Ders gibi 2 reklam filmi"
+        }
+      ],
+      "confidence": 0.86
+    },
+    {
+      "id": "tech_any_001",
+      "sector": "tech",
+      "brandMaturity": "any",
+      "approach": "Yapay zeka ve teknolojinin sunduğu hız avantajını kullanarak, rekabette öne geçmek ve yeni fırsatlar yaratmak.",
+      "insight": "Günümüzde hız, stratejik bir silah haline gelmiştir ve yapay zeka bu hızı daha da artırabilir.",
+      "successPattern": null,
+      "avoidPattern": null,
+      "sourceArticles": [
+        {
+          "slug": "hizin-hizi",
+          "title": "📌Hızın hızı"
+        },
+        {
+          "slug": "bugun-neden-onemli-bir-gun",
+          "title": "Bugün neden önemli bir gün?"
+        },
+        {
+          "slug": "hesaplama-ihtimalimiz",
+          "title": "Hesaplama ihtimalimiz"
+        },
+        {
+          "slug": "limited-post-14",
+          "title": "📰Limited Post #14"
+        },
+        {
+          "slug": "korsan-caginin-baslangici",
+          "title": "🏴‍☠️Korsan çağının başlangıcı"
+        },
+        {
+          "slug": "her-seyi-degistiren-sihirli-degisken",
+          "title": "Her şeyi değiştiren sihirli değişken"
+        },
+        {
+          "slug": "3-mercek",
+          "title": "3 mercek📌"
+        }
+      ],
+      "confidence": 0.79
+    },
+    {
+      "id": "retail_any_001",
+      "sector": "retail",
+      "brandMaturity": "any",
+      "approach": "Kısıtlı kaynaklarla yaratıcı çözümler üretmeye odaklanmak.",
+      "insight": "Sınırlı bütçeler, yaratıcılığı tetikleyebilir ve markaları daha yenilikçi çözümler bulmaya teşvik edebilir.",
+      "successPattern": null,
+      "avoidPattern": null,
+      "sourceArticles": [
+        {
+          "slug": "5-paralik-masa",
+          "title": "📮5 paralık masa"
+        },
+        {
+          "slug": "dunyadaki-bacaklar",
+          "title": "🎖️Dünyadaki bacaklar"
+        },
+        {
+          "slug": "vajina-kokulu-mum",
+          "title": "🎖️Gwyneth Paltrow'un vajinası gibi kokan mum"
+        },
+        {
+          "slug": "doktorali-paspasci-tractor-supply-company",
+          "title": "Ekonomi doktoralı bir paspasçının 1938’deki e-ticaret girişimi"
+        },
+        {
+          "slug": "tek-bir-kelimenin-ya-da-kavramin-gucu",
+          "title": "Tek bir kelimenin ya da kavramın gücü"
+        }
+      ],
+      "confidence": 0.65
+    },
+    {
+      "id": "fmcg_mature_001",
+      "sector": "fmcg",
+      "brandMaturity": "mature",
+      "approach": "Coca-Cola'nın formülünü değiştirmeye kalkışıp rezil olduğu ve 77 gün sonra eski formülüne döndüğü 'New Coke' vakasını incelemek; pazarlama tarihinin en büyük skandallarından birinden ders çıkarmak.",
+      "insight": "Tüketici alışkanlıklarını ve marka değerini göz ardı etmek, büyük hatalara yol açabilir.",
+      "successPattern": "Markaların tüketici alışkanlıklarını ve marka değerini korumasına yardımcı olur.",
+      "avoidPattern": "Ani ve radikal değişiklikler yaparak tüketicileri yabancılaştırmayı önler.",
+      "sourceArticles": [
+        {
+          "slug": "pazarlama-tarihinin-en-buyuk-skandallarindan-biri-new-coke",
+          "title": "Pazarlama tarihinin en büyük skandallarından biri: New Coke"
+        },
+        {
+          "slug": "soguk-alginligi",
+          "title": "📌Soğuk algınlığı"
+        },
+        {
+          "slug": "osmanli-sarayina-ilk-zeytinyagini-gonderen-marka-neden-bebek-bezi-satmaya-calisir",
+          "title": "Osmanlı sarayına ilk zeytinyağını gönderen marka, neden bebek bezi satmaya çalışır?"
+        },
+        {
+          "slug": "78-milyon-dolarlik-bir-pizzanin-hikayesi",
+          "title": "78 milyon dolarlık bir pizzanın hikayesi"
+        },
+        {
+          "slug": "unilever-kanat-cirpsa",
+          "title": "Unilever kanat çırpsa…"
+        }
+      ],
+      "confidence": 0.65
+    },
+    {
+      "id": "generic_mature_001",
+      "sector": "generic",
+      "brandMaturity": "mature",
+      "approach": "Yöneticileri sakinleştiren ve uyutan, gerçekçi olmayan marka stratejilerinden kaçınmak.",
+      "insight": "Gösterişli sunumlar ve karmaşık terimlerle dolu stratejiler, markanın gerçek sorunlarını çözmek yerine sadece yöneticileri rahatlatabilir.",
+      "successPattern": null,
+      "avoidPattern": null,
+      "sourceArticles": [
+        {
+          "slug": "plaza-ninnisi-vaka-analizi-02",
+          "title": "Plaza Ninnisi - Vaka Analizi #02"
+        },
+        {
+          "slug": "iyi-yonetimin-derdi",
+          "title": "📌İyi yönetimin derdi"
+        },
+        {
+          "slug": "markaniz-tisort-testini-nasil-gecer",
+          "title": "🎖️Markanız tişört testini nasıl geçer?"
+        },
+        {
+          "slug": "nallari-dikmeye-yakin-markalarin-yoneticilerindeki-marka-kimligi-sevdasi",
+          "title": "Nalları dikmeye yakın markaların yöneticilerindeki marka kimliği sevdası"
+        }
+      ],
+      "confidence": 0.58
+    },
+    {
+      "id": "retail_emerging_001",
+      "sector": "retail",
+      "brandMaturity": "emerging",
+      "approach": "Rekabetin yoğun olduğu pazarlarda, farklılaşarak öne çıkmak ve dengesiz bir yönetim anlayışıyla pazarlama karmasını etkili kullanmak.",
+      "insight": "Başlangıçta her şey mükemmel olmak zorunda değil; önemli olan pazarlama karmasını doğru kullanarak farklılaşmak ve rekabette öne geçmektir.",
+      "successPattern": "Rekabette öne geçmeyi ve marka bilinirliğini artırmayı sağlar.",
+      "avoidPattern": "Her şeyi mükemmel yapmaya çalışarak kaynakları tüketmekten kaçının.",
+      "sourceArticles": [
+        {
+          "slug": "dengesiz-yonetin",
+          "title": "🎖️Dengesiz yönetin"
+        },
+        {
+          "slug": "shein-yeni-amazon-olur-mu",
+          "title": "Shein, yeni Amazon olur mu?"
+        },
+        {
+          "slug": "kris-cody-paka",
+          "title": "Doğru tuşların hepsine basan bir girişimci ve markası"
+        }
+      ],
+      "confidence": 0.51
+    },
+    {
+      "id": "hizmet_any_001",
+      "sector": "hizmet",
+      "brandMaturity": "any",
+      "approach": "Markaların rekabetçi pazarlarda rakiplerin tepkisinden korkmadan cesur adımlar atması gerektiği.",
+      "insight": "Markalar, rekabetten çekinmek yerine, rakiplerini rahatsız edecek ve dikkat çekecek stratejiler geliştirmelidir.",
+      "successPattern": "Markanın pazarda öne çıkmasını ve rekabet avantajı elde etmesini sağlar.",
+      "avoidPattern": "Markanın rekabette geride kalmasına ve büyüme fırsatlarını kaçırmasına neden olur.",
+      "sourceArticles": [
+        {
+          "slug": "londra-taksicileri",
+          "title": "📌Londra taksicileri"
+        },
+        {
+          "slug": "keskin-nisanci",
+          "title": "📌Keskin nişancı"
+        },
+        {
+          "slug": "bankalarla-neden-bayramlasiyoruz",
+          "title": "Bankalarla neden bayramlaşıyoruz?"
+        }
+      ],
+      "confidence": 0.51
+    },
+    {
+      "id": "gastronomi_any_001",
+      "sector": "gastronomi",
+      "brandMaturity": "any",
+      "approach": "Ürünlerin bağlamını doğru kurarak, uzmanların ve tüketicilerin olumlu geri bildirimlerini sağlamak.",
+      "insight": "Ürünlerin kalitesi kadar, sunumu ve hikayesi de önemlidir; doğru bağlamda sunulan ürünler olumlu algı yaratır.",
+      "successPattern": null,
+      "avoidPattern": null,
+      "sourceArticles": [
+        {
+          "slug": "uzmanlar-da-yer",
+          "title": "Uzmanlar da yer"
+        },
+        {
+          "slug": "pizzayi-tum-dunya-tanirken-lahmacun-neden-yerel-kaldi",
+          "title": "Pizzayı tüm dünya tanırken lahmacun neden yerel kaldı?"
+        }
+      ],
+      "confidence": 0.44
+    },
+    {
+      "id": "gastronomi_emerging_001",
+      "sector": "gastronomi",
+      "brandMaturity": "emerging",
+      "approach": "Makul olmayan fikirlerle yola çıkarak, takıntılı bir şekilde çalışmak ve başarılı bir marka yaratmak.",
+      "insight": "Makul olmayı reddetmek ve bir fikre takıntılı bir şekilde bağlanmak, başarılı bir marka yaratmanın anahtarı olabilir.",
+      "successPattern": "Sıra dışı ve dikkat çekici bir marka yaratmayı sağlar.",
+      "avoidPattern": "Herkesin yaptığını yapmaktan ve risk almaktan kaçınmaktan kaçının.",
+      "sourceArticles": [
+        {
+          "slug": "milyar-dolarlik-salata",
+          "title": "🎖️Milyar dolarlık salata"
+        },
+        {
+          "slug": "mutfaktaki-kizilderili-sef",
+          "title": "Mutfaktaki kızılderili şef"
+        }
+      ],
+      "confidence": 0.44
+    },
+    {
+      "id": "hospitality_any_001",
+      "sector": "hospitality",
+      "brandMaturity": "any",
+      "approach": "Menüdeki ürünleri analiz ederek, en çok satan ürünlere odaklanmak ve verimliliği artırmak.",
+      "insight": "Pareto ilkesini uygulayarak, en çok satan ürünlere odaklanmak ve verimliliği artırmak mümkündür.",
+      "successPattern": null,
+      "avoidPattern": null,
+      "sourceArticles": [
+        {
+          "slug": "pareto-size-calisir-mi",
+          "title": "📌Pareto size çalışır mı?"
+        },
+        {
+          "slug": "joshie-nerede",
+          "title": "Joshie nerede?📌"
+        }
+      ],
+      "confidence": 0.44
+    },
+    {
+      "id": "retail_mature_001",
+      "sector": "retail",
+      "brandMaturity": "mature",
+      "approach": "Rakibin fiziksel mağazalarını kapatmasını fırsat bilerek, online satışa odaklanmak ve rakipleri kızdıracak kampanyalar yapmak.",
+      "insight": "Rakibin zayıflıklarını kullanarak rekabet avantajı elde etmek mümkündür.",
+      "successPattern": null,
+      "avoidPattern": null,
+      "sourceArticles": [
+        {
+          "slug": "son-yer",
+          "title": "Son yer📌"
+        },
+        {
+          "slug": "bariz-olanin-pesinde-1-4",
+          "title": "Bariz olanın peşinde 📌 (1/4)"
+        }
+      ],
+      "confidence": 0.44
+    },
+    {
+      "id": "hospitality_developing_001",
+      "sector": "hospitality",
+      "brandMaturity": "developing",
+      "approach": "Büyüme hedeflerine ulaşmak için esnek olmak, katı şartlardan vazgeçebilmek ve yeni fırsatlara açık olmak.",
+      "insight": "Büyüme, bazen mevcut şartları gevşetmeyi ve yeni yaklaşımlara adapte olmayı gerektirebilir.",
+      "successPattern": "Büyüme potansiyelini artırır ve yeni pazarlara açılmayı kolaylaştırır.",
+      "avoidPattern": "Katı şartlara bağlı kalmaktan ve değişime direnç göstermekten kaçının.",
+      "sourceArticles": [
+        {
+          "slug": "gevsetme-sanati",
+          "title": "🎖️Gevşetme sanatı"
+        }
+      ],
+      "confidence": 0.37
+    },
+    {
+      "id": "hospitality_mature_001",
+      "sector": "hospitality",
+      "brandMaturity": "mature",
+      "approach": "Southwest Airlines örneği üzerinden, basit bir fikrin büyük etkisini anlatmak.",
+      "insight": "Müşteri temas noktalarında yaratılan küçük farklılıklar, büyük değer yaratabilir.",
+      "successPattern": null,
+      "avoidPattern": null,
+      "sourceArticles": [
+        {
+          "slug": "sifir-maliyetle-milyonlarca-dolar",
+          "title": "📌 Sıfır maliyetle milyonlarca dolar"
+        }
+      ],
+      "confidence": 0.37
+    },
+    {
+      "id": "generic_developing_001",
+      "sector": "generic",
+      "brandMaturity": "developing",
+      "approach": "Pazardaki 2. veya 3. sıradaki markaların lider markaya nasıl saldırması gerektiğini anlatmak.",
+      "insight": "Saldırı stratejileriyle pazar payını artırmak mümkündür.",
+      "successPattern": "Pazar liderine karşı rekabet avantajı sağlar.",
+      "avoidPattern": "Yanlış stratejilerle başarısız olmaktan kaçınmayı sağlar.",
+      "sourceArticles": [
+        {
+          "slug": "stratejik-kare-ve-saldiri-savasi-2-4",
+          "title": "Stratejik kare ve saldırı savaşı (2/4)📌"
+        }
+      ],
+      "confidence": 0.37
+    },
+    {
+      "id": "fmcg_pre_brand_001",
+      "sector": "fmcg",
+      "brandMaturity": "pre_brand",
+      "approach": "Dev markalardan ilham alırken şüpheci yaklaşmak ve kendi markasının özgünlüğünü korumak.",
+      "insight": "Her başarılı strateji her marka için uygun olmayabilir.",
+      "successPattern": null,
+      "avoidPattern": "Başarısız taklitlerden kaçınmayı sağlar.",
+      "sourceArticles": [
+        {
+          "slug": "dev-markalardan-ilham-alirken",
+          "title": "Dev markalardan ilham alırken dikkat etmeniz gerekenler"
+        }
+      ],
+      "confidence": 0.37
+    },
+    {
+      "id": "otomotiv_developing_001",
+      "sector": "otomotiv",
+      "brandMaturity": "developing",
+      "approach": "Çin'in en büyüklerinden birine önerilen strateji ve sonuçları.",
+      "insight": "Pazarlama stratejileri, şirketin başarısını etkileyebilir.",
+      "successPattern": null,
+      "avoidPattern": null,
+      "sourceArticles": [
+        {
+          "slug": "great-wall-motor-4-pazarlama-dersi",
+          "title": "Çin Seddi ve 4 pazarlama dersi📌"
+        }
+      ],
+      "confidence": 0.37
+    },
+    {
+      "id": "automotive_mature_001",
+      "sector": "automotive",
+      "brandMaturity": "mature",
+      "approach": "Ferdinand Porsche'nin hayat hikayesi üzerinden, markaların kökenlerini ve kurucularının vizyonunu anlamanın önemini vurgular.",
+      "insight": "Markaların geçmişi ve kurucularının hikayesi, marka değerini artırabilir. Markanın kökenlerini bilmek, geleceğe yönelik stratejiler geliştirmeye yardımcı olur.",
+      "successPattern": null,
+      "avoidPattern": null,
+      "sourceArticles": [
+        {
+          "slug": "porscheyi-fransada-niye-hapse-attilar",
+          "title": "Porsche'yi Fransa'da niye hapse attılar?"
+        }
+      ],
+      "confidence": 0.37
+    }
+  ]
+}
