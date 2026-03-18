@@ -65,8 +65,8 @@ export const AGENT_CONFIGS: AgentConfig[] = [
     name: 'Bora',
     role: 'Multi-Model Consensus',
     color: '#34d399',
-    x: 650, y: 175,
-    description: 'Farklı AI modelleri arasında konsensüs sağlar',
+    x: 650, y: 265,
+    description: 'Perceptual map koordinatlarını çıkarır, multi-model konsensüs sağlar',
     spriteVariant: 2,
   },
   // Eleştiri Bay
@@ -159,7 +159,7 @@ export const AGENT_CONFIGS: AgentConfig[] = [
     role: 'Deliverable Enricher',
     color: '#a3e635',
     x: 1010, y: 265,
-    description: 'Teslimatları zenginleştirir, görselleştirir',
+    description: 'Intiba yol haritası üretir, teslimatları zenginleştirir',
     spriteVariant: 2,
   },
   {
@@ -168,7 +168,7 @@ export const AGENT_CONFIGS: AgentConfig[] = [
     role: 'Evidence Builder',
     color: '#fbbf24',
     x: 950, y: 365,
-    description: 'Veri kanıtları ve referansları derler',
+    description: 'Blog RAG sorgusu yapar, veri kanıtları ve referansları derler',
     spriteVariant: 0,
   },
   {
@@ -185,7 +185,7 @@ export const AGENT_CONFIGS: AgentConfig[] = [
 // ─── Stage Definitions ───────────────────────────────────────────────────────
 
 // Stages 1-2 run on Vercel. After research completes, pipeline delegates to Hetzner.
-// Stages 4-10 run inside the Hetzner cluster (basement floor in the simulator).
+// Stages 5-17 run inside the Hetzner cluster (basement floor in the simulator).
 export const STAGES: StageConfig[] = [
   {
     id: 'intake',
@@ -199,24 +199,77 @@ export const STAGES: StageConfig[] = [
     ],
   },
   {
-    id: 'parallel_phase1',
-    label: 'Norm + Deep Research',
-    agentIds: ['nisan', 'tarik', 'webfetcher'],
-    durationMs: 18000, // Tarık is bottleneck (Deep Research ~240s real, shown as 18s at 1x)
-    outPackets: [],
-    // No packets yet — delegation happens next, then agents start on Hetzner
+    id: 'data_collection',
+    label: 'Ön Veri Toplama',
+    agentIds: ['nisan', 'webfetcher'],
+    durationMs: 5000,
+    outPackets: [
+      { fromId: 'nisan', toId: 'tarik', label: 'NORM' },
+      { fromId: 'webfetcher', toId: 'tarik', label: 'WEB' },
+    ],
   },
   {
-    // Triggered right after research completes (same as analyze-continue.ts line 200)
+    id: 'research_brief',
+    label: 'Research Brief',
+    agentIds: ['nisan'],
+    durationMs: 1000,
+    outPackets: [
+      { fromId: 'nisan', toId: 'tarik', label: 'BRIEF' },
+    ],
+  },
+  {
+    id: 'deep_research',
+    label: 'Deep Research',
+    agentIds: ['tarik'],
+    durationMs: 18000,
+    outPackets: [
+      { fromId: 'tarik', toId: 'leyla', label: 'RSCH' },
+      { fromId: 'tarik', toId: 'cansu', label: 'RSCH' },
+    ],
+  },
+  {
+    // Triggered right after research completes (same as analyze-continue.ts)
     id: 'hetzner_delegation',
     label: 'Hetzner\'e Devir',
     agentIds: ['nisan', 'tarik', 'webfetcher', 'leyla', 'bora', 'emre', 'pinar', 'volkan', 'sinan', 'cansu', 'alp', 'reza', 'hasan', 'defne', 'gul', 'nesrin', 'serkan'],
     durationMs: 3000,
     isHetznerDelegation: true,
+    outPackets: [],
+  },
+  {
+    id: 'competitor_discovery',
+    label: 'Rakip Keşfi',
+    agentIds: ['cansu'],
+    durationMs: 5000,
     outPackets: [
-      { fromId: 'nisan', toId: 'leyla', label: 'NORM' },
-      { fromId: 'tarik', toId: 'leyla', label: 'RSCH' },
-      { fromId: 'webfetcher', toId: 'leyla', label: 'WEB' },
+      { fromId: 'cansu', toId: 'webfetcher', label: 'URLS' },
+    ],
+  },
+  {
+    id: 'competitor_scan',
+    label: 'Rakip Site Tarama',
+    agentIds: ['webfetcher'],
+    durationMs: 6000,
+    outPackets: [
+      { fromId: 'webfetcher', toId: 'bora', label: 'SITES' },
+    ],
+  },
+  {
+    id: 'perceptual_map',
+    label: 'Perceptual Map',
+    agentIds: ['bora'],
+    durationMs: 3000,
+    outPackets: [
+      { fromId: 'bora', toId: 'leyla', label: 'MAP' },
+    ],
+  },
+  {
+    id: 'blog_rag',
+    label: 'Blog RAG Sorgusu',
+    agentIds: ['nesrin'],
+    durationMs: 3000,
+    outPackets: [
+      { fromId: 'nesrin', toId: 'leyla', label: 'RAG' },
     ],
   },
   {
@@ -281,26 +334,24 @@ export const STAGES: StageConfig[] = [
     durationMs: 10000,
     outPackets: [
       { fromId: 'hasan', toId: 'gul', label: 'SYN' },
-      { fromId: 'defne', toId: 'nesrin', label: 'VAL' },
       { fromId: 'defne', toId: 'serkan', label: 'VAL' },
     ],
   },
   {
-    id: 'enrich_quality',
-    label: 'Zenginleştirme + Kalite',
-    agentIds: ['gul', 'nesrin', 'serkan'],
+    id: 'roadmap',
+    label: 'Intiba Yol Haritası',
+    agentIds: ['gul'],
     durationMs: 5000,
     outPackets: [
-      { fromId: 'gul', toId: 'guard', label: 'ENRCH' },
-      { fromId: 'nesrin', toId: 'guard', label: 'EVID' },
-      { fromId: 'serkan', toId: 'guard', label: 'CAL' },
+      { fromId: 'gul', toId: 'nesrin', label: 'ROAD' },
+      { fromId: 'gul', toId: 'serkan', label: 'ROAD' },
     ],
   },
   {
     id: 'delivery',
-    label: 'Rapor Teslimi',
-    agentIds: ['guard', 'customer'],
-    durationMs: 4000,
+    label: 'Kalite + Teslimat',
+    agentIds: ['nesrin', 'serkan', 'guard', 'customer'],
+    durationMs: 5000,
     outPackets: [],
   },
 ];

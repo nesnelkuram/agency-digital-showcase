@@ -649,6 +649,34 @@ export interface ValueMaximizerOutput {
   _evidence?: EvidenceChain[];
 }
 
+// ResearchBrief — built before Deep Research starts
+export interface ResearchBrief {
+  markdown: string;
+  missingAreas: string[];
+}
+
+// Intiba Roadmap — generated from positioning strategy
+export interface RoadmapService {
+  category: string;
+  name: string;
+  rationale: string;
+  expectedImpact: string;
+  priority: 'kritik' | 'onemli' | 'opsiyonel';
+}
+
+export interface RoadmapPhase {
+  label: string;
+  durationDays: number;
+  focus: string;
+  services: RoadmapService[];
+  milestone: string;
+}
+
+export interface IntibaRoadmap {
+  rationale: string;
+  phases: RoadmapPhase[];
+}
+
 // Pipeline state passed through agents
 export interface PipelineState {
   input: PipelineInput;
@@ -670,6 +698,9 @@ export interface PipelineState {
     consensusReached: boolean;
     consensusScore: number;
   }>;
+  // New pipeline enhancements
+  researchBrief?: ResearchBrief;
+  intibaRoadmap?: IntibaRoadmap;
   errors: Array<{ agent: string; error: string; timestamp: number }>;
   timings: Record<string, number>;
 }

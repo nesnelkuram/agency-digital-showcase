@@ -42,6 +42,7 @@ import {
   HardDrive,
   Share2,
   ClipboardList,
+  Map,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermission } from '@/shared/hooks/usePermission';
@@ -131,6 +132,12 @@ const navItems: NavItem[] = [
     path: '/admin/tasks',
     icon: ClipboardList,
     hiddenForRoles: ['client'],
+  },
+  {
+    label: 'Strateji Haritası',
+    path: '/admin/strategy-map',
+    icon: Map,
+    hiddenForRoles: ['client', 'freelancer'],
   },
   {
     label: 'AI Ajanlar',

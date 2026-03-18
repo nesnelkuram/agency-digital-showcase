@@ -124,6 +124,9 @@ const AIWorkflowDesigner = React.lazy(() => import('./workflows/AIWorkflowDesign
 const MyTasksPage = React.lazy(() => import('./workflows/MyTasksPage'));
 const AIServiceDesigner = React.lazy(() => import('./pricing/catalog/AIServiceDesigner'));
 
+// Strategy Map Page
+const StrategyMapPage = React.lazy(() => import('./strategy/StrategyMapPage'));
+
 // Filing Pages
 const FilingDashboardPage = React.lazy(() => import('./filing/FilingDashboardPage'));
 const CreateFilingPage = React.lazy(() => import('./filing/CreateFilingPage'));
@@ -880,6 +883,15 @@ const AdminApp: React.FC = () => {
             element={
               <React.Suspense fallback={<PageLoader />}>
                 <PersonaChatPage />
+              </React.Suspense>
+            }
+          />
+          {/* Strategy Map */}
+          <Route
+            path="strategy-map"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <StrategyMapPage />
               </React.Suspense>
             }
           />

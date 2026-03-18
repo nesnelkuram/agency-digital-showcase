@@ -1,4 +1,5 @@
 import type { PipelineInput, PipelineState, NormalizedData, ResearchFindings, StrategistOutput, ChallengerOutput, BlogAdvisorOutput, SynthesizedAnalysis } from './types';
+import { generateIntibaRoadmap } from './agents/roadmapGenerator';
 import { runDataNormalizer } from './agents/dataNormalizer';
 import { runSectorResearch } from './agents/sectorResearch';
 import { runBrandStrategist } from './agents/brandStrategist';
@@ -37,6 +38,8 @@ export type { EvidenceChain, FrameworkScore, SectionEvidence, EvidenceSummaryV2,
 export { buildEvidenceSummary, buildSectionEvidence, createEvidence, getConfidenceLevel } from './evidence';
 export { getSectorFrameworkConfig } from './sectorFrameworks';
 export type { SectorFrameworkConfig } from './sectorFrameworks';
+export { generateIntibaRoadmap } from './agents/roadmapGenerator';
+export type { IntibaRoadmap, RoadmapPhase, RoadmapService } from './types';
 
 const TIMEOUT_BUDGET = 290_000; // 290s (10s safety margin from 300s Vercel limit)
 
@@ -302,6 +305,18 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineState> 
       error: err.message || 'Evidence building failed',
       timestamp: Date.now(),
     });
+  }
+
+  // Step 6: Intiba Roadmap (if time permits)
+  if (!isLite && state.strategistOutput && remainingTime(startTime) > 5_000) {
+    try {
+      const roadmap = await generateIntibaRoadmap(state.strategistOutput, state.synthesizedAnalysis);
+      state.intibaRoadmap = roadmap;
+      console.log('[Pipeline] IntibaRoadmap generated:', roadmap.phases.length, 'phases');
+    } catch (err) {
+      console.error('[Pipeline] IntibaRoadmap failed (non-fatal):', err);
+      state.errors.push({ agent: 'roadmapGenerator', error: err instanceof Error ? err.message : String(err), timestamp: Date.now() });
+    }
   }
 
   state.timings.total = Date.now() - startTime;
