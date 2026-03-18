@@ -118,10 +118,13 @@ function applyTick(state: SimulationState, rawDeltaMs: number): SimulationState 
     .map(p => ({ ...p, progress: Math.min(p.progress + packetSpeed, 1) }))
     .filter(p => p.progress < 1);
 
-  // Hetzner animation (stage 7 = index 7)
+  // Hetzner animation: runs during the delegation stage (index 2)
+  // Once complete, agents stay in basement for all subsequent stages
   let hetznerAnimProgress = state.hetznerAnimProgress;
   if (stage.isHetznerDelegation && state.hetznerMode) {
     hetznerAnimProgress = Math.min(newStageElapsed / stage.durationMs, 1);
+  } else if (!stage.isHetznerDelegation && state.hetznerAnimProgress >= 1) {
+    hetznerAnimProgress = 1; // Stay in basement
   }
 
   // Stage complete?
@@ -159,8 +162,8 @@ function applyTick(state: SimulationState, rawDeltaMs: number): SimulationState 
     // Flash for Hetzner delegation
     const newFlash = STAGES[nextIdx]?.isHetznerDelegation ? 0.35 : flashAlpha;
 
-    // Reset hetzner progress if leaving delegation stage
-    const newHetznerProgress = STAGES[nextIdx]?.isHetznerDelegation ? 0 : hetznerAnimProgress;
+    // Keep hetzner progress — once in basement, agents stay there
+    const newHetznerProgress = hetznerAnimProgress;
 
     return {
       ...state,
@@ -220,7 +223,7 @@ function applyAction(state: SimulationState, action: SimulationAction): Simulati
         stageElapsedMs: 0,
         agentStates,
         flashAlpha: newFlash,
-        hetznerAnimProgress: 0,
+        hetznerAnimProgress: state.hetznerAnimProgress, // keep basement state
       };
     }
     default:

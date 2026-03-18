@@ -235,7 +235,7 @@ function getAgentPos(id: AgentId, animProgress: number): { x: number; y: number 
   const cfg = AGENT_CONFIGS.find(a => a.id === id);
   if (!cfg) return { x: 0, y: 0 };
   // During hetzner delegation, animate y downward
-  const basement = id !== 'guard' && id !== 'customer' && id !== 'reza';
+  const basement = id !== 'guard' && id !== 'customer';
   const yOffset = basement ? animProgress * BASEMENT_OFFSET : 0;
   return { x: cfg.x, y: cfg.y + yOffset };
 }
@@ -318,7 +318,8 @@ export function renderFrame(ctx: CanvasRenderingContext2D, state: SimulationStat
     if (!agentState) continue;
 
     // Effective position (basement offset during Hetzner delegation)
-    const isBasementAgent = agent.id !== 'guard' && agent.id !== 'customer' && agent.id !== 'reza';
+    // Guard + Customer stay on Vercel floor; everyone else moves to Hetzner basement
+    const isBasementAgent = agent.id !== 'guard' && agent.id !== 'customer';
     const yOff = isBasementAgent ? state.hetznerAnimProgress * BASEMENT_OFFSET : 0;
     const ax = agent.x;
     const ay = agent.y + yOff;

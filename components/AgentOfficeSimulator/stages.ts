@@ -184,6 +184,8 @@ export const AGENT_CONFIGS: AgentConfig[] = [
 
 // ─── Stage Definitions ───────────────────────────────────────────────────────
 
+// Stages 1-2 run on Vercel. After research completes, pipeline delegates to Hetzner.
+// Stages 4-10 run inside the Hetzner cluster (basement floor in the simulator).
 export const STAGES: StageConfig[] = [
   {
     id: 'intake',
@@ -201,6 +203,16 @@ export const STAGES: StageConfig[] = [
     label: 'Normalizasyon + Araştırma',
     agentIds: ['nisan', 'tarik', 'webfetcher'],
     durationMs: 12000,
+    outPackets: [],
+    // No packets yet — delegation happens next, then agents start on Hetzner
+  },
+  {
+    // Triggered right after research completes (same as analyze-continue.ts line 200)
+    id: 'hetzner_delegation',
+    label: 'Hetzner\'e Devir',
+    agentIds: ['nisan', 'tarik', 'webfetcher', 'leyla', 'bora', 'emre', 'pinar', 'volkan', 'sinan', 'cansu', 'alp', 'reza', 'hasan', 'defne', 'gul', 'nesrin', 'serkan'],
+    durationMs: 3000,
+    isHetznerDelegation: true,
     outPackets: [
       { fromId: 'nisan', toId: 'leyla', label: 'NORM' },
       { fromId: 'tarik', toId: 'leyla', label: 'RSCH' },
@@ -261,14 +273,6 @@ export const STAGES: StageConfig[] = [
       { fromId: 'reza', toId: 'hasan', label: 'OK' },
       { fromId: 'reza', toId: 'defne', label: 'OK' },
     ],
-  },
-  {
-    id: 'hetzner_delegation',
-    label: 'Hetzner Delegasyonu',
-    agentIds: ['nisan', 'tarik', 'webfetcher', 'leyla', 'bora', 'emre', 'pinar', 'volkan', 'sinan', 'cansu', 'alp', 'hasan', 'defne', 'gul', 'nesrin', 'serkan'],
-    durationMs: 3000,
-    isHetznerDelegation: true,
-    outPackets: [],
   },
   {
     id: 'synthesis',
