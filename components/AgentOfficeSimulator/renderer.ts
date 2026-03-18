@@ -1,6 +1,6 @@
 import type { SimulationState, AgentConfig, AgentStatus, AgentId } from './types';
 import { AGENT_CONFIGS, STAGES, SECTION_ZONES } from './stages';
-import { drawSprite } from './sprites';
+import { drawSprite, SPRITE_CUSTOMER } from './sprites';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -55,10 +55,11 @@ function drawDesk(
   progress: number,
   tick: number,
 ) {
-  const dw = 48;
-  const dh = 12;
+  const dw = 52;
+  const dh = 10;
   const dx = x - dw / 2;
-  const dy = y - 8;
+  // Desk sits at ~waist level of the 16-row sprite (row 11/16 * 48px ≈ 15px above feet)
+  const dy = y - 15;
 
   // Desk surface
   ctx.fillStyle = '#1a1a2e';
@@ -74,24 +75,25 @@ function drawDesk(
   ctx.lineWidth = 1.5;
   ctx.strokeRect(dx, dy, dw, dh);
 
-  // Monitor on desk
-  const mx = x - 8;
-  const mh = 14;
-  const mw = 16;
+  // Small monitor sitting on top of the desk
+  const mw = 18;
+  const mh = 13;
+  const mx = x - mw / 2;
   ctx.fillStyle = '#0d0d1a';
   ctx.fillRect(mx, dy - mh, mw, mh);
   // Monitor screen glow
   if (status === 'working' || status === 'done') {
-    ctx.fillStyle = hexToRgba(color, status === 'working' ? 0.3 + 0.2 * Math.sin(tick * 0.008) : 0.2);
+    const gAlpha = status === 'working' ? 0.35 + 0.2 * Math.sin(tick * 0.008) : 0.18;
+    ctx.fillStyle = hexToRgba(color, gAlpha);
     ctx.fillRect(mx + 1, dy - mh + 1, mw - 2, mh - 2);
   }
 
-  // Progress bar on desk
+  // Progress bar along bottom edge of desk surface
   if (status === 'working' && progress > 0) {
     ctx.fillStyle = '#111';
-    ctx.fillRect(dx + 2, dy + dh - 4, dw - 4, 3);
+    ctx.fillRect(dx + 2, dy + dh - 3, dw - 4, 2);
     ctx.fillStyle = color;
-    ctx.fillRect(dx + 2, dy + dh - 4, Math.round((dw - 4) * progress), 3);
+    ctx.fillRect(dx + 2, dy + dh - 3, Math.round((dw - 4) * progress), 2);
   }
 }
 
@@ -105,10 +107,13 @@ function drawHalo(
   status: AgentStatus,
   tick: number,
 ) {
+  // Head center: 16-row sprite at pixelSize=3 → head ~rows 0-6, center ≈ cy-39
+  const headY = cy - 39;
+
   if (status === 'idle' || status === 'waiting' || status === 'delegated') {
     if (status === 'waiting') {
       ctx.beginPath();
-      ctx.arc(x, cy - 18, 14, 0, Math.PI * 2);
+      ctx.arc(x, headY, 16, 0, Math.PI * 2);
       ctx.strokeStyle = 'rgba(85,85,85,0.4)';
       ctx.lineWidth = 1.5;
       ctx.stroke();
@@ -116,7 +121,7 @@ function drawHalo(
     return;
   }
 
-  const radius = 16;
+  const radius = 18;
   let alpha = 1;
   let strokeColor = color;
 
@@ -132,10 +137,10 @@ function drawHalo(
   }
 
   ctx.beginPath();
-  ctx.arc(x, cy - 18, radius, 0, Math.PI * 2);
+  ctx.arc(x, headY, radius, 0, Math.PI * 2);
   ctx.strokeStyle = hexToRgba(strokeColor, alpha);
   ctx.lineWidth = 2;
-  ctx.shadowBlur = 8;
+  ctx.shadowBlur = 10;
   ctx.shadowColor = strokeColor;
   ctx.stroke();
   ctx.shadowBlur = 0;
@@ -143,7 +148,7 @@ function drawHalo(
   // Inner fill pulse for working
   if (status === 'working') {
     ctx.beginPath();
-    ctx.arc(x, cy - 18, radius - 4, 0, Math.PI * 2);
+    ctx.arc(x, headY, radius - 4, 0, Math.PI * 2);
     ctx.fillStyle = hexToRgba(color, 0.08 * alpha);
     ctx.fill();
   }
@@ -308,7 +313,7 @@ export function renderFrame(ctx: CanvasRenderingContext2D, state: SimulationStat
   drawFloorDivider(ctx, tick);
 
   // ── Hetzner basement ───────────────────────────────────────────────────────
-  if (state.hetznerAnimProgress > 0 || state.currentStageIndex >= 8) {
+  if (state.hetznerAnimProgress > 0 || state.currentStageIndex >= 2) {
     drawBasement(ctx, state.hetznerAnimProgress, AGENT_CONFIGS, state.agentStates, tick);
   }
 
@@ -327,27 +332,28 @@ export function renderFrame(ctx: CanvasRenderingContext2D, state: SimulationStat
     // Skip if off-screen
     if (ay > TOTAL_H + 50) continue;
 
-    // "Absent" overlay for main-floor agents when they're in basement
-    if (isBasementAgent && state.hetznerAnimProgress > 0.5) {
-      ctx.fillStyle = 'rgba(0,0,0,0.7)';
-      ctx.fillRect(ax - 28, ay - 60, 56, 55);
-      drawPixelText(ctx, 'ABSENT', ax, ay - 33, 'rgba(100,100,100,0.6)', 5);
-    }
+    // "Absent" overlay for main-floor agents when they've moved to basement
+    // (only show on their original position which is now off-screen)
+    // (nothing to draw since they animate away)
 
-    // Halo
+    // Halo (around head)
     drawHalo(ctx, ax, ay, agent.color, agentState.status, tick);
 
-    // Desk
+    // Desk (behind character at waist height)
     drawDesk(ctx, ax, ay, agent.color, agentState.status, agentState.progress, tick);
 
-    // Sprite
-    drawSprite(ctx, agent.spriteVariant, ax, ay, agent.color, PIXEL_SIZE);
+    // Sprite — customer uses dedicated bitmap, others use variant
+    if (agent.id === 'customer') {
+      drawSprite(ctx, 0, ax, ay, agent.color, PIXEL_SIZE, SPRITE_CUSTOMER);
+    } else {
+      drawSprite(ctx, agent.spriteVariant, ax, ay, agent.color, PIXEL_SIZE);
+    }
 
-    // Agent name
-    const nameAlpha = agentState.status === 'delegated' ? 0.3 : 0.85;
-    drawPixelText(ctx, agent.name, ax, ay + 10, hexToRgba(agent.color, nameAlpha), 5);
+    // Agent name below feet (sprite bottom = ay, name 8px below)
+    const nameAlpha = agentState.status === 'delegated' ? 0.3 : 0.9;
+    drawPixelText(ctx, agent.name, ax, ay + 8, hexToRgba(agent.color, nameAlpha), 5);
 
-    // Status badge
+    // Status badge below name
     let badge = '';
     let badgeColor = '#555';
     switch (agentState.status) {
@@ -358,16 +364,16 @@ export function renderFrame(ctx: CanvasRenderingContext2D, state: SimulationStat
       case 'delegated': badge = 'DEVREDİLDİ'; badgeColor = '#555'; break;
     }
     if (badge) {
-      drawPixelText(ctx, badge, ax, ay + 22, hexToRgba(badgeColor, 0.8), 4);
+      drawPixelText(ctx, badge, ax, ay + 20, hexToRgba(badgeColor, 0.75), 4);
     }
 
-    // Selected highlight
+    // Selected highlight box (sized for 16-row sprite: 24×48px)
     if (state.selectedAgentId === agent.id) {
       ctx.save();
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 1.5;
       ctx.setLineDash([3, 3]);
-      ctx.strokeRect(ax - 28, ay - 52, 56, 60);
+      ctx.strokeRect(ax - 14, ay - 48, 28, 52);
       ctx.setLineDash([]);
       ctx.restore();
     }
