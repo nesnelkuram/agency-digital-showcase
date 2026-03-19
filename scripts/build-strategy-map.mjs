@@ -194,56 +194,39 @@ async function main() {
     if (ann.slug) annotationBySlug.set(ann.slug, ann);
   }
 
-  // Group into patterns by sector + brandMaturity
-  const patternGroups = new Map(); // key: "sector_maturity"
+  // Each annotation → its own pattern (1:1).
+  // sector + brandMaturity are filter fields, NOT grouping keys.
+  const sectorCounters = new Map();
 
-  for (const article of articles) {
-    const ann = annotationBySlug.get(article.slug);
-    if (!ann) continue;
+  const patterns = articles
+    .filter((article) => annotationBySlug.has(article.slug))
+    .map((article) => {
+      const ann = annotationBySlug.get(article.slug);
+      const sector = ann.sector || 'generic';
+      const brandMaturity = ann.brandMaturity || 'any';
 
-    const key = `${ann.sector}_${ann.brandMaturity}`;
-    if (!patternGroups.has(key)) {
-      patternGroups.set(key, {
-        sector: ann.sector,
-        brandMaturity: ann.brandMaturity,
-        approach: ann.approach,
-        insight: ann.insight,
-        successPattern: ann.successPattern || null,
-        avoidPattern: ann.avoidPattern || null,
-        sourceArticles: [],
-        confidence: 0,
-      });
-    }
+      const key = `${sector}_${brandMaturity}`;
+      const count = (sectorCounters.get(key) || 0) + 1;
+      sectorCounters.set(key, count);
 
-    const group = patternGroups.get(key);
-    group.sourceArticles.push({ slug: article.slug, title: article.title });
-
-    // More articles = higher confidence (capped at 1.0)
-    group.confidence = Math.min(1.0, 0.3 + group.sourceArticles.length * 0.07);
-  }
-
-  // Convert to sorted patterns array
-  const patternCounters = new Map();
-
-  const patterns = [...patternGroups.values()]
-    .sort((a, b) => b.sourceArticles.length - a.sourceArticles.length)
-    .map((group) => {
-      const key = `${group.sector}_${group.brandMaturity}`;
-      const count = (patternCounters.get(key) || 0) + 1;
-      patternCounters.set(key, count);
+      // Confidence based on richness of extracted data
+      const hasBoth = !!(ann.successPattern && ann.avoidPattern);
+      const hasOne = !!(ann.successPattern || ann.avoidPattern);
+      const confidence = parseFloat((hasBoth ? 0.85 : hasOne ? 0.65 : 0.45).toFixed(2));
 
       return {
-        id: generatePatternId(group.sector, group.brandMaturity, count),
-        sector: group.sector,
-        brandMaturity: group.brandMaturity,
-        approach: group.approach,
-        insight: group.insight,
-        successPattern: group.successPattern,
-        avoidPattern: group.avoidPattern,
-        sourceArticles: group.sourceArticles,
-        confidence: parseFloat(group.confidence.toFixed(2)),
+        id: generatePatternId(sector, brandMaturity, count),
+        sector,
+        brandMaturity,
+        approach: ann.approach || '',
+        insight: ann.insight || '',
+        successPattern: ann.successPattern || null,
+        avoidPattern: ann.avoidPattern || null,
+        sourceArticles: [{ slug: article.slug, title: article.title }],
+        confidence,
       };
-    });
+    })
+    .sort((a, b) => b.confidence - a.confidence);
 
   const output = {
     meta: {
