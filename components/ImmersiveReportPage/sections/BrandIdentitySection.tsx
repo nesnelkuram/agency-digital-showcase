@@ -8,9 +8,11 @@ interface Props {
   brandCharacter?: any;
   visualWorld?: any;
   qualityMetrics?: any;
+  brandNarrative?: any;
+  emotionalNarrative?: any;
 }
 
-export default function BrandIdentitySection({ index, visual, brandPersonality, brandCharacter, visualWorld, qualityMetrics }: Props) {
+export default function BrandIdentitySection({ index, visual, brandPersonality, brandCharacter, visualWorld, qualityMetrics, brandNarrative, emotionalNarrative }: Props) {
   const palette = visualWorld?.colorPalette?.slice(0, 4) || [];
   const traits = brandPersonality?.traits?.slice(0, 5) || [];
   const sliders = brandCharacter?.sliders;
@@ -18,7 +20,7 @@ export default function BrandIdentitySection({ index, visual, brandPersonality, 
 
   return (
     <SectionBase id="identity" index={index} label="Marka Kimliği" visual={visual}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32, maxWidth: 1200, margin: '0 auto' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 24, maxWidth: 1200, margin: '0 auto' }}>
 
         {/* Left */}
         <div>
@@ -47,9 +49,26 @@ export default function BrandIdentitySection({ index, visual, brandPersonality, 
 
         {/* Right */}
         <div>
+          {/* Brand narrative elevator pitch */}
+          {(brandNarrative?.elevatorPitch || emotionalNarrative?.oneLinePromise) && (
+            <GlassCard style={{ marginBottom: 16 }}>
+              <SectionTitle>Asansör Konuşması</SectionTitle>
+              {brandNarrative?.elevatorPitch && (
+                <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, lineHeight: 1.65, marginBottom: emotionalNarrative?.oneLinePromise ? 10 : 0 }}>
+                  {brandNarrative.elevatorPitch}
+                </p>
+              )}
+              {emotionalNarrative?.oneLinePromise && (
+                <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, fontStyle: 'italic', borderTop: brandNarrative?.elevatorPitch ? '1px solid rgba(255,255,255,0.08)' : 'none', paddingTop: brandNarrative?.elevatorPitch ? 8 : 0 }}>
+                  "{emotionalNarrative.oneLinePromise}"
+                </p>
+              )}
+            </GlassCard>
+          )}
+
           {/* Color palette */}
           {palette.length > 0 && (
-            <GlassCard style={{ marginBottom: 24 }}>
+            <GlassCard style={{ marginBottom: 16 }}>
               <SectionTitle>Renk Paleti</SectionTitle>
               <div style={{ display: 'flex', gap: 12 }}>
                 {palette.map((c: any, i: number) => (

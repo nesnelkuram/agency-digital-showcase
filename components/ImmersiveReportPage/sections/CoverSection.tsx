@@ -10,6 +10,7 @@ interface Props {
   consultantIntro?: string;
   analyzedAt?: string;
   visual: SectionVisual | undefined;
+  confidence?: number;
 }
 
 const MATURITY_LABELS: Record<string, string> = {
@@ -17,7 +18,7 @@ const MATURITY_LABELS: Record<string, string> = {
 };
 
 export default function CoverSection({
-  businessName, sector, maturityLevel, brandClaim, consultantIntro, analyzedAt, visual,
+  businessName, sector, maturityLevel, brandClaim, consultantIntro, analyzedAt, visual, confidence,
 }: Props) {
   const bg = visual?.imageB64
     ? `url(data:image/png;base64,${visual.imageB64})`
@@ -131,11 +132,22 @@ export default function CoverSection({
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         borderTop: '1px solid rgba(255,255,255,0.08)',
       }}>
-        {analyzedAt && (
-          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, fontFamily: 'monospace' }}>
-            {analyzedAt}
-          </span>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          {analyzedAt && (
+            <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, fontFamily: 'monospace' }}>
+              {analyzedAt}
+            </span>
+          )}
+          {confidence !== undefined && confidence > 0 && (
+            <span style={{
+              color: 'rgba(74,222,128,0.8)', fontSize: 11, fontFamily: 'monospace',
+              background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)',
+              borderRadius: 10, padding: '2px 10px',
+            }}>
+              %{confidence} Doğrulanmış
+            </span>
+          )}
+        </div>
         <motion.div
           animate={{ y: [0, 6, 0] }}
           transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}

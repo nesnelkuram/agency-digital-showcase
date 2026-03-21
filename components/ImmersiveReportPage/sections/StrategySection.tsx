@@ -7,9 +7,10 @@ interface Props {
   positioning?: any;
   strategicDepth?: any;
   strategyScenarios?: any;
+  analysis?: any;
 }
 
-export default function StrategySection({ index, visual, positioning, strategicDepth, strategyScenarios }: Props) {
+export default function StrategySection({ index, visual, positioning, strategicDepth, strategyScenarios, analysis }: Props) {
   const scenarios = strategyScenarios
     ? [
         { key: 'conservative', label: 'Muhafazakâr', color: '#94a3b8', data: strategyScenarios.conservative },
@@ -37,7 +38,7 @@ export default function StrategySection({ index, visual, positioning, strategicD
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: strategicDepth ? '1fr 1fr' : '1fr', gap: 28 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: strategicDepth ? 'minmax(0,1fr) minmax(0,1fr)' : '1fr', gap: 20 }}>
           {/* Scenarios */}
           {scenarios.length > 0 && (
             <div>
@@ -62,6 +63,30 @@ export default function StrategySection({ index, visual, positioning, strategicD
                 ))}
               </div>
             </div>
+          )}
+
+          {/* SWOT compact 2×2 */}
+          {analysis && (analysis.strengths?.length > 0 || analysis.opportunities?.length > 0) && (
+            <GlassCard style={{ marginTop: scenarios.length ? 12 : 0 }}>
+              <SectionTitle>Güçlü Yönler & Fırsatlar</SectionTitle>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                {[
+                  { label: '💪 Güçlü', items: analysis.strengths, color: '#4ade80' },
+                  { label: '🚀 Fırsat', items: analysis.opportunities, color: '#60a5fa' },
+                  { label: '⚠️ Zorluk', items: analysis.challenges, color: '#facc15' },
+                  { label: '💡 Öneri', items: analysis.recommendations, color: '#c084fc' },
+                ].map(({ label, items, color }) => items?.length > 0 && (
+                  <div key={label}>
+                    <div style={{ color, fontSize: 10, fontWeight: 700, marginBottom: 5 }}>{label}</div>
+                    {(items || []).slice(0, 2).map((item: string) => (
+                      <div key={item} style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, marginBottom: 3, lineHeight: 1.4 }}>
+                        · {item.slice(0, 55)}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
           )}
 
           {/* Strategic depth */}

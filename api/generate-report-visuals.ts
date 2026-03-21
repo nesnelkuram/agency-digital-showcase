@@ -3,7 +3,7 @@ import { getAdminDb } from './_lib/firebaseAdmin.js';
 
 export const config = { maxDuration: 60 };
 
-const IMAGEN_MODEL = 'imagen-3.0-generate-002';
+const IMAGEN_MODEL = 'gemini-2.0-flash-preview-image-generation';
 
 // Archetype → preset gradient fallback (hex pairs)
 const ARCHETYPE_GRADIENTS: Record<string, [string, string]> = {
@@ -77,30 +77,33 @@ function buildFallbackGradient(sectionId: string, analysis: any): string {
 
 async function generateImagenImage(prompt: string, apiKey: string): Promise<string | null> {
   try {
+    const fullPrompt = `${prompt}, landscape wide composition 16:9, no text, no words, no letters, no people`;
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${IMAGEN_MODEL}:predict?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${IMAGEN_MODEL}:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          instances: [{ prompt }],
-          parameters: { sampleCount: 1, aspectRatio: '16:9' },
+          contents: [{ parts: [{ text: fullPrompt }] }],
+          generationConfig: { responseModalities: ['IMAGE'] },
         }),
-        signal: AbortSignal.timeout(25_000),
+        signal: AbortSignal.timeout(30_000),
       }
     );
 
     if (!response.ok) {
       const err = await response.text();
-      console.warn(`Imagen API error ${response.status}: ${err.slice(0, 200)}`);
+      console.warn(`Gemini image gen error ${response.status}: ${err.slice(0, 200)}`);
       return null;
     }
 
-    const data = await response.json() as { predictions?: Array<{ bytesBase64Encoded?: string }> };
-    const b64 = data?.predictions?.[0]?.bytesBase64Encoded;
+    const data = await response.json() as {
+      candidates?: Array<{ content?: { parts?: Array<{ inlineData?: { data?: string } }> } }>
+    };
+    const b64 = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
     return b64 || null;
   } catch (err: any) {
-    console.warn(`Imagen call failed: ${err.message}`);
+    console.warn(`Gemini image gen failed: ${err.message}`);
     return null;
   }
 }

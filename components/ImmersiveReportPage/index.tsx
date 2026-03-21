@@ -138,6 +138,7 @@ export default function ImmersiveReportPage() {
           consultantIntro={a?.consultantIntro}
           analyzedAt={formatDate((lead as any).analyzedAt || (lead as any).updatedAt)}
           visual={visuals.cover}
+          confidence={a?.evidenceSummaryV2?.overallConfidence}
         />
 
         {/* 2. Brand Identity */}
@@ -148,6 +149,8 @@ export default function ImmersiveReportPage() {
           brandCharacter={a?.brandCharacter}
           visualWorld={a?.visualWorld}
           qualityMetrics={a?.qualityMetrics}
+          brandNarrative={a?.brandNarrative}
+          emotionalNarrative={a?.emotionalNarrative}
         />
 
         {/* 3. Market */}
@@ -173,6 +176,7 @@ export default function ImmersiveReportPage() {
           positioning={a?.positioning}
           strategicDepth={a?.strategicDepth}
           strategyScenarios={a?.strategyScenarios}
+          analysis={a?.analysis}
         />
 
         {/* 6. Language & Claim */}
@@ -181,6 +185,7 @@ export default function ImmersiveReportPage() {
           visual={visuals.language}
           brandClaim={a?.brandClaim}
           contentStrategy={a?.contentStrategy}
+          messagingArchitecture={a?.messagingArchitecture}
         />
 
         {/* 7. Action Plan */}

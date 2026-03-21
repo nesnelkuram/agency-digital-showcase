@@ -27,9 +27,9 @@ export default function ActionSection({ index, visual, actionPlan, kpiFramework,
           <div>
             {/* Roadmap phases from intibaRoadmap */}
             {intibaRoadmap?.phases?.length > 0 ? (
-              <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
                 {intibaRoadmap.phases.map((phase: any, i: number) => (
-                  <GlassCard key={i} style={{ flex: 1, padding: '16px 18px' }}>
+                  <GlassCard key={i} style={{ flex: 1, padding: '12px 14px' }}>
                     <div style={{
                       color: ['#f472b6', '#facc15', '#4ade80'][i] || '#94a3b8',
                       fontSize: 11, fontWeight: 700, letterSpacing: '0.15em',
@@ -52,9 +52,9 @@ export default function ActionSection({ index, visual, actionPlan, kpiFramework,
               </div>
             ) : (
               // Fallback: actionPlan phases
-              <div style={{ display: 'flex', gap: 12 }}>
+              <div style={{ display: 'flex', gap: 8 }}>
                 {phases.map(({ label, color, items }) => (
-                  <GlassCard key={label} style={{ flex: 1, padding: '16px 18px' }}>
+                  <GlassCard key={label} style={{ flex: 1, padding: '12px 14px' }}>
                     <div style={{
                       color, fontSize: 11, fontWeight: 700,
                       letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 10,

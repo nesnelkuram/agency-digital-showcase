@@ -25,11 +25,12 @@ export default function AudienceSection({ index, visual, positioning, consumerTe
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
         <SectionTitle>Hedef Segmentler & Persona Analizi</SectionTitle>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 24 }}>
           {/* Segments */}
           <div>
-            {segments.map((seg: any, i: number) => (
-              <GlassCard key={i} style={{ marginBottom: 16 }}>
+            <div style={{ maxHeight: 'calc(100vh - 220px)', overflowY: 'auto' }}>
+          {segments.map((seg: any, i: number) => (
+              <GlassCard key={i} style={{ marginBottom: 10 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                   <div style={{ color: '#fff', fontSize: 15, fontWeight: 700 }}>{seg.segmentLabel || `Segment ${i + 1}`}</div>
                   <Tag color="rgba(255,255,255,0.1)">{seg.estimatedSegmentSize}</Tag>
@@ -43,6 +44,7 @@ export default function AudienceSection({ index, visual, positioning, consumerTe
                 </div>
               </GlassCard>
             ))}
+          </div>
           </div>
 
           {/* Consumer test personas */}

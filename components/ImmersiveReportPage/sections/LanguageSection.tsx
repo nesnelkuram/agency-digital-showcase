@@ -6,6 +6,7 @@ interface Props {
   visual: SectionVisual | undefined;
   brandClaim?: any;
   contentStrategy?: any;
+  messagingArchitecture?: any;
 }
 
 const CHANNEL_LABELS: Record<string, string> = {
@@ -13,7 +14,7 @@ const CHANNEL_LABELS: Record<string, string> = {
   email_subject: 'E-posta', linkedin: 'LinkedIn', story: 'Story',
 };
 
-export default function LanguageSection({ index, visual, brandClaim, contentStrategy }: Props) {
+export default function LanguageSection({ index, visual, brandClaim, contentStrategy, messagingArchitecture }: Props) {
   const examples = brandClaim?.contentExamples || [];
   const [activeChannel, setActiveChannel] = useState(0);
   const toneExamples = brandClaim?.languageGuide?.toneExamples || [];
@@ -21,6 +22,23 @@ export default function LanguageSection({ index, visual, brandClaim, contentStra
   return (
     <SectionBase id="language" index={index} label="Dil & İddia" visual={visual} overlayOpacity={0.75}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+
+        {/* Messaging architecture — Ana Mesaj + taglines */}
+        {messagingArchitecture?.coreMessage && (
+          <div style={{ marginBottom: 20, maxWidth: 800 }}>
+            <SectionTitle>Ana Mesaj</SectionTitle>
+            <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 'clamp(13px, 1.4vw, 17px)', lineHeight: 1.6, marginBottom: 10 }}>
+              {messagingArchitecture.coreMessage}
+            </p>
+            {(messagingArchitecture.taglineCandidates || []).slice(0, 4).length > 0 && (
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {(messagingArchitecture.taglineCandidates as string[]).slice(0, 4).map((t: string) => (
+                  <Tag key={t} color="rgba(255,255,255,0.1)">{t}</Tag>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Brand claim — hero */}
         {brandClaim?.claim && (

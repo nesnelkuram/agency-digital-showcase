@@ -82,7 +82,13 @@ export default function SectionBase({
         variants={fadeUp}
         initial="hidden"
         animate={inView ? 'visible' : 'hidden'}
-        style={{ position: 'relative', zIndex: 2, width: '100%', padding: '0 40px' }}
+        style={{
+          position: 'relative', zIndex: 2, width: '100%',
+          padding: 'clamp(48px, 6vh, 72px) clamp(24px, 5vw, 64px)',
+          maxHeight: 'calc(100vh - clamp(80px, 10vh, 140px))',
+          overflowY: 'auto',
+          boxSizing: 'border-box',
+        }}
       >
         {children}
       </motion.div>
@@ -118,8 +124,8 @@ export function GlassCard({
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
         border: '1px solid rgba(255,255,255,0.12)',
-        borderRadius: 16,
-        padding: '28px 32px',
+        borderRadius: 14,
+        padding: '18px 22px',
         ...style,
       }}
     >

@@ -23,7 +23,7 @@ export default function MarketSection({ index, visual, sectorResearch, competito
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
         <SectionTitle>Rekabet Ortamı</SectionTitle>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: 32 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.2fr) minmax(0,0.8fr)', gap: 24 }}>
           {/* Competitor grid */}
           <div>
             {market && (
@@ -43,7 +43,7 @@ export default function MarketSection({ index, visual, sectorResearch, competito
               </div>
             )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 10, maxHeight: '55vh', overflowY: 'auto' }}>
               {competitors.map((c: any, i: number) => (
                 <GlassCard key={i} style={{ padding: '16px 20px' }}>
                   <div style={{ color: '#fff', fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{c.name}</div>
