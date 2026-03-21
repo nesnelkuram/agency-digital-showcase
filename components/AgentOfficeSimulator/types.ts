@@ -48,6 +48,7 @@ export interface StageConfig {
   label: string;
   agentIds: AgentId[];
   durationMs: number;
+  required?: boolean; // true = pipeline halts on failure (no silent fallback)
   requiresApproval?: boolean;
   isHetznerDelegation?: boolean;
   outPackets?: StagePacketDef[];

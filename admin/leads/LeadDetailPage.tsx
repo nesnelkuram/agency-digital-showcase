@@ -1525,6 +1525,17 @@ function ReportShareButton({ lead, onLeadUpdate, tenantId }: { lead: BrandLead; 
   if (lead.shareToken) {
     return (
       <div className="relative flex gap-1">
+        <motion.a
+          href={`/rapor-immersive/${lead.shareToken}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white rounded-full font-grotesk text-sm font-medium hover:bg-gray-700 transition-colors"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <span>✦</span>
+          <span>İmmersive</span>
+        </motion.a>
         <motion.button
           onClick={handleCopy}
           className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-full font-grotesk text-sm font-medium hover:bg-indigo-100 transition-colors"

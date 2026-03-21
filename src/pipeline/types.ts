@@ -309,6 +309,26 @@ export interface ActionItem {
   prerequisite?: string;
 }
 
+// Brand Claim Output — synthesized by strategySynthesizer (Hasan)
+export interface BrandClaimOutput {
+  claim: string;
+  claimRationale: string;
+  blogEvidence: {
+    patternSummary: string;
+    sourceArticles: Array<{ slug: string; title: string }>;
+  };
+  languageGuide: {
+    usePhrases: string[];
+    avoidPhrases: string[];
+    toneExamples: Array<{ situation: string; wrongWay: string; rightWay: string }>;
+  };
+  contentExamples: Array<{
+    channel: string;
+    content: string;
+    note?: string;
+  }>;
+}
+
 // Agent 5 Output
 export interface SynthesizedAnalysis {
   brandPersonality: {
@@ -423,6 +443,9 @@ export interface SynthesizedAnalysis {
     onlynessTest: { statement: string; competitorSwaps: Array<{ name: string; stillValid: boolean }> };
     genericPhraseCount: number;             // 0 = mükemmel
   };
+
+  // Marka İddiaası — brandClaim (strategySynthesizer tarafından üretilir)
+  brandClaim?: BrandClaimOutput;
 
   // Faz 2 — KPI Framework
   kpiFramework?: {

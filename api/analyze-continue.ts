@@ -1,6 +1,8 @@
 import type { VercelResponse } from '@vercel/node';
 // @ts-ignore — pre-bundled by esbuild during vercel-build
 import {
+  runDataNormalizer,
+  fetchAndParseWebsite,
   runSectorResearch,
   extractResearchJSON,
   pollDeepResearch,
@@ -14,6 +16,8 @@ import {
   runCompetitorDiscovery,
   runBrandStrategistRevision,
   runConsumerTest,
+  runDeliverableEnricher,
+  generateIntibaRoadmap,
   buildPipelineEvidence,
 } from './_bundles/pipeline-bundle.mjs';
 import {
@@ -51,10 +55,10 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
   const remaining = () => BUDGET_MS - (Date.now() - startTime);
 
   try {
-    const { drInteractionId, drText, normalizedData, researchFindings: existingFindings, input, websiteData, runId } = req.body;
+    const { drInteractionId, drText, researchFindings: existingFindings, input, runId } = req.body;
 
-    if (!normalizedData || !input) {
-      return res.status(400).json({ error: 'Missing required fields: normalizedData, input' });
+    if (!input) {
+      return res.status(400).json({ error: 'Missing required field: input' });
     }
 
     const timings: Record<string, number> = {};
@@ -73,6 +77,50 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
     }
 
     console.log(`analyze-continue: START — existingFindings=${!!existingFindings}, drInteractionId=${drInteractionId || 'none'}, runId=${runId || 'none'}`);
+
+    // ============================
+    // PHASE 0: dataNormalizer + websiteFetch (Hetzner — all agents run here)
+    // ============================
+    let normalizedData = (hasCheckpoint && cp?.normalizedData) || null;
+    let websiteData = (hasCheckpoint && cp?.websiteData) || null;
+
+    if (normalizedData) {
+      console.log('analyze-continue: Using checkpointed normalizedData');
+      agentsRun.push('dataNormalizer');
+    } else {
+      console.log('analyze-continue: Running dataNormalizer + websiteFetch in parallel...');
+      const phase0Start = Date.now();
+      await markAgentRunning(effectiveLeadId, runId, 'dataNormalizer');
+      const [normResult, webResult] = await Promise.all([
+        (async () => {
+          try {
+            const r = await runDataNormalizer(input);
+            timings.dataNormalizer = Date.now() - phase0Start;
+            agentsRun.push('dataNormalizer');
+            if (runId) await checkpointAgent(effectiveLeadId, runId, 'dataNormalizer', 'normalizedData', r, timings.dataNormalizer);
+            console.log(`analyze-continue: dataNormalizer done in ${timings.dataNormalizer}ms`);
+            return r;
+          } catch (error: any) {
+            timings.dataNormalizer = Date.now() - phase0Start;
+            if (runId) await markAgentFailed(effectiveLeadId, runId, 'dataNormalizer', error.message, timings.dataNormalizer);
+            throw new Error(`dataNormalizer failed: ${error.message}`);
+          }
+        })(),
+        (async () => {
+          if (!input.businessContext?.websiteUrl) return null;
+          try {
+            const r = await fetchAndParseWebsite(input.businessContext.websiteUrl);
+            if (r && runId) await checkpointAgent(effectiveLeadId, runId, 'dataNormalizer', 'websiteData', r, 0);
+            console.log(`analyze-continue: websiteFetch done — ${r ? 'ok' : 'null'}`);
+            return r;
+          } catch {
+            return null; // website fetch failure is non-fatal
+          }
+        })(),
+      ]);
+      normalizedData = normResult;
+      websiteData = webResult;
+    }
 
     // ============================
     // PHASE A: Research (if needed)
@@ -628,6 +676,55 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
     }
 
     // ============================
+    // Post-synthesis agents: Deliverable Enricher + Roadmap Generator
+    // ============================
+    let enricherOutput: any = null;
+    let intibaRoadmap: any = null;
+
+    if (synthesizedAnalysis && remaining() > 20_000) {
+      console.log(`analyze-continue: Running post-synthesis agents (remaining=${remaining()}ms)`);
+      const businessName = normalizedData?.businessName || input.contact?.businessName || '';
+      const sector = normalizedData?.sector || input.sector || '';
+
+      const [enrichResult, roadmapResult] = await Promise.all([
+        (async () => {
+          try {
+            const s = Date.now();
+            const result = await runDeliverableEnricher(
+              synthesizedAnalysis, businessName, sector, normalizedData?.brandMaturity?.level,
+            );
+            timings.deliverableEnricher = Date.now() - s;
+            agentsRun.push('deliverableEnricher');
+            console.log(`analyze-continue: deliverableEnricher done in ${timings.deliverableEnricher}ms`);
+            return result;
+          } catch (err: any) {
+            errors.push({ agent: 'deliverableEnricher', error: err.message, timestamp: Date.now() });
+            console.error(`analyze-continue: deliverableEnricher failed: ${err.message}`);
+            return null;
+          }
+        })(),
+        (async () => {
+          if (!effectiveStrategistOutput) return null;
+          try {
+            const s = Date.now();
+            const result = await generateIntibaRoadmap(effectiveStrategistOutput, synthesizedAnalysis);
+            timings.roadmapGenerator = Date.now() - s;
+            agentsRun.push('roadmapGenerator');
+            console.log(`analyze-continue: roadmapGenerator done in ${timings.roadmapGenerator}ms`);
+            return result;
+          } catch (err: any) {
+            errors.push({ agent: 'roadmapGenerator', error: err.message, timestamp: Date.now() });
+            console.error(`analyze-continue: roadmapGenerator failed: ${err.message}`);
+            return null;
+          }
+        })(),
+      ]);
+
+      enricherOutput = enrichResult;
+      intibaRoadmap = roadmapResult;
+    }
+
+    // ============================
     // Build Evidence Summary (post-synthesis, zero-cost meta-extraction)
     // ============================
     let evidenceSummaryV2: any = undefined;
@@ -729,10 +826,13 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
       competitorDiscovery: competitorDiscovery || undefined,
       consumerTest: consumerTestResult || undefined,
 
-      // Deliverable Enricher outputs
-      messagingArchitecture: synthesized.messagingArchitecture || undefined,
-      customerJourney: synthesized.customerJourney || undefined,
-      socialMediaTemplates: synthesized.socialMediaTemplates || undefined,
+      // Deliverable Enricher outputs (prefer enricher over synthesizer)
+      messagingArchitecture: enricherOutput?.messagingArchitecture || synthesized.messagingArchitecture || undefined,
+      customerJourney: enricherOutput?.customerJourney || synthesized.customerJourney || undefined,
+      socialMediaTemplates: enricherOutput?.socialMediaTemplates || synthesized.socialMediaTemplates || undefined,
+
+      // Intiba Yol Haritası
+      intibaRoadmap: intibaRoadmap || undefined,
 
       // Faz 2 — Strategic depth outputs
       brandNarrative: synthesized.brandNarrative || undefined,
@@ -744,6 +844,9 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
       strategicDepth: synthesized.strategicDepth || undefined,
       brandCharacter: synthesized.brandCharacter || undefined,
       qualityMetrics: synthesized.qualityMetrics || undefined,
+
+      // Marka İddiaası
+      brandClaim: synthesized.brandClaim || undefined,
 
       // Faz 2 — KPI Framework & Senaryolar
       kpiFramework: synthesized.kpiFramework || undefined,
@@ -836,9 +939,24 @@ function buildFallbackSynthesis(strategistOutput: any) {
       competitiveLandscape: '',
       alternativePositions: [],
     },
-    visualWorld: { moodKeywords: [], colorPalette: [], typographyStyle: '', imageryStyle: '' },
-    contentStrategy: { pillars: [], toneGuidelines: [], keyMessages: [], hashtags: [] },
-    analysis: { strengths: [], opportunities: [], challenges: [], recommendations: [] },
+    visualWorld: {
+      moodKeywords: strategistOutput.visualMoodKeywords || strategistOutput.moodKeywords || [],
+      colorPalette: strategistOutput.colorPalette || [],
+      typographyStyle: strategistOutput.typographyStyle || '',
+      imageryStyle: strategistOutput.imageryStyle || '',
+    },
+    contentStrategy: {
+      pillars: strategistOutput.contentPillars || strategistOutput.contentStrategyPillars || [],
+      toneGuidelines: strategistOutput.toneGuidelines || (strategistOutput.tone ? [strategistOutput.tone] : []),
+      keyMessages: strategistOutput.keyMessages || [],
+      hashtags: strategistOutput.hashtags || [],
+    },
+    analysis: {
+      strengths: strategistOutput.brandStrengths || strategistOutput.strengths || [],
+      opportunities: strategistOutput.marketOpportunities || strategistOutput.opportunities || [],
+      challenges: strategistOutput.challenges || [],
+      recommendations: strategistOutput.recommendations || [],
+    },
     actionPlan: { immediate: [], shortTerm: [], mediumTerm: [] },
     evidenceSummary: {
       sourcesConsulted: 0,

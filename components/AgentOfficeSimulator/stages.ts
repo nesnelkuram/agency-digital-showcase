@@ -141,7 +141,7 @@ export const AGENT_CONFIGS: AgentConfig[] = [
     role: 'Strategy Synthesizer',
     color: '#818cf8',
     x: 950, y: 175,
-    description: 'Tüm bulguları nihai strateji raporunda sentezler',
+    description: 'Tüm bulguları nihai strateji raporunda sentezler. Ayrıca brandClaim üretir: rekabetten ayrışan tek cümlelik marka iddiası, dil rehberi (kullan/kullanma + ton örnekleri) ve 6 kanal için gerçek kopya metinleri.',
     spriteVariant: 0,
   },
   {
@@ -192,17 +192,26 @@ export const STAGES: StageConfig[] = [
     label: 'Müşteri Kabulü',
     agentIds: ['guard', 'customer'],
     durationMs: 3000,
+    required: true,
     outPackets: [
       { fromId: 'guard', toId: 'nisan', label: 'REQ' },
-      { fromId: 'guard', toId: 'tarik', label: 'REQ' },
       { fromId: 'guard', toId: 'webfetcher', label: 'REQ' },
     ],
+  },
+  {
+    id: 'hetzner_delegation',
+    label: 'Hetzner\'e Devir',
+    agentIds: ['nisan', 'tarik', 'webfetcher', 'leyla', 'bora', 'emre', 'pinar', 'volkan', 'sinan', 'cansu', 'alp', 'reza', 'hasan', 'defne', 'gul', 'nesrin', 'serkan'],
+    durationMs: 3000,
+    isHetznerDelegation: true,
+    outPackets: [],
   },
   {
     id: 'data_collection',
     label: 'Ön Veri Toplama',
     agentIds: ['nisan', 'webfetcher'],
     durationMs: 5000,
+    required: true,
     outPackets: [
       { fromId: 'nisan', toId: 'tarik', label: 'NORM' },
       { fromId: 'webfetcher', toId: 'tarik', label: 'WEB' },
@@ -213,6 +222,7 @@ export const STAGES: StageConfig[] = [
     label: 'Research Brief',
     agentIds: ['nisan'],
     durationMs: 1000,
+    required: true,
     outPackets: [
       { fromId: 'nisan', toId: 'tarik', label: 'BRIEF' },
     ],
@@ -222,25 +232,18 @@ export const STAGES: StageConfig[] = [
     label: 'Deep Research',
     agentIds: ['tarik'],
     durationMs: 18000,
+    required: true,
     outPackets: [
       { fromId: 'tarik', toId: 'leyla', label: 'RSCH' },
       { fromId: 'tarik', toId: 'cansu', label: 'RSCH' },
     ],
   },
   {
-    // Triggered right after research completes (same as analyze-continue.ts)
-    id: 'hetzner_delegation',
-    label: 'Hetzner\'e Devir',
-    agentIds: ['nisan', 'tarik', 'webfetcher', 'leyla', 'bora', 'emre', 'pinar', 'volkan', 'sinan', 'cansu', 'alp', 'reza', 'hasan', 'defne', 'gul', 'nesrin', 'serkan'],
-    durationMs: 3000,
-    isHetznerDelegation: true,
-    outPackets: [],
-  },
-  {
     id: 'competitor_discovery',
     label: 'Rakip Keşfi',
     agentIds: ['cansu'],
     durationMs: 5000,
+    required: true,
     outPackets: [
       { fromId: 'cansu', toId: 'webfetcher', label: 'URLS' },
     ],
@@ -250,6 +253,7 @@ export const STAGES: StageConfig[] = [
     label: 'Rakip Site Tarama',
     agentIds: ['webfetcher'],
     durationMs: 6000,
+    required: true,
     outPackets: [
       { fromId: 'webfetcher', toId: 'bora', label: 'SITES' },
     ],
@@ -259,6 +263,7 @@ export const STAGES: StageConfig[] = [
     label: 'Perceptual Map',
     agentIds: ['bora'],
     durationMs: 3000,
+    required: true,
     outPackets: [
       { fromId: 'bora', toId: 'leyla', label: 'MAP' },
     ],
@@ -268,6 +273,7 @@ export const STAGES: StageConfig[] = [
     label: 'Blog RAG Sorgusu',
     agentIds: ['nesrin'],
     durationMs: 3000,
+    required: true,
     outPackets: [
       { fromId: 'nesrin', toId: 'leyla', label: 'RAG' },
     ],
@@ -277,6 +283,7 @@ export const STAGES: StageConfig[] = [
     label: 'Marka Stratejisi',
     agentIds: ['leyla'],
     durationMs: 8000,
+    required: true,
     outPackets: [
       { fromId: 'leyla', toId: 'bora', label: 'STRAT' },
     ],
@@ -286,6 +293,7 @@ export const STAGES: StageConfig[] = [
     label: 'Multi-Model Konsensüs',
     agentIds: ['bora'],
     durationMs: 4000,
+    required: true,
     outPackets: [
       { fromId: 'bora', toId: 'emre', label: 'CNS' },
       { fromId: 'bora', toId: 'pinar', label: 'CNS' },
@@ -299,6 +307,7 @@ export const STAGES: StageConfig[] = [
     label: 'Paralel Kritik Fazı',
     agentIds: ['emre', 'pinar', 'volkan', 'sinan', 'cansu'],
     durationMs: 6000,
+    required: true,
     outPackets: [
       { fromId: 'emre', toId: 'alp', label: 'CRIT' },
       { fromId: 'pinar', toId: 'alp', label: 'BLOG' },
@@ -312,6 +321,7 @@ export const STAGES: StageConfig[] = [
     label: 'Strateji Revizyonu',
     agentIds: ['alp'],
     durationMs: 5000,
+    required: true,
     outPackets: [
       { fromId: 'alp', toId: 'reza', label: 'REV' },
     ],
@@ -332,6 +342,7 @@ export const STAGES: StageConfig[] = [
     label: 'Sentez',
     agentIds: ['hasan', 'defne'],
     durationMs: 10000,
+    required: true,
     outPackets: [
       { fromId: 'hasan', toId: 'gul', label: 'SYN' },
       { fromId: 'defne', toId: 'serkan', label: 'VAL' },
@@ -342,6 +353,7 @@ export const STAGES: StageConfig[] = [
     label: 'Intiba Yol Haritası',
     agentIds: ['gul'],
     durationMs: 5000,
+    required: true,
     outPackets: [
       { fromId: 'gul', toId: 'nesrin', label: 'ROAD' },
       { fromId: 'gul', toId: 'serkan', label: 'ROAD' },
@@ -352,6 +364,7 @@ export const STAGES: StageConfig[] = [
     label: 'Kalite + Teslimat',
     agentIds: ['nesrin', 'serkan', 'guard', 'customer'],
     durationMs: 5000,
+    required: true,
     outPackets: [],
   },
 ];

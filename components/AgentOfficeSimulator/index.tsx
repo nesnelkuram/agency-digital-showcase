@@ -418,8 +418,17 @@ const AgentOfficeSimulator: React.FC = () => {
                   : uiState.currentStageIndex === i && uiState.phase !== 'idle' ? '#00cfff'
                   : '#333',
                 fontSize: 6,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 3,
               }}>
-                {i + 1}. {stage.label}
+                <span>{i + 1}. {stage.label}</span>
+                {stage.required && (
+                  <span style={{ color: '#ef4444', fontSize: 5, marginLeft: 'auto', fontWeight: 700 }} title="Başarısız olursa pipeline durur">●</span>
+                )}
+                {stage.requiresApproval && (
+                  <span style={{ color: '#facc15', fontSize: 5, marginLeft: 'auto', fontWeight: 700 }} title="İnsan onayı gerektirir">◎</span>
+                )}
               </div>
             </div>
           ))}
@@ -432,7 +441,8 @@ const AgentOfficeSimulator: React.FC = () => {
         <span>○ <span style={{ color: '#00cfff' }}>ÇALIŞIYOR</span></span>
         <span>◌ <span style={{ color: '#555' }}>BOŞTA</span></span>
         <span>◎ <span style={{ color: '#facc15' }}>BEKLE</span></span>
-        <span>● <span style={{ color: '#f87171' }}>ONAY GEREKLİ</span></span>
+        <span>◎ <span style={{ color: '#facc15' }}>ONAY GEREKLİ</span></span>
+        <span>● <span style={{ color: '#ef4444' }}>ZORUNLu (dur)</span></span>
         <span style={{ marginLeft: 'auto', color: '#1a1a2e' }}>
           Canvas tıkla → agent bilgisi
         </span>

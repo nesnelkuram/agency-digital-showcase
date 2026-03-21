@@ -468,6 +468,82 @@ Tum verileri sentezleyerek asagidaki JSON yapisinda NIHAI marka stratejisi rapor
     "conservative": { "description": "Tutucu senaryo aciklamasi", "investmentLevel": "Aylik yatirim araligi", "expectedOutcome": "3 ay sonunda beklenen sonuc", "timeframe": "Sonuc alma suresi", "risk": "Bu senaryonun riski" },
     "recommended": { "description": "Onerilen senaryo", "investmentLevel": "...", "expectedOutcome": "...", "timeframe": "...", "risk": "..." },
     "aggressive": { "description": "Agresif buyume senaryosu", "investmentLevel": "...", "expectedOutcome": "...", "timeframe": "...", "risk": "..." }
+  },
+  "brandClaim": {
+    "claim": "Rakiplerin soylemedigi, bu markanin sahiplenebilecegi tek guclu Turkce iddia cumlesi. Kaynak: researchFindings rakip bosluklari + strategistOutput.differentiator. JENERIK OLMAMALI — 'Kaliteli hizmet sunuyoruz' gibi ifadeler YASAK. Markaya OZEL, rakip adina kullanilamayacak, keskin bir iddia olmali.",
+    "claimRationale": "2-3 cumle: bu iddia neden bu markaya ait, hangi rekabet boslugundan geliyor, blog oruntuleri bunu nasil destekliyor",
+    "blogEvidence": {
+      "patternSummary": "blogAdvisorOutput veya semanticBlogResults'tan: bu tur markalarda ne is yariyor, hangi icerik yaklasimi en etkili",
+      "sourceArticles": [
+        { "slug": "makale-slug-1", "title": "Makale baslik 1" },
+        { "slug": "makale-slug-2", "title": "Makale baslik 2" }
+      ]
+    },
+    "languageGuide": {
+      "usePhrases": [
+        "Kullan: somut, markaya ozel ifade 1",
+        "Kullan: somut, markaya ozel ifade 2",
+        "Kullan: somut, markaya ozel ifade 3",
+        "Kullan: somut, markaya ozel ifade 4",
+        "Kullan: somut, markaya ozel ifade 5"
+      ],
+      "avoidPhrases": [
+        "Kullanma: jenerik veya rakiplerle ayni dusen ifade 1",
+        "Kullanma: jenerik veya rakiplerle ayni dusen ifade 2",
+        "Kullanma: jenerik veya rakiplerle ayni dusen ifade 3",
+        "Kullanma: jenerik veya rakiplerle ayni dusen ifade 4",
+        "Kullanma: jenerik veya rakiplerle ayni dusen ifade 5"
+      ],
+      "toneExamples": [
+        {
+          "situation": "Musteri fiyat sorunca",
+          "wrongWay": "Fiyatimiz biraz yuksek ama kalitemiz cok iyi",
+          "rightWay": "Bu fiyat [SOMUT DEGER] icin — [neyi kapsiyor, rakipte ne eksik]"
+        },
+        {
+          "situation": "Rakiple karsilastirilinca",
+          "wrongWay": "Biz daha iyiyiz cunku kaliteliyiz",
+          "rightWay": "Biz [SPESIFIK FARK] yapiyoruz, [rakip] ise [ne yapiyor/yapmıyor]"
+        },
+        {
+          "situation": "Sosyal medyada tanitim",
+          "wrongWay": "En iyi [sektor] hizmetini sunuyoruz",
+          "rightWay": "[MARKA SESINE UYGUN SOMUT TANITIM CUMLESI — gercek metin]"
+        }
+      ]
+    },
+    "contentExamples": [
+      {
+        "channel": "instagram",
+        "content": "GERCEK Instagram caption metni — hook + govde + CTA. Template degil, calistirilacak metin.",
+        "note": "Hangi pillar, hangi format"
+      },
+      {
+        "channel": "website_hero",
+        "content": "H1: [Ana baslik — max 8 kelime]\nAlt baslik: [Destekleyici aciklama — max 15 kelime]",
+        "note": "SEO + donusum odakli"
+      },
+      {
+        "channel": "campaign_tagline",
+        "content": "Kampanya slogani — max 6 kelime, akilda kalici, markaya ozel",
+        "note": "Claim'den turetilmis"
+      },
+      {
+        "channel": "email_subject",
+        "content": "E-posta konu satiri — max 50 karakter, merak uyandiran",
+        "note": "Acilma orani icin optimize"
+      },
+      {
+        "channel": "linkedin",
+        "content": "LinkedIn post metni — uzman perspektifi, insight paylasimi, marka sesiyle. 3-5 paragraf.",
+        "note": "B2B veya ortaklik hedefli"
+      },
+      {
+        "channel": "story",
+        "content": "Instagram story metin katmani — max 2 satir, buyuk font. Swipe-up veya link icin CTA.",
+        "note": "Gorsel uzerine eklenen metin"
+      }
+    ]
   }
 }
 
@@ -532,7 +608,9 @@ ${maturity.level === 'mature' ? '- MATURE ise: buyume stratejisi, topluluk olust
 
 24. STRATEJI SENARYOLARI: "strategyScenarios" bolumunde 3 farkli senaryo sun. "conservative" dusuk olcekli, "recommended" orta olcekli, "aggressive" yuksek olcekli olmali. investmentLevel'da TL rakami YAZMA — sadece "Dusuk olcek", "Orta olcek", "Yuksek olcek" gibi genel ifadeler kullan.
 
-25. SENARYO OLASILIK AGIRLIGI: strategyScenarios icin her senaryoya "probabilityWeight" (0-1, toplam=1) ve "decisionCriteria" (hangi kosulda bu senaryo secilir) ekle.`;
+25. SENARYO OLASILIK AGIRLIGI: strategyScenarios icin her senaryoya "probabilityWeight" (0-1, toplam=1) ve "decisionCriteria" (hangi kosulda bu senaryo secilir) ekle.
+
+26. MARKA IDDIASI (brandClaim): claim alani MARKA SESINE UYGUN, RAKIPLERIN SOYLEMEDIGI, BU MARKAYA OZEL bir iddia olmali. usePhrases EN AZ 5, avoidPhrases EN AZ 5, toneExamples TAM 3 adet (fiyat/rakip/sosyal medya senaryolari). contentExamples GERÇEK KOPYA METINLERI olmali — "template" veya placeholder YASAK. Her channel icin farkli ve kullanima hazir metin yaz. blogEvidence.sourceArticles'ta gercek blog makalesi slug'lari kullan (bilmiyorsan genel aciklayici sluglar kullan, uydurma URL YAZMA).`;
 
   const parsed = await generateJSON<SynthesizedAnalysis>('pro', prompt, 'StrategySynthesizer', {
     temperature: 0.6,
@@ -712,6 +790,32 @@ ${maturity.level === 'mature' ? '- MATURE ise: buyume stratejisi, topluluk olust
           conservative: { ...parsed.strategyScenarios.conservative, probabilityWeight: parsed.strategyScenarios.conservative?.probabilityWeight, decisionCriteria: parsed.strategyScenarios.conservative?.decisionCriteria },
           recommended: { ...parsed.strategyScenarios.recommended, probabilityWeight: parsed.strategyScenarios.recommended?.probabilityWeight, decisionCriteria: parsed.strategyScenarios.recommended?.decisionCriteria },
           aggressive: { ...parsed.strategyScenarios.aggressive, probabilityWeight: parsed.strategyScenarios.aggressive?.probabilityWeight, decisionCriteria: parsed.strategyScenarios.aggressive?.decisionCriteria },
+        }
+      : undefined,
+    brandClaim: parsed.brandClaim && parsed.brandClaim.claim
+      ? {
+          claim: parsed.brandClaim.claim,
+          claimRationale: parsed.brandClaim.claimRationale || '',
+          blogEvidence: {
+            patternSummary: parsed.brandClaim.blogEvidence?.patternSummary || '',
+            sourceArticles: Array.isArray(parsed.brandClaim.blogEvidence?.sourceArticles)
+              ? parsed.brandClaim.blogEvidence.sourceArticles
+              : [],
+          },
+          languageGuide: {
+            usePhrases: Array.isArray(parsed.brandClaim.languageGuide?.usePhrases)
+              ? parsed.brandClaim.languageGuide.usePhrases
+              : [],
+            avoidPhrases: Array.isArray(parsed.brandClaim.languageGuide?.avoidPhrases)
+              ? parsed.brandClaim.languageGuide.avoidPhrases
+              : [],
+            toneExamples: Array.isArray(parsed.brandClaim.languageGuide?.toneExamples)
+              ? parsed.brandClaim.languageGuide.toneExamples
+              : [],
+          },
+          contentExamples: Array.isArray(parsed.brandClaim.contentExamples)
+            ? parsed.brandClaim.contentExamples
+            : [],
         }
       : undefined,
   };

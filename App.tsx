@@ -27,6 +27,7 @@ const PortalApp = lazy(() => import('./portal/PortalApp'));
 const AgentOfficeSimulator = lazy(() => import('./components/AgentOfficeSimulator'));
 const FeedbackSharePage = lazy(() => import('./components/FeedbackSharePage'));
 const AnalysisReportPage = lazy(() => import('./components/AnalysisReportPage'));
+const ImmersiveReportPage = lazy(() => import('./components/ImmersiveReportPage'));
 const ContentPlanSharePage = lazy(() => import('./components/ContentPlanSharePage'));
 const ProposalSharePage = lazy(() => import('./components/ProposalSharePage'));
 
@@ -286,6 +287,16 @@ const App: React.FC = () => {
           element={
             <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
               <AnalysisReportPage />
+            </Suspense>
+          }
+        />
+
+        {/* Immersive full-screen report */}
+        <Route
+          path="/rapor-immersive/:shareToken"
+          element={
+            <Suspense fallback={<div className="min-h-screen" style={{ background: '#0a0a0a' }} />}>
+              <ImmersiveReportPage />
             </Suspense>
           }
         />

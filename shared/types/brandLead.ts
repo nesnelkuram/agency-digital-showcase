@@ -1,4 +1,5 @@
 import { Timestamp } from 'firebase/firestore';
+import type { BrandClaimOutput } from '../../src/pipeline/types';
 
 // ============================================
 // SEKTÖR TİPLERİ
@@ -296,13 +297,28 @@ export interface AIAnalysis {
     rationale: string;
   }>;
 
+  // Blog Advisor çıktıları (stratejik felsefe + içerik)
+  blogAdvisorInsights?: {
+    philosophicalAlignmentScore: number;
+    alignedPrinciples: string[];
+    conflictingPrinciples: string[];
+    keyRecommendations: string[];
+    contentPillars: string[];
+    topicSuggestions: string[];
+    narrativeApproach: string;
+    unconventionalInsights: string[];
+    authorPerspective: string;
+  };
+
   // Strateji tartışma kaydı (multi-agent)
   debate?: {
     strategistPosition: string;
     challengerPosition: string;
+    blogAdvisorPosition?: string;
     challengerAlternatives: string[];
     synthesisRationale: string;
     debateCompleted: boolean;
+    blogAdvisorCompleted?: boolean;
   };
 
   // Veri kalitesi değerlendirmesi (multi-agent)
@@ -344,6 +360,23 @@ export interface AIAnalysis {
     threeMonthRoadmap: string;
     expectedOutcomes: string[];
     clientReadinessNotes: string;
+  };
+  // Intiba hizmet yol haritası (roadmapGenerator)
+  intibaRoadmap?: {
+    rationale: string;
+    phases: Array<{
+      label: string;
+      durationDays: number;
+      focus: string;
+      milestone: string;
+      services: Array<{
+        category: string;
+        name: string;
+        rationale: string;
+        expectedImpact: string;
+        priority: 'kritik' | 'onemli' | 'opsiyonel';
+      }>;
+    }>;
   };
   perceptualMap?: {
     xAxis: { label: string; lowEnd: string; highEnd: string };
@@ -514,6 +547,9 @@ export interface AIAnalysis {
     brandOpportunity: string;
     contentType: string;
   }>;
+
+  // Marka İddiaası — rekabetten ayrışan claim, dil rehberi ve içerik örnekleri
+  brandClaim?: BrandClaimOutput;
 
   // Faz C — Sosyal Medya İçerik Şablonları
   socialMediaTemplates?: Array<{

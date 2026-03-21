@@ -11,6 +11,7 @@ import {
   LayoutGrid, Rocket, ShieldAlert,
   Map, Megaphone, FileText, Printer, ChevronDown, ChevronUp, Layout,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { getBrandLeadByShareToken } from '@/shared/services/brandLeadService';
 import { SECTOR_LABELS } from '@/shared/types/brandLead';
 import type { BrandLead, AIAnalysis, BusinessContext } from '@/shared/types/brandLead';
@@ -352,7 +353,16 @@ const AnalysisReportPage: React.FC = () => {
       <header className="bg-white border-b border-gray-100">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5 sm:py-6 flex items-center justify-between">
           <img src="/images/intibalogo.svg" alt="intiba" className="h-6 sm:h-7 invert" />
-          <span className="font-commons text-xs text-gray-400">Marka Strateji Raporu</span>
+          <div className="flex items-center gap-3">
+            <span className="font-commons text-xs text-gray-400 hidden sm:block">Marka Strateji Raporu</span>
+            <Link
+              to={`/rapor-immersive/${shareToken}`}
+              className="font-commons flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-gray-900 text-white hover:bg-gray-700 transition-colors print:hidden"
+            >
+              <span>✦</span>
+              <span>İmmersive</span>
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -382,6 +392,9 @@ const AnalysisReportPage: React.FC = () => {
 
         {/* BRAND BRIEF (always visible) */}
         <BrandBriefCard a={a} businessName={businessName} />
+
+        {/* BRAND CLAIM (always visible, after brief) */}
+        {a.brandClaim && <BrandClaimSection brandClaim={a.brandClaim} />}
 
         {/* ─── TAB NAVIGATION (Faz D1) ─── */}
         <div className="sticky top-0 z-20 bg-gray-50/95 backdrop-blur-sm -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 border-b border-gray-200">
@@ -1937,6 +1950,185 @@ function KPIFrameworkSection({ kpi }: { kpi: NonNullable<AIAnalysis['kpiFramewor
           <p className="font-commons text-sm text-gray-700"><span className="font-medium">Gozden Gecirme Periyodu:</span> {kpi.reviewCadence}</p>
         </div>
       )}
+    </SectionCard>
+  );
+}
+
+// ─── Brand Claim Section ─────────────────────────────────────
+
+function BrandClaimSection({ brandClaim }: { brandClaim: NonNullable<AIAnalysis['brandClaim']> }) {
+  const [copiedClaim, setCopiedClaim] = useState(false);
+  const [copiedContent, setCopiedContent] = useState<string | null>(null);
+  const [activeChannel, setActiveChannel] = useState<string>(brandClaim.contentExamples[0]?.channel || '');
+
+  const copyText = (text: string, key: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      if (key === 'claim') { setCopiedClaim(true); setTimeout(() => setCopiedClaim(false), 1500); }
+      else { setCopiedContent(key); setTimeout(() => setCopiedContent(null), 1500); }
+    });
+  };
+
+  const channelLabel: Record<string, string> = {
+    instagram: 'Instagram',
+    website_hero: 'Web Hero',
+    campaign_tagline: 'Kampanya',
+    email_subject: 'E-posta',
+    linkedin: 'LinkedIn',
+    story: 'Story',
+  };
+
+  const activeExample = brandClaim.contentExamples.find(e => e.channel === activeChannel);
+
+  return (
+    <SectionCard className="border-2 border-amber-100 bg-gradient-to-br from-white to-amber-50/20 print:break-before-page">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-5">
+        <div>
+          <p className="font-commons text-[11px] text-amber-600 uppercase tracking-widest mb-1">Marka İddiaası</p>
+          <h2 className="font-ramillas text-xl sm:text-2xl font-bold text-gray-900">İddia, Dil Rehberi & İçerik Örnekleri</h2>
+        </div>
+        <div className="p-2 bg-amber-100 rounded-xl">
+          <Megaphone className="w-5 h-5 text-amber-600" />
+        </div>
+      </div>
+
+      {/* Claim */}
+      <div className="mb-6 p-5 bg-gray-900 rounded-2xl relative group">
+        <p className="font-ramillas text-xl sm:text-2xl font-bold text-white leading-snug pr-10">{brandClaim.claim}</p>
+        <button
+          onClick={() => copyText(brandClaim.claim, 'claim')}
+          className="absolute top-4 right-4 p-1.5 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
+          title="Kopyala"
+        >
+          {copiedClaim ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-white/60" />}
+        </button>
+        {brandClaim.claimRationale && (
+          <p className="font-commons text-sm text-white/70 mt-3 leading-relaxed">{brandClaim.claimRationale}</p>
+        )}
+        {brandClaim.blogEvidence?.sourceArticles?.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {brandClaim.blogEvidence.sourceArticles.map((a, i) => (
+              <span key={i} className="font-commons text-[11px] text-amber-300 bg-amber-900/30 px-2.5 py-1 rounded-full">
+                {a.title}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Two-column grid: Language Guide + Content Examples */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* Language Guide */}
+        <div className="space-y-4">
+          <h3 className="font-commons text-sm font-semibold text-gray-700 flex items-center gap-2">
+            <BookOpen className="w-4 h-4 text-amber-500" /> Dil Rehberi
+          </h3>
+
+          {brandClaim.languageGuide.usePhrases.length > 0 && (
+            <div>
+              <p className="font-commons text-[11px] text-emerald-600 font-semibold uppercase tracking-wide mb-2">✅ Kullan</p>
+              <ul className="space-y-1.5">
+                {brandClaim.languageGuide.usePhrases.map((phrase, i) => (
+                  <li key={i} className="font-commons text-sm text-gray-700 flex items-start gap-2">
+                    <span className="text-emerald-500 mt-0.5 flex-shrink-0">•</span>
+                    <span>{phrase}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {brandClaim.languageGuide.avoidPhrases.length > 0 && (
+            <div>
+              <p className="font-commons text-[11px] text-red-500 font-semibold uppercase tracking-wide mb-2">❌ Kullanma</p>
+              <ul className="space-y-1.5">
+                {brandClaim.languageGuide.avoidPhrases.map((phrase, i) => (
+                  <li key={i} className="font-commons text-sm text-gray-500 flex items-start gap-2">
+                    <span className="text-red-400 mt-0.5 flex-shrink-0">•</span>
+                    <span>{phrase}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {brandClaim.languageGuide.toneExamples.length > 0 && (
+            <div>
+              <p className="font-commons text-[11px] text-gray-500 font-semibold uppercase tracking-wide mb-2">Ton Örnekleri</p>
+              <div className="space-y-3">
+                {brandClaim.languageGuide.toneExamples.map((ex, i) => (
+                  <div key={i} className="rounded-xl border border-gray-100 overflow-hidden">
+                    <div className="bg-gray-50 px-3 py-2">
+                      <p className="font-commons text-[11px] font-semibold text-gray-500">{ex.situation}</p>
+                    </div>
+                    <div className="p-3 space-y-2">
+                      <div className="flex items-start gap-2">
+                        <span className="text-red-400 text-xs flex-shrink-0 mt-0.5">✗</span>
+                        <p className="font-commons text-xs text-gray-400 line-through leading-relaxed">{ex.wrongWay}</p>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="text-emerald-500 text-xs flex-shrink-0 mt-0.5">✓</span>
+                        <p className="font-commons text-xs text-gray-700 leading-relaxed font-medium">{ex.rightWay}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Content Examples */}
+        <div className="space-y-4">
+          <h3 className="font-commons text-sm font-semibold text-gray-700 flex items-center gap-2">
+            <FileText className="w-4 h-4 text-amber-500" /> İçerik Örnekleri
+          </h3>
+
+          {/* Channel Tabs */}
+          <div className="flex flex-wrap gap-1.5">
+            {brandClaim.contentExamples.map(ex => (
+              <button
+                key={ex.channel}
+                onClick={() => setActiveChannel(ex.channel)}
+                className={`font-commons text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                  activeChannel === ex.channel
+                    ? 'bg-amber-500 text-white border-amber-500'
+                    : 'bg-white text-gray-600 border-gray-200 hover:border-amber-300'
+                }`}
+              >
+                {channelLabel[ex.channel] || ex.channel}
+              </button>
+            ))}
+          </div>
+
+          {/* Active Example */}
+          {activeExample && (
+            <div className="relative bg-gray-50 rounded-xl border border-gray-200 p-4">
+              <p className="font-commons text-sm text-gray-800 leading-relaxed whitespace-pre-line pr-8">{activeExample.content}</p>
+              <button
+                onClick={() => copyText(activeExample.content, activeExample.channel)}
+                className="absolute top-3 right-3 p-1.5 bg-white hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors"
+                title="Kopyala"
+              >
+                {copiedContent === activeExample.channel
+                  ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                  : <Copy className="w-3.5 h-3.5 text-gray-400" />}
+              </button>
+              {activeExample.note && (
+                <p className="font-commons text-[11px] text-gray-400 mt-3 border-t border-gray-200 pt-2">{activeExample.note}</p>
+              )}
+            </div>
+          )}
+
+          {/* Blog Pattern Summary */}
+          {brandClaim.blogEvidence?.patternSummary && (
+            <div className="bg-amber-50 rounded-xl border border-amber-100 p-4">
+              <p className="font-commons text-[11px] text-amber-600 font-semibold uppercase tracking-wide mb-1.5">Blog Kanıtı</p>
+              <p className="font-commons text-sm text-amber-800 leading-relaxed">{brandClaim.blogEvidence.patternSummary}</p>
+            </div>
+          )}
+        </div>
+      </div>
     </SectionCard>
   );
 }
