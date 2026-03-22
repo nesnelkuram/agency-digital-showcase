@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import SectionBase, { GlassCard, SectionTitle, BigText, Tag, type SectionVisual } from '../SectionBase';
+import SectionBase, { GlassCard, SectionTitle, BigText, Tag, C, type SectionVisual } from '../SectionBase';
 
 interface Props {
   index: number;
@@ -12,72 +12,76 @@ interface Props {
 const CHANNEL_LABELS: Record<string, string> = {
   instagram: 'Instagram', website_hero: 'Web Hero', campaign_tagline: 'Kampanya',
   email_subject: 'E-posta', linkedin: 'LinkedIn', story: 'Story',
+  twitter: 'Twitter', tiktok: 'TikTok',
 };
 
 export default function LanguageSection({ index, visual, brandClaim, contentStrategy, messagingArchitecture }: Props) {
   const examples = brandClaim?.contentExamples || [];
   const [activeChannel, setActiveChannel] = useState(0);
   const toneExamples = brandClaim?.languageGuide?.toneExamples || [];
+  const pillars = contentStrategy?.pillars?.slice(0, 4) || [];
+  const keyMessages = contentStrategy?.keyMessages?.slice(0, 3) || [];
+  const hashtags = contentStrategy?.hashtags?.slice(0, 8) || [];
 
   return (
-    <SectionBase id="language" index={index} label="Dil & İddia" visual={visual} overlayOpacity={0.75}>
+    <SectionBase id="language" index={index} label="Dil & İçerik" visual={visual}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
 
-        {/* Messaging architecture — Ana Mesaj + taglines */}
+        {/* Messaging architecture */}
         {messagingArchitecture?.coreMessage && (
-          <div style={{ marginBottom: 20, maxWidth: 800 }}>
+          <div style={{ marginBottom: 22, maxWidth: 820 }}>
             <SectionTitle>Ana Mesaj</SectionTitle>
-            <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 'clamp(13px, 1.4vw, 17px)', lineHeight: 1.6, marginBottom: 10 }}>
+            <p style={{ color: C.text, fontSize: 'clamp(14px, 1.5vw, 18px)', lineHeight: 1.6, fontWeight: 600, marginBottom: 10 }}>
               {messagingArchitecture.coreMessage}
             </p>
             {(messagingArchitecture.taglineCandidates || []).slice(0, 4).length > 0 && (
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
                 {(messagingArchitecture.taglineCandidates as string[]).slice(0, 4).map((t: string) => (
-                  <Tag key={t} color="rgba(255,255,255,0.1)">{t}</Tag>
+                  <Tag key={t}>{t}</Tag>
                 ))}
               </div>
             )}
           </div>
         )}
 
-        {/* Brand claim — hero */}
+        {/* Brand claim hero */}
         {brandClaim?.claim && (
-          <div style={{ marginBottom: 36, maxWidth: 800 }}>
+          <div style={{ marginBottom: 24, maxWidth: 820 }}>
             <SectionTitle>Marka İddiaası</SectionTitle>
-            <BigText style={{ fontSize: 'clamp(20px, 2.8vw, 42px)', lineHeight: 1.3 }}>
+            <BigText style={{ fontSize: 'clamp(18px, 2.5vw, 38px)', lineHeight: 1.3 }}>
               {brandClaim.claim}
             </BigText>
             {brandClaim?.claimRationale && (
-              <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, marginTop: 12, lineHeight: 1.7 }}>
+              <p style={{ color: C.faint, fontSize: 12, marginTop: 10, lineHeight: 1.7 }}>
                 {brandClaim.claimRationale}
               </p>
             )}
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 28 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 20 }}>
 
-          {/* Language guide */}
+          {/* Left: language guide + content pillars */}
           <div>
             {brandClaim?.languageGuide && (
               <>
-                <GlassCard style={{ marginBottom: 16 }}>
+                <GlassCard style={{ marginBottom: 10 }}>
                   <SectionTitle>✅ Kullan</SectionTitle>
                   {(brandClaim.languageGuide.usePhrases || []).slice(0, 5).map((p: string) => (
                     <div key={p} style={{
-                      color: 'rgba(74,222,128,0.9)', fontSize: 13, marginBottom: 8,
-                      paddingBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.06)',
+                      color: C.green, fontSize: 12, marginBottom: 7,
+                      paddingBottom: 7, borderBottom: `1px solid ${C.cardBorder}`,
                     }}>
                       "{p}"
                     </div>
                   ))}
                 </GlassCard>
-                <GlassCard>
+                <GlassCard style={{ marginBottom: 10 }}>
                   <SectionTitle>❌ Kullanma</SectionTitle>
                   {(brandClaim.languageGuide.avoidPhrases || []).slice(0, 5).map((p: string) => (
                     <div key={p} style={{
-                      color: 'rgba(248,113,113,0.8)', fontSize: 13, marginBottom: 8,
-                      paddingBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.06)',
+                      color: C.red, fontSize: 12, marginBottom: 7,
+                      paddingBottom: 7, borderBottom: `1px solid ${C.cardBorder}`,
                       textDecoration: 'line-through',
                     }}>
                       "{p}"
@@ -86,24 +90,42 @@ export default function LanguageSection({ index, visual, brandClaim, contentStra
                 </GlassCard>
               </>
             )}
+
+            {/* Content pillars */}
+            {pillars.length > 0 && (
+              <GlassCard>
+                <SectionTitle>İçerik Sütunları</SectionTitle>
+                {pillars.map((p: any, i: number) => (
+                  <div key={i} style={{ marginBottom: 8, paddingBottom: 8, borderBottom: i < pillars.length - 1 ? `1px solid ${C.cardBorder}` : 'none' }}>
+                    <div style={{ color: C.text, fontSize: 13, fontWeight: 600, marginBottom: 2 }}>
+                      {p.title || p.pillar || p}
+                    </div>
+                    {p.description && (
+                      <div style={{ color: C.mid, fontSize: 11, lineHeight: 1.5 }}>{p.description.slice(0, 100)}</div>
+                    )}
+                  </div>
+                ))}
+              </GlassCard>
+            )}
           </div>
 
-          {/* Content examples + tone */}
+          {/* Right: content examples + tone + key messages */}
           <div>
             {examples.length > 0 && (
-              <GlassCard style={{ marginBottom: 16 }}>
+              <GlassCard style={{ marginBottom: 10 }}>
                 <SectionTitle>İçerik Örnekleri</SectionTitle>
-                {/* Channel tabs */}
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
+                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 12 }}>
                   {examples.map((ex: any, i: number) => (
                     <button
                       key={i}
                       onClick={() => setActiveChannel(i)}
                       style={{
-                        padding: '4px 12px', borderRadius: 14, cursor: 'pointer', border: 'none', fontSize: 11,
-                        background: activeChannel === i ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.07)',
-                        color: activeChannel === i ? '#fff' : 'rgba(255,255,255,0.45)',
-                        fontWeight: activeChannel === i ? 700 : 400, transition: 'all 0.15s',
+                        padding: '4px 10px', borderRadius: 12, cursor: 'pointer',
+                        border: `1px solid ${activeChannel === i ? 'rgba(0,0,0,0.2)' : C.cardBorder}`,
+                        background: activeChannel === i ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.5)',
+                        color: activeChannel === i ? C.text : C.faint,
+                        fontSize: 10, fontWeight: activeChannel === i ? 700 : 400,
+                        transition: 'all 0.15s',
                       }}
                     >
                       {CHANNEL_LABELS[ex.channel] || ex.channel}
@@ -112,11 +134,11 @@ export default function LanguageSection({ index, visual, brandClaim, contentStra
                 </div>
                 {examples[activeChannel] && (
                   <div>
-                    <p style={{ color: '#fff', fontSize: 14, lineHeight: 1.7, fontStyle: 'italic' }}>
+                    <p style={{ color: C.text, fontSize: 13, lineHeight: 1.7, fontStyle: 'italic' }}>
                       "{examples[activeChannel].content}"
                     </p>
                     {examples[activeChannel].note && (
-                      <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, marginTop: 8 }}>
+                      <p style={{ color: C.faint, fontSize: 11, marginTop: 7 }}>
                         💡 {examples[activeChannel].note}
                       </p>
                     )}
@@ -126,15 +148,38 @@ export default function LanguageSection({ index, visual, brandClaim, contentStra
             )}
 
             {toneExamples.length > 0 && (
-              <GlassCard>
+              <GlassCard style={{ marginBottom: 10 }}>
                 <SectionTitle>Ton Örnekleri</SectionTitle>
                 {toneExamples.slice(0, 2).map((ex: any, i: number) => (
-                  <div key={i} style={{ marginBottom: i < toneExamples.length - 1 ? 14 : 0 }}>
-                    <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginBottom: 6 }}>{ex.situation}</div>
-                    <div style={{ color: 'rgba(248,113,113,0.7)', fontSize: 12, marginBottom: 4 }}>✗ {ex.wrongWay}</div>
-                    <div style={{ color: 'rgba(74,222,128,0.9)', fontSize: 12 }}>✓ {ex.rightWay}</div>
+                  <div key={i} style={{ marginBottom: i < toneExamples.length - 1 ? 12 : 0 }}>
+                    <div style={{ color: C.faint, fontSize: 10, marginBottom: 5 }}>{ex.situation}</div>
+                    <div style={{ color: C.red, fontSize: 12, marginBottom: 3 }}>✗ {ex.wrongWay}</div>
+                    <div style={{ color: C.green, fontSize: 12 }}>✓ {ex.rightWay}</div>
                   </div>
                 ))}
+              </GlassCard>
+            )}
+
+            {keyMessages.length > 0 && (
+              <GlassCard style={{ marginBottom: 10 }}>
+                <SectionTitle>Temel Mesajlar</SectionTitle>
+                {keyMessages.map((msg: string, i: number) => (
+                  <div key={i} style={{ color: C.mid, fontSize: 13, lineHeight: 1.55, marginBottom: 6, display: 'flex', gap: 8 }}>
+                    <span style={{ color: C.faint, fontFamily: 'monospace', fontSize: 10, minWidth: 14 }}>{i + 1}.</span>
+                    <span>{msg}</span>
+                  </div>
+                ))}
+              </GlassCard>
+            )}
+
+            {hashtags.length > 0 && (
+              <GlassCard>
+                <SectionTitle>Hashtag'ler</SectionTitle>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                  {hashtags.map((h: string) => (
+                    <Tag key={h} color={C.blueBg}>#{h.replace(/^#/, '')}</Tag>
+                  ))}
+                </div>
               </GlassCard>
             )}
           </div>

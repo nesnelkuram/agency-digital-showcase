@@ -64,13 +64,13 @@ export default function ImmersiveReportPage() {
   if (loading) {
     return (
       <div style={{
-        height: '100vh', background: '#0a0a0a', display: 'flex',
+        height: '100vh', background: '#f5f2ec', display: 'flex',
         alignItems: 'center', justifyContent: 'center',
       }}>
         <motion.div
           animate={{ opacity: [0.3, 1, 0.3] }}
           transition={{ duration: 2, repeat: Infinity }}
-          style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, letterSpacing: '0.3em', fontFamily: 'monospace', textTransform: 'uppercase' }}
+          style={{ color: 'rgba(28,25,22,0.4)', fontSize: 12, letterSpacing: '0.3em', fontFamily: 'monospace', textTransform: 'uppercase' }}
         >
           Rapor Yükleniyor…
         </motion.div>
@@ -81,11 +81,11 @@ export default function ImmersiveReportPage() {
   if (error || !lead) {
     return (
       <div style={{
-        height: '100vh', background: '#0a0a0a', display: 'flex', flexDirection: 'column',
+        height: '100vh', background: '#f5f2ec', display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center', gap: 16,
       }}>
-        <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>Rapor bulunamadı.</div>
-        <Link to="/" style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>Ana sayfaya dön</Link>
+        <div style={{ color: 'rgba(28,25,22,0.45)', fontSize: 14 }}>Rapor bulunamadı.</div>
+        <Link to="/" style={{ color: 'rgba(28,25,22,0.3)', fontSize: 12 }}>Ana sayfaya dön</Link>
       </div>
     );
   }
@@ -106,12 +106,13 @@ export default function ImmersiveReportPage() {
           animate={{ opacity: 1 }}
           style={{
             position: 'fixed', bottom: 24, right: 24, zIndex: 100,
-            background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255,255,255,0.12)',
+            background: 'rgba(245,242,236,0.92)', backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(0,0,0,0.08)',
             borderRadius: 12, padding: '10px 16px',
-            color: 'rgba(255,255,255,0.5)', fontSize: 11,
+            color: 'rgba(28,25,22,0.45)', fontSize: 11,
             fontFamily: 'monospace', letterSpacing: '0.1em',
             display: 'flex', alignItems: 'center', gap: 8,
+            boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
           }}
         >
           <motion.span
@@ -211,13 +212,13 @@ export default function ImmersiveReportPage() {
       <Link
         to={`/rapor/${shareToken}`}
         style={{
-          position: 'fixed', top: 20, right: 20, zIndex: 200,
-          background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255,255,255,0.15)',
-          color: 'rgba(255,255,255,0.5)', fontSize: 11,
+          position: 'fixed', top: 18, right: 18, zIndex: 200,
+          background: 'rgba(245,242,236,0.88)', backdropFilter: 'blur(12px)',
+          border: '1px solid rgba(0,0,0,0.1)',
+          color: 'rgba(28,25,22,0.5)', fontSize: 10,
           padding: '6px 14px', borderRadius: 20, textDecoration: 'none',
-          letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: 'monospace',
-          transition: 'all 0.2s',
+          letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: 'monospace',
+          transition: 'all 0.2s', boxShadow: '0 1px 6px rgba(0,0,0,0.06)',
         }}
       >
         ← Klasik Görünüm
@@ -264,7 +265,7 @@ function NavDots() {
             width: active === i ? 8 : 5,
             height: active === i ? 8 : 5,
             borderRadius: '50%', border: 'none', cursor: 'pointer', padding: 0,
-            background: active === i ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.25)',
+            background: active === i ? 'rgba(28,25,22,0.7)' : 'rgba(28,25,22,0.2)',
             transition: 'all 0.3s ease',
           }}
         />

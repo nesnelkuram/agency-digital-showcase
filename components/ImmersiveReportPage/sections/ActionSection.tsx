@@ -1,5 +1,5 @@
 import React from 'react';
-import SectionBase, { GlassCard, SectionTitle, Tag, type SectionVisual } from '../SectionBase';
+import SectionBase, { GlassCard, SectionTitle, Tag, C, type SectionVisual } from '../SectionBase';
 
 interface Props {
   index: number;
@@ -9,65 +9,62 @@ interface Props {
   intibaRoadmap?: any;
 }
 
+const PHASE_COLORS = [C.pink, C.yellow, C.green];
+
 export default function ActionSection({ index, visual, actionPlan, kpiFramework, intibaRoadmap }: Props) {
   const phases = [
-    { key: 'immediate', label: 'Hemen', color: '#f472b6', items: actionPlan?.immediate || [] },
-    { key: 'shortTerm', label: '30 Gün', color: '#facc15', items: actionPlan?.shortTerm || [] },
-    { key: 'mediumTerm', label: '90 Gün', color: '#4ade80', items: actionPlan?.mediumTerm || [] },
+    { key: 'immediate', label: 'Hemen', color: C.pink, items: actionPlan?.immediate || [] },
+    { key: 'shortTerm', label: '30 Gün', color: C.yellow, items: actionPlan?.shortTerm || [] },
+    { key: 'mediumTerm', label: '90 Gün', color: C.green, items: actionPlan?.mediumTerm || [] },
   ].filter(p => p.items.length > 0);
 
   return (
-    <SectionBase id="action" index={index} label="Eylem Planı" visual={visual} overlayOpacity={0.7}>
+    <SectionBase id="action" index={index} label="Eylem Planı" visual={visual}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
         <SectionTitle>90 Günlük Strateji Planı</SectionTitle>
 
-        <div style={{ display: 'grid', gridTemplateColumns: kpiFramework ? '1.3fr 0.7fr' : '1fr', gap: 28 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: kpiFramework ? 'minmax(0,1.35fr) minmax(0,0.65fr)' : '1fr', gap: 24 }}>
 
           {/* Action phases */}
           <div>
-            {/* Roadmap phases from intibaRoadmap */}
             {intibaRoadmap?.phases?.length > 0 ? (
               <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
                 {intibaRoadmap.phases.map((phase: any, i: number) => (
                   <GlassCard key={i} style={{ flex: 1, padding: '12px 14px' }}>
                     <div style={{
-                      color: ['#f472b6', '#facc15', '#4ade80'][i] || '#94a3b8',
-                      fontSize: 11, fontWeight: 700, letterSpacing: '0.15em',
-                      textTransform: 'uppercase', marginBottom: 6,
+                      color: PHASE_COLORS[i] || C.slate,
+                      fontSize: 10, fontWeight: 700, letterSpacing: '0.15em',
+                      textTransform: 'uppercase', marginBottom: 5,
                     }}>
-                      Faz {i + 1} · {phase.durationDays} gün
+                      Faz {i + 1} · {phase.durationDays}g
                     </div>
-                    <div style={{ color: '#fff', fontSize: 14, fontWeight: 700, marginBottom: 4 }}>{phase.label}</div>
-                    <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12, lineHeight: 1.5, marginBottom: 8 }}>
+                    <div style={{ color: C.text, fontSize: 13, fontWeight: 700, marginBottom: 3 }}>{phase.label}</div>
+                    <div style={{ color: C.mid, fontSize: 11, lineHeight: 1.5, marginBottom: 6 }}>
                       {phase.focus}
                     </div>
                     <div style={{
-                      color: 'rgba(255,255,255,0.35)', fontSize: 11,
-                      borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 8,
+                      color: C.faint, fontSize: 10,
+                      borderTop: `1px solid ${C.cardBorder}`, paddingTop: 6,
                     }}>
                       🎯 {phase.milestone}
                     </div>
                   </GlassCard>
                 ))}
               </div>
-            ) : (
-              // Fallback: actionPlan phases
-              <div style={{ display: 'flex', gap: 8 }}>
+            ) : phases.length > 0 && (
+              <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
                 {phases.map(({ label, color, items }) => (
                   <GlassCard key={label} style={{ flex: 1, padding: '12px 14px' }}>
-                    <div style={{
-                      color, fontSize: 11, fontWeight: 700,
-                      letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 10,
-                    }}>
+                    <div style={{ color, fontSize: 10, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 8 }}>
                       {label}
                     </div>
                     {items.slice(0, 3).map((item: any) => (
                       <div key={item.action} style={{
-                        marginBottom: 10, paddingBottom: 10,
-                        borderBottom: '1px solid rgba(255,255,255,0.07)',
+                        marginBottom: 8, paddingBottom: 8,
+                        borderBottom: `1px solid ${C.cardBorder}`,
                       }}>
-                        <div style={{ color: '#fff', fontSize: 13, marginBottom: 2 }}>{item.action}</div>
-                        <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>{item.owner} · {item.metric}</div>
+                        <div style={{ color: C.text, fontSize: 12, marginBottom: 2 }}>{item.action}</div>
+                        <div style={{ color: C.faint, fontSize: 10 }}>{item.owner}{item.metric ? ` · ${item.metric}` : ''}</div>
                       </div>
                     ))}
                   </GlassCard>
@@ -75,16 +72,34 @@ export default function ActionSection({ index, visual, actionPlan, kpiFramework,
               </div>
             )}
 
-            {/* Action items list (if roadmap exists) */}
+            {/* Roadmap services (from intibaRoadmap phases) */}
+            {intibaRoadmap?.phases?.length > 0 && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, maxHeight: '34vh', overflowY: 'auto' }}>
+                {intibaRoadmap.phases.flatMap((phase: any, pi: number) =>
+                  (phase.services || []).slice(0, 2).map((svc: any, si: number) => (
+                    <GlassCard key={`${pi}-${si}`} style={{ padding: '10px 12px' }}>
+                      <div style={{ color: PHASE_COLORS[pi] || C.slate, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', marginBottom: 3 }}>
+                        {phase.label}
+                      </div>
+                      <div style={{ color: C.text, fontSize: 12, fontWeight: 600, marginBottom: 2 }}>{svc.name}</div>
+                      <div style={{ color: C.mid, fontSize: 11 }}>{(svc.rationale || '').slice(0, 70)}</div>
+                    </GlassCard>
+                  ))
+                ).slice(0, 6)}
+              </div>
+            )}
+
+            {/* Fallback action items (if roadmap + actionPlan both present) */}
             {intibaRoadmap && phases.length > 0 && (
-              <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+              <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
                 {phases.map(({ label, color, items }) => (
                   <div key={label}>
-                    <div style={{ color, fontSize: 10, fontWeight: 700, letterSpacing: '0.15em', marginBottom: 8, textTransform: 'uppercase' }}>{label}</div>
+                    <div style={{ color, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', marginBottom: 6, textTransform: 'uppercase' }}>{label}</div>
                     {items.slice(0, 2).map((item: any) => (
                       <div key={item.action} style={{
-                        color: 'rgba(255,255,255,0.6)', fontSize: 12, marginBottom: 6,
-                        paddingLeft: 10, borderLeft: `2px solid ${color}40`,
+                        color: C.mid, fontSize: 11, marginBottom: 5,
+                        paddingLeft: 8, borderLeft: `2px solid ${color}50`,
+                        lineHeight: 1.4,
                       }}>
                         {item.action}
                       </div>
@@ -98,32 +113,39 @@ export default function ActionSection({ index, visual, actionPlan, kpiFramework,
           {/* KPI Framework */}
           {kpiFramework && (
             <div>
-              <GlassCard style={{ marginBottom: 14 }}>
+              <GlassCard style={{ marginBottom: 10 }}>
                 <SectionTitle>Kuzey Yıldızı Metriği</SectionTitle>
-                <div style={{ color: '#fff', fontSize: 16, fontWeight: 700, marginBottom: 6 }}>
+                <div style={{ color: C.text, fontSize: 15, fontWeight: 700, marginBottom: 8 }}>
                   {kpiFramework.northStar?.metric}
                 </div>
-                <div style={{ display: 'flex', gap: 12 }}>
+                <div style={{ display: 'flex', gap: 16 }}>
                   <div>
-                    <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10 }}>Şu An</div>
-                    <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>{kpiFramework.northStar?.currentEstimate}</div>
+                    <div style={{ color: C.faint, fontSize: 9, textTransform: 'uppercase' }}>Şu An</div>
+                    <div style={{ color: C.mid, fontSize: 12 }}>{kpiFramework.northStar?.currentEstimate}</div>
                   </div>
                   <div>
-                    <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10 }}>90 Gün Hedef</div>
-                    <div style={{ color: '#4ade80', fontSize: 13, fontWeight: 700 }}>{kpiFramework.northStar?.target90Day}</div>
+                    <div style={{ color: C.faint, fontSize: 9, textTransform: 'uppercase' }}>90G Hedef</div>
+                    <div style={{ color: C.green, fontSize: 13, fontWeight: 700 }}>{kpiFramework.northStar?.target90Day}</div>
                   </div>
                 </div>
               </GlassCard>
 
-              {(kpiFramework.leading || []).slice(0, 3).map((kpi: any) => (
-                <GlassCard key={kpi.metric} style={{ marginBottom: 10, padding: '12px 16px' }}>
-                  <div style={{ color: '#fff', fontSize: 13, fontWeight: 600, marginBottom: 3 }}>{kpi.metric}</div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>{kpi.measurementMethod}</span>
-                    <Tag color="rgba(74,222,128,0.2)">{kpi.target}</Tag>
+              {(kpiFramework.leading || []).slice(0, 4).map((kpi: any) => (
+                <GlassCard key={kpi.metric} style={{ marginBottom: 8, padding: '10px 14px' }}>
+                  <div style={{ color: C.text, fontSize: 12, fontWeight: 600, marginBottom: 3 }}>{kpi.metric}</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: C.mid, fontSize: 11 }}>{kpi.measurementMethod}</span>
+                    <Tag color={C.greenBg}>{kpi.target}</Tag>
                   </div>
                 </GlassCard>
               ))}
+
+              {kpiFramework.reviewCadence && (
+                <GlassCard style={{ padding: '10px 14px' }}>
+                  <SectionTitle>Değerlendirme Periyodu</SectionTitle>
+                  <div style={{ color: C.mid, fontSize: 12 }}>{kpiFramework.reviewCadence}</div>
+                </GlassCard>
+              )}
             </div>
           )}
         </div>

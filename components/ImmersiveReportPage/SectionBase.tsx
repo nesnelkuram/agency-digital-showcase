@@ -12,25 +12,48 @@ interface SectionBaseProps {
   label: string;
   visual: SectionVisual | undefined;
   children: React.ReactNode;
-  overlayOpacity?: number; // 0-1, default 0.6
+  overlayOpacity?: number;
 }
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 32 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } },
+  hidden: { opacity: 0, y: 24 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1] } },
+};
+
+// Light theme palette
+export const C = {
+  bg:      'linear-gradient(160deg, #f5f2ec 0%, #ece7dd 100%)',
+  overlay: 'rgba(243,239,231,0.88)',   // warm light wash over images
+  text:    '#1c1916',
+  mid:     'rgba(28,25,22,0.62)',
+  faint:   'rgba(28,25,22,0.38)',
+  xfaint:  'rgba(28,25,22,0.22)',
+  card:    'rgba(255,255,255,0.76)',
+  cardBorder: 'rgba(0,0,0,0.07)',
+  // accents (readable on light)
+  green:   '#15803d',
+  greenBg: 'rgba(21,128,61,0.1)',
+  red:     '#b91c1c',
+  redBg:   'rgba(185,28,28,0.09)',
+  blue:    '#1d4ed8',
+  blueBg:  'rgba(29,78,216,0.1)',
+  yellow:  '#a16207',
+  yellowBg:'rgba(161,98,7,0.1)',
+  pink:    '#be185d',
+  pinkBg:  'rgba(190,24,93,0.1)',
+  purple:  '#7c3aed',
+  purpleBg:'rgba(124,58,237,0.1)',
+  slate:   '#64748b',
 };
 
 export default function SectionBase({
-  id, index, label, visual, children, overlayOpacity = 0.65,
+  id, index, label, visual, children, overlayOpacity = 0.88,
 }: SectionBaseProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, margin: '-15% 0px' });
-
-  const bg = visual?.imageB64
-    ? `url(data:image/png;base64,${visual.imageB64})`
-    : visual?.fallbackGradient || 'linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%)';
+  const inView = useInView(ref, { once: true, margin: '-10% 0px' });
 
   const isBgImage = !!visual?.imageB64;
+  const bgImage = isBgImage ? `url(data:image/png;base64,${visual!.imageB64})` : undefined;
 
   return (
     <section
@@ -43,35 +66,31 @@ export default function SectionBase({
         display: 'flex',
         alignItems: 'center',
         overflow: 'hidden',
-        background: isBgImage ? undefined : bg,
+        background: isBgImage ? undefined : (visual?.fallbackGradient || C.bg),
       }}
     >
-      {/* Background image */}
+      {/* Background image — desaturated and washed */}
       {isBgImage && (
-        <div
-          style={{
+        <>
+          <div style={{
             position: 'absolute', inset: 0,
-            backgroundImage: bg,
+            backgroundImage: bgImage,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
-            filter: 'brightness(0.85)',
-          }}
-        />
+            filter: 'saturate(0.35) brightness(1.1)',
+          }} />
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: C.overlay,
+            zIndex: 1,
+          }} />
+        </>
       )}
 
-      {/* Dark overlay */}
-      <div
-        style={{
-          position: 'absolute', inset: 0,
-          background: `rgba(0,0,0,${overlayOpacity})`,
-          zIndex: 1,
-        }}
-      />
-
-      {/* Section number */}
+      {/* Section label */}
       <div style={{
-        position: 'absolute', top: 32, left: 40, zIndex: 3,
-        color: 'rgba(255,255,255,0.25)', fontSize: 11, letterSpacing: '0.25em',
+        position: 'absolute', top: 28, left: 36, zIndex: 3,
+        color: C.xfaint, fontSize: 11, letterSpacing: '0.28em',
         fontFamily: 'monospace', textTransform: 'uppercase',
       }}>
         {String(index + 1).padStart(2, '0')} / 08 — {label}
@@ -84,8 +103,8 @@ export default function SectionBase({
         animate={inView ? 'visible' : 'hidden'}
         style={{
           position: 'relative', zIndex: 2, width: '100%',
-          padding: 'clamp(48px, 6vh, 72px) clamp(24px, 5vw, 64px)',
-          maxHeight: 'calc(100vh - clamp(80px, 10vh, 140px))',
+          padding: 'clamp(52px, 7vh, 80px) clamp(28px, 5vw, 72px)',
+          maxHeight: 'calc(100vh - clamp(80px, 10vh, 120px))',
           overflowY: 'auto',
           boxSizing: 'border-box',
         }}
@@ -93,16 +112,16 @@ export default function SectionBase({
         {children}
       </motion.div>
 
-      {/* Scroll indicator (not on last section) */}
+      {/* Scroll hint */}
       {index < 7 && (
         <div style={{
-          position: 'absolute', bottom: 32, left: '50%', transform: 'translateX(-50%)',
-          zIndex: 3, color: 'rgba(255,255,255,0.35)', textAlign: 'center',
+          position: 'absolute', bottom: 28, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 3, color: C.xfaint, textAlign: 'center',
         }}>
           <motion.div
             animate={{ y: [0, 6, 0] }}
             transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-            style={{ fontSize: 18 }}
+            style={{ fontSize: 16 }}
           >
             ↓
           </motion.div>
@@ -112,7 +131,8 @@ export default function SectionBase({
   );
 }
 
-// Glassmorphism card helper
+// ─── Shared UI helpers ────────────────────────────────────
+
 export function GlassCard({
   children, className = '', style = {},
 }: { children: React.ReactNode; className?: string; style?: React.CSSProperties }) {
@@ -120,12 +140,13 @@ export function GlassCard({
     <div
       className={className}
       style={{
-        background: 'rgba(255,255,255,0.07)',
+        background: C.card,
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        border: '1px solid rgba(255,255,255,0.12)',
+        border: `1px solid ${C.cardBorder}`,
         borderRadius: 14,
-        padding: '18px 22px',
+        padding: '16px 20px',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
         ...style,
       }}
     >
@@ -137,8 +158,8 @@ export function GlassCard({
 export function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <h2 style={{
-      color: 'rgba(255,255,255,0.5)', fontSize: 11, letterSpacing: '0.3em',
-      textTransform: 'uppercase', fontFamily: 'monospace', marginBottom: 12,
+      color: C.faint, fontSize: 10, letterSpacing: '0.32em',
+      textTransform: 'uppercase', fontFamily: 'monospace', marginBottom: 10,
     }}>
       {children}
     </h2>
@@ -148,8 +169,8 @@ export function SectionTitle({ children }: { children: React.ReactNode }) {
 export function BigText({ children, style = {} }: { children: React.ReactNode; style?: React.CSSProperties }) {
   return (
     <p style={{
-      color: '#fff', fontSize: 'clamp(24px, 3.5vw, 52px)',
-      fontWeight: 700, lineHeight: 1.2, letterSpacing: '-0.02em',
+      color: C.text, fontSize: 'clamp(22px, 3vw, 48px)',
+      fontWeight: 800, lineHeight: 1.15, letterSpacing: '-0.03em',
       ...style,
     }}>
       {children}
@@ -157,15 +178,19 @@ export function BigText({ children, style = {} }: { children: React.ReactNode; s
   );
 }
 
-export function Tag({ children, color = 'rgba(255,255,255,0.15)' }: { children: React.ReactNode; color?: string }) {
+export function Tag({ children, color }: { children: React.ReactNode; color?: string }) {
   return (
     <span style={{
-      background: color,
-      color: '#fff', fontSize: 11, padding: '4px 10px', borderRadius: 20,
-      letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600,
-      display: 'inline-block',
+      background: color || 'rgba(0,0,0,0.07)',
+      color: C.text, fontSize: 10, padding: '4px 10px', borderRadius: 20,
+      letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600,
+      display: 'inline-block', border: '1px solid rgba(0,0,0,0.07)',
     }}>
       {children}
     </span>
   );
+}
+
+export function Divider() {
+  return <div style={{ height: 1, background: 'rgba(0,0,0,0.07)', margin: '10px 0' }} />;
 }
