@@ -4,11 +4,12 @@ import { motion } from 'framer-motion';
 import { getBrandLeadByShareToken } from '@/shared/services/brandLeadService';
 import type { BrandLead } from '@/shared/types/brandLead';
 import CoverSection from './sections/CoverSection';
+import DiagnosisSection from './sections/DiagnosisSection';
 import BrandIdentitySection from './sections/BrandIdentitySection';
-import MarketSection from './sections/MarketSection';
-import AudienceSection from './sections/AudienceSection';
 import StrategySection from './sections/StrategySection';
+import AudienceSection from './sections/AudienceSection';
 import LanguageSection from './sections/LanguageSection';
+import MarketSection from './sections/MarketSection';
 import ActionSection from './sections/ActionSection';
 import IntibaSection from './sections/IntibaSection';
 import type { SectionVisual } from './SectionBase';
@@ -32,7 +33,6 @@ export default function ImmersiveReportPage() {
   const [visuals, setVisuals] = useState<Visuals>({});
   const [visualState, setVisualState] = useState<VisualState>('idle');
 
-  // Fetch lead data
   useEffect(() => {
     if (!shareToken) { setError(true); setLoading(false); return; }
     getBrandLeadByShareToken(shareToken)
@@ -43,11 +43,9 @@ export default function ImmersiveReportPage() {
       .catch(() => { setError(true); setLoading(false); });
   }, [shareToken]);
 
-  // Fetch visuals once lead is loaded
   useEffect(() => {
     if (!lead || !shareToken) return;
     setVisualState('loading');
-
     fetch('/api/generate-report-visuals', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -63,10 +61,7 @@ export default function ImmersiveReportPage() {
 
   if (loading) {
     return (
-      <div style={{
-        height: '100vh', background: '#f5f2ec', display: 'flex',
-        alignItems: 'center', justifyContent: 'center',
-      }}>
+      <div style={{ height: '100vh', background: '#f5f2ec', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <motion.div
           animate={{ opacity: [0.3, 1, 0.3] }}
           transition={{ duration: 2, repeat: Infinity }}
@@ -80,10 +75,7 @@ export default function ImmersiveReportPage() {
 
   if (error || !lead) {
     return (
-      <div style={{
-        height: '100vh', background: '#f5f2ec', display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center', gap: 16,
-      }}>
+      <div style={{ height: '100vh', background: '#f5f2ec', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
         <div style={{ color: 'rgba(28,25,22,0.45)', fontSize: 14 }}>Rapor bulunamadı.</div>
         <Link to="/" style={{ color: 'rgba(28,25,22,0.3)', fontSize: 12 }}>Ana sayfaya dön</Link>
       </div>
@@ -94,12 +86,15 @@ export default function ImmersiveReportPage() {
   const businessName = lead.contact?.businessName || '';
   const sector = lead.sector || '';
 
+  // Section order: Cover → Diagnosis → Identity → Strategy → Audience → Language → Market → Action+Intiba
+  // Nav dot labels
+  const SECTIONS = ['cover', 'diagnosis', 'identity', 'strategy', 'audience', 'language', 'market', 'action'];
+
   return (
     <div style={{ position: 'relative' }}>
-      {/* Nav dots */}
-      <NavDots />
+      <NavDots sections={SECTIONS} />
 
-      {/* Visual generation status (unobtrusive) */}
+      {/* Visual generation status */}
       {visualState === 'loading' && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -107,29 +102,21 @@ export default function ImmersiveReportPage() {
           style={{
             position: 'fixed', bottom: 24, right: 24, zIndex: 100,
             background: 'rgba(245,242,236,0.92)', backdropFilter: 'blur(12px)',
-            border: '1px solid rgba(0,0,0,0.08)',
-            borderRadius: 12, padding: '10px 16px',
+            border: '1px solid rgba(0,0,0,0.08)', borderRadius: 12, padding: '10px 16px',
             color: 'rgba(28,25,22,0.45)', fontSize: 11,
             fontFamily: 'monospace', letterSpacing: '0.1em',
             display: 'flex', alignItems: 'center', gap: 8,
             boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
           }}
         >
-          <motion.span
-            animate={{ opacity: [0.3, 1, 0.3] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-          >●</motion.span>
+          <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity }}>●</motion.span>
           Görseller üretiliyor…
         </motion.div>
       )}
 
       {/* Scroll container */}
-      <div style={{
-        height: '100vh',
-        overflowY: 'scroll',
-        scrollSnapType: 'y mandatory',
-        scrollBehavior: 'smooth',
-      }}>
+      <div style={{ height: '100vh', overflowY: 'scroll', scrollSnapType: 'y mandatory', scrollBehavior: 'smooth' }}>
+
         {/* 1. Cover */}
         <CoverSection
           businessName={businessName}
@@ -142,9 +129,20 @@ export default function ImmersiveReportPage() {
           confidence={a?.evidenceSummaryV2?.overallConfidence}
         />
 
-        {/* 2. Brand Identity */}
-        <BrandIdentitySection
+        {/* 2. Diagnosis */}
+        <DiagnosisSection
           index={1}
+          visual={visuals.diagnosis}
+          diagnosisSummary={a?.diagnosisSummary}
+          brandMaturity={a?.brandMaturity}
+          dataQuality={a?.dataQuality}
+          synthesisRationale={(a as any)?.debate?.synthesisRationale || (a as any)?.synthesisRationale}
+          consultantIntro={a?.consultantIntro}
+        />
+
+        {/* 3. Brand Identity */}
+        <BrandIdentitySection
+          index={2}
           visual={visuals.identity}
           brandPersonality={a?.brandPersonality}
           brandCharacter={a?.brandCharacter}
@@ -152,35 +150,26 @@ export default function ImmersiveReportPage() {
           qualityMetrics={a?.qualityMetrics}
           brandNarrative={a?.brandNarrative}
           emotionalNarrative={a?.emotionalNarrative}
+          brandEnemy={a?.strategicDepth?.brandEnemy}
         />
 
-        {/* 3. Market */}
-        <MarketSection
-          index={2}
-          visual={visuals.market}
-          sectorResearch={a?.sectorResearch}
-          competitorDiscovery={a?.competitorDiscovery}
-        />
-
-        {/* 4. Audience */}
-        <AudienceSection
+        {/* 4. Strategic Depth */}
+        <StrategySection
           index={3}
+          visual={visuals.strategy}
+          strategicDepth={a?.strategicDepth}
+          strategyScenarios={a?.strategyScenarios}
+        />
+
+        {/* 5. Audience & Positioning */}
+        <AudienceSection
+          index={4}
           visual={visuals.audience}
           positioning={a?.positioning}
           consumerTest={a?.consumerTest}
         />
 
-        {/* 5. Strategy */}
-        <StrategySection
-          index={4}
-          visual={visuals.strategy}
-          positioning={a?.positioning}
-          strategicDepth={a?.strategicDepth}
-          strategyScenarios={a?.strategyScenarios}
-          analysis={a?.analysis}
-        />
-
-        {/* 6. Language & Claim */}
+        {/* 6. Language, Message & Claim */}
         <LanguageSection
           index={5}
           visual={visuals.language}
@@ -189,26 +178,28 @@ export default function ImmersiveReportPage() {
           messagingArchitecture={a?.messagingArchitecture}
         />
 
-        {/* 7. Action Plan */}
-        <ActionSection
+        {/* 7. Market & Competition */}
+        <MarketSection
           index={6}
+          visual={visuals.market}
+          sectorResearch={a?.sectorResearch}
+          competitorDiscovery={a?.competitorDiscovery}
+          analysis={a?.analysis}
+          digitalPresence={a?.digitalPresence}
+        />
+
+        {/* 8. Action Plan + Intiba */}
+        <ActionSection
+          index={7}
           visual={visuals.action}
           actionPlan={a?.actionPlan}
           kpiFramework={a?.kpiFramework}
           intibaRoadmap={a?.intibaRoadmap}
         />
 
-        {/* 8. Intiba Services */}
-        <IntibaSection
-          index={7}
-          visual={visuals.intiba}
-          intibaEngagement={a?.intibaEngagement}
-          intibaRoadmap={a?.intibaRoadmap}
-          brandName={businessName}
-        />
       </div>
 
-      {/* Back to classic report */}
+      {/* Back to classic */}
       <Link
         to={`/rapor/${shareToken}`}
         style={{
@@ -218,7 +209,7 @@ export default function ImmersiveReportPage() {
           color: 'rgba(28,25,22,0.5)', fontSize: 10,
           padding: '6px 14px', borderRadius: 20, textDecoration: 'none',
           letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: 'monospace',
-          transition: 'all 0.2s', boxShadow: '0 1px 6px rgba(0,0,0,0.06)',
+          boxShadow: '0 1px 6px rgba(0,0,0,0.06)',
         }}
       >
         ← Klasik Görünüm
@@ -227,25 +218,19 @@ export default function ImmersiveReportPage() {
   );
 }
 
-// Simple scroll-position nav dots
-function NavDots() {
-  const SECTIONS = ['cover', 'identity', 'market', 'audience', 'strategy', 'language', 'action', 'intiba'];
+function NavDots({ sections }: { sections: string[] }) {
   const [active, setActive] = useState(0);
 
   useEffect(() => {
     const container = document.querySelector('[style*="scroll-snap-type"]') as HTMLElement;
     if (!container) return;
-
     const onScroll = () => {
-      const scrollTop = container.scrollTop;
-      const sectionHeight = container.clientHeight;
-      const idx = Math.round(scrollTop / sectionHeight);
-      setActive(Math.min(idx, SECTIONS.length - 1));
+      const idx = Math.round(container.scrollTop / container.clientHeight);
+      setActive(Math.min(idx, sections.length - 1));
     };
-
     container.addEventListener('scroll', onScroll, { passive: true });
     return () => container.removeEventListener('scroll', onScroll);
-  }, []);
+  }, [sections.length]);
 
   const scrollTo = (i: number) => {
     const container = document.querySelector('[style*="scroll-snap-type"]') as HTMLElement;
@@ -255,20 +240,15 @@ function NavDots() {
   return (
     <div style={{
       position: 'fixed', right: 20, top: '50%', transform: 'translateY(-50%)',
-      zIndex: 200, display: 'flex', flexDirection: 'column', gap: 8,
+      zIndex: 200, display: 'flex', flexDirection: 'column', gap: 7,
     }}>
-      {SECTIONS.map((_, i) => (
-        <button
-          key={i}
-          onClick={() => scrollTo(i)}
-          style={{
-            width: active === i ? 8 : 5,
-            height: active === i ? 8 : 5,
-            borderRadius: '50%', border: 'none', cursor: 'pointer', padding: 0,
-            background: active === i ? 'rgba(28,25,22,0.7)' : 'rgba(28,25,22,0.2)',
-            transition: 'all 0.3s ease',
-          }}
-        />
+      {sections.map((_, i) => (
+        <button key={i} onClick={() => scrollTo(i)} style={{
+          width: active === i ? 7 : 4, height: active === i ? 7 : 4,
+          borderRadius: '50%', border: 'none', cursor: 'pointer', padding: 0,
+          background: active === i ? 'rgba(28,25,22,0.7)' : 'rgba(28,25,22,0.18)',
+          transition: 'all 0.25s ease',
+        }} />
       ))}
     </div>
   );

@@ -4,177 +4,160 @@ import SectionBase, { GlassCard, SectionTitle, BigText, Tag, C, type SectionVisu
 interface Props {
   index: number;
   visual: SectionVisual | undefined;
-  positioning?: any;
   strategicDepth?: any;
   strategyScenarios?: any;
-  analysis?: any;
 }
 
-export default function StrategySection({ index, visual, positioning, strategicDepth, strategyScenarios, analysis }: Props) {
-  const scenarios = strategyScenarios
-    ? [
-        { key: 'conservative', label: 'Muhafazakâr', color: C.slate, data: strategyScenarios.conservative },
-        { key: 'recommended', label: 'Önerilen', color: C.green, data: strategyScenarios.recommended },
-        { key: 'aggressive', label: 'Agresif', color: C.pink, data: strategyScenarios.aggressive },
-      ]
-    : [];
+const VALUE_LEVELS = ['commodity', 'product', 'service', 'experience', 'transformation'];
+const VALUE_LABELS: Record<string, string> = {
+  commodity: 'Emtia', product: 'Ürün', service: 'Hizmet',
+  experience: 'Deneyim', transformation: 'Dönüşüm',
+};
+
+export default function StrategySection({ index, visual, strategicDepth, strategyScenarios }: Props) {
+  const scenarios = strategyScenarios ? [
+    { key: 'conservative', label: 'Muhafazakâr', data: strategyScenarios.conservative },
+    { key: 'recommended',  label: 'Önerilen ★', data: strategyScenarios.recommended },
+    { key: 'aggressive',   label: 'Agresif',     data: strategyScenarios.aggressive },
+  ] : [];
+
+  const valueLevelIdx = VALUE_LEVELS.indexOf(strategicDepth?.valueLevel || '');
 
   return (
-    <SectionBase id="strategy" index={index} label="Strateji" visual={visual}>
+    <SectionBase id="strategy" index={index} label="Stratejik Derinlik" visual={visual}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
 
-        {/* Positioning hero */}
-        {positioning?.statement && (
-          <div style={{ marginBottom: 28, maxWidth: 820 }}>
-            <SectionTitle>Konumlandırma</SectionTitle>
-            <BigText style={{ fontSize: 'clamp(20px, 2.8vw, 40px)', lineHeight: 1.25 }}>
-              {positioning.statement}
+        {/* Transformation statement hero */}
+        {strategicDepth?.transformationStatement && (
+          <div style={{ marginBottom: 24, maxWidth: 840, borderLeft: `3px solid rgba(0,0,0,0.18)`, paddingLeft: 18 }}>
+            <SectionTitle>Dönüşüm İddiası</SectionTitle>
+            <BigText style={{ fontSize: 'clamp(18px, 2.4vw, 34px)', lineHeight: 1.3 }}>
+              "{strategicDepth.transformationStatement}"
             </BigText>
-            {positioning?.differentiator && (
-              <p style={{ color: C.mid, fontSize: 13, marginTop: 10, lineHeight: 1.6 }}>
-                Ayrıştırıcı: {positioning.differentiator}
-              </p>
-            )}
-            {positioning?.uniqueValueProposition && (
-              <p style={{ color: C.mid, fontSize: 13, marginTop: 6, lineHeight: 1.6 }}>
-                Değer Önerisi: {positioning.uniqueValueProposition}
-              </p>
-            )}
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: strategicDepth ? 'minmax(0,1fr) minmax(0,1fr)' : '1fr', gap: 18 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 18 }}>
 
-          {/* Scenarios */}
-          {scenarios.filter(s => s.data).length > 0 && (
-            <div>
-              <SectionTitle>Büyüme Senaryoları</SectionTitle>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {scenarios.map(({ key, label, color, data }) => data && (
-                  <GlassCard key={key} style={{ padding: '14px 18px' }}>
+          {/* Left: Customer problem pyramid + stands for/against */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {strategicDepth?.customerProblem && (
+              <GlassCard>
+                <SectionTitle>Müşteri Sorunu (3 Katman)</SectionTitle>
+                {[
+                  { label: 'İşlevsel', value: strategicDepth.customerProblem.functional, icon: '⚙️' },
+                  { label: 'Duygusal', value: strategicDepth.customerProblem.emotional, icon: '💭' },
+                  { label: 'Kimlik', value: strategicDepth.customerProblem.identity, icon: '🪞' },
+                ].filter(l => l.value).map(({ label, value, icon }) => (
+                  <div key={label} style={{ marginBottom: 10, paddingBottom: 10, borderBottom: `1px solid ${C.cardBorder}` }}>
+                    <div style={{ color: C.faint, fontSize: 10, marginBottom: 3 }}>{icon} {label}</div>
+                    <p style={{ color: C.mid, fontSize: 13, lineHeight: 1.5 }}>{value}</p>
+                  </div>
+                ))}
+              </GlassCard>
+            )}
+
+            {(strategicDepth?.weStandFor?.length > 0 || strategicDepth?.weStandAgainst?.length > 0) && (
+              <GlassCard>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                  <div>
+                    <SectionTitle>Savunduklarımız</SectionTitle>
+                    {(strategicDepth.weStandFor || []).slice(0, 4).map((item: string, i: number) => (
+                      <div key={i} style={{ display: 'flex', gap: 7, marginBottom: 5 }}>
+                        <span style={{ color: C.pos, fontWeight: 700, fontSize: 12 }}>✓</span>
+                        <span style={{ color: C.mid, fontSize: 12, lineHeight: 1.45 }}>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div>
+                    <SectionTitle>Karşı Durduklarımız</SectionTitle>
+                    {(strategicDepth.weStandAgainst || []).slice(0, 4).map((item: string, i: number) => (
+                      <div key={i} style={{ display: 'flex', gap: 7, marginBottom: 5 }}>
+                        <span style={{ color: C.neg, fontWeight: 700, fontSize: 12 }}>✗</span>
+                        <span style={{ color: C.mid, fontSize: 12, lineHeight: 1.45 }}>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </GlassCard>
+            )}
+
+            {/* Cultural tension + value level */}
+            <div style={{ display: 'flex', gap: 10 }}>
+              {strategicDepth?.culturalTension && (
+                <GlassCard style={{ flex: 1 }}>
+                  <SectionTitle>Kültürel Gerilim</SectionTitle>
+                  <p style={{ color: C.mid, fontSize: 12, lineHeight: 1.55 }}>{strategicDepth.culturalTension}</p>
+                </GlassCard>
+              )}
+              {strategicDepth?.valueLevel && (
+                <GlassCard style={{ flex: 1 }}>
+                  <SectionTitle>Değer Seviyesi</SectionTitle>
+                  <div style={{ display: 'flex', gap: 3, marginBottom: 6 }}>
+                    {VALUE_LEVELS.map((level, i) => (
+                      <div key={level} style={{
+                        flex: 1, height: 5, borderRadius: 2,
+                        background: i <= valueLevelIdx ? C.text : 'rgba(0,0,0,0.1)',
+                      }} />
+                    ))}
+                  </div>
+                  <p style={{ color: C.text, fontSize: 13, fontWeight: 700 }}>
+                    {VALUE_LABELS[strategicDepth.valueLevel] || strategicDepth.valueLevel}
+                  </p>
+                </GlassCard>
+              )}
+            </div>
+          </div>
+
+          {/* Right: Growth scenarios */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {scenarios.filter(s => s.data).length > 0 && (
+              <>
+                <SectionTitle>Büyüme Senaryoları</SectionTitle>
+                {scenarios.map(({ key, label, data }) => data && (
+                  <GlassCard key={key} style={{
+                    padding: '14px 18px',
+                    background: key === 'recommended' ? 'rgba(255,255,255,0.92)' : C.card,
+                    border: key === 'recommended' ? `2px solid rgba(0,0,0,0.15)` : `1px solid ${C.cardBorder}`,
+                  }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                      <span style={{ color, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                      <span style={{ color: C.text, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                         {label}
                       </span>
                       <span style={{ color: C.faint, fontSize: 10 }}>{data.timeframe}</span>
                     </div>
-                    <p style={{ color: C.mid, fontSize: 13, lineHeight: 1.5, marginBottom: 6 }}>
+                    <p style={{ color: C.mid, fontSize: 13, lineHeight: 1.5, marginBottom: 8 }}>
                       {data.description}
                     </p>
-                    <div style={{ display: 'flex', gap: 14 }}>
+                    <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
                       {data.investmentLevel && <span style={{ color: C.faint, fontSize: 11 }}>💰 {data.investmentLevel}</span>}
                       {data.risk && <span style={{ color: C.faint, fontSize: 11 }}>⚡ {data.risk}</span>}
                       {data.expectedROI && <span style={{ color: C.faint, fontSize: 11 }}>📈 {data.expectedROI}</span>}
                     </div>
+                    {data.expectedOutcome && (
+                      <p style={{ color: C.mid, fontSize: 11, marginTop: 6, fontStyle: 'italic' }}>{data.expectedOutcome}</p>
+                    )}
                   </GlassCard>
                 ))}
-              </div>
+              </>
+            )}
 
-              {/* SWOT 2×2 */}
-              {analysis && (analysis.strengths?.length > 0 || analysis.opportunities?.length > 0) && (
-                <GlassCard style={{ marginTop: 10 }}>
-                  <SectionTitle>Güçlü Yönler & Fırsatlar</SectionTitle>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                    {[
-                      { label: '💪 Güçlü', items: analysis.strengths, color: C.green },
-                      { label: '🚀 Fırsat', items: analysis.opportunities, color: C.blue },
-                      { label: '⚠️ Zorluk', items: analysis.challenges, color: C.yellow },
-                      { label: '💡 Öneri', items: analysis.recommendations, color: C.purple },
-                    ].map(({ label, items, color }) => items?.length > 0 && (
-                      <div key={label}>
-                        <div style={{ color, fontSize: 10, fontWeight: 700, marginBottom: 5 }}>{label}</div>
-                        {(items as string[]).slice(0, 2).map((item: string) => (
-                          <div key={item} style={{ color: C.mid, fontSize: 11, marginBottom: 3, lineHeight: 1.4 }}>
-                            · {item.slice(0, 60)}
-                          </div>
-                        ))}
-                      </div>
-                    ))}
-                  </div>
-                </GlassCard>
-              )}
-            </div>
-          )}
+            {/* Core strategy */}
+            {strategicDepth?.coreStrategy && (
+              <GlassCard>
+                <SectionTitle>Temel Strateji</SectionTitle>
+                <p style={{ color: C.mid, fontSize: 13, lineHeight: 1.65 }}>{strategicDepth.coreStrategy}</p>
+              </GlassCard>
+            )}
 
-          {/* Strategic depth */}
-          {strategicDepth && (
-            <div>
-              {strategicDepth.transformationStatement && (
-                <GlassCard style={{ marginBottom: 12 }}>
-                  <SectionTitle>Dönüşüm İddiası</SectionTitle>
-                  <p style={{ color: C.text, fontSize: 14, lineHeight: 1.6, fontStyle: 'italic', fontWeight: 600 }}>
-                    "{strategicDepth.transformationStatement}"
-                  </p>
-                </GlassCard>
-              )}
-
-              {strategicDepth.coreStrategy && (
-                <GlassCard style={{ marginBottom: 12 }}>
-                  <SectionTitle>Temel Strateji</SectionTitle>
-                  <p style={{ color: C.mid, fontSize: 13, lineHeight: 1.65 }}>
-                    {strategicDepth.coreStrategy}
-                  </p>
-                </GlassCard>
-              )}
-
-              {(strategicDepth.weStandFor?.length > 0 || strategicDepth.weStandAgainst?.length > 0) && (
-                <GlassCard>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                    <div>
-                      <SectionTitle>Savunduklarımız</SectionTitle>
-                      {(strategicDepth.weStandFor || []).slice(0, 4).map((item: string) => (
-                        <div key={item} style={{ color: C.green, fontSize: 12, marginBottom: 5, display: 'flex', gap: 7 }}>
-                          <span>✓</span><span style={{ color: C.mid }}>{item}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <div>
-                      <SectionTitle>Karşı Durduklarımız</SectionTitle>
-                      {(strategicDepth.weStandAgainst || []).slice(0, 4).map((item: string) => (
-                        <div key={item} style={{ color: C.red, fontSize: 12, marginBottom: 5, display: 'flex', gap: 7 }}>
-                          <span>✗</span><span style={{ color: C.mid }}>{item}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </GlassCard>
-              )}
-
-              {/* Long-term vision */}
-              {strategicDepth.longTermVision && (
-                <GlassCard style={{ marginTop: 12 }}>
-                  <SectionTitle>Uzun Vadeli Vizyon</SectionTitle>
-                  <p style={{ color: C.mid, fontSize: 13, lineHeight: 1.65 }}>
-                    {strategicDepth.longTermVision.slice(0, 200)}
-                  </p>
-                </GlassCard>
-              )}
-            </div>
-          )}
-
-          {/* If no scenarios but has analysis, show full SWOT */}
-          {!scenarios.filter(s => s.data).length && analysis && (
-            <GlassCard>
-              <SectionTitle>Analiz</SectionTitle>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                {[
-                  { label: '💪 Güçlü Yönler', items: analysis.strengths, color: C.green },
-                  { label: '🚀 Fırsatlar', items: analysis.opportunities, color: C.blue },
-                  { label: '⚠️ Zorluklar', items: analysis.challenges, color: C.yellow },
-                  { label: '💡 Öneriler', items: analysis.recommendations, color: C.purple },
-                ].map(({ label, items, color }) => items?.length > 0 && (
-                  <div key={label}>
-                    <div style={{ color, fontSize: 10, fontWeight: 700, marginBottom: 6 }}>{label}</div>
-                    {(items as string[]).slice(0, 3).map((item: string) => (
-                      <div key={item} style={{ color: C.mid, fontSize: 12, marginBottom: 4, lineHeight: 1.45 }}>
-                        · {item}
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            </GlassCard>
-          )}
+            {/* Long term vision */}
+            {strategicDepth?.longTermVision && (
+              <GlassCard>
+                <SectionTitle>Uzun Vadeli Vizyon</SectionTitle>
+                <p style={{ color: C.mid, fontSize: 13, lineHeight: 1.65 }}>{strategicDepth.longTermVision.slice(0, 200)}</p>
+              </GlassCard>
+            )}
+          </div>
         </div>
       </div>
     </SectionBase>

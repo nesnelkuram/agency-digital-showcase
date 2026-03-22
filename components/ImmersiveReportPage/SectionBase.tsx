@@ -20,30 +20,23 @@ const fadeUp = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1] } },
 };
 
-// Light theme palette
+// Light theme palette — sadeleştirilmiş, gökkuşağı yok
 export const C = {
-  bg:      'linear-gradient(160deg, #f5f2ec 0%, #ece7dd 100%)',
-  overlay: 'rgba(243,239,231,0.88)',   // warm light wash over images
-  text:    '#1c1916',
-  mid:     'rgba(28,25,22,0.62)',
-  faint:   'rgba(28,25,22,0.38)',
-  xfaint:  'rgba(28,25,22,0.22)',
-  card:    'rgba(255,255,255,0.76)',
+  bg:         'linear-gradient(160deg, #f5f2ec 0%, #ece7dd 100%)',
+  overlay:    'rgba(243,239,231,0.88)',
+  text:       '#1c1916',
+  mid:        'rgba(28,25,22,0.62)',
+  faint:      'rgba(28,25,22,0.38)',
+  xfaint:     'rgba(28,25,22,0.22)',
+  card:       'rgba(255,255,255,0.82)',
   cardBorder: 'rgba(0,0,0,0.07)',
-  // accents (readable on light)
-  green:   '#15803d',
-  greenBg: 'rgba(21,128,61,0.1)',
-  red:     '#b91c1c',
-  redBg:   'rgba(185,28,28,0.09)',
-  blue:    '#1d4ed8',
-  blueBg:  'rgba(29,78,216,0.1)',
-  yellow:  '#a16207',
-  yellowBg:'rgba(161,98,7,0.1)',
-  pink:    '#be185d',
-  pinkBg:  'rgba(190,24,93,0.1)',
-  purple:  '#7c3aed',
-  purpleBg:'rgba(124,58,237,0.1)',
-  slate:   '#64748b',
+  // Sadece 2 işlevsel aksan rengi:
+  pos:    '#2d6a4f',   // pozitif — yeşil (✓, strengths, kullan)
+  posBg:  'rgba(45,106,79,0.1)',
+  neg:    '#9b2335',   // negatif — bordo (✗, risks, kullanma)
+  negBg:  'rgba(155,35,53,0.09)',
+  // Generic tag/badge için nötr
+  tagBg:  'rgba(28,25,22,0.07)',
 };
 
 export default function SectionBase({

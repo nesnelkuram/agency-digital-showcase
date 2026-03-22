@@ -6,9 +6,11 @@ interface Props {
   visual: SectionVisual | undefined;
   sectorResearch?: any;
   competitorDiscovery?: any;
+  analysis?: any;
+  digitalPresence?: any;
 }
 
-export default function MarketSection({ index, visual, sectorResearch, competitorDiscovery }: Props) {
+export default function MarketSection({ index, visual, sectorResearch, competitorDiscovery, analysis, digitalPresence }: Props) {
   const competitors = [
     ...(competitorDiscovery?.knownCompetitors || []),
     ...(competitorDiscovery?.discoveredCompetitors || []),
@@ -17,70 +19,90 @@ export default function MarketSection({ index, visual, sectorResearch, competito
 
   const trends = sectorResearch?.marketTrends?.slice(0, 5) || [];
   const market = sectorResearch?.marketData;
-  const painPoints = sectorResearch?.consumerPainPoints?.slice(0, 3) || [];
-  const opportunities = sectorResearch?.emergingOpportunities?.slice(0, 3) || [];
 
   return (
-    <SectionBase id="market" index={index} label="Pazar" visual={visual}>
+    <SectionBase id="market" index={index} label="Rekabet & Pazar" visual={visual}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-        <SectionTitle>Rekabet Ortamı</SectionTitle>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.3fr) minmax(0,0.7fr)', gap: 20 }}>
-          {/* Left: market stats + competitor grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.25fr) minmax(0,0.75fr)', gap: 18 }}>
+
+          {/* Left: SWOT + competitors */}
           <div>
+            {/* SWOT */}
+            {analysis && (analysis.strengths?.length > 0 || analysis.opportunities?.length > 0) && (
+              <GlassCard style={{ marginBottom: 12 }}>
+                <SectionTitle>SWOT Analizi</SectionTitle>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  {[
+                    { label: '💪 Güçlü Yönler', items: analysis.strengths, color: C.pos },
+                    { label: '🚀 Fırsatlar', items: analysis.opportunities, color: '#1d4ed8' },
+                    { label: '⚠️ Zorluklar', items: analysis.challenges, color: '#a16207' },
+                    { label: '💡 Öneriler', items: analysis.recommendations, color: '#7c3aed' },
+                  ].map(({ label, items, color }) => (items as string[] | undefined)?.length ? (
+                    <div key={label}>
+                      <div style={{ color, fontSize: 10, fontWeight: 700, marginBottom: 5 }}>{label}</div>
+                      {(items as string[]).slice(0, 3).map((item: string) => (
+                        <div key={item} style={{ color: C.mid, fontSize: 11, marginBottom: 3, lineHeight: 1.4 }}>
+                          · {item.slice(0, 70)}
+                        </div>
+                      ))}
+                    </div>
+                  ) : null)}
+                </div>
+              </GlassCard>
+            )}
+
+            {/* Market stats */}
             {market && (
-              <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                 {market.marketSize && (
-                  <GlassCard style={{ flex: 1, padding: '14px 18px' }}>
-                    <div style={{ color: C.faint, fontSize: 9, letterSpacing: '0.2em', textTransform: 'uppercase' }}>Pazar Büyüklüğü</div>
-                    <div style={{ color: C.text, fontSize: 18, fontWeight: 700, marginTop: 4 }}>{market.marketSize}</div>
+                  <GlassCard style={{ flex: 1, padding: '12px 14px' }}>
+                    <div style={{ color: C.faint, fontSize: 9, textTransform: 'uppercase' }}>Pazar Büyüklüğü</div>
+                    <div style={{ color: C.text, fontSize: 16, fontWeight: 700, marginTop: 3 }}>{market.marketSize}</div>
                   </GlassCard>
                 )}
                 {market.growthRate && (
-                  <GlassCard style={{ flex: 1, padding: '14px 18px' }}>
-                    <div style={{ color: C.faint, fontSize: 9, letterSpacing: '0.2em', textTransform: 'uppercase' }}>Büyüme</div>
-                    <div style={{ color: C.green, fontSize: 18, fontWeight: 700, marginTop: 4 }}>{market.growthRate}</div>
+                  <GlassCard style={{ flex: 1, padding: '12px 14px' }}>
+                    <div style={{ color: C.faint, fontSize: 9, textTransform: 'uppercase' }}>Büyüme</div>
+                    <div style={{ color: C.pos, fontSize: 16, fontWeight: 700, marginTop: 3 }}>{market.growthRate}</div>
                   </GlassCard>
                 )}
                 {market.keyPlayers && (
-                  <GlassCard style={{ flex: 1, padding: '14px 18px' }}>
-                    <div style={{ color: C.faint, fontSize: 9, letterSpacing: '0.2em', textTransform: 'uppercase' }}>Oyuncular</div>
-                    <div style={{ color: C.text, fontSize: 13, fontWeight: 600, marginTop: 4 }}>{market.keyPlayers}</div>
+                  <GlassCard style={{ flex: 1, padding: '12px 14px' }}>
+                    <div style={{ color: C.faint, fontSize: 9, textTransform: 'uppercase' }}>Oyuncular</div>
+                    <div style={{ color: C.text, fontSize: 12, fontWeight: 600, marginTop: 3 }}>{market.keyPlayers}</div>
                   </GlassCard>
                 )}
               </div>
             )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 8, maxHeight: '52vh', overflowY: 'auto' }}>
-              {competitors.map((c: any, i: number) => (
-                <GlassCard key={i} style={{ padding: '14px 16px' }}>
-                  <div style={{ color: C.text, fontSize: 13, fontWeight: 700, marginBottom: 3 }}>{c.name}</div>
-                  <div style={{ color: C.mid, fontSize: 11, lineHeight: 1.5, marginBottom: 8 }}>
-                    {(c.positioning || '').slice(0, 90)}
-                  </div>
-                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                    {(c.strengths || []).slice(0, 2).map((s: string) => (
-                      <Tag key={s} color={C.greenBg}>{s.slice(0, 20)}</Tag>
-                    ))}
-                    {(c.weaknesses || []).slice(0, 1).map((w: string) => (
-                      <Tag key={w} color={C.redBg}>{w.slice(0, 20)}</Tag>
-                    ))}
-                  </div>
-                </GlassCard>
-              ))}
-            </div>
-
-            {competitorDiscovery?.competitiveLandscapeSummary && (
-              <GlassCard style={{ marginTop: 10 }}>
-                <SectionTitle>Rekabet Özeti</SectionTitle>
-                <p style={{ color: C.mid, fontSize: 12, lineHeight: 1.6 }}>
-                  {competitorDiscovery.competitiveLandscapeSummary.slice(0, 300)}
-                </p>
-              </GlassCard>
+            {/* Competitors grid */}
+            {competitors.length > 0 && (
+              <div>
+                <SectionTitle>Rakipler</SectionTitle>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7, maxHeight: '38vh', overflowY: 'auto' }}>
+                  {competitors.map((c: any, i: number) => (
+                    <GlassCard key={i} style={{ padding: '12px 14px' }}>
+                      <div style={{ color: C.text, fontSize: 13, fontWeight: 700, marginBottom: 3 }}>{c.name}</div>
+                      <div style={{ color: C.mid, fontSize: 11, lineHeight: 1.5, marginBottom: 7 }}>
+                        {(c.positioning || '').slice(0, 80)}
+                      </div>
+                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                        {(c.strengths || []).slice(0, 2).map((s: string) => (
+                          <Tag key={s} color={C.posBg}>{s.slice(0, 18)}</Tag>
+                        ))}
+                        {(c.weaknesses || []).slice(0, 1).map((w: string) => (
+                          <Tag key={w} color={C.negBg}>{w.slice(0, 18)}</Tag>
+                        ))}
+                      </div>
+                    </GlassCard>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
 
-          {/* Right: trends + pain points + opportunities */}
+          {/* Right: trends + landscape + digital */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {trends.length > 0 && (
               <GlassCard>
@@ -100,24 +122,47 @@ export default function MarketSection({ index, visual, sectorResearch, competito
               </GlassCard>
             )}
 
-            {painPoints.length > 0 && (
+            {competitorDiscovery?.competitiveLandscapeSummary && (
               <GlassCard>
-                <SectionTitle>Tüketici Sorunları</SectionTitle>
-                {painPoints.map((p: string, i: number) => (
-                  <div key={i} style={{ color: C.mid, fontSize: 12, marginBottom: 6, display: 'flex', gap: 8 }}>
-                    <span style={{ color: C.red }}>·</span><span>{p}</span>
+                <SectionTitle>Rekabet Özeti</SectionTitle>
+                <p style={{ color: C.mid, fontSize: 12, lineHeight: 1.65 }}>
+                  {competitorDiscovery.competitiveLandscapeSummary.slice(0, 280)}
+                </p>
+              </GlassCard>
+            )}
+
+            {/* Digital presence summary */}
+            {digitalPresence && (
+              <GlassCard>
+                <SectionTitle>Dijital Varlık</SectionTitle>
+                {digitalPresence.overallDigitalScore !== undefined && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                    <div style={{ color: C.faint, fontSize: 11 }}>Dijital Skor</div>
+                    <div style={{ flex: 1, height: 4, background: 'rgba(0,0,0,0.08)', borderRadius: 2 }}>
+                      <div style={{ height: '100%', width: `${digitalPresence.overallDigitalScore * 10}%`, background: C.text, borderRadius: 2 }} />
+                    </div>
+                    <div style={{ color: C.text, fontSize: 12, fontWeight: 700 }}>{digitalPresence.overallDigitalScore}/10</div>
+                  </div>
+                )}
+                {digitalPresence.criticalGaps?.slice(0, 2).map((g: string, i: number) => (
+                  <div key={i} style={{ display: 'flex', gap: 7, marginBottom: 4, color: C.mid, fontSize: 11 }}>
+                    <span style={{ color: C.neg }}>!</span><span>{g}</span>
+                  </div>
+                ))}
+                {digitalPresence.quickWins?.slice(0, 2).map((w: string, i: number) => (
+                  <div key={i} style={{ display: 'flex', gap: 7, marginBottom: 4, color: C.mid, fontSize: 11 }}>
+                    <span style={{ color: C.pos }}>→</span><span>{w}</span>
                   </div>
                 ))}
               </GlassCard>
             )}
 
-            {opportunities.length > 0 && (
+            {/* Entry barriers + competitive threats */}
+            {competitorDiscovery?.entryBarriers?.length > 0 && (
               <GlassCard>
-                <SectionTitle>Fırsatlar</SectionTitle>
-                {opportunities.map((o: string, i: number) => (
-                  <div key={i} style={{ color: C.mid, fontSize: 12, marginBottom: 6, display: 'flex', gap: 8 }}>
-                    <span style={{ color: C.green }}>→</span><span>{o}</span>
-                  </div>
+                <SectionTitle>Giriş Engelleri</SectionTitle>
+                {competitorDiscovery.entryBarriers.slice(0, 3).map((b: string, i: number) => (
+                  <div key={i} style={{ color: C.mid, fontSize: 12, marginBottom: 4 }}>· {b}</div>
                 ))}
               </GlassCard>
             )}
