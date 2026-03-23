@@ -10,7 +10,7 @@ interface Props {
   intibaRoadmap?: any;
 }
 
-export default function ActionSection({ index, visual, actionPlan, kpiFramework, intibaRoadmap }: Props) {
+export default function ActionSection({ index, total, visual, actionPlan, kpiFramework, intibaRoadmap }: Props) {
   const phaseData = [
     { key: 'immediate', label: 'Hemen', dot: '●', items: actionPlan?.immediate || [] },
     { key: 'shortTerm', label: '30 Gün', dot: '●', items: actionPlan?.shortTerm || [] },

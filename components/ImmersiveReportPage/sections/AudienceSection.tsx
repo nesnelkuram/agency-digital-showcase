@@ -9,7 +9,7 @@ interface Props {
   consumerTest?: any;
 }
 
-export default function AudienceSection({ index, visual, positioning, consumerTest }: Props) {
+export default function AudienceSection({ index, total, visual, positioning, consumerTest }: Props) {
   const segments = positioning?.targetSegments?.slice(0, 4) || [];
   const personas = consumerTest?.personas?.slice(0, 3) || [];
   const [activeTab, setActiveTab] = useState(0);

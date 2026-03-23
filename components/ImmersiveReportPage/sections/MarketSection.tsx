@@ -11,7 +11,7 @@ interface Props {
   digitalPresence?: any;
 }
 
-export default function MarketSection({ index, visual, sectorResearch, competitorDiscovery, analysis, digitalPresence }: Props) {
+export default function MarketSection({ index, total, visual, sectorResearch, competitorDiscovery, analysis, digitalPresence }: Props) {
   const competitors = [
     ...(competitorDiscovery?.knownCompetitors || []),
     ...(competitorDiscovery?.discoveredCompetitors || []),

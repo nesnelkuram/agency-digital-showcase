@@ -22,7 +22,7 @@ const PITCH_TABS = [
   { key: 'investorPitch', label: 'Yatırımcı' },
 ];
 
-export default function LanguageSection({ index, visual, brandClaim, contentStrategy, messagingArchitecture }: Props) {
+export default function LanguageSection({ index, total, visual, brandClaim, contentStrategy, messagingArchitecture }: Props) {
   const examples = brandClaim?.contentExamples || [];
   const [activeChannel, setActiveChannel] = useState(0);
   const [activePitch, setActivePitch] = useState(0);

@@ -17,7 +17,7 @@ const PRIORITY_LABEL: Record<string, string> = {
   kritik: 'Kritik', onemli: 'Önemli', opsiyonel: 'Opsiyonel',
 };
 
-export default function IntibaSection({ index, visual, intibaEngagement, intibaRoadmap, brandName }: Props) {
+export default function IntibaSection({ index, total, visual, intibaEngagement, intibaRoadmap, brandName }: Props) {
   const services = intibaEngagement?.recommendedServices?.slice(0, 12) || [];
   const roadmapServices = intibaRoadmap?.phases?.flatMap((p: any) =>
     (p.services || []).map((s: any) => ({ ...s, phaseLabel: p.label }))
