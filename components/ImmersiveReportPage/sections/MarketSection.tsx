@@ -82,7 +82,7 @@ export default function MarketSection({ index, total, visual, sectorResearch, co
               <div>
                 <SectionTitle>Rakipler</SectionTitle>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7,  }}>
-                  {(competitors)((c: any, i: number) => (
+                  {competitors.map((c: any, i: number) => (
                     <GlassCard key={i} style={{ padding: '12px 14px' }}>
                       <div style={{ color: C.text, fontSize: 13, fontWeight: 700, marginBottom: 3 }}>{c.name}</div>
                       <div style={{ color: C.mid, fontSize: 11, lineHeight: 1.5, marginBottom: 7 }}>
