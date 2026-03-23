@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import SectionBase, { GlassCard, SectionTitle, BigText, Tag, C, type SectionVisual } from '../SectionBase';
+import SectionBase, { GlassCard, SectionTitle, BigText, Tag, C, toStr, type SectionVisual } from '../SectionBase';
 
 interface Props {
   index: number;
@@ -54,7 +54,7 @@ export default function AudienceSection({ index, total, visual, positioning, con
                 {seg.coreNeed && <div style={{ color: C.mid, fontSize: 12, lineHeight: 1.5, marginBottom: 6 }}>{seg.coreNeed}</div>}
                 {seg.psychographics && (
                   <div style={{ color: C.mid, fontSize: 11, lineHeight: 1.5, marginBottom: 6, fontStyle: 'italic' }}>
-                    {seg.psychographics.slice(0, 120)}
+                    {toStr(seg.psychographics).slice(0, 120)}
                   </div>
                 )}
                 {seg.mediaHabits && (
@@ -62,8 +62,8 @@ export default function AudienceSection({ index, total, visual, positioning, con
                 )}
                 {(seg.purchaseTriggers || []).length > 0 && (
                   <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                    {(seg.purchaseTriggers as string[]).map((t: string) => (
-                      <Tag key={t}>{t.slice(0, 28)}</Tag>
+                    {(seg.purchaseTriggers as any[]).map((t: any, i: number) => (
+                      <Tag key={i}>{toStr(t).slice(0, 28)}</Tag>
                     ))}
                   </div>
                 )}
@@ -75,7 +75,7 @@ export default function AudienceSection({ index, total, visual, positioning, con
               <GlassCard style={{ marginTop: 4 }}>
                 <SectionTitle>Değer Önerisi Gerekçesi</SectionTitle>
                 <p style={{ color: C.mid, fontSize: 12, lineHeight: 1.65 }}>
-                  {positioning.valuePropositionReasoning.slice(0, 220)}
+                  {String(positioning.valuePropositionReasoning).slice(0, 220)}
                 </p>
               </GlassCard>
             )}
@@ -157,8 +157,8 @@ export default function AudienceSection({ index, total, visual, positioning, con
 
                     {personas[activeTab].resonancePoints?.length > 0 && (
                       <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                        {personas[activeTab].resonancePoints.map((r: string) => (
-                          <Tag key={r} color={C.posBg}>{r.slice(0, 30)}</Tag>
+                        {personas[activeTab].resonancePoints.map((r: any, i: number) => (
+                          <Tag key={i} color={C.posBg}>{toStr(r).slice(0, 30)}</Tag>
                         ))}
                       </div>
                     )}
@@ -193,7 +193,7 @@ export default function AudienceSection({ index, total, visual, positioning, con
                   </Tag>
                 </div>
                 {consumerTest.overallFeedback && (
-                  <p style={{ color: C.mid, fontSize: 12, lineHeight: 1.55 }}>{consumerTest.overallFeedback.slice(0, 200)}</p>
+                  <p style={{ color: C.mid, fontSize: 12, lineHeight: 1.55 }}>{toStr(consumerTest.overallFeedback).slice(0, 200)}</p>
                 )}
               </GlassCard>
             )}

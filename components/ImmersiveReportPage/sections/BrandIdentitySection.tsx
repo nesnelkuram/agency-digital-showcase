@@ -1,5 +1,5 @@
 import React from 'react';
-import SectionBase, { GlassCard, SectionTitle, BigText, Tag, C, type SectionVisual } from '../SectionBase';
+import SectionBase, { GlassCard, SectionTitle, BigText, Tag, C, toStr, type SectionVisual } from '../SectionBase';
 
 interface Props {
   index: number;
@@ -13,6 +13,7 @@ interface Props {
   emotionalNarrative?: any;
   brandEnemy?: string;
 }
+
 
 export default function BrandIdentitySection({ index, total, visual, brandPersonality, brandCharacter, visualWorld, qualityMetrics, brandNarrative, emotionalNarrative, brandEnemy }: Props) {
   const palette = visualWorld?.colorPalette?.slice(0, 6) || [];
@@ -45,7 +46,7 @@ export default function BrandIdentitySection({ index, total, visual, brandPerson
             </p>
             {traits.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 4 }}>
-                {traits.map((t: string) => <Tag key={t}>{t}</Tag>)}
+                {traits.map((t: any, i: number) => <Tag key={i}>{toStr(t)}</Tag>)}
               </div>
             )}
           </div>
@@ -77,9 +78,9 @@ export default function BrandIdentitySection({ index, total, visual, brandPerson
           {behaviors.length > 0 && (
             <GlassCard>
               <SectionTitle>Davranışlar</SectionTitle>
-              {behaviors.map((b: string, i: number) => (
+              {behaviors.map((b: any, i: number) => (
                 <div key={i} style={{ color: C.mid, fontSize: 12, marginBottom: 5, display: 'flex', gap: 8, lineHeight: 1.45 }}>
-                  <span style={{ color: C.pos, fontWeight: 700 }}>·</span><span>{b}</span>
+                  <span style={{ color: C.pos, fontWeight: 700 }}>·</span><span>{toStr(b)}</span>
                 </div>
               ))}
             </GlassCard>

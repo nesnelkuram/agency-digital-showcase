@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import SectionBase, { GlassCard, SectionTitle, Tag, C, type SectionVisual } from '../SectionBase';
+import SectionBase, { GlassCard, SectionTitle, Tag, C, toStr, type SectionVisual } from '../SectionBase';
 
 interface Props {
   index: number;
@@ -90,8 +90,8 @@ export default function JourneySection({ index, total, visual, customerJourney, 
                     )}
                     {stage.touchpoints?.length > 0 && (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                        {stage.touchpoints.slice(0, 3).map((tp: string) => (
-                          <Tag key={tp} color={C.tagBg}>{tp.slice(0, 22)}</Tag>
+                        {stage.touchpoints.slice(0, 3).map((tp: any, ti: number) => (
+                          <Tag key={ti} color={C.tagBg}>{toStr(tp).slice(0, 22)}</Tag>
                         ))}
                       </div>
                     )}
@@ -165,8 +165,8 @@ export default function JourneySection({ index, total, visual, customerJourney, 
                   )}
                   {personas[activePersona].resonancePoints?.length > 0 && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 10 }}>
-                      {personas[activePersona].resonancePoints.map((r: string) => (
-                        <Tag key={r} color={C.posBg}>{r.slice(0, 35)}</Tag>
+                      {personas[activePersona].resonancePoints.map((r: any, ri: number) => (
+                        <Tag key={ri} color={C.posBg}>{toStr(r).slice(0, 35)}</Tag>
                       ))}
                     </div>
                   )}

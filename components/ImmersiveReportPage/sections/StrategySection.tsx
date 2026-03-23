@@ -1,5 +1,5 @@
 import React from 'react';
-import SectionBase, { GlassCard, SectionTitle, BigText, Tag, C, type SectionVisual } from '../SectionBase';
+import SectionBase, { GlassCard, SectionTitle, BigText, Tag, C, toStr, type SectionVisual } from '../SectionBase';
 
 interface Props {
   index: number;
@@ -8,6 +8,7 @@ interface Props {
   strategicDepth?: any;
   strategyScenarios?: any;
 }
+
 
 const VALUE_LEVELS = ['commodity', 'product', 'service', 'experience', 'transformation'];
 const VALUE_LABELS: Record<string, string> = {
@@ -67,19 +68,19 @@ export default function StrategySection({ index, total, visual, strategicDepth, 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   <div>
                     <SectionTitle>Savunduklarımız</SectionTitle>
-                    {(strategicDepth.weStandFor || []).map((item: string, i: number) => (
+                    {(strategicDepth.weStandFor || []).map((item: any, i: number) => (
                       <div key={i} style={{ display: 'flex', gap: 7, marginBottom: 5 }}>
                         <span style={{ color: C.pos, fontWeight: 700, fontSize: 12 }}>✓</span>
-                        <span style={{ color: C.mid, fontSize: 12, lineHeight: 1.45 }}>{item}</span>
+                        <span style={{ color: C.mid, fontSize: 12, lineHeight: 1.45 }}>{toStr(item)}</span>
                       </div>
                     ))}
                   </div>
                   <div>
                     <SectionTitle>Karşı Durduklarımız</SectionTitle>
-                    {(strategicDepth.weStandAgainst || []).map((item: string, i: number) => (
+                    {(strategicDepth.weStandAgainst || []).map((item: any, i: number) => (
                       <div key={i} style={{ display: 'flex', gap: 7, marginBottom: 5 }}>
                         <span style={{ color: C.neg, fontWeight: 700, fontSize: 12 }}>✗</span>
-                        <span style={{ color: C.mid, fontSize: 12, lineHeight: 1.45 }}>{item}</span>
+                        <span style={{ color: C.mid, fontSize: 12, lineHeight: 1.45 }}>{toStr(item)}</span>
                       </div>
                     ))}
                   </div>

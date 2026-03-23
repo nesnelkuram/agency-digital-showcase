@@ -1,4 +1,4 @@
-import type { PipelineInput, PipelineState, NormalizedData, ResearchFindings, StrategistOutput, ChallengerOutput, BlogAdvisorOutput, SynthesizedAnalysis } from './types';
+import type { PipelineInput, PipelineState, StrategistOutput, ChallengerOutput, BlogAdvisorOutput, SynthesizedAnalysis } from './types';
 import { generateIntibaRoadmap } from './agents/roadmapGenerator';
 import { runDataNormalizer } from './agents/dataNormalizer';
 import { runSectorResearch } from './agents/sectorResearch';
@@ -7,7 +7,7 @@ import { runBrandChallenger } from './agents/brandChallenger';
 import { runBlogStrategyAdvisor } from './agents/blogStrategyAdvisor';
 import { runStrategySynthesizer } from './agents/strategySynthesizer';
 import { runDeliverableEnricher } from './agents/deliverableEnricher';
-import { buildEvidenceSummary, buildSectionEvidence, createEvidence, getConfidenceLevel } from './evidence';
+import { buildEvidenceSummary, buildSectionEvidence, createEvidence } from './evidence';
 import type { EvidenceChain, SectionEvidence, FrameworkScore } from './evidence';
 import { buildCalibrationSignals, calibrateSection } from './calibration';
 import { runPositioningConsensus } from './consensus';
@@ -47,8 +47,7 @@ async function runAgent<T>(
   name: string,
   fn: () => Promise<T>,
   state: PipelineState,
-  required: boolean
-): Promise<T | null> {
+): Promise<T> {
   const start = Date.now();
   try {
     const result = await fn();
@@ -56,16 +55,10 @@ async function runAgent<T>(
     return result;
   } catch (error: any) {
     state.timings[name] = Date.now() - start;
-    state.errors.push({
-      agent: name,
-      error: error.message || 'Unknown error',
-      timestamp: Date.now(),
-    });
-    console.error(`Agent "${name}" failed:`, error.message);
-    if (required) {
-      throw new Error(`Required agent "${name}" failed: ${error.message}`);
-    }
-    return null;
+    const msg = error.message || 'Unknown error';
+    state.errors.push({ agent: name, error: msg, timestamp: Date.now() });
+    console.error(`Agent "${name}" failed — pipeline halted:`, msg);
+    throw new Error(`Agent "${name}" failed: ${msg}`);
   }
 }
 
@@ -84,22 +77,17 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineState> 
   };
 
   // Step 1: Run Agent 1 (Normalizer) and Agent 2 (Research) in PARALLEL
-  const parallelTasks: [Promise<NormalizedData | null>, Promise<ResearchFindings | null>] = [
-    runAgent('dataNormalizer', () => runDataNormalizer(input), state, true),
+  const [normalizedData, researchFindings] = await Promise.all([
+    runAgent('dataNormalizer', () => runDataNormalizer(input), state),
     isLite
       ? Promise.resolve(null)
-      : runAgent('sectorResearch', () => runSectorResearch(input), state, false),
-  ];
+      : runAgent('sectorResearch', () => runSectorResearch(input), state),
+  ]);
 
-  const [normalizedData, researchFindings] = await Promise.all(parallelTasks);
-
-  if (!normalizedData) {
-    throw new Error('Data normalization failed — pipeline cannot continue');
-  }
   state.normalizedData = normalizedData;
   state.researchFindings = researchFindings ?? undefined;
 
-  // Step 2: Agent 3 (Strategist) — required
+  // Step 2: Agent 3 (Strategist)
   if (remainingTime(startTime) < 10_000) {
     throw new Error('Timeout: not enough time for strategist agent');
   }
@@ -108,38 +96,28 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineState> 
     'brandStrategist',
     () => runBrandStrategist(normalizedData, researchFindings, input.businessContext),
     state,
-    true
   );
-
-  if (!strategistOutput) {
-    throw new Error('Brand strategist failed — pipeline cannot continue');
-  }
   state.strategistOutput = strategistOutput;
 
-  // Step 2b: Multi-Model Consensus on positioning + archetype (non-blocking)
-  if (!isLite && remainingTime(startTime) > 30_000) {
-    try {
-      const consensusResult = await runAgent(
-        'multiModelConsensus',
-        () => runPositioningConsensus(
-          normalizedData.businessName,
-          normalizedData.sector,
-          strategistOutput.positioningStatement,
-          strategistOutput.archetype,
-          `Profil: ${normalizedData.overallProfile}. Farklilik: ${strategistOutput.differentiator}. Rekabet avantaji: ${strategistOutput.competitiveAdvantage}.${researchFindings ? ` Pazar: ${researchFindings.marketData.marketSize}. Rakipler: ${researchFindings.competitors.map(c => c.name).join(', ')}.` : ''}`,
-        ),
-        state,
-        false,
-      );
-      if (consensusResult) {
-        state.consensusResults = [{
-          question: `Konumlandirma ve arketip dogrulamasi`,
-          consensusReached: consensusResult.consensusReached,
-          consensusScore: consensusResult.consensusScore,
-        }];
-      }
-    } catch (err: any) {
-      console.log('Multi-model consensus skipped:', err.message);
+  // Step 2b: Multi-Model Consensus on positioning + archetype
+  if (!isLite) {
+    const consensusResult = await runAgent(
+      'multiModelConsensus',
+      () => runPositioningConsensus(
+        normalizedData.businessName,
+        normalizedData.sector,
+        strategistOutput.positioningStatement,
+        strategistOutput.archetype,
+        `Profil: ${normalizedData.overallProfile}. Farklilik: ${strategistOutput.differentiator}. Rekabet avantaji: ${strategistOutput.competitiveAdvantage}.${researchFindings ? ` Pazar: ${researchFindings.marketData.marketSize}. Rakipler: ${researchFindings.competitors.map(c => c.name).join(', ')}.` : ''}`,
+      ),
+      state,
+    );
+    if (consensusResult) {
+      state.consensusResults = [{
+        question: `Konumlandirma ve arketip dogrulamasi`,
+        consensusReached: consensusResult.consensusReached,
+        consensusScore: consensusResult.consensusScore,
+      }];
     }
   }
 
@@ -147,144 +125,61 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineState> 
   let challengerOutput: ChallengerOutput | null = null;
   let blogAdvisorOutput: BlogAdvisorOutput | null = null;
 
-  if (!isLite && remainingTime(startTime) > 22_000) {
+  if (!isLite) {
+    if (remainingTime(startTime) < 22_000) {
+      throw new Error('Timeout: not enough time for challenger and blog advisor agents');
+    }
     const [challResult, blogResult] = await Promise.all([
       runAgent<ChallengerOutput>(
         'brandChallenger',
         () => runBrandChallenger(normalizedData, researchFindings, strategistOutput, input.businessContext),
         state,
-        false
       ),
       runAgent<BlogAdvisorOutput>(
         'blogStrategyAdvisor',
         () => runBlogStrategyAdvisor(normalizedData, researchFindings, strategistOutput),
         state,
-        false
       ),
     ]);
     challengerOutput = challResult;
     blogAdvisorOutput = blogResult;
-  } else if (!isLite) {
-    console.log('Skipping challenger + blog advisor: not enough time remaining');
-    state.errors.push({
-      agent: 'brandChallenger',
-      error: 'Skipped due to timeout budget',
-      timestamp: Date.now(),
-    });
   }
   state.challengerOutput = challengerOutput ?? undefined;
   state.blogAdvisorOutput = blogAdvisorOutput ?? undefined;
 
-  // Step 4: Agent 5 (Synthesizer) — optional with fallback
-  let synthesizedAnalysis: SynthesizedAnalysis | null = null;
-  if (remainingTime(startTime) > 8_000) {
-    synthesizedAnalysis = await runAgent<SynthesizedAnalysis>(
-      'strategySynthesizer',
-      () => runStrategySynthesizer(normalizedData, researchFindings, strategistOutput, challengerOutput, blogAdvisorOutput, input.businessContext),
-      state,
-      false
-    );
+  // Step 4: Agent 5 (Synthesizer)
+  if (remainingTime(startTime) < 8_000) {
+    throw new Error('Timeout: not enough time for synthesizer agent');
   }
-
-  if (synthesizedAnalysis) {
-    state.synthesizedAnalysis = synthesizedAnalysis;
-  } else {
-    // Fallback: map strategist output directly to SynthesizedAnalysis shape
-    console.log('Using strategist output as fallback (synthesizer skipped or failed)');
-    const taObj = strategistOutput.targetAudience;
-    const taSummary = typeof taObj === 'string'
-      ? taObj
-      : `${taObj.primarySegment?.demographics || ''} davranissal segment`;
-    state.synthesizedAnalysis = {
-      brandPersonality: {
-        archetype: strategistOutput.archetype,
-        traits: strategistOutput.traits,
-        tone: strategistOutput.tone,
-        voice: strategistOutput.voice,
-      },
-      positioning: {
-        statement: strategistOutput.positioningStatement,
-        targetAudience: taSummary,
-        valuePropositionReasoning: strategistOutput.valuePropositionReasoning || {
-          whatBusinessProduces: '', coreBenefit: '', whoBenefits: '', pricePositioning: '', willingToPayProfile: '',
-        },
-        targetSegments: [taObj.primarySegment, taObj.secondarySegment].filter(Boolean),
-        differentiator: strategistOutput.differentiator,
-        competitiveAdvantage: strategistOutput.competitiveAdvantage,
-        competitiveLandscape: '',
-        alternativePositions: [],
-      },
-      visualWorld: {
-        moodKeywords: [],
-        colorPalette: [],
-        typographyStyle: '',
-        imageryStyle: '',
-      },
-      contentStrategy: {
-        pillars: [],
-        toneGuidelines: [],
-        keyMessages: [],
-        hashtags: [],
-      },
-      analysis: {
-        strengths: [],
-        opportunities: [],
-        challenges: [],
-        recommendations: [],
-      },
-      actionPlan: {
-        immediate: [],
-        shortTerm: [],
-        mediumTerm: [],
-      },
-      evidenceSummary: {
-        sourcesConsulted: 0,
-        keySourceUrls: [],
-        dataFreshness: 'Veri mevcut degil',
-        confidenceLevel: 'Dusuk — Sentez asamasi atlanmistir',
-      },
-      consultantIntro: '',
-      synthesisRationale: 'Sentez asamasi atlanmistir, stratejist ciktisi dogrudan kullanilmistir.',
-    };
-    state.errors.push({
-      agent: 'strategySynthesizer',
-      error: 'Fallback used — strategist output mapped directly',
-      timestamp: Date.now(),
-    });
-  }
+  const synthesizedAnalysis = await runAgent<SynthesizedAnalysis>(
+    'strategySynthesizer',
+    () => runStrategySynthesizer(normalizedData, researchFindings, strategistOutput, challengerOutput, blogAdvisorOutput, input.businessContext),
+    state,
+  );
+  state.synthesizedAnalysis = synthesizedAnalysis;
 
   // Step 4b: Agent 5b (Deliverable Enricher) — runs after synthesizer, uses Flash model
-  if (state.synthesizedAnalysis && remainingTime(startTime) > 5_000) {
-    try {
-      const enricherOutput = await runDeliverableEnricher(
-        state.synthesizedAnalysis,
-        normalizedData.businessName,
-        normalizedData.sector,
-        normalizedData.brandMaturity?.level,
-      );
-      // Merge enricher outputs into synthesized analysis
-      if (enricherOutput.messagingArchitecture) {
-        state.synthesizedAnalysis.messagingArchitecture = enricherOutput.messagingArchitecture;
-      }
-      if (enricherOutput.customerJourney?.length > 0) {
-        state.synthesizedAnalysis.customerJourney = enricherOutput.customerJourney;
-      }
-      if (enricherOutput.socialMediaTemplates?.length > 0) {
-        state.synthesizedAnalysis.socialMediaTemplates = enricherOutput.socialMediaTemplates;
-      }
-      console.log('[Pipeline] DeliverableEnricher completed:', {
-        hasMessaging: !!enricherOutput.messagingArchitecture,
-        journeyStages: enricherOutput.customerJourney?.length || 0,
-        templates: enricherOutput.socialMediaTemplates?.length || 0,
-      });
-    } catch (err) {
-      console.error('[Pipeline] DeliverableEnricher failed (non-fatal):', err);
-      state.errors.push({
-        agent: 'deliverableEnricher',
-        error: err instanceof Error ? err.message : String(err),
-        timestamp: Date.now(),
-      });
-    }
+  if (remainingTime(startTime) < 5_000) {
+    throw new Error('Timeout: not enough time for deliverable enricher agent');
+  }
+  const enricherOutput = await runAgent(
+    'deliverableEnricher',
+    () => runDeliverableEnricher(
+      state.synthesizedAnalysis!,
+      normalizedData.businessName,
+      normalizedData.sector,
+      normalizedData.brandMaturity?.level,
+    ),
+    state,
+  );
+  if (enricherOutput.messagingArchitecture) {
+    state.synthesizedAnalysis!.messagingArchitecture = enricherOutput.messagingArchitecture;
+  }
+  if (enricherOutput.customerJourney?.length > 0) {
+    state.synthesizedAnalysis!.customerJourney = enricherOutput.customerJourney;
+  }
+  if (enricherOutput.socialMediaTemplates?.length > 0) {
+    state.synthesizedAnalysis!.socialMediaTemplates = enricherOutput.socialMediaTemplates;
   }
 
   // Step 5: Build Evidence Summary & Calibrate
@@ -307,16 +202,17 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineState> 
     });
   }
 
-  // Step 6: Intiba Roadmap (if time permits)
-  if (!isLite && state.strategistOutput && remainingTime(startTime) > 5_000) {
-    try {
-      const roadmap = await generateIntibaRoadmap(state.strategistOutput, state.synthesizedAnalysis);
-      state.intibaRoadmap = roadmap;
-      console.log('[Pipeline] IntibaRoadmap generated:', roadmap.phases.length, 'phases');
-    } catch (err) {
-      console.error('[Pipeline] IntibaRoadmap failed (non-fatal):', err);
-      state.errors.push({ agent: 'roadmapGenerator', error: err instanceof Error ? err.message : String(err), timestamp: Date.now() });
+  // Step 6: Intiba Roadmap
+  if (!isLite) {
+    if (remainingTime(startTime) < 5_000) {
+      throw new Error('Timeout: not enough time for roadmap generator agent');
     }
+    const roadmap = await runAgent(
+      'roadmapGenerator',
+      () => generateIntibaRoadmap(state.strategistOutput!, state.synthesizedAnalysis),
+      state,
+    );
+    state.intibaRoadmap = roadmap;
   }
 
   state.timings.total = Date.now() - startTime;

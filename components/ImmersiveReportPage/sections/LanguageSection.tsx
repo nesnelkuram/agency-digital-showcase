@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import SectionBase, { GlassCard, SectionTitle, BigText, Tag, C, type SectionVisual } from '../SectionBase';
+import SectionBase, { GlassCard, SectionTitle, BigText, Tag, C, toStr, type SectionVisual } from '../SectionBase';
 
 interface Props {
   index: number;
@@ -58,8 +58,8 @@ export default function LanguageSection({ index, total, visual, brandClaim, cont
         {/* Tagline candidates */}
         {messagingArchitecture?.taglineCandidates?.length > 0 && (
           <div style={{ marginBottom: 18, display: 'flex', gap: 7, flexWrap: 'wrap' }}>
-            {messagingArchitecture.taglineCandidates.slice(0, 5).map((t: string) => (
-              <Tag key={t}>{t}</Tag>
+            {messagingArchitecture.taglineCandidates.slice(0, 5).map((t: any, i: number) => (
+              <Tag key={i}>{toStr(t)}</Tag>
             ))}
           </div>
         )}
@@ -73,17 +73,17 @@ export default function LanguageSection({ index, total, visual, brandClaim, cont
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   <div>
                     <SectionTitle>✅ Kullan</SectionTitle>
-                    {(brandClaim.languageGuide.usePhrases || []).slice(0, 5).map((p: string) => (
-                      <div key={p} style={{ color: C.pos, fontSize: 12, marginBottom: 6, paddingBottom: 6, borderBottom: `1px solid ${C.cardBorder}` }}>
-                        "{p}"
+                    {(brandClaim.languageGuide.usePhrases || []).slice(0, 5).map((p: any, i: number) => (
+                      <div key={i} style={{ color: C.pos, fontSize: 12, marginBottom: 6, paddingBottom: 6, borderBottom: `1px solid ${C.cardBorder}` }}>
+                        "{toStr(p)}"
                       </div>
                     ))}
                   </div>
                   <div>
                     <SectionTitle>❌ Kullanma</SectionTitle>
-                    {(brandClaim.languageGuide.avoidPhrases || []).slice(0, 5).map((p: string) => (
-                      <div key={p} style={{ color: C.neg, fontSize: 12, marginBottom: 6, paddingBottom: 6, borderBottom: `1px solid ${C.cardBorder}`, textDecoration: 'line-through' }}>
-                        "{p}"
+                    {(brandClaim.languageGuide.avoidPhrases || []).slice(0, 5).map((p: any, i: number) => (
+                      <div key={i} style={{ color: C.neg, fontSize: 12, marginBottom: 6, paddingBottom: 6, borderBottom: `1px solid ${C.cardBorder}`, textDecoration: 'line-through' }}>
+                        "{toStr(p)}"
                       </div>
                     ))}
                   </div>

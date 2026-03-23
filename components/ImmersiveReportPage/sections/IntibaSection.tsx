@@ -1,5 +1,5 @@
 import React from 'react';
-import SectionBase, { GlassCard, SectionTitle, Tag, C, type SectionVisual } from '../SectionBase';
+import SectionBase, { GlassCard, SectionTitle, Tag, C, toStr, type SectionVisual } from '../SectionBase';
 
 interface Props {
   index: number;
@@ -76,10 +76,10 @@ export default function IntibaSection({ index, total, visual, intibaEngagement, 
             {intibaEngagement?.expectedOutcomes?.length > 0 && (
               <GlassCard>
                 <SectionTitle>Beklenen Sonuçlar</SectionTitle>
-                {intibaEngagement.expectedOutcomes.slice(0, 4).map((outcome: string) => (
-                  <div key={outcome} style={{ display: 'flex', gap: 8, marginBottom: 7, color: C.mid, fontSize: 12, lineHeight: 1.5 }}>
+                {intibaEngagement.expectedOutcomes.slice(0, 4).map((outcome: any, i: number) => (
+                  <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 7, color: C.mid, fontSize: 12, lineHeight: 1.5 }}>
                     <span style={{ color: C.pos, fontWeight: 700 }}>→</span>
-                    <span>{outcome}</span>
+                    <span>{toStr(outcome)}</span>
                   </div>
                 ))}
               </GlassCard>

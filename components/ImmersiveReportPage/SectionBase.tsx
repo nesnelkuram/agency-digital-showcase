@@ -129,6 +129,18 @@ export default function SectionBase({
   );
 }
 
+// ─── Safe string coercion (AI data may return objects instead of strings) ─────
+export function toStr(val: any): string {
+  if (typeof val === 'string') return val;
+  if (!val) return '';
+  if (val.value) return String(val.value);
+  if (val.label) return String(val.label);
+  if (val.text) return String(val.text);
+  if (val.name) return String(val.name);
+  const strs = Object.values(val).filter(v => typeof v === 'string') as string[];
+  return strs.length > 0 ? strs.join(' — ') : JSON.stringify(val);
+}
+
 // ─── Shared UI helpers ────────────────────────────────────
 
 export function GlassCard({

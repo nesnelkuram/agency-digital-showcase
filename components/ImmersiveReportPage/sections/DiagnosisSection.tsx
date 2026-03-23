@@ -1,5 +1,5 @@
 import React from 'react';
-import SectionBase, { GlassCard, SectionTitle, Tag, C, type SectionVisual } from '../SectionBase';
+import SectionBase, { GlassCard, SectionTitle, Tag, C, toStr, type SectionVisual } from '../SectionBase';
 
 interface Props {
   index: number;
@@ -97,8 +97,8 @@ export default function DiagnosisSection({ index, total, visual, diagnosisSummar
               <GlassCard>
                 <SectionTitle>Görülmeyen Güçler</SectionTitle>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {diagnosisSummary.blindSpots.map((b: string, i: number) => (
-                    <Tag key={i}>{b}</Tag>
+                  {diagnosisSummary.blindSpots.map((b: any, i: number) => (
+                    <Tag key={i}>{toStr(b)}</Tag>
                   ))}
                 </div>
               </GlassCard>

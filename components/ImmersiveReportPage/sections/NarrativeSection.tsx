@@ -1,5 +1,5 @@
 import React from 'react';
-import SectionBase, { GlassCard, SectionTitle, BigText, C, type SectionVisual } from '../SectionBase';
+import SectionBase, { GlassCard, SectionTitle, BigText, C, toStr, type SectionVisual } from '../SectionBase';
 
 interface Props {
   index: number;
@@ -33,13 +33,13 @@ export default function NarrativeSection({ index, total, visual, brandNarrative,
         {/* Taglines */}
         {taglines.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
-            {taglines.map((t: string, i: number) => (
+            {taglines.map((t: any, i: number) => (
               <span key={i} style={{
                 background: 'rgba(255,255,255,0.7)', border: `1px solid ${C.cardBorder}`,
                 borderRadius: 20, padding: '6px 16px',
                 color: C.mid, fontSize: 12, letterSpacing: '0.05em',
               }}>
-                {t}
+                {toStr(t)}
               </span>
             ))}
           </div>
@@ -174,10 +174,10 @@ export default function NarrativeSection({ index, total, visual, brandNarrative,
             {emotionalNarrative?.heroMoments?.length > 0 && (
               <GlassCard>
                 <SectionTitle>Kahraman Anları</SectionTitle>
-                {emotionalNarrative.heroMoments.map((moment: string, i: number) => (
+                {emotionalNarrative.heroMoments.map((moment: any, i: number) => (
                   <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 8, alignItems: 'flex-start' }}>
                     <span style={{ color: C.pos, fontWeight: 700, marginTop: 2 }}>★</span>
-                    <p style={{ color: C.mid, fontSize: 13, lineHeight: 1.55 }}>{moment}</p>
+                    <p style={{ color: C.mid, fontSize: 13, lineHeight: 1.55 }}>{toStr(moment)}</p>
                   </div>
                 ))}
               </GlassCard>

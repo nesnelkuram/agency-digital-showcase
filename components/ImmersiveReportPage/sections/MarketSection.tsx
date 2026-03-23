@@ -1,5 +1,5 @@
 import React from 'react';
-import SectionBase, { GlassCard, SectionTitle, Tag, C, type SectionVisual } from '../SectionBase';
+import SectionBase, { GlassCard, SectionTitle, Tag, C, toStr, type SectionVisual } from '../SectionBase';
 
 interface Props {
   index: number;
@@ -42,9 +42,9 @@ export default function MarketSection({ index, total, visual, sectorResearch, co
                   ].map(({ label, items, color }) => (items as string[] | undefined)?.length ? (
                     <div key={label}>
                       <div style={{ color, fontSize: 10, fontWeight: 700, marginBottom: 5 }}>{label}</div>
-                      {(items as string[]).slice(0, 3).map((item: string) => (
-                        <div key={item} style={{ color: C.mid, fontSize: 11, marginBottom: 3, lineHeight: 1.4 }}>
-                          · {item.slice(0, 70)}
+                      {(items as any[]).slice(0, 3).map((item: any, idx: number) => (
+                        <div key={idx} style={{ color: C.mid, fontSize: 11, marginBottom: 3, lineHeight: 1.4 }}>
+                          · {toStr(item).slice(0, 70)}
                         </div>
                       ))}
                     </div>
@@ -89,11 +89,11 @@ export default function MarketSection({ index, total, visual, sectorResearch, co
                         {(c.positioning || '').slice(0, 80)}
                       </div>
                       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                        {(c.strengths || []).slice(0, 2).map((s: string) => (
-                          <Tag key={s} color={C.posBg}>{s.slice(0, 18)}</Tag>
+                        {(c.strengths || []).slice(0, 2).map((s: any, si: number) => (
+                          <Tag key={si} color={C.posBg}>{toStr(s).slice(0, 18)}</Tag>
                         ))}
-                        {(c.weaknesses || []).slice(0, 1).map((w: string) => (
-                          <Tag key={w} color={C.negBg}>{w.slice(0, 18)}</Tag>
+                        {(c.weaknesses || []).slice(0, 1).map((w: any, wi: number) => (
+                          <Tag key={wi} color={C.negBg}>{toStr(w).slice(0, 18)}</Tag>
                         ))}
                       </div>
                     </GlassCard>
@@ -108,7 +108,7 @@ export default function MarketSection({ index, total, visual, sectorResearch, co
             {trends.length > 0 && (
               <GlassCard>
                 <SectionTitle>Sektör Trendleri</SectionTitle>
-                {trends.map((t: string, i: number) => (
+                {trends.map((t: any, i: number) => (
                   <div key={i} style={{
                     display: 'flex', gap: 10, alignItems: 'flex-start',
                     paddingBottom: 8, marginBottom: 8,
@@ -117,7 +117,7 @@ export default function MarketSection({ index, total, visual, sectorResearch, co
                     <span style={{ color: C.xfaint, fontFamily: 'monospace', fontSize: 10, minWidth: 18 }}>
                       {String(i + 1).padStart(2, '0')}
                     </span>
-                    <span style={{ color: C.mid, fontSize: 12, lineHeight: 1.5 }}>{t}</span>
+                    <span style={{ color: C.mid, fontSize: 12, lineHeight: 1.5 }}>{toStr(t)}</span>
                   </div>
                 ))}
               </GlassCard>
@@ -127,7 +127,7 @@ export default function MarketSection({ index, total, visual, sectorResearch, co
               <GlassCard>
                 <SectionTitle>Rekabet Özeti</SectionTitle>
                 <p style={{ color: C.mid, fontSize: 12, lineHeight: 1.65 }}>
-                  {competitorDiscovery.competitiveLandscapeSummary.slice(0, 280)}
+                  {toStr(competitorDiscovery.competitiveLandscapeSummary).slice(0, 280)}
                 </p>
               </GlassCard>
             )}
@@ -145,14 +145,14 @@ export default function MarketSection({ index, total, visual, sectorResearch, co
                     <div style={{ color: C.text, fontSize: 12, fontWeight: 700 }}>{digitalPresence.overallDigitalScore}/10</div>
                   </div>
                 )}
-                {digitalPresence.criticalGaps?.slice(0, 2).map((g: string, i: number) => (
+                {digitalPresence.criticalGaps?.slice(0, 2).map((g: any, i: number) => (
                   <div key={i} style={{ display: 'flex', gap: 7, marginBottom: 4, color: C.mid, fontSize: 11 }}>
-                    <span style={{ color: C.neg }}>!</span><span>{g}</span>
+                    <span style={{ color: C.neg }}>!</span><span>{toStr(g)}</span>
                   </div>
                 ))}
-                {digitalPresence.quickWins?.slice(0, 2).map((w: string, i: number) => (
+                {digitalPresence.quickWins?.slice(0, 2).map((w: any, i: number) => (
                   <div key={i} style={{ display: 'flex', gap: 7, marginBottom: 4, color: C.mid, fontSize: 11 }}>
-                    <span style={{ color: C.pos }}>→</span><span>{w}</span>
+                    <span style={{ color: C.pos }}>→</span><span>{toStr(w)}</span>
                   </div>
                 ))}
               </GlassCard>
@@ -162,8 +162,8 @@ export default function MarketSection({ index, total, visual, sectorResearch, co
             {competitorDiscovery?.entryBarriers?.length > 0 && (
               <GlassCard>
                 <SectionTitle>Giriş Engelleri</SectionTitle>
-                {competitorDiscovery.entryBarriers.slice(0, 3).map((b: string, i: number) => (
-                  <div key={i} style={{ color: C.mid, fontSize: 12, marginBottom: 4 }}>· {b}</div>
+                {competitorDiscovery.entryBarriers.slice(0, 3).map((b: any, i: number) => (
+                  <div key={i} style={{ color: C.mid, fontSize: 12, marginBottom: 4 }}>· {toStr(b)}</div>
                 ))}
               </GlassCard>
             )}
