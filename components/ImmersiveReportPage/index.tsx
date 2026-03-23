@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, Component } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { getBrandLeadByShareToken } from '@/shared/services/brandLeadService';
@@ -21,6 +21,39 @@ import type { SectionVisual } from './SectionBase';
 
 type Visuals = Record<string, SectionVisual>;
 type VisualState = 'idle' | 'loading' | 'done' | 'error';
+
+class SectionErrorBoundary extends Component<
+  { children: React.ReactNode; name: string },
+  { error: string | null }
+> {
+  constructor(props: { children: React.ReactNode; name: string }) {
+    super(props);
+    this.state = { error: null };
+  }
+  static getDerivedStateFromError(err: Error) {
+    return { error: err.message || String(err) };
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{
+          minHeight: '100vh', background: '#fff5f5', display: 'flex',
+          alignItems: 'center', justifyContent: 'center', padding: 40,
+        }}>
+          <div style={{ maxWidth: 600 }}>
+            <div style={{ color: '#9b2335', fontSize: 12, fontWeight: 700, marginBottom: 8 }}>
+              RENDER HATASI — {this.props.name}
+            </div>
+            <pre style={{ color: '#333', fontSize: 12, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+              {this.state.error}
+            </pre>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function formatDate(ts: any): string {
   if (!ts) return '';
@@ -134,139 +167,167 @@ export default function ImmersiveReportPage() {
         }}
       >
         {/* 1. Cover */}
-        <CoverSection
-          businessName={businessName}
-          sector={sector}
-          maturityLevel={a?.brandMaturity?.level}
-          brandClaim={a?.brandClaim?.claim}
-          consultantIntro={a?.consultantIntro}
-          analyzedAt={formatDate((lead as any).analyzedAt || (lead as any).updatedAt)}
-          visual={visuals.cover}
-          confidence={a?.evidenceSummaryV2?.overallConfidence}
-        />
+        <SectionErrorBoundary name="Cover">
+          <CoverSection
+            businessName={businessName}
+            sector={sector}
+            maturityLevel={a?.brandMaturity?.level}
+            brandClaim={a?.brandClaim?.claim}
+            consultantIntro={a?.consultantIntro}
+            analyzedAt={formatDate((lead as any).analyzedAt || (lead as any).updatedAt)}
+            visual={visuals.cover}
+            confidence={a?.evidenceSummaryV2?.overallConfidence}
+          />
+        </SectionErrorBoundary>
 
         {/* 2. Diagnosis */}
-        <DiagnosisSection
-          index={1} total={TOTAL}
-          visual={visuals.diagnosis}
-          diagnosisSummary={a?.diagnosisSummary}
-          brandMaturity={a?.brandMaturity}
-          dataQuality={a?.dataQuality}
-          synthesisRationale={(a as any)?.debate?.synthesisRationale || (a as any)?.synthesisRationale}
-          consultantIntro={a?.consultantIntro}
-          businessContext={bc}
-        />
+        <SectionErrorBoundary name="Diagnosis">
+          <DiagnosisSection
+            index={1} total={TOTAL}
+            visual={visuals.diagnosis}
+            diagnosisSummary={a?.diagnosisSummary}
+            brandMaturity={a?.brandMaturity}
+            dataQuality={a?.dataQuality}
+            synthesisRationale={(a as any)?.debate?.synthesisRationale || (a as any)?.synthesisRationale}
+            consultantIntro={a?.consultantIntro}
+            businessContext={bc}
+          />
+        </SectionErrorBoundary>
 
         {/* 3. Brand Identity */}
-        <BrandIdentitySection
-          index={2} total={TOTAL}
-          visual={visuals.identity}
-          brandPersonality={a?.brandPersonality}
-          brandCharacter={a?.brandCharacter}
-          visualWorld={a?.visualWorld}
-          qualityMetrics={a?.qualityMetrics}
-          brandNarrative={a?.brandNarrative}
-          emotionalNarrative={a?.emotionalNarrative}
-          brandEnemy={a?.strategicDepth?.brandEnemy}
-        />
+        <SectionErrorBoundary name="BrandIdentity">
+          <BrandIdentitySection
+            index={2} total={TOTAL}
+            visual={visuals.identity}
+            brandPersonality={a?.brandPersonality}
+            brandCharacter={a?.brandCharacter}
+            visualWorld={a?.visualWorld}
+            qualityMetrics={a?.qualityMetrics}
+            brandNarrative={a?.brandNarrative}
+            emotionalNarrative={a?.emotionalNarrative}
+            brandEnemy={a?.strategicDepth?.brandEnemy}
+          />
+        </SectionErrorBoundary>
 
         {/* 4. Narrative & Messaging */}
-        <NarrativeSection
-          index={3} total={TOTAL}
-          visual={visuals.narrative}
-          brandNarrative={a?.brandNarrative}
-          emotionalNarrative={a?.emotionalNarrative}
-          messagingArchitecture={a?.messagingArchitecture}
-        />
+        <SectionErrorBoundary name="Narrative">
+          <NarrativeSection
+            index={3} total={TOTAL}
+            visual={visuals.narrative}
+            brandNarrative={a?.brandNarrative}
+            emotionalNarrative={a?.emotionalNarrative}
+            messagingArchitecture={a?.messagingArchitecture}
+          />
+        </SectionErrorBoundary>
 
         {/* 5. Strategic Depth */}
-        <StrategySection
-          index={4} total={TOTAL}
-          visual={visuals.strategy}
-          strategicDepth={a?.strategicDepth}
-          strategyScenarios={a?.strategyScenarios}
-        />
+        <SectionErrorBoundary name="Strategy">
+          <StrategySection
+            index={4} total={TOTAL}
+            visual={visuals.strategy}
+            strategicDepth={a?.strategicDepth}
+            strategyScenarios={a?.strategyScenarios}
+          />
+        </SectionErrorBoundary>
 
         {/* 6. Audience & Positioning */}
-        <AudienceSection
-          index={5} total={TOTAL}
-          visual={visuals.audience}
-          positioning={a?.positioning}
-          consumerTest={a?.consumerTest}
-        />
+        <SectionErrorBoundary name="Audience">
+          <AudienceSection
+            index={5} total={TOTAL}
+            visual={visuals.audience}
+            positioning={a?.positioning}
+            consumerTest={a?.consumerTest}
+          />
+        </SectionErrorBoundary>
 
         {/* 7. Customer Journey */}
-        <JourneySection
-          index={6} total={TOTAL}
-          visual={visuals.journey}
-          customerJourney={a?.customerJourney as any[]}
-          consumerTest={a?.consumerTest}
-          perceptualMap={a?.perceptualMap}
-          businessName={businessName}
-        />
+        <SectionErrorBoundary name="Journey">
+          <JourneySection
+            index={6} total={TOTAL}
+            visual={visuals.journey}
+            customerJourney={a?.customerJourney as any[]}
+            consumerTest={a?.consumerTest}
+            perceptualMap={a?.perceptualMap}
+            businessName={businessName}
+          />
+        </SectionErrorBoundary>
 
         {/* 8. Language, Message & Claim */}
-        <LanguageSection
-          index={7} total={TOTAL}
-          visual={visuals.language}
-          brandClaim={a?.brandClaim}
-          contentStrategy={a?.contentStrategy}
-          messagingArchitecture={a?.messagingArchitecture}
-        />
+        <SectionErrorBoundary name="Language">
+          <LanguageSection
+            index={7} total={TOTAL}
+            visual={visuals.language}
+            brandClaim={a?.brandClaim}
+            contentStrategy={a?.contentStrategy}
+            messagingArchitecture={a?.messagingArchitecture}
+          />
+        </SectionErrorBoundary>
 
         {/* 9. Content Strategy */}
-        <ContentSection
-          index={8} total={TOTAL}
-          visual={visuals.content}
-          contentStrategy={a?.contentStrategy}
-          socialMediaTemplates={a?.socialMediaTemplates as any[]}
-          blogInsights={(a as any)?.blogAdvisorInsights}
-        />
+        <SectionErrorBoundary name="Content">
+          <ContentSection
+            index={8} total={TOTAL}
+            visual={visuals.content}
+            contentStrategy={a?.contentStrategy}
+            socialMediaTemplates={a?.socialMediaTemplates as any[]}
+            blogInsights={(a as any)?.blogAdvisorInsights}
+          />
+        </SectionErrorBoundary>
 
         {/* 10. Market & Competition */}
-        <MarketSection
-          index={9} total={TOTAL}
-          visual={visuals.market}
-          sectorResearch={a?.sectorResearch}
-          competitorDiscovery={a?.competitorDiscovery}
-          analysis={a?.analysis}
-          digitalPresence={a?.digitalPresence}
-        />
+        <SectionErrorBoundary name="Market">
+          <MarketSection
+            index={9} total={TOTAL}
+            visual={visuals.market}
+            sectorResearch={a?.sectorResearch}
+            competitorDiscovery={a?.competitorDiscovery}
+            analysis={a?.analysis}
+            digitalPresence={a?.digitalPresence}
+          />
+        </SectionErrorBoundary>
 
         {/* 11. Digital Presence & Visual World */}
-        <DigitalSection
-          index={10} total={TOTAL}
-          visual={visuals.digital}
-          digitalPresence={a?.digitalPresence}
-          visualWorld={a?.visualWorld}
-        />
+        <SectionErrorBoundary name="Digital">
+          <DigitalSection
+            index={10} total={TOTAL}
+            visual={visuals.digital}
+            digitalPresence={a?.digitalPresence}
+            visualWorld={a?.visualWorld}
+          />
+        </SectionErrorBoundary>
 
         {/* 12. Risks & Quality */}
-        <RisksSection
-          index={11} total={TOTAL}
-          visual={visuals.risks}
-          riskMitigationPlans={a?.riskMitigationPlans as any[]}
-          qualityMetrics={a?.qualityMetrics}
-          revenueImpact={a?.revenueImpact}
-        />
+        <SectionErrorBoundary name="Risks">
+          <RisksSection
+            index={11} total={TOTAL}
+            visual={visuals.risks}
+            riskMitigationPlans={a?.riskMitigationPlans as any[]}
+            qualityMetrics={a?.qualityMetrics}
+            revenueImpact={a?.revenueImpact}
+          />
+        </SectionErrorBoundary>
 
         {/* 13. Action Plan */}
-        <ActionSection
-          index={12} total={TOTAL}
-          visual={visuals.action}
-          actionPlan={a?.actionPlan}
-          kpiFramework={a?.kpiFramework}
-          intibaRoadmap={a?.intibaRoadmap}
-        />
+        <SectionErrorBoundary name="Action">
+          <ActionSection
+            index={12} total={TOTAL}
+            visual={visuals.action}
+            actionPlan={a?.actionPlan}
+            kpiFramework={a?.kpiFramework}
+            intibaRoadmap={a?.intibaRoadmap}
+          />
+        </SectionErrorBoundary>
 
         {/* 14. Intiba Services */}
-        <IntibaSection
-          index={13} total={TOTAL}
-          visual={visuals.intiba}
-          intibaEngagement={a?.intibaEngagement}
-          intibaRoadmap={a?.intibaRoadmap}
-          brandName={businessName}
-        />
+        <SectionErrorBoundary name="Intiba">
+          <IntibaSection
+            index={13} total={TOTAL}
+            visual={visuals.intiba}
+            intibaEngagement={a?.intibaEngagement}
+            intibaRoadmap={a?.intibaRoadmap}
+            brandName={businessName}
+          />
+        </SectionErrorBoundary>
 
       </div>
 
