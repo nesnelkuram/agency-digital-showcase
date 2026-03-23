@@ -3,12 +3,14 @@ import SectionBase, { GlassCard, SectionTitle, Tag, C, type SectionVisual } from
 
 interface Props {
   index: number;
+  total?: number;
   visual: SectionVisual | undefined;
   diagnosisSummary?: any;
   brandMaturity?: any;
   dataQuality?: any;
   synthesisRationale?: string;
   consultantIntro?: string;
+  businessContext?: any;
 }
 
 const MATURITY_LEVELS = ['pre_brand', 'emerging', 'developing', 'mature'];
@@ -16,11 +18,16 @@ const MATURITY_LABELS: Record<string, string> = {
   pre_brand: 'Ön-Marka', emerging: 'Gelişen', developing: 'Olgunlaşan', mature: 'Olgun',
 };
 
-export default function DiagnosisSection({ index, visual, diagnosisSummary, brandMaturity, dataQuality, synthesisRationale, consultantIntro }: Props) {
+const STAGE_LABELS: Record<string, string> = {
+  idea: 'Fikir Aşaması', new: 'Yeni Kuruldu (0-1 yıl)',
+  growing: 'Büyüme Aşaması (1-3 yıl)', established: 'Yerleşik (3+ yıl)',
+};
+
+export default function DiagnosisSection({ index, total, visual, diagnosisSummary, brandMaturity, dataQuality, synthesisRationale, consultantIntro, businessContext }: Props) {
   const maturityIdx = MATURITY_LEVELS.indexOf(brandMaturity?.level || '');
 
   return (
-    <SectionBase id="diagnosis" index={index} label="Teşhis & Öngörü" visual={visual}>
+    <SectionBase id="diagnosis" index={index} total={total} label="Teşhis & Öngörü" visual={visual}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
 
         {/* Consultant intro or synthesis rationale */}
@@ -32,12 +39,15 @@ export default function DiagnosisSection({ index, visual, diagnosisSummary, bran
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.1fr) minmax(0,0.9fr)', gap: 18 }}>
-
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
+          gap: 18,
+        }}>
           {/* Left: Perception vs Reality */}
-          <div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {diagnosisSummary?.criticalMisalignment && (
-              <GlassCard style={{ marginBottom: 10, background: C.negBg, border: `1px solid ${C.neg}25` }}>
+              <GlassCard style={{ background: C.negBg, border: `1px solid ${C.neg}25` }}>
                 <div style={{ color: C.neg, fontSize: 10, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 5 }}>
                   Kritik Uyumsuzluk
                 </div>
@@ -48,12 +58,16 @@ export default function DiagnosisSection({ index, visual, diagnosisSummary, bran
             )}
 
             {diagnosisSummary?.perceptionVsReality?.length > 0 && (
-              <GlassCard style={{ marginBottom: 10 }}>
+              <GlassCard>
                 <SectionTitle>Algı vs Gerçeklik</SectionTitle>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {diagnosisSummary.perceptionVsReality.slice(0, 2).map((item: any, i: number) => (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {diagnosisSummary.perceptionVsReality.map((item: any, i: number) => (
                     <div key={i}>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 5 }}>
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))',
+                        gap: 8, marginBottom: 5,
+                      }}>
                         <div style={{ background: 'rgba(155,35,53,0.06)', border: `1px solid ${C.neg}18`, borderRadius: 8, padding: '8px 12px' }}>
                           <div style={{ color: C.neg, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', marginBottom: 3 }}>Algı</div>
                           <p style={{ color: C.mid, fontSize: 12, lineHeight: 1.5 }}>{item.perception}</p>
@@ -89,6 +103,43 @@ export default function DiagnosisSection({ index, visual, diagnosisSummary, bran
                 </div>
               </GlassCard>
             )}
+
+            {/* Business context */}
+            {businessContext && (
+              <GlassCard>
+                <SectionTitle>İş Profili</SectionTitle>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))',
+                  gap: 8,
+                }}>
+                  {[
+                    { label: 'İş Aşaması', value: STAGE_LABELS[businessContext.businessStage] || businessContext.businessStage },
+                    { label: 'Coğrafi Alan', value: businessContext.geoScope },
+                    { label: 'Çalışan Sayısı', value: businessContext.employeeCount },
+                    { label: 'Aylık Ciro', value: businessContext.monthlyRevenue },
+                  ].filter(f => f.value).map(({ label, value }) => (
+                    <div key={label} style={{ background: C.tagBg, borderRadius: 8, padding: '8px 10px' }}>
+                      <div style={{ color: C.faint, fontSize: 9, marginBottom: 3 }}>{label}</div>
+                      <div style={{ color: C.text, fontSize: 12, fontWeight: 600 }}>{value}</div>
+                    </div>
+                  ))}
+                </div>
+                {businessContext.primaryGoal && (
+                  <div style={{ marginTop: 10 }}>
+                    <div style={{ color: C.faint, fontSize: 10, marginBottom: 3 }}>BİRİNCİL HEDEF</div>
+                    <p style={{ color: C.mid, fontSize: 12 }}>{businessContext.primaryGoal}</p>
+                  </div>
+                )}
+                {businessContext.digitalPlatforms?.length > 0 && (
+                  <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                    {businessContext.digitalPlatforms.map((p: string) => (
+                      <Tag key={p}>{p}</Tag>
+                    ))}
+                  </div>
+                )}
+              </GlassCard>
+            )}
           </div>
 
           {/* Right: Maturity + Data Quality */}
@@ -96,8 +147,6 @@ export default function DiagnosisSection({ index, visual, diagnosisSummary, bran
             {brandMaturity && (
               <GlassCard>
                 <SectionTitle>Marka Olgunluk Seviyesi</SectionTitle>
-
-                {/* Progress bar */}
                 <div style={{ display: 'flex', gap: 4, marginBottom: 8 }}>
                   {MATURITY_LEVELS.map((level, i) => (
                     <div key={level} style={{
@@ -118,9 +167,12 @@ export default function DiagnosisSection({ index, visual, diagnosisSummary, bran
                   ))}
                 </div>
 
-                {/* Factor dots */}
                 {brandMaturity.factors && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 100px), 1fr))',
+                    gap: 8,
+                  }}>
                     {[
                       { label: 'İş Yaşı', value: brandMaturity.factors.businessAge ?? 0 },
                       { label: 'Marka Varlıkları', value: brandMaturity.factors.brandAssets ?? 0 },
@@ -153,7 +205,7 @@ export default function DiagnosisSection({ index, visual, diagnosisSummary, bran
             {dataQuality?.contradictions?.length > 0 && (
               <GlassCard>
                 <SectionTitle>Dikkat Gerektiren Noktalar</SectionTitle>
-                {dataQuality.contradictions.slice(0, 3).map((c: string, i: number) => (
+                {dataQuality.contradictions.map((c: string, i: number) => (
                   <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 7, color: C.mid, fontSize: 12, lineHeight: 1.5 }}>
                     <span style={{ color: C.neg, fontWeight: 700 }}>!</span>
                     <span>{c}</span>
@@ -165,7 +217,7 @@ export default function DiagnosisSection({ index, visual, diagnosisSummary, bran
             {dataQuality?.patterns?.length > 0 && (
               <GlassCard>
                 <SectionTitle>Tespit Edilen Örüntüler</SectionTitle>
-                {dataQuality.patterns.slice(0, 3).map((p: string, i: number) => (
+                {dataQuality.patterns.map((p: string, i: number) => (
                   <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 7, color: C.mid, fontSize: 12, lineHeight: 1.5 }}>
                     <span style={{ color: C.pos }}>·</span>
                     <span>{p}</span>
@@ -174,7 +226,6 @@ export default function DiagnosisSection({ index, visual, diagnosisSummary, bran
               </GlassCard>
             )}
 
-            {/* No data fallback */}
             {!diagnosisSummary && !brandMaturity && !dataQuality && (
               <GlassCard>
                 <SectionTitle>Analiz Notu</SectionTitle>

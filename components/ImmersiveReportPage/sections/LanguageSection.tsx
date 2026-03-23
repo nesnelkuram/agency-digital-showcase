@@ -3,6 +3,7 @@ import SectionBase, { GlassCard, SectionTitle, BigText, Tag, C, type SectionVisu
 
 interface Props {
   index: number;
+  total?: number;
   visual: SectionVisual | undefined;
   brandClaim?: any;
   contentStrategy?: any;
@@ -33,7 +34,7 @@ export default function LanguageSection({ index, visual, brandClaim, contentStra
   const audienceMessages = messagingArchitecture?.audienceMessages?.slice(0, 3) || [];
 
   return (
-    <SectionBase id="language" index={index} label="Dil, Mesaj & İddia" visual={visual}>
+    <SectionBase id="language" index={index} total={total} label="Dil, Mesaj & İddia" visual={visual}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
 
         {/* Brand claim hero */}
@@ -63,7 +64,7 @@ export default function LanguageSection({ index, visual, brandClaim, contentStra
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 16 }}>
 
           {/* Left: language guide + pillars + key messages */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

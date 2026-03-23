@@ -3,6 +3,7 @@ import SectionBase, { GlassCard, SectionTitle, Tag, C, type SectionVisual } from
 
 interface Props {
   index: number;
+  total?: number;
   visual: SectionVisual | undefined;
   actionPlan?: any;
   kpiFramework?: any;
@@ -17,11 +18,11 @@ export default function ActionSection({ index, visual, actionPlan, kpiFramework,
   ].filter(p => p.items.length > 0);
 
   return (
-    <SectionBase id="action" index={index} label="Eylem Planı" visual={visual}>
+    <SectionBase id="action" index={index} total={total} label="Eylem Planı" visual={visual}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
         <SectionTitle>90 Günlük Strateji Planı</SectionTitle>
 
-        <div style={{ display: 'grid', gridTemplateColumns: kpiFramework ? 'minmax(0,1.4fr) minmax(0,0.6fr)' : '1fr', gap: 22 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: 22 }}>
 
           {/* Action plan */}
           <div>
@@ -49,7 +50,7 @@ export default function ActionSection({ index, visual, actionPlan, kpiFramework,
                 {phaseData.map(({ label, items }) => (
                   <GlassCard key={label} style={{ padding: '12px 14px' }}>
                     <SectionTitle>{label}</SectionTitle>
-                    {items.slice(0, 4).map((item: any, i: number) => (
+                    {items.map((item: any, i: number) => (
                       <div key={i} style={{ marginBottom: 8, paddingBottom: 8, borderBottom: `1px solid ${C.cardBorder}` }}>
                         <div style={{ color: C.text, fontSize: 12, fontWeight: 600, marginBottom: 2, lineHeight: 1.4 }}>{item.action}</div>
                         <div style={{ color: C.faint, fontSize: 10 }}>

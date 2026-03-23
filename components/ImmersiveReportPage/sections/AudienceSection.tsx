@@ -3,6 +3,7 @@ import SectionBase, { GlassCard, SectionTitle, BigText, Tag, C, type SectionVisu
 
 interface Props {
   index: number;
+  total?: number;
   visual: SectionVisual | undefined;
   positioning?: any;
   consumerTest?: any;
@@ -14,7 +15,7 @@ export default function AudienceSection({ index, visual, positioning, consumerTe
   const [activeTab, setActiveTab] = useState(0);
 
   return (
-    <SectionBase id="audience" index={index} label="Hedef Kitle & Konumlandırma" visual={visual}>
+    <SectionBase id="audience" index={index} total={total} label="Hedef Kitle & Konumlandırma" visual={visual}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
 
         {/* Positioning statement hero */}
@@ -35,7 +36,7 @@ export default function AudienceSection({ index, visual, positioning, consumerTe
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 18 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 18 }}>
 
           {/* Left: Segments */}
           <div style={{ maxHeight: 'calc(100vh - 280px)', overflowY: 'auto' }}>
@@ -61,7 +62,7 @@ export default function AudienceSection({ index, visual, positioning, consumerTe
                 )}
                 {(seg.purchaseTriggers || []).length > 0 && (
                   <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                    {(seg.purchaseTriggers as string[]).slice(0, 3).map((t: string) => (
+                    {(seg.purchaseTriggers as string[]).map((t: string) => (
                       <Tag key={t}>{t.slice(0, 28)}</Tag>
                     ))}
                   </div>
@@ -145,7 +146,7 @@ export default function AudienceSection({ index, visual, positioning, consumerTe
                     {personas[activeTab].objections?.length > 0 && (
                       <div style={{ marginBottom: 8 }}>
                         <div style={{ color: C.faint, fontSize: 10, marginBottom: 4 }}>OLASI İTİRAZLAR</div>
-                        {personas[activeTab].objections.slice(0, 2).map((o: string) => (
+                        {personas[activeTab].objections.map((o: string) => (
                           <div key={o} style={{ display: 'flex', gap: 7, marginBottom: 4 }}>
                             <span style={{ color: C.neg, fontSize: 11 }}>·</span>
                             <span style={{ color: C.mid, fontSize: 12 }}>{o}</span>
@@ -156,7 +157,7 @@ export default function AudienceSection({ index, visual, positioning, consumerTe
 
                     {personas[activeTab].resonancePoints?.length > 0 && (
                       <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                        {personas[activeTab].resonancePoints.slice(0, 3).map((r: string) => (
+                        {personas[activeTab].resonancePoints.map((r: string) => (
                           <Tag key={r} color={C.posBg}>{r.slice(0, 30)}</Tag>
                         ))}
                       </div>

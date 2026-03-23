@@ -9,6 +9,7 @@ export interface SectionVisual {
 interface SectionBaseProps {
   id: string;
   index: number;
+  total?: number;
   label: string;
   visual: SectionVisual | undefined;
   children: React.ReactNode;
@@ -20,7 +21,7 @@ const fadeUp = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1] } },
 };
 
-// Light theme palette — sadeleştirilmiş, gökkuşağı yok
+// Light theme palette
 export const C = {
   bg:         'linear-gradient(160deg, #f5f2ec 0%, #ece7dd 100%)',
   overlay:    'rgba(243,239,231,0.88)',
@@ -30,17 +31,19 @@ export const C = {
   xfaint:     'rgba(28,25,22,0.22)',
   card:       'rgba(255,255,255,0.82)',
   cardBorder: 'rgba(0,0,0,0.07)',
-  // Sadece 2 işlevsel aksan rengi:
-  pos:    '#2d6a4f',   // pozitif — yeşil (✓, strengths, kullan)
+  pos:    '#2d6a4f',
   posBg:  'rgba(45,106,79,0.1)',
-  neg:    '#9b2335',   // negatif — bordo (✗, risks, kullanma)
+  neg:    '#9b2335',
   negBg:  'rgba(155,35,53,0.09)',
-  // Generic tag/badge için nötr
+  warn:   '#a16207',
+  warnBg: 'rgba(161,98,7,0.09)',
+  blue:   '#1d4ed8',
+  blueBg: 'rgba(29,78,216,0.08)',
   tagBg:  'rgba(28,25,22,0.07)',
 };
 
 export default function SectionBase({
-  id, index, label, visual, children, overlayOpacity = 0.88,
+  id, index, total = 14, label, visual, children, overlayOpacity = 0.88,
 }: SectionBaseProps) {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: '-10% 0px' });
@@ -53,16 +56,18 @@ export default function SectionBase({
       id={id}
       ref={ref}
       style={{
-        height: '100vh',
+        minHeight: '100vh',
         scrollSnapAlign: 'start',
         position: 'relative',
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         overflow: 'hidden',
         background: isBgImage ? undefined : (visual?.fallbackGradient || C.bg),
+        boxSizing: 'border-box',
+        width: '100%',
       }}
     >
-      {/* Background image — desaturated and washed */}
+      {/* Background image */}
       {isBgImage && (
         <>
           <div style={{
@@ -86,7 +91,7 @@ export default function SectionBase({
         color: C.xfaint, fontSize: 11, letterSpacing: '0.28em',
         fontFamily: 'monospace', textTransform: 'uppercase',
       }}>
-        {String(index + 1).padStart(2, '0')} / 08 — {label}
+        {String(index + 1).padStart(2, '0')} / {String(total).padStart(2, '0')} — {label}
       </div>
 
       {/* Content */}
@@ -96,19 +101,19 @@ export default function SectionBase({
         animate={inView ? 'visible' : 'hidden'}
         style={{
           position: 'relative', zIndex: 2, width: '100%',
-          padding: 'clamp(52px, 7vh, 80px) clamp(28px, 5vw, 72px)',
-          maxHeight: 'calc(100vh - clamp(80px, 10vh, 120px))',
-          overflowY: 'auto',
+          padding: 'clamp(72px, 9vh, 100px) clamp(20px, 5vw, 72px) clamp(48px, 6vh, 80px)',
           boxSizing: 'border-box',
+          overflowX: 'hidden',
+          wordBreak: 'break-word',
         }}
       >
         {children}
       </motion.div>
 
       {/* Scroll hint */}
-      {index < 7 && (
+      {index < total - 1 && (
         <div style={{
-          position: 'absolute', bottom: 28, left: '50%', transform: 'translateX(-50%)',
+          position: 'absolute', bottom: 24, left: '50%', transform: 'translateX(-50%)',
           zIndex: 3, color: C.xfaint, textAlign: 'center',
         }}>
           <motion.div
@@ -140,6 +145,7 @@ export function GlassCard({
         borderRadius: 14,
         padding: '16px 20px',
         boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+        boxSizing: 'border-box',
         ...style,
       }}
     >
@@ -186,4 +192,28 @@ export function Tag({ children, color }: { children: React.ReactNode; color?: st
 
 export function Divider() {
   return <div style={{ height: 1, background: 'rgba(0,0,0,0.07)', margin: '10px 0' }} />;
+}
+
+export function TwoCol({ children, minWidth = 300 }: { children: React.ReactNode; minWidth?: number }) {
+  return (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, ${minWidth}px), 1fr))`,
+      gap: 18,
+    }}>
+      {children}
+    </div>
+  );
+}
+
+export function ThreeCol({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
+      gap: 14,
+    }}>
+      {children}
+    </div>
+  );
 }

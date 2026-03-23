@@ -3,6 +3,7 @@ import SectionBase, { GlassCard, SectionTitle, BigText, Tag, C, type SectionVisu
 
 interface Props {
   index: number;
+  total?: number;
   visual: SectionVisual | undefined;
   brandPersonality?: any;
   brandCharacter?: any;
@@ -13,17 +14,21 @@ interface Props {
   brandEnemy?: string;
 }
 
-export default function BrandIdentitySection({ index, visual, brandPersonality, brandCharacter, visualWorld, qualityMetrics, brandNarrative, emotionalNarrative, brandEnemy }: Props) {
-  const palette = visualWorld?.colorPalette?.slice(0, 5) || [];
-  const traits = brandPersonality?.traits?.slice(0, 6) || [];
+export default function BrandIdentitySection({ index, total, visual, brandPersonality, brandCharacter, visualWorld, qualityMetrics, brandNarrative, emotionalNarrative, brandEnemy }: Props) {
+  const palette = visualWorld?.colorPalette?.slice(0, 6) || [];
+  const traits = brandPersonality?.traits || [];
   const sliders = brandCharacter?.sliders;
-  const behaviors = brandCharacter?.behaviors?.slice(0, 4) || [];
+  const behaviors = brandCharacter?.behaviors || [];
   const score = qualityMetrics?.distinctivenessScore;
-  const keywords = visualWorld?.moodKeywords?.slice(0, 6) || [];
+  const keywords = visualWorld?.moodKeywords || [];
 
   return (
-    <SectionBase id="identity" index={index} label="Marka Kimliği" visual={visual}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 20, maxWidth: 1200, margin: '0 auto' }}>
+    <SectionBase id="identity" index={index} total={total} label="Marka Kimliği" visual={visual}>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
+        gap: 20, maxWidth: 1200, margin: '0 auto',
+      }}>
 
         {/* Left */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

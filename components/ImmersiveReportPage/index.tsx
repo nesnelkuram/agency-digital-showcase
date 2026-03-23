@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { getBrandLeadByShareToken } from '@/shared/services/brandLeadService';
@@ -6,10 +6,15 @@ import type { BrandLead } from '@/shared/types/brandLead';
 import CoverSection from './sections/CoverSection';
 import DiagnosisSection from './sections/DiagnosisSection';
 import BrandIdentitySection from './sections/BrandIdentitySection';
+import NarrativeSection from './sections/NarrativeSection';
 import StrategySection from './sections/StrategySection';
 import AudienceSection from './sections/AudienceSection';
+import JourneySection from './sections/JourneySection';
 import LanguageSection from './sections/LanguageSection';
+import ContentSection from './sections/ContentSection';
 import MarketSection from './sections/MarketSection';
+import DigitalSection from './sections/DigitalSection';
+import RisksSection from './sections/RisksSection';
 import ActionSection from './sections/ActionSection';
 import IntibaSection from './sections/IntibaSection';
 import type { SectionVisual } from './SectionBase';
@@ -25,6 +30,13 @@ function formatDate(ts: any): string {
   } catch { return ''; }
 }
 
+const SECTION_IDS = [
+  'cover', 'diagnosis', 'identity', 'narrative', 'strategy',
+  'audience', 'journey', 'language', 'content',
+  'market', 'digital', 'risks', 'action', 'intiba',
+];
+const TOTAL = SECTION_IDS.length;
+
 export default function ImmersiveReportPage() {
   const { shareToken } = useParams<{ shareToken: string }>();
   const [lead, setLead] = useState<BrandLead | null>(null);
@@ -32,6 +44,7 @@ export default function ImmersiveReportPage() {
   const [error, setError] = useState(false);
   const [visuals, setVisuals] = useState<Visuals>({});
   const [visualState, setVisualState] = useState<VisualState>('idle');
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!shareToken) { setError(true); setLoading(false); return; }
@@ -85,14 +98,11 @@ export default function ImmersiveReportPage() {
   const a = lead.aiAnalysis;
   const businessName = lead.contact?.businessName || '';
   const sector = lead.sector || '';
-
-  // Section order: Cover → Diagnosis → Identity → Strategy → Audience → Language → Market → Action+Intiba
-  // Nav dot labels
-  const SECTIONS = ['cover', 'diagnosis', 'identity', 'strategy', 'audience', 'language', 'market', 'action'];
+  const bc = (lead as any).wizard?.businessContext;
 
   return (
     <div style={{ position: 'relative' }}>
-      <NavDots sections={SECTIONS} />
+      <NavDots sections={SECTION_IDS} containerRef={containerRef} />
 
       {/* Visual generation status */}
       {visualState === 'loading' && (
@@ -115,8 +125,14 @@ export default function ImmersiveReportPage() {
       )}
 
       {/* Scroll container */}
-      <div style={{ height: '100vh', overflowY: 'scroll', scrollSnapType: 'y mandatory', scrollBehavior: 'smooth' }}>
-
+      <div
+        ref={containerRef}
+        data-scroll-container
+        style={{
+          height: '100vh', overflowY: 'auto', overflowX: 'hidden',
+          scrollSnapType: 'y proximity', scrollBehavior: 'smooth',
+        }}
+      >
         {/* 1. Cover */}
         <CoverSection
           businessName={businessName}
@@ -131,18 +147,19 @@ export default function ImmersiveReportPage() {
 
         {/* 2. Diagnosis */}
         <DiagnosisSection
-          index={1}
+          index={1} total={TOTAL}
           visual={visuals.diagnosis}
           diagnosisSummary={a?.diagnosisSummary}
           brandMaturity={a?.brandMaturity}
           dataQuality={a?.dataQuality}
           synthesisRationale={(a as any)?.debate?.synthesisRationale || (a as any)?.synthesisRationale}
           consultantIntro={a?.consultantIntro}
+          businessContext={bc}
         />
 
         {/* 3. Brand Identity */}
         <BrandIdentitySection
-          index={2}
+          index={2} total={TOTAL}
           visual={visuals.identity}
           brandPersonality={a?.brandPersonality}
           brandCharacter={a?.brandCharacter}
@@ -153,34 +170,62 @@ export default function ImmersiveReportPage() {
           brandEnemy={a?.strategicDepth?.brandEnemy}
         />
 
-        {/* 4. Strategic Depth */}
+        {/* 4. Narrative & Messaging */}
+        <NarrativeSection
+          index={3} total={TOTAL}
+          visual={visuals.narrative}
+          brandNarrative={a?.brandNarrative}
+          emotionalNarrative={a?.emotionalNarrative}
+          messagingArchitecture={a?.messagingArchitecture}
+        />
+
+        {/* 5. Strategic Depth */}
         <StrategySection
-          index={3}
+          index={4} total={TOTAL}
           visual={visuals.strategy}
           strategicDepth={a?.strategicDepth}
           strategyScenarios={a?.strategyScenarios}
         />
 
-        {/* 5. Audience & Positioning */}
+        {/* 6. Audience & Positioning */}
         <AudienceSection
-          index={4}
+          index={5} total={TOTAL}
           visual={visuals.audience}
           positioning={a?.positioning}
           consumerTest={a?.consumerTest}
         />
 
-        {/* 6. Language, Message & Claim */}
+        {/* 7. Customer Journey */}
+        <JourneySection
+          index={6} total={TOTAL}
+          visual={visuals.journey}
+          customerJourney={a?.customerJourney as any[]}
+          consumerTest={a?.consumerTest}
+          perceptualMap={a?.perceptualMap}
+          businessName={businessName}
+        />
+
+        {/* 8. Language, Message & Claim */}
         <LanguageSection
-          index={5}
+          index={7} total={TOTAL}
           visual={visuals.language}
           brandClaim={a?.brandClaim}
           contentStrategy={a?.contentStrategy}
           messagingArchitecture={a?.messagingArchitecture}
         />
 
-        {/* 7. Market & Competition */}
+        {/* 9. Content Strategy */}
+        <ContentSection
+          index={8} total={TOTAL}
+          visual={visuals.content}
+          contentStrategy={a?.contentStrategy}
+          socialMediaTemplates={a?.socialMediaTemplates as any[]}
+          blogInsights={(a as any)?.blogAdvisorInsights}
+        />
+
+        {/* 10. Market & Competition */}
         <MarketSection
-          index={6}
+          index={9} total={TOTAL}
           visual={visuals.market}
           sectorResearch={a?.sectorResearch}
           competitorDiscovery={a?.competitorDiscovery}
@@ -188,13 +233,39 @@ export default function ImmersiveReportPage() {
           digitalPresence={a?.digitalPresence}
         />
 
-        {/* 8. Action Plan + Intiba */}
+        {/* 11. Digital Presence & Visual World */}
+        <DigitalSection
+          index={10} total={TOTAL}
+          visual={visuals.digital}
+          digitalPresence={a?.digitalPresence}
+          visualWorld={a?.visualWorld}
+        />
+
+        {/* 12. Risks & Quality */}
+        <RisksSection
+          index={11} total={TOTAL}
+          visual={visuals.risks}
+          riskMitigationPlans={a?.riskMitigationPlans as any[]}
+          qualityMetrics={a?.qualityMetrics}
+          revenueImpact={a?.revenueImpact}
+        />
+
+        {/* 13. Action Plan */}
         <ActionSection
-          index={7}
+          index={12} total={TOTAL}
           visual={visuals.action}
           actionPlan={a?.actionPlan}
           kpiFramework={a?.kpiFramework}
           intibaRoadmap={a?.intibaRoadmap}
+        />
+
+        {/* 14. Intiba Services */}
+        <IntibaSection
+          index={13} total={TOTAL}
+          visual={visuals.intiba}
+          intibaEngagement={a?.intibaEngagement}
+          intibaRoadmap={a?.intibaRoadmap}
+          brandName={businessName}
         />
 
       </div>
@@ -218,33 +289,54 @@ export default function ImmersiveReportPage() {
   );
 }
 
-function NavDots({ sections }: { sections: string[] }) {
+function NavDots({
+  sections,
+  containerRef,
+}: {
+  sections: string[];
+  containerRef: React.RefObject<HTMLDivElement>;
+}) {
   const [active, setActive] = useState(0);
 
   useEffect(() => {
-    const container = document.querySelector('[style*="scroll-snap-type"]') as HTMLElement;
+    const container = containerRef.current;
     if (!container) return;
-    const onScroll = () => {
-      const idx = Math.round(container.scrollTop / container.clientHeight);
-      setActive(Math.min(idx, sections.length - 1));
-    };
-    container.addEventListener('scroll', onScroll, { passive: true });
-    return () => container.removeEventListener('scroll', onScroll);
-  }, [sections.length]);
+
+    const observers: IntersectionObserver[] = [];
+
+    sections.forEach((id, i) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+
+      const obs = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) setActive(i);
+        },
+        { root: container, threshold: 0.4 }
+      );
+      obs.observe(el);
+      observers.push(obs);
+    });
+
+    return () => observers.forEach(o => o.disconnect());
+  }, [sections, containerRef]);
 
   const scrollTo = (i: number) => {
-    const container = document.querySelector('[style*="scroll-snap-type"]') as HTMLElement;
-    if (container) container.scrollTo({ top: i * container.clientHeight, behavior: 'smooth' });
+    const container = containerRef.current;
+    const el = document.getElementById(sections[i]);
+    if (container && el) {
+      container.scrollTo({ top: el.offsetTop, behavior: 'smooth' });
+    }
   };
 
   return (
     <div style={{
-      position: 'fixed', right: 20, top: '50%', transform: 'translateY(-50%)',
-      zIndex: 200, display: 'flex', flexDirection: 'column', gap: 7,
+      position: 'fixed', right: 16, top: '50%', transform: 'translateY(-50%)',
+      zIndex: 200, display: 'flex', flexDirection: 'column', gap: 5,
     }}>
       {sections.map((_, i) => (
         <button key={i} onClick={() => scrollTo(i)} style={{
-          width: active === i ? 7 : 4, height: active === i ? 7 : 4,
+          width: active === i ? 6 : 3, height: active === i ? 6 : 3,
           borderRadius: '50%', border: 'none', cursor: 'pointer', padding: 0,
           background: active === i ? 'rgba(28,25,22,0.7)' : 'rgba(28,25,22,0.18)',
           transition: 'all 0.25s ease',

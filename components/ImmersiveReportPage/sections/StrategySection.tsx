@@ -3,6 +3,7 @@ import SectionBase, { GlassCard, SectionTitle, BigText, Tag, C, type SectionVisu
 
 interface Props {
   index: number;
+  total?: number;
   visual: SectionVisual | undefined;
   strategicDepth?: any;
   strategyScenarios?: any;
@@ -14,7 +15,7 @@ const VALUE_LABELS: Record<string, string> = {
   experience: 'Deneyim', transformation: 'Dönüşüm',
 };
 
-export default function StrategySection({ index, visual, strategicDepth, strategyScenarios }: Props) {
+export default function StrategySection({ index, total, visual, strategicDepth, strategyScenarios }: Props) {
   const scenarios = strategyScenarios ? [
     { key: 'conservative', label: 'Muhafazakâr', data: strategyScenarios.conservative },
     { key: 'recommended',  label: 'Önerilen ★', data: strategyScenarios.recommended },
@@ -24,7 +25,7 @@ export default function StrategySection({ index, visual, strategicDepth, strateg
   const valueLevelIdx = VALUE_LEVELS.indexOf(strategicDepth?.valueLevel || '');
 
   return (
-    <SectionBase id="strategy" index={index} label="Stratejik Derinlik" visual={visual}>
+    <SectionBase id="strategy" index={index} total={total} label="Stratejik Derinlik" visual={visual}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
 
         {/* Transformation statement hero */}
@@ -37,7 +38,11 @@ export default function StrategySection({ index, visual, strategicDepth, strateg
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 18 }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
+          gap: 18,
+        }}>
 
           {/* Left: Customer problem pyramid + stands for/against */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -62,7 +67,7 @@ export default function StrategySection({ index, visual, strategicDepth, strateg
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   <div>
                     <SectionTitle>Savunduklarımız</SectionTitle>
-                    {(strategicDepth.weStandFor || []).slice(0, 4).map((item: string, i: number) => (
+                    {(strategicDepth.weStandFor || []).map((item: string, i: number) => (
                       <div key={i} style={{ display: 'flex', gap: 7, marginBottom: 5 }}>
                         <span style={{ color: C.pos, fontWeight: 700, fontSize: 12 }}>✓</span>
                         <span style={{ color: C.mid, fontSize: 12, lineHeight: 1.45 }}>{item}</span>
@@ -71,7 +76,7 @@ export default function StrategySection({ index, visual, strategicDepth, strateg
                   </div>
                   <div>
                     <SectionTitle>Karşı Durduklarımız</SectionTitle>
-                    {(strategicDepth.weStandAgainst || []).slice(0, 4).map((item: string, i: number) => (
+                    {(strategicDepth.weStandAgainst || []).map((item: string, i: number) => (
                       <div key={i} style={{ display: 'flex', gap: 7, marginBottom: 5 }}>
                         <span style={{ color: C.neg, fontWeight: 700, fontSize: 12 }}>✗</span>
                         <span style={{ color: C.mid, fontSize: 12, lineHeight: 1.45 }}>{item}</span>

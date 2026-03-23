@@ -27,11 +27,12 @@ export default function CoverSection({
     : (visual?.fallbackGradient || C.bg);
 
   return (
-    <section style={{
-      height: '100vh', scrollSnapAlign: 'start',
+    <section id="cover" style={{
+      minHeight: '100vh', scrollSnapAlign: 'start',
       position: 'relative', display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
       background: isBgImage ? undefined : bgStyle,
+      boxSizing: 'border-box', width: '100%',
     }}>
       {isBgImage && (
         <>
@@ -144,8 +145,8 @@ export default function CoverSection({
           )}
           {confidence !== undefined && confidence > 0 && (
             <span style={{
-              color: C.green, fontSize: 10, fontFamily: 'monospace',
-              background: C.greenBg, border: `1px solid ${C.green}30`,
+              color: C.pos, fontSize: 10, fontFamily: 'monospace',
+              background: C.posBg, border: `1px solid ${C.pos}30`,
               borderRadius: 10, padding: '2px 10px',
             }}>
               %{confidence} Doğrulanmış

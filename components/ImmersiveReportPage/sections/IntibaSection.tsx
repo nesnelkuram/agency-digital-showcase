@@ -3,6 +3,7 @@ import SectionBase, { GlassCard, SectionTitle, Tag, C, type SectionVisual } from
 
 interface Props {
   index: number;
+  total?: number;
   visual: SectionVisual | undefined;
   intibaEngagement?: any;
   intibaRoadmap?: any;
@@ -17,16 +18,16 @@ const PRIORITY_LABEL: Record<string, string> = {
 };
 
 export default function IntibaSection({ index, visual, intibaEngagement, intibaRoadmap, brandName }: Props) {
-  const services = intibaEngagement?.recommendedServices?.slice(0, 6) || [];
+  const services = intibaEngagement?.recommendedServices?.slice(0, 12) || [];
   const roadmapServices = intibaRoadmap?.phases?.flatMap((p: any) =>
     (p.services || []).map((s: any) => ({ ...s, phaseLabel: p.label }))
-  ).slice(0, 6) || [];
+  ).slice(0, 12) || [];
   const displayServices = services.length > 0 ? services : roadmapServices;
 
   return (
-    <SectionBase id="intiba" index={index} label="İntiba Hizmetleri" visual={visual}>
+    <SectionBase id="intiba" index={index} total={total} label="İntiba Hizmetleri" visual={visual}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 20 }}>
 
           {/* Services */}
           <div>

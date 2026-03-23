@@ -3,6 +3,7 @@ import SectionBase, { GlassCard, SectionTitle, Tag, C, type SectionVisual } from
 
 interface Props {
   index: number;
+  total?: number;
   visual: SectionVisual | undefined;
   sectorResearch?: any;
   competitorDiscovery?: any;
@@ -15,16 +16,16 @@ export default function MarketSection({ index, visual, sectorResearch, competito
     ...(competitorDiscovery?.knownCompetitors || []),
     ...(competitorDiscovery?.discoveredCompetitors || []),
     ...(sectorResearch?.competitors || []),
-  ].slice(0, 8);
+  ].slice(0, 16);
 
-  const trends = sectorResearch?.marketTrends?.slice(0, 5) || [];
+  const trends = sectorResearch?.marketTrends?.slice(0, 10) || [];
   const market = sectorResearch?.marketData;
 
   return (
-    <SectionBase id="market" index={index} label="Rekabet & Pazar" visual={visual}>
+    <SectionBase id="market" index={index} total={total} label="Rekabet & Pazar" visual={visual}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.25fr) minmax(0,0.75fr)', gap: 18 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 18 }}>
 
           {/* Left: SWOT + competitors */}
           <div>
@@ -80,8 +81,8 @@ export default function MarketSection({ index, visual, sectorResearch, competito
             {competitors.length > 0 && (
               <div>
                 <SectionTitle>Rakipler</SectionTitle>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7, maxHeight: '38vh', overflowY: 'auto' }}>
-                  {competitors.map((c: any, i: number) => (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7,  }}>
+                  {(competitors)((c: any, i: number) => (
                     <GlassCard key={i} style={{ padding: '12px 14px' }}>
                       <div style={{ color: C.text, fontSize: 13, fontWeight: 700, marginBottom: 3 }}>{c.name}</div>
                       <div style={{ color: C.mid, fontSize: 11, lineHeight: 1.5, marginBottom: 7 }}>
