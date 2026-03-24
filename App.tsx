@@ -295,7 +295,7 @@ const App: React.FC = () => {
         <Route
           path="/rapor-immersive/:shareToken"
           element={
-            <Suspense fallback={<div className="min-h-screen" style={{ background: '#0a0a0a' }} />}>
+            <Suspense fallback={<div className="min-h-screen" style={{ background: '#f5f2ec' }} />}>
               <ImmersiveReportPage />
             </Suspense>
           }
