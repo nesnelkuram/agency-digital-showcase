@@ -21,33 +21,37 @@ export default function CoverSection({
   businessName, sector, maturityLevel, brandClaim, consultantIntro, analyzedAt, visual,
 }: Props) {
   const isBgImage = !!visual?.imageB64;
-  const bgStyle = isBgImage
-    ? `url(data:image/png;base64,${visual!.imageB64})`
-    : C.bg;
+  // Static parquet photo as default cover background
+  const staticBg = '/cemilay-hero.png';
 
   // Split "Aslan Yapı / DesignFloor" → ["Aslan Yapı", "DesignFloor"]
   const nameParts = businessName.split(/\s*[\/]\s*/);
   const primaryName = nameParts[0] || businessName;
   const subName = nameParts[1] || null;
 
+  // Using photo bg: either AI-generated b64 or static parquet
+  const bgUrl = isBgImage
+    ? `url(data:image/png;base64,${visual!.imageB64})`
+    : `url(${staticBg})`;
+
   return (
     <section id="cover" style={{
       minHeight: '100vh', scrollSnapAlign: 'start',
       position: 'relative', display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
-      background: isBgImage ? undefined : bgStyle,
       boxSizing: 'border-box', width: '100%',
     }}>
-      {isBgImage && (
-        <>
-          <div style={{
-            position: 'absolute', inset: 0,
-            backgroundImage: bgStyle, backgroundSize: 'cover', backgroundPosition: 'center',
-            filter: 'saturate(0.3) brightness(1.15)',
-          }} />
-          <div style={{ position: 'absolute', inset: 0, background: C.overlay, zIndex: 1 }} />
-        </>
-      )}
+      {/* Background photo */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        backgroundImage: bgUrl, backgroundSize: 'cover', backgroundPosition: 'center',
+        filter: isBgImage ? 'saturate(0.3) brightness(1.15)' : 'saturate(0.85) brightness(0.92)',
+      }} />
+      {/* Overlay — light cream tint to keep text readable */}
+      <div style={{
+        position: 'absolute', inset: 0, zIndex: 1,
+        background: 'linear-gradient(160deg, rgba(245,242,236,0.82) 0%, rgba(236,231,221,0.75) 100%)',
+      }} />
 
       {/* Header bar */}
       <div style={{
