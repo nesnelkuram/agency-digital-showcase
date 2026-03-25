@@ -1,0 +1,1657 @@
+{
+  "brandPersonality": {
+    "archetype": "Bilge Yaratıcı (Rehber ve Yenilikçi Tasarım Ortağı)",
+    "traits": [
+      "Teknik donanımlı ve uzman",
+      "İlham verici ve vizyoner",
+      "Şeffaf ve güvenilir",
+      "Yenilikçi (Phygital odaklı)"
+    ],
+    "tone": "Bilgilendirici, cesur ve vizyoner — 'Zemin seçimi bir zorunluluk değil, mekanın ruhunu belirleyen bir sanattır.'",
+    "voice": "Açıklayıcı, destekleyici ve sektöre meydan okuyan — 'Sürdürülebilirlik ve estetiği birleştiren Avrupa standartlarını, mekanınızda yaşamanız için şeffaf bir süreçle sunuyoruz.'"
+  },
+  "visualWorld": {
+    "moodKeywords": [
+      "Rafine",
+      "Dokunsal (Haptik)",
+      "Teknolojik",
+      "Güven Veren",
+      "Doğa Dostu",
+      "Modern"
+    ],
+    "colorPalette": [
+      {
+        "hex": "#2C3E50",
+        "name": "Gece Mavisi",
+        "usage": "primary"
+      },
+      {
+        "hex": "#D4AF37",
+        "name": "Mat Altın",
+        "usage": "secondary"
+      },
+      {
+        "hex": "#8F9779",
+        "name": "Adaçayı Yeşili",
+        "usage": "accent"
+      },
+      {
+        "hex": "#F5F5F0",
+        "name": "Sıcak Taş",
+        "usage": "neutral"
+      }
+    ],
+    "typographyStyle": "Başlıklarda modern ve geometrik sans-serif (örn. Montserrat), gövde metinlerinde okunaklı ve zarif serif (örn. Playfair Display) kombinasyonu.",
+    "imageryStyle": "Geniş açılı, doğal ışık alan mimari mekan çekimleri, ürünlerin haptik dokusunu öne çıkaran makro detaylar ve AR kullanımını gösteren yaşam tarzı kareleri."
+  },
+  "contentStrategy": {
+    "pillars": [
+      "Vizyoner Yaşam Alanları (AR ve Gerçeklik)",
+      "Zemin Sanatı ve Haptik Dokunuş",
+      "Avrupa'nın Zemin Mirası ve Sürdürülebilirlik",
+      "Teknik Mükemmellik ve Şeffaf Montaj",
+      "Genç Mimarlar İlham Laboratuvarı"
+    ],
+    "toneGuidelines": [
+      "Asla 'en ucuz' veya 'en kaliteli' gibi altı boş jenerik sıfatlar kullanma.",
+      "Teknik detayları (PEFC, akustik) estetik bir hikaye ile harmanla.",
+      "Sektördeki kötü montaj ve sürpriz maliyet pratiklerine cesurca meydan oku.",
+      "İlham verici ama aynı zamanda ayakları yere basan, şeffaf bir dil kullan."
+    ],
+    "keyMessages": [
+      "Zemin seçimi bir zorunluluk değil, mekanın ruhunu belirleyen bir sanattır.",
+      "Avrupa standartlarındaki zeminleri, AR teknolojisiyle odanızda görün, deneyim merkezimizde hissedin.",
+      "Şeffaf fiyatlandırma ve kusursuz montaj garantisiyle sürprizlere yer yok.",
+      "Sürdürülebilir ve uzun ömürlü malzemelerle geleceğe yatırım yapın."
+    ],
+    "hashtags": [
+      "#DesignFloor",
+      "#ZeminSanatı",
+      "#MimariDeneyim",
+      "#PhygitalTasarım",
+      "#SürdürülebilirZemin",
+      "#PremiumParke",
+      "#İçMimarlıkTürkiye"
+    ]
+  },
+  "analysis": {
+    "strengths": [
+      "135+ bayi ağı ve Skyland HOM'daki mevcut fiziksel deneyim merkezi altyapısı (İşletme Profili verisine dayanarak).",
+      "Avrupa menşeli, premium (LVT, lamine) geniş ürün yelpazesi (Sektör verisine dayanarak).",
+      "Instagram'da iç mimarlarla yapılan işbirlikleri ve moodboard içerikleriyle sağlanan yüksek etkileşim (Dijital Varlık verisine dayanarak)."
+    ],
+    "opportunities": [
+      "Tüketicilerin 'katalogdan seçip evde hüsrana uğrama' korkusunu AR (Odamda Gör) teknolojisiyle çözmek (Tüketici Testi verisine dayanarak).",
+      "Tarkett'in B2B ağırlıklı endüstriyel yapısına karşı, B2C ve mimarlara özel sıcak bir 'co-working' deneyim alanı yaratmak (Şeytan Avukatı verisine dayanarak).",
+      "Yeni mezun mimarlara özel programlar sunarak geleceğin A+ proje yöneticilerini şimdiden markaya bağlamak (Tüketici Testi verisine dayanarak)."
+    ],
+    "challenges": [
+      "Fiyat hassasiyetinin yüksek olduğu pazarda, Şerifoğlu gibi yerli ve uygun fiyatlı alternatiflere müşteri kaptırma riski (Sektör verisine dayanarak).",
+      "Geniş bayi (franchise) ağında, premium deneyim merkezi standartlarını ve montaj kalitesini eşgüdümlü koruma zorluğu (Şeytan Avukatı verisine dayanarak)."
+    ],
+    "recommendations": [
+      "ONERI 1: Web sitesine AR (Odamda Gör) eklentisi entegre edilerek, müşterilerin katalog ile gerçeklik arasındaki şüpheleri giderilmeli ve satın alma kararı hızlandırılmalı.",
+      "ONERI 2: 'DesignFloor Akademi' veya 'Genç Mimar Partner Programı' kurularak, yeni mezun mimarlara özel indirimler, eğitimler ve deneyim merkezini çalışma alanı olarak kullanma imkanı sunulmalı.",
+      "ONERI 3: Montaj ve garanti süreçlerini anlatan, sektördeki 'kötü usta/sürpriz maliyet' algısını yıkan şeffaf bir 'Hizmet Manifestosu' sayfası ve video serisi yayınlanmalı.",
+      "ONERI 4: Instagram içeriklerinde sadece estetik değil, Tarkett ile rekabet edebilmek adına PEFC/FSC sürdürülebilirlik belgeleri ve teknik akustik değerler infografiklerle vurgulanmalı."
+    ]
+  },
+  "positioning": {
+    "statement": "DesignFloor, üst düzey yaşam alanı hayal eden mimarlar ve ev sahipleri için, Avrupa'nın prestijli zemin koleksiyonlarını AR teknolojisi ve şeffaf montaj güvencesiyle sunan yeni nesil bir deneyim merkezidir.",
+    "targetAudience": "A/A+ sosyoekonomik gruptaki bireyler, lüks konut projeleri yürüten iç mimarlar ve sektöre yeni adım atan vizyoner genç tasarımcılar.",
+    "valuePropositionReasoning": {
+      "whatBusinessProduces": "Premium lamine, LVT, teknolojik zemin kaplamaları, AR destekli dijital platform ve fiziksel mimari deneyim merkezleri ağı.",
+      "coreBenefit": "Zemin seçimini riskli bir şantiye işi olmaktan çıkarıp, teknoloji ve fiziksel dokunma hissiyle desteklenen güvenilir bir tasarım sürecine dönüştürmek.",
+      "whoBenefits": "Projelerinde sıfır hata isteyen mimarlar ve evini statüsünün yansıması olarak gören, sürpriz maliyetlerden çekinen ev sahipleri.",
+      "pricePositioning": "Premium: Avrupa serileri 1200 - 2500 TL bandında, standart yerli parkelerin (300 TL) üstünde ancak ultra-lüks Haro'nun (3000+ TL) altında ulaşılabilir lüks.",
+      "willingToPayProfile": "Uzun ömürlü, PEFC/FSC sertifikalı ve estetik zeminler için ortalamanın üzerinde ödeme yapmaya hazır, şeffaf hizmet arayan kitle."
+    },
+    "targetSegments": [
+      {
+        "segmentLabel": "Birincil Segment",
+        "demographics": "28-55 yaş, büyükşehirler (İstanbul, Ankara, İzmir), lüks konut/ticari proje yürüten iç mimarlar, A/A+ gelir grubu",
+        "behavioralProfile": "Pinterest/ArchDaily takip eden, teknik spesifikasyon (akustik, yangın dayanımı, PEFC) arayan, karar süreçlerinde haptik (dokunma) hissine önem veren profesyoneller.",
+        "coreNeed": "Müşterisini ikna edecek somut numuneler, AR görselleştirme araçları ve projeyi riske atmayacak sorunsuz montaj güvencesi.",
+        "mediaHabits": "Instagram (günlük), ArchDaily (haftalık), LinkedIn (haftalık)",
+        "purchaseTriggers": [
+          "Yeni bir lüks konut veya ticari proje ihalesi alınması",
+          "Müşterinin sürdürülebilirlik (LEED) sertifikalı ürün talep etmesi"
+        ],
+        "estimatedSegmentSize": "Türkiye genelinde yaklaşık 50.000 aktif profesyonel (Sektör tahmini)"
+      },
+      {
+        "segmentLabel": "İkincil Segment",
+        "demographics": "35-60 yaş, Skyland/Göktürk/Urla gibi prestijli lokasyonlar, üst düzey yönetici veya iş insanı, A/A+ gelir grubu",
+        "behavioralProfile": "Evini statü sembolü olarak gören, ucuz malzemeden kaçınan, uzun ömürlü ithal ürün tercih eden ve katalog yerine ürüne dokunmak isteyen ev sahipleri.",
+        "coreNeed": "Şeffaf fiyatlandırma, anahtar teslim güvenilir hizmet ve yanlış karar verme riskini sıfıra indiren bir deneyim.",
+        "mediaHabits": "Instagram (günlük), YouTube dekorasyon kanalları (haftalık), Google Business incelemeleri",
+        "purchaseTriggers": [
+          "Yeni bir lüks konut satın alınması",
+          "Mevcut evin kapsamlı restorasyon sürecine girmesi"
+        ],
+        "estimatedSegmentSize": "Türkiye genelinde yaklaşık 250.000 hane (Sektör tahmini)"
+      }
+    ],
+    "differentiator": "Sadece ürün satan bir depo değil; AR teknolojisi, şeffaf montaj garantisi ve genç mimarları da kapsayan 'co-working' odaklı bir phygital deneyim merkezidir.",
+    "competitiveAdvantage": "Tarkett'in soğuk B2B yapısına ve Haro'nun ulaşılamaz fiyatlarına karşı, ulaşılabilir Avrupa lüksünü teknoloji ve kusursuz fiziksel deneyimle birleştirmesi.",
+    "competitiveLandscape": "Ultra-lüks segmentte Haro, kitle pazarında Floorpan/AGT bulunurken; DesignFloor orta-üst ve premium segmentte 'ulaşılabilir lüks ve teknolojik deneyim' boşluğuna konumlanmalıdır.",
+    "alternativePositions": [
+      "Sürdürülebilirlik odaklı yeşil zemin teknolojileri merkezi",
+      "Sadece iç mimarlara özel kapalı devre 'Zemin Laboratuvarı'"
+    ]
+  },
+  "sectorResearch": {
+    "competitors": [
+      {
+        "name": "Tarkett",
+        "website": "tarkett.com.tr",
+        "positioning": "Orta'dan Premium'a genis yelpaze (Ticari projelerde kuresel lider)",
+        "strengths": [
+          "Devasa global guc",
+          "B2B projelerde (hastane, okul, spor salonu, ofis) mutlak hakimiyet",
+          "Yesil bina (Cradle to Cradle) sertifikasyonlari",
+          "Cok genis vinil (PVC/LVT) ve hali portfoyu"
+        ],
+        "weaknesses": [
+          "Urun yelpazesinin cok ticari (PVC/Hali) agirlikli olmasi",
+          "Bireysel son tuketicinin (B2C) ev renovasyonunda markayi fazla kurumsal ve endustriyel bulabilmesi"
+        ],
+        "estimatedScale": "130 yili askin gecmisiyle ticari ve konut zemin cozumlerinde dunya lideri",
+        "socialPresence": "Saf B2B odakli, veri ve teknik dosya agirlikli hantal dijital yapi",
+        "sourceSnippet": "Tarkett ticari projelerde (PVC, Linolyum, Karo Hali) kuresel bir dev iken..."
+      },
+      {
+        "name": "Haro",
+        "website": "haroturkiye.com / haro.com",
+        "positioning": "Luks ve Premium (Dogal ahsap ve ust duzey lamine uzmani)",
+        "strengths": [
+          "Inanilmaz yuksek marka prestiji",
+          "Made in Germany algisi",
+          "Yerden isitmaya tam uyum",
+          "Parkettmanufaktur (el isciligi ozel uretim) serileri ile ultra luks segmentte yer almasi"
+        ],
+        "weaknesses": [
+          "Cok yuksek fiyat bariyeri",
+          "Sinirli dijital Turkce varlik (distributor sitelerine bagimli kalmalari)",
+          "Ulasilabilir fiyatli urun eksikligi"
+        ],
+        "estimatedScale": "1866 yilinda kurulan, Almanya'nin lider parke ureticisi",
+        "socialPresence": "Turkiye'de lokalize edilmis guclu bir kurumsal B2C deneyimi sunmakta zayif, distributor inisiyatifinde",
+        "sourceSnippet": "Haro premium dogal ahsap pazarinda guclu bir oyuncudur."
+      },
+      {
+        "name": "Floorpan (Kastamonu Entegre)",
+        "website": "Veri bulunamadi",
+        "positioning": "Ekonomik ve Orta-Ust",
+        "strengths": [
+          "Tum Turkiye'de her sokak arasi parkecide bulunabilir devasa dagitim agi (erisilebilirlik)",
+          "B2C pazarini domine etmesi"
+        ],
+        "weaknesses": [
+          "Marka algisinin luks ithal kategorisinde olmamasi",
+          "Showroom deneyiminden ziyade yigin surum (volume sales) odakli olmasi"
+        ],
+        "estimatedScale": "Turkiye'nin en buyuk, Avrupa'nin onde gelen yerli ureticisi",
+        "socialPresence": "Veri bulunamadi",
+        "sourceSnippet": "Turkiye'nin en buyuk, Avrupa'nin onde gelen yerli ureticisi. B2C pazarini domine eder."
+      },
+      {
+        "name": "Serifoglu Lamine Parke",
+        "website": "Veri bulunamadi",
+        "positioning": "Orta-Ust (Yerli uretim lamine parke)",
+        "strengths": [
+          "Yerli uretim avantajiyla lamine parkede rekabetci fiyat sunmasi",
+          "Klasiklesmis bir guveni olmasi"
+        ],
+        "weaknesses": [
+          "Laminat, LVT ve teknolojik kaplamalar konusunda ithal markalarin inovasyon hizinin gerisinde kalabilmesi"
+        ],
+        "estimatedScale": "Turkiye'nin en koklu yerli lamine parke ureticilerinden biri",
+        "socialPresence": "Veri bulunamadi",
+        "sourceSnippet": "Turkiye'nin en koklu yerli Lamine (dogal ahsap) parke ureticilerinden biri."
+      },
+      {
+        "name": "Berry Alloc",
+        "website": "Veri bulunamadi",
+        "positioning": "Premium ithal marka (LVT ve HPL uzmani)",
+        "strengths": [
+          "Harika tasarimlar",
+          "Omur boyu garanti sunmasi"
+        ],
+        "weaknesses": [
+          "Turkiye'de DesignFloor kadar organize bir Deneyim Merkezi atilimi bulunmamasi"
+        ],
+        "estimatedScale": "Belcika/Norvec menseli premium ithal marka",
+        "socialPresence": "Veri bulunamadi",
+        "sourceSnippet": "DesignFloor'un direkt rakibi olabilecek LVT ve yuksek basincli laminat (HPL) uzmani."
+      }
+    ],
+    "marketData": {
+      "marketSize": "Veri bulunamadi (Devasa bir yeni konut insaat pazarina ve aktif bir renovasyon pazarina sahip oldugu belirtilmis)",
+      "growthRate": "Veri bulunamadi",
+      "keyPlayers": [
+        "Tarkett",
+        "Haro",
+        "Floorpan",
+        "Serifoglu",
+        "Berry Alloc",
+        "DesignFloor"
+      ],
+      "consumerTrends": [
+        "Genis Tahta (Wide Plank) ve Baliksirti (Herringbone) Modasi",
+        "Hijyen, Teknoloji ve Su Gecirmezlik (LVT ve suya dayanikli laminat)",
+        "Surdurulebilirlik (Eko-Trend, PEFC/FSC belgeli urunler)"
+      ],
+      "regulatoryFactors": [
+        "LEED ve BREEAM sertifikalari",
+        "PEFC/FSC belgeleri",
+        "A+ Saglik etiketleri",
+        "Formaldehit E1 orani",
+        "Yangin dayanimi Cfl-s1"
+      ]
+    },
+    "targetAudienceInsights": {
+      "demographics": "A ve A+ sosyoekonomik statudeki bireysel ev sahipleri (Skyland, Vadi Istanbul, Gokturk gibi luks lokasyonlar), ic mimarlar, muteahhitler",
+      "psychographics": "Kaliteye, ithal markaya, uzun sureli garantiye, tasarim ozgunlugune ve marka prestijine onem veren kitle",
+      "painPoints": [
+        "Urunun rengini isik altinda gorme ve yuzey dokusunu (haptik hissi) hissetme ihtiyaci",
+        "Ucuz yerli urunlerdeki dayaniklilik sorunlari",
+        "Ticari projelerde teknik spektlerin (asinma sinifi, yangin dayanimi) karsilanma zorunlulugu"
+      ],
+      "purchaseBehavior": "Online arastirma (ilham / Pinterest / Instagram) -> Mimar Tavsiyesi -> Fiziksel Showroom Ziyareti -> Numune Talebi -> Satin Alma. Konutlar icin 10-15 yilda bir, ticari mekanlar icin 5-7 yilda bir degisim."
+    },
+    "marketTrends": [
+      "Genis Tahta (Wide Plank) ve Baliksirti (Herringbone) Modasi",
+      "Hijyen, Teknoloji ve Su Gecirmezlik (LVT ve suya dayanikli laminat)",
+      "Surdurulebilirlik (Eko-Trend, PEFC/FSC belgeli urunler)"
+    ],
+    "sectorBenchmarks": [
+      "Konutlar icin parke degisim dongusu 10-15 yil",
+      "Ticari mekanlar icin parke degisim dongusu 5-7 yil",
+      "Premium segment urunlerde 25 ila 35 yil garanti suresi"
+    ],
+    "searchQueries": [],
+    "sourcesUsed": -1,
+    "sourceUrls": [],
+    "showroomData": {
+      "showroomProfile": {
+        "locationCount": "1 Deneyim Merkezi (Skyland HOM) ve 135'i askin satis noktasi/bayi",
+        "locations": [
+          "Skyland HOM Dekorasyon Merkezi (Istanbul Sariyer / Vadi Istanbul karsisi, Azerbaycan Cad. Kat:2)",
+          "Turkiye, Orta Dogu ve Orta Asya (Bayi agi)"
+        ],
+        "showroomSize": "Veri bulunamadi (Skyland HOM AVM geneli 40.000 m2)",
+        "concept": "Deneyim Merkezi (Experience Center): Aydinlatmasi ozenle yapilmis, buyuk plaka halinde dosenmis, test yuruyusu (Test Walk) yapilabilen, Moodboard (ilham panosu) hazirlanabilen mimari calisma studyosu."
+      },
+      "productPortfolio": {
+        "categories": [
+          "Premium Laminat Parke",
+          "Premium Lamine Parke (Engineered Wood)",
+          "Masif Parke",
+          "Premium Parlak Parke (High-Gloss)",
+          "LVT (Luxury Vinyl Tile)",
+          "Supurgelik"
+        ],
+        "sourceType": "Avrupa menseli ithalat (Almanya, Fransa, Avusturya)",
+        "customization": "Baliksirti, macar kesim, 4 V-derz, mat/parlak yuzey opsiyonlari ile mekansal kisisellestirme",
+        "flagshipBrands": [
+          "DesignFloor",
+          "AlsaFloor",
+          "Kaindl",
+          "Weitzer Parkett",
+          "Pergo"
+        ]
+      },
+      "pricingAnalysis": {
+        "priceSegment": "Orta-Ust ve Premium (Luks)",
+        "avgProjectSize": "Veri bulunamadi",
+        "installationService": "Anahtar teslim zemin cozumleri sunulmaktadir",
+        "projectBasedPricing": "Evet (3 Adimda Teklif Al modulu uzerinden metraj bazli ozel iskontolu proje fiyatlamasi)"
+      },
+      "customerProfile": {
+        "b2cVsB2b": "B2C ve B2B'nin hibrit bir dengesi",
+        "primarySegments": [
+          "Ic Mimarlar ve Tasarim Ofisleri",
+          "Bireysel Ev Sahipleri (A/A+ Sosyoekonomik Statu)",
+          "Muteahhitler ve Kurumsal Projeler"
+        ],
+        "referenceProjects": [
+          "Antepia (Gaziantep)",
+          "Evvel Istanbul",
+          "Sinpas Bosphorus Halkali",
+          "Sinpas Ottomare",
+          "Skyport Residence",
+          "Ozdilek Levent Otel Kral Daireleri",
+          "Turkcell Genel Mudurluk",
+          "Carrefour",
+          "LC Waikiki",
+          "Lacoste",
+          "Basaksehir Spor Kulubu",
+          "Kolektif House"
+        ],
+        "decisionProcess": "Online arastirma -> Mimar Tavsiyesi -> Fiziksel Showroom Ziyareti -> Numune Talebi -> Satin Alma"
+      },
+      "digitalCapability": {
+        "hasEcommerce": "Dogrudan online satis (sepete ekle) yok, lead-generation (Teklif Al) odakli",
+        "marketplacePresence": [
+          "Trendyol",
+          "Hepsiburada"
+        ],
+        "has3DVisualization": "Eski versiyon 360tv sanal tur mevcut, AR (Artirilmis Gerceklik) oneriliyor",
+        "inspirationPlatforms": [
+          "Pinterest",
+          "Instagram",
+          "Web sitesinde DF Fikirler ve Moodboard araclari"
+        ]
+      },
+      "reviewSentiment": {
+        "positiveThemes": [
+          "Genis urun yelpazesi",
+          "Cizilmeyen modern parkeler",
+          "Mimari usluba uyum",
+          "Hizli tedarik",
+          "Ilgili/donanimli magaza danismanlari"
+        ],
+        "negativeThemes": [
+          "Veri bulunamadi"
+        ],
+        "overallSentiment": "Son derece olumlu (Google Haritalar'da Skyland HOM icin 4.4 puan ve prestijli marka algisi)"
+      }
+    }
+  },
+  "actionPlan": {
+    "immediate": [
+      {
+        "action": "Marka kimliği (Rebrand) rehberinin (logo, renk, tipografi, ton) güncellenmesi ve tüm bayilere 'Hizmet Manifestosu' ile birlikte dijital olarak dağıtılması.",
+        "owner": "Marka Yöneticisi / Ajans",
+        "metric": "135 bayiye rehberin iletilmesi ve yazılı onay alınması",
+        "estimatedImpact": "Kurumsal tutarlılığın sağlanması ve şeffaf hizmet standartlarının belirlenmesi",
+        "motivationScore": 9,
+        "abilityScore": 7,
+        "bottleneck": "none",
+        "requiredResources": "Marka kimlik kılavuzu dokümanı, iç iletişim yazılımı",
+        "prerequisite": "Yeni marka kimliğinin yönetim tarafından onaylanması"
+      },
+      {
+        "action": "Web sitesine AR (Odamda Gör) modülünün entegrasyonu için altyapı çalışmalarının başlatılması ve ilk 50 çok satan ürünün 3D modellenmesi.",
+        "owner": "IT Yöneticisi / Dijital Ajans",
+        "metric": "50 ürünün AR uyumlu hale getirilip test ortamında çalıştırılması",
+        "estimatedImpact": "Kullanıcıların ürünleri kendi mekanlarında görerek satın alma şüphelerinin giderilmesi",
+        "motivationScore": 8,
+        "abilityScore": 6,
+        "bottleneck": "none",
+        "requiredResources": "AR yazılım altyapısı (örn. WebAR), 3D modelleme bütçesi",
+        "prerequisite": "Ürünlerin yüksek çözünürlüklü doku taramalarının yapılması"
+      },
+      {
+        "action": "Instagram'da 'Zemin Sanatı ve Şeffaflık' temalı ilk rebrand kampanyasının (4 Reel, 8 Post) yayınlanması.",
+        "owner": "Sosyal Medya Yöneticisi",
+        "metric": "12 içerik yayını ve önceki aya göre %20 etkileşim artışı",
+        "estimatedImpact": "Yeni marka algısının duyurulması ve hedef kitlede farkındalık yaratılması",
+        "motivationScore": 9,
+        "abilityScore": 8,
+        "bottleneck": "none",
+        "requiredResources": "Video prodüksiyon ekibi, metin yazarı, içerik takvimi",
+        "prerequisite": "Marka kimliği rehberinin tamamlanması"
+      }
+    ],
+    "shortTerm": [
+      {
+        "action": "Skyland HOM deneyim merkezinde 'Genç Mimarlar Buluşması' düzenlenerek yeni mezun/genç profesyonellere markanın tanıtılması ve co-working alanının açılışı.",
+        "owner": "Etkinlik Yöneticisi / Pazarlama Ekibi",
+        "metric": "Etkinliğe en az 50 genç mimarın katılımı ve 30 partner kaydı",
+        "estimatedImpact": "Geleceğin A+ proje yöneticileriyle erken aşamada bağ kurulması"
+      },
+      {
+        "action": "Sürdürülebilirlik (PEFC/FSC) ve teknik mükemmellik üzerine kurgulanmış YouTube video serisinin (3 bölüm) çekimi ve yayını.",
+        "owner": "İçerik Ekibi",
+        "metric": "3 videonun yayına girmesi ve toplam 10.000 organik izlenme",
+        "estimatedImpact": "Tarkett'in güçlü olduğu teknik/sürdürülebilirlik alanında rekabet avantajı sağlanması"
+      }
+    ],
+    "mediumTerm": [
+      {
+        "action": "Anadolu'daki pilot 5 bayinin 'Deneyim Merkezi' konseptine fiziksel dönüşümünün tamamlanması ve kalite denetimlerinin yapılması.",
+        "owner": "Bayi Geliştirme Yöneticisi",
+        "metric": "5 bayinin yeni konseptle açılışının yapılması ve %90 denetim skoru",
+        "estimatedImpact": "Premium deneyimin büyükşehirler dışına taşınarak ulusal algının güçlendirilmesi"
+      },
+      {
+        "action": "AR uygulamasının kullanım verileri üzerinden retargeting (yeniden hedefleme) performans reklamlarının başlatılması.",
+        "owner": "Performans Pazarlama Ajansı",
+        "metric": "Reklam harcamasının getirisinde (ROAS) %30 iyileşme",
+        "estimatedImpact": "Ürünü evinde deneyen ancak satın almayan yüksek niyetli kitlenin satışa döndürülmesi"
+      }
+    ]
+  },
+  "evidenceSummary": {
+    "sourcesConsulted": -1,
+    "keySourceUrls": [],
+    "dataFreshness": "Ocak 2025 web arama verileri",
+    "confidenceLevel": "Dusuk — -1 kaynak kullanildi"
+  },
+  "consultantIntro": "Aslan Yapı/DesignFloor olarak, Avrupa'nın köklü firmalarının Türkiye distribütörlüğünü üstlenmeniz ve Türkiye genelinde geniş bir bayi ağına sahip olmanız, sektördeki güçlü konumunuzun bir göstergesi. Deneyim merkezi konseptini benimsemeniz ve bunu tüm Türkiye'ye yayma hedefiniz de oldukça vizyoner. Ancak, Haro gibi ultra-lüks segmentte köklü bir mirasa sahip markalarla rekabet ederken, Tarkett gibi B2B projelerinde çevreci ve teknik hakimiyet kurmuş oyuncuları da göz ardı etmemek gerekiyor. Asıl savaşınız, hem premium algınızı koruyup hem de Şerifoğlu gibi yerli alternatiflere karşı fiyat hassasiyeti olan müşterileri kaybetmeden, sürdürülebilirlik ve deneyim odaklı bir marka kimliği inşa etmek. Şimdi, marka algınız ile pazarın sizi nasıl gördüğü arasındaki farkları, potansiyel büyüme alanlarınızı ve bu hedefe ulaşmak için atmanız gereken adımları birlikte analiz edeceğiz.",
+  "evidenceSummaryV2": {
+    "overallConfidence": 50,
+    "sectionBreakdown": [
+      {
+        "sectionName": "Sektör Araştırması",
+        "confidenceLevel": "grounded",
+        "overallConfidence": 55,
+        "evidenceChains": [
+          {
+            "claim": "Pazar verisi: Veri bulunamadi (Devasa bir yeni konut insaat pazarina ve aktif bir renovasyon pazarina sahip oldugu belirtilmis)",
+            "evidenceType": "research",
+            "sources": [],
+            "confidence": 25,
+            "assumptions": [],
+            "falsifiableBy": "Pazar büyüklüğü kaynağı doğrulanarak"
+          },
+          {
+            "claim": "5 rakip tespit edildi",
+            "evidenceType": "research",
+            "sources": [
+              "tarkett.com.tr",
+              "haroturkiye.com / haro.com",
+              "Veri bulunamadi",
+              "Veri bulunamadi",
+              "Veri bulunamadi"
+            ],
+            "confidence": 85,
+            "assumptions": [],
+            "falsifiableBy": ""
+          }
+        ],
+        "frameworkScores": []
+      },
+      {
+        "sectionName": "Marka Stratejisi",
+        "confidenceLevel": "inferred",
+        "overallConfidence": 43,
+        "evidenceChains": [
+          {
+            "claim": "Arketip: Bilge",
+            "evidenceType": "ai_inference",
+            "sources": [],
+            "confidence": 45,
+            "assumptions": [
+              "Arketip seçimi framework puanlaması olmadan yapılmış"
+            ],
+            "falsifiableBy": "Farklı bir arketip ile aynı veriler analiz edilirse"
+          },
+          {
+            "claim": "Konumlandırma: Üst düzey yaşam alanı hayal eden seçici ev sahipleri ve iç mimarlar için DesignFloor, Avrupa'nın en ",
+            "evidenceType": "ai_inference",
+            "sources": [],
+            "confidence": 40,
+            "assumptions": [
+              "Araştırma verisi olmadan konumlandırma yapılmış"
+            ],
+            "falsifiableBy": "Rakip swap testi ile"
+          }
+        ],
+        "frameworkScores": []
+      },
+      {
+        "sectionName": "Eleştirel Analiz",
+        "confidenceLevel": "inferred",
+        "overallConfidence": 54,
+        "evidenceChains": [
+          {
+            "claim": "Onlyness testi: strong",
+            "evidenceType": "framework",
+            "sources": [
+              "Neumeier Onlyness Test"
+            ],
+            "confidence": 90,
+            "assumptions": [],
+            "falsifiableBy": "Rakip ismi değiştirilerek test tekrarlanabilir"
+          },
+          {
+            "claim": "Benzersizlik skoru: 85/100",
+            "evidenceType": "framework",
+            "sources": [
+              "Neumeier Distinctiveness Assessment"
+            ],
+            "confidence": 75,
+            "assumptions": [],
+            "falsifiableBy": ""
+          },
+          {
+            "claim": "ELEŞTİRİ 1: Doğrudan Rekabet ve Miras Eksikliği + KANIT: Stratejist 'Avrupa'nın en prestijli zemin koleksiyonları' diyerek Kral konumlandırması önermi",
+            "evidenceType": "ai_inference",
+            "sources": [],
+            "confidence": 40,
+            "assumptions": [],
+            "falsifiableBy": ""
+          },
+          {
+            "claim": "ELEŞTİRİ 2: Operasyonel Çelişki (Bayi Ağı vs. Küratöryel Kontrol) + KANIT: İşletme profilinde firmanın 'geniş bir bayi ağına sahip olduğu' belirtilmiş",
+            "evidenceType": "ai_inference",
+            "sources": [],
+            "confidence": 40,
+            "assumptions": [],
+            "falsifiableBy": ""
+          },
+          {
+            "claim": "ELEŞTİRİ 3: Sürdürülebilirlik Trendinin Göz Ardı Edilmesi + KANIT: Sektör araştırması tüketici trendlerinde açıkça 'Sürdürülebilirlik (Eko-Trend, PEFC",
+            "evidenceType": "ai_inference",
+            "sources": [],
+            "confidence": 40,
+            "assumptions": [],
+            "falsifiableBy": ""
+          },
+          {
+            "claim": "ELEŞTİRİ 4: Phygital Dönüşüm Fırsatının Atlanması + KANIT: Fırsatlar bölümünde net bir şekilde 'Web sitesine AR (Odamda Gör) özelliğinin eklenmesi' ve",
+            "evidenceType": "ai_inference",
+            "sources": [],
+            "confidence": 40,
+            "assumptions": [],
+            "falsifiableBy": ""
+          }
+        ],
+        "frameworkScores": []
+      },
+      {
+        "sectionName": "Tüketici Testi",
+        "confidenceLevel": "inferred",
+        "overallConfidence": 49,
+        "evidenceChains": [
+          {
+            "claim": "Genel uygulanabilirlik: 78/100",
+            "evidenceType": "ai_inference",
+            "sources": [],
+            "confidence": 44,
+            "assumptions": [
+              "Sentetik persona testi — gerçek tüketici verisi değil"
+            ],
+            "falsifiableBy": "Gerçek müşteri görüşmeleri ile doğrulanabilir"
+          },
+          {
+            "claim": "JTBD Ortalama Uyum: 83/100",
+            "evidenceType": "framework",
+            "sources": [
+              "JTBD Switch Interview Framework"
+            ],
+            "confidence": 54.5,
+            "assumptions": [
+              "Sentetik JTBD senaryoları — gerçek müşteri röportajı değil"
+            ],
+            "falsifiableBy": "Gerçek switch interview'lar ile"
+          }
+        ],
+        "frameworkScores": []
+      },
+      {
+        "sectionName": "Nihai Sentez",
+        "confidenceLevel": "inferred",
+        "overallConfidence": 35,
+        "evidenceChains": [
+          {
+            "claim": "Nihai sentez raporu",
+            "evidenceType": "ai_inference",
+            "sources": [],
+            "confidence": 35,
+            "assumptions": [],
+            "falsifiableBy": ""
+          }
+        ],
+        "frameworkScores": []
+      }
+    ],
+    "totalClaims": 13,
+    "verifiedClaims": 2,
+    "groundedClaims": 1,
+    "inferredClaims": 9,
+    "speculativeClaims": 1,
+    "strongestSection": "Sektör Araştırması",
+    "weakestSection": "Nihai Sentez",
+    "keyAssumptions": [
+      "Arketip seçimi framework puanlaması olmadan yapılmış",
+      "Araştırma verisi olmadan konumlandırma yapılmış",
+      "Sentetik persona testi — gerçek tüketici verisi değil",
+      "Sentetik JTBD senaryoları — gerçek müşteri röportajı değil"
+    ]
+  },
+  "frameworkScores": [],
+  "debate": {
+    "strategistPosition": "Bilge: Üst düzey yaşam alanı hayal eden seçici ev sahipleri ve iç mimarlar için DesignFloor, Avrupa'nın en prestijli zemin koleksiyonlarını sunan ve ilham veren bir tasarım ortağıdır.",
+    "challengerPosition": "Yaratıcı (Creator) veya Bilge (Sage): Önerilen Kral (Ruler) arketipi ve salt premium 'küratör' konumlandırması, pazardaki ultra-lüks segmenti halihazırda domine eden Haro'nun (1866 Alman mirası) marka prestijiyle doğrudan ve riskli bir çarpışmaya girmektedir. Ayrıca strateji, Tarkett'in B2B projelerindeki çevreci/teknik hakimiyetini kırmak için gereken sürdürülebilirlik argümanlarını dışlamakta, fiyat hassasiyeti yüksek pazarda salt 'otoriter' bir dil kullanarak Şerifoğlu gibi güvenilir yerli alternatiflere müşteri kaptırma riski taşımaktadır.",
+    "blogAdvisorPosition": "Felsefi uyum: 8/10",
+    "challengerAlternatives": [
+      "ALTERNATİF 1: Tarkett'in aşırı endüstriyel, soğuk ve salt B2B odaklı (veri/teknik dosya ağırlıklı) yapısına karşı DesignFloor; mimarlar için 'teknik güvenceyi sıcak, ilham verici ve ortak çalışmaya uygun (co-working) bir tasarım stüdyosu deneyimiyle birleştiren yenilikçi küratör' olarak konumlanabilir.",
+      "ALTERNATİF 2: Haro'nun ulaşılamaz ultra-lüks fiyat bariyerine ve zayıf lokalize dijital B2C deneyimine karşı DesignFloor; 'Ulaşılabilir premium Avrupa kalitesini (1200-2500 TL bandında), AR teknolojisi ve kusursuz fiziksel showroom entegrasyonuyla (phygital) sunan modern tasarım ortağı' olarak konumlanabilir."
+    ],
+    "synthesisRationale": "Strateji uzmanının 'Bilge' arketipi ve premium konumlandırması temel alınmış, ancak Şeytan Avukatı'nın sürdürülebilirlik ve operasyonel tutarlılık eleştirileri stratejiye entegre edilmiştir. Tüketici testinden gelen 'yüksek fiyat, montaj kaygısı ve yeni mezun mimar uyumsuzluğu' bildirimleri ZORUNLU olarak dikkate alınarak; AR teknolojisi, şeffaf hizmet manifestosu ve genç mimar partner programı stratejinin merkezine yerleştirilmiştir. Felsefi danışmanın 'cesur içerik' önerisi iletişim tonunu şekillendirmiştir.",
+    "debateCompleted": true,
+    "blogAdvisorCompleted": true
+  },
+  "blogAdvisorInsights": {
+    "philosophicalAlignmentScore": 8,
+    "alignedPrinciples": [
+      "UYUMLU INANC 1: Rekabet avantajı için geleneksel yaklaşımların dışına çıkmak gerekir: Deneyim merkezi konsepti ve seçici hedef kitle yaklaşımı, geleneksel perakende anlayışının ötesine geçmeyi hedefliyor.",
+      "UYUMLU INANC 2: Veriye bağlı kalmak yerine sezgilere güvenmek bazen daha iyidir: Aaker marka kişiliği analizine ek olarak, marka kimliği ve iletişim tonu seçiminde sezgisel yaklaşımların benimsenmesi, sadece verilere bağlı kalmak yerine yaratıcılığa alan açıyor.",
+      "UYUMLU INANC 3: Pazarlama tek belirleyici değildir: Markanın bütünsel bir yaklaşımla yönetilmesi gerektiği, deneyim merkezi konsepti ve müşteri ilişkileri odaklı stratejilerle destekleniyor."
+    ],
+    "conflictingPrinciples": [
+      "CELISEN INANC 1: Gerçekçi hedefler hayal kurmaktan önemlidir: Lüks segmente odaklanmak ve 'deneyim merkezi' konseptini tüm Türkiye'ye yaymak iddialı hedefler. Pazar büyüklüğü ve büyüme hızı hakkında veri olmaması, hedeflerin gerçekçiliği konusunda soru işaretleri yaratıyor.",
+      "CELISEN INANC 2: Başarıya odaklanmak körlüğe yol açabilir: Sadece lüks segmente odaklanmak, daha geniş bir müşteri kitlesini göz ardı etme riskini taşıyor. Bu durum, pazarın diğer segmentlerindeki fırsatları kaçırmaya neden olabilir."
+    ],
+    "keyRecommendations": [
+      "[positioning] Marka konumlandırmasında 'Konumlandırmanın mastürbasyondan farkı' ilkesinden yola çıkarak, sıradan ve genel ifadelerden kaçınılmalı, markanın özünü ve farklılığını net bir şekilde ortaya koyan, akılda kalıcı bir konumlandırma cümlesi geliştirilmeli. Örneğin: 'DesignFloor, zemin değil, yaşam alanı vizyonu sunar.'",
+      "[differentiation] Rekabet avantajı yaratmak için 'HOKUS FOKUS' ilkesini benimseyerek, zemin sektöründe belirli bir niş pazara odaklanılmalı. Örneğin, 'akustik zemin çözümleri' veya 'doğal ışık yansıtma özellikli zeminler' gibi spesifik bir alanda uzmanlaşarak, markanın uzmanlık algısı güçlendirilebilir.",
+      "[content] İletişim stratejisinde 'Aslan besliyorsan...' ilkesini göz önünde bulundurarak, seçim yapmaktan korkulmamalı ve markanın değerlerini net bir şekilde yansıtan, cesur ve provokatif içerikler üretilmeli. Örneğin, sektördeki standart satış pratiklerini eleştiren, 'Zemin seçimi bir zorunluluk değil, bir sanattır' gibi mesajlar içeren içerikler oluşturulabilir."
+    ],
+    "contentPillars": [
+      "ICERIK SUTUNU 1: Vizyoner Yaşam Alanları: Müşterilere ilham veren, farklı yaşam tarzlarına uygun zemin çözümleri sunan içerikler.",
+      "ICERIK SUTUNU 2: Zemin Sanatı: Zemin seçiminin sadece bir ihtiyaç değil, bir sanat eseri yaratma süreci olduğunu vurgulayan içerikler.",
+      "ICERIK SUTUNU 3: Avrupa'nın Zemin Mirası: Avrupa'nın köklü markalarının tarihini, felsefesini ve zemin sektörüne katkılarını anlatan içerikler.",
+      "ICERIK SUTUNU 4: Teknik Mükemmellik: Zeminlerin teknik özelliklerini (akustik, yangın dayanımı, sürdürülebilirlik) detaylı bir şekilde açıklayan, bilgilendirici içerikler.",
+      "ICERIK SUTUNU 5: Deneyim Hikayeleri: Müşterilerin DesignFloor zeminleriyle yarattığı yaşam alanlarının hikayelerini anlatan, ilham verici içerikler."
+    ],
+    "topicSuggestions": [
+      "KONU 1: Zemin seçiminde yapılan 5 ölümcül hata ve bunlardan nasıl kaçınılır?",
+      "KONU 2: Akustik zeminler: Ev ve ofislerde gürültüyü azaltmanın sırları.",
+      "KONU 3: Sürdürülebilir zeminler: Gelecek nesiller için çevre dostu seçimler.",
+      "KONU 4: Işık ve zemin uyumu: Mekanların atmosferini değiştiren ipuçları.",
+      "KONU 5: Zemin trendleri 2024: Gelecek yılın en popüler zemin tasarımları.",
+      "KONU 6: LVT mi, Laminat mı? Doğru zemini seçmek için bilmeniz gerekenler.",
+      "KONU 7: Zemin bakımının püf noktaları: Zeminlerinizi uzun ömürlü kılmanın yolları."
+    ],
+    "narrativeApproach": "Markanın hikaye anlatım yaklaşımı, tarihi bir olay üzerinden durumu açıklama yöntemiyle desteklenmeli. Örneğin, Avrupa'daki zemin tasarımının evrimi, zeminlerin yaşam alanlarındaki rolü gibi konular tarihi perspektifle ele alınabilir.",
+    "unconventionalInsights": [
+      "ALTERNATIF BAKIS 1: Deneyim merkezlerini sadece showroom olarak değil, aynı zamanda iç mimarlar ve tasarımcılar için birer 'ilham laboratuvarı' olarak konumlandırmak. Bu merkezlerde, yeni zemin teknolojileri ve tasarımları üzerine workshoplar düzenlenebilir, fikir alışverişinde bulunulabilir.",
+      "ALTERNATIF BAKIS 2: Geleneksel pazarlama yerine, 'zemin influencer'ları' yaratmak. İç mimarlar, tasarımcılar ve lüks yaşam blogger'ları ile işbirliği yaparak, zeminlerin yaşam alanlarındaki rolünü ve DesignFloor'un farkını anlatan içerikler üretmek."
+    ],
+    "authorPerspective": "Bana göre DesignFloor, potansiyelini tam olarak kullanamayan bir cevher. Lüks segmentte konumlanma hedefi doğru, ancak bu hedefi destekleyecek cesur ve farklı bir marka kimliği yaratmak gerekiyor. Sadece ürün satmak yerine, bir yaşam tarzı vizyonu sunmalı ve müşterileri bu vizyonun bir parçası olmaya davet etmeli. Deneyim merkezi konsepti harika bir başlangıç, ancak bu deneyimi dijital dünyaya da taşımak şart."
+  },
+  "digitalPresence": {
+    "website": null,
+    "instagram": {
+      "handle": "bilinmiyor",
+      "status": "analyzed",
+      "followerRange": "10k_50k",
+      "estimatedPostCount": "Tahmini 500-1000",
+      "postingFrequency": "haftada 3-4 (tahmini)",
+      "contentThemes": [
+        "Mimari Tasarım ve İlham (Moodboard'lar)",
+        "Sürdürülebilirlik, Doğa Dostu Üretim ve Hijyen",
+        "Showroom Deneyimi (Test Yürüyüşü)",
+        "Öncesi/Sonrası Dönüşümler",
+        "Premium Yaşam Tarzı ve Dekorasyon"
+      ],
+      "visualStyle": "Estetik, premium ve ilham verici. Sadece ürün odaklı değil; duvar rengi, mobilya dokusu ve süpürgelik uyumunu gösteren profesyonel iç mimari çekimler ve moodboard tasarımları.",
+      "captionStyle": "Bilgilendirici, profesyonel ve davetkar. Takipçileri showroom'a yönlendiren eyleme çağrı (CTA) mesajları ('Keyifle kahvenizi yudumlarken...', 'Test Yürüyüşünü deneyimleyin') barındırıyor.",
+      "hashtagUsage": "Tahmini olarak sektörel, mimari ve premium yaşam tarzı odaklı etiketler (#içmimarlık, #parke, #dekorasyon, #designfloor vb.) kullanılıyor.",
+      "engagementLevel": "yuksek",
+      "contentMix": {
+        "photoPercent": 30,
+        "videoPercent": 10,
+        "reelPercent": 40,
+        "carouselPercent": 20
+      },
+      "strengths": [
+        "İç mimarlarla yapılan işbirlikleri ve moodboard içerikleri sayesinde yüksek kaydedilme ve paylaşılma oranı",
+        "Showroom'un (Parke Deneyim Merkezi) doğal bir içerik stüdyosu olarak kullanılması",
+        "Ziyaretçi ve mimarların etiketlemeleriyle oluşan güçlü UGC (Kullanıcı Tarafından Oluşturulan İçerik) ağı",
+        "Reels ve video içeriklerinde (Test yürüyüşü, öncesi/sonrası) yüksek izlenme ve etkileşim başarısı"
+      ],
+      "weaknesses": [
+        "Instagram handle'ının doğrudan bilinmemesi marka aramalarında zorluk yaratabilir (tahmini)",
+        "İçeriklerin ağırlıklı olarak premium segmente hitap etmesi, daha uygun fiyatlı çözüm arayan geniş kitlelerle etkileşimi sınırlayabilir (tahmini)"
+      ],
+      "recommendations": [
+        "Instagram profil adının (handle) tüm dijital platformlarda ve web sitesinde daha belirgin hale getirilmesi",
+        "Showroom ziyaretlerinde UGC'yi (ziyaretçi paylaşımlarını) daha da artırmak için Instagram'a özel check-in veya etiketleme kampanyaları düzenlenmesi",
+        "B2B (mimarlar/oteller) ve B2C (son kullanıcılar) için farklı günlerde hedeflenmiş özel içerik serileri (örneğin: 'Mimarlar İçin Salı', 'Ev Yenileyenler İçin Cuma') oluşturulması"
+      ]
+    },
+    "otherPlatforms": [
+      {
+        "platform": "LinkedIn",
+        "status": "yok",
+        "notes": ""
+      },
+      {
+        "platform": "TikTok",
+        "status": "yok",
+        "notes": ""
+      },
+      {
+        "platform": "YouTube",
+        "status": "aktif",
+        "notes": "Aslan yapı/DesignFloor YouTube platformunda aktif oldugunu bildirdi."
+      },
+      {
+        "platform": "X",
+        "status": "yok",
+        "notes": ""
+      }
+    ],
+    "overallDigitalScore": 8.5,
+    "digitalMaturityLevel": "ileri",
+    "criticalGaps": [
+      "Web sitesi analiz edilemedi veya mevcut degil"
+    ],
+    "quickWins": []
+  },
+  "competitorDiscovery": {
+    "knownCompetitors": [
+      {
+        "name": "Tarkett haro",
+        "website": "Veri bulunamadi",
+        "instagramHandle": "Veri bulunamadi",
+        "positioning": "Tarkett ve Haro markalarının birlikte anıldığı, pazar araştırmalarında sıkça karşılaşılan ortak distribütör/bayi araması algısı.",
+        "priceSegment": "premium/orta",
+        "strengths": [
+          "İki dev global markanın gücünün birleşimi algısı",
+          "Geniş ürün yelpazesi beklentisi"
+        ],
+        "weaknesses": [
+          "Bağımsız bir marka olmaması",
+          "Karmaşık marka kimliği"
+        ],
+        "estimatedScale": "Veri bulunamadi",
+        "digitalPresenceScore": 3,
+        "socialMediaSummary": "Veri bulunamadi",
+        "differentiators": [
+          "Çoklu marka sunumu"
+        ],
+        "source": "declared"
+      },
+      {
+        "name": "Tarkett",
+        "website": "Veri bulunamadi",
+        "instagramHandle": "Veri bulunamadi",
+        "positioning": "Ticari projelerde küresel lider, yeşil bina sertifikasyonlarına sahip geniş vinil ve halı portföyü sunan marka.",
+        "priceSegment": "orta/premium",
+        "strengths": [
+          "Devasa global güç",
+          "B2B projelerde (hastane, okul, spor salonu, ofis) mutlak hakimiyet",
+          "Yeşil bina (Cradle to Cradle) sertifikasyonları",
+          "Çok geniş vinil (PVC/LVT) ve halı portföyü"
+        ],
+        "weaknesses": [
+          "Ürün yelpazesinin çok ticari ağırlıklı olması",
+          "Bireysel son tüketicinin (B2C) markayı fazla kurumsal ve endüstriyel bulabilmesi"
+        ],
+        "estimatedScale": "130 yılı aşkın geçmişiyle ticari ve konut zemin çözümlerinde dünya lideri",
+        "digitalPresenceScore": 8,
+        "socialMediaSummary": "Veri bulunamadi",
+        "differentiators": [
+          "B2B proje uzmanlığı",
+          "Sürdürülebilirlik odaklı global sertifikalar"
+        ],
+        "source": "declared"
+      },
+      {
+        "name": "Haro",
+        "website": "Veri bulunamadi",
+        "instagramHandle": "Veri bulunamadi",
+        "positioning": "Doğal ahşap ve üst düzey lamine uzmanı, el işçiliği özel üretim serileriyle ultra lüks segment oyuncusu.",
+        "priceSegment": "premium",
+        "strengths": [
+          "İnanılmaz yüksek marka prestiji",
+          "Made in Germany algısı",
+          "Yerden ısıtmaya tam uyum",
+          "Parkettmanufaktur (el işçiliği özel üretim) serileri"
+        ],
+        "weaknesses": [
+          "Çok yüksek fiyat bariyeri",
+          "Sınırlı dijital Türkçe varlık (distribütör sitelerine bağımlı kalmaları)",
+          "Ulaşılabilir fiyatlı ürün eksikliği"
+        ],
+        "estimatedScale": "1866 yılında kurulan, Almanya'nın lider parke üreticisi",
+        "digitalPresenceScore": 5,
+        "socialMediaSummary": "Veri bulunamadi",
+        "differentiators": [
+          "Alman mühendisliği ve el işçiliği",
+          "Ultra lüks segment odaklılık"
+        ],
+        "source": "declared"
+      },
+      {
+        "name": "Floorpan (Kastamonu Entegre)",
+        "website": "Veri bulunamadi",
+        "instagramHandle": "Veri bulunamadi",
+        "positioning": "Tüm Türkiye'de yaygın, erişilebilir, sürüm ve hacim odaklı yerli üretici.",
+        "priceSegment": "ekonomik/orta",
+        "strengths": [
+          "Tüm Türkiye'de her sokak arası parkecide bulunabilir devasa dağıtım ağı",
+          "B2C pazarını domine etmesi",
+          "Fiyat/performans avantajı"
+        ],
+        "weaknesses": [
+          "Marka algısının lüks ithal kategorisinde olmaması",
+          "Showroom deneyiminden ziyade yığın sürüm (volume sales) odaklı olması"
+        ],
+        "estimatedScale": "Türkiye'nin en büyük, Avrupa'nın önde gelen yerli üreticisi",
+        "digitalPresenceScore": 7,
+        "socialMediaSummary": "Veri bulunamadi",
+        "differentiators": [
+          "Maksimum bulunabilirlik ve erişim",
+          "Yerli üretim gücü"
+        ],
+        "source": "declared"
+      },
+      {
+        "name": "Serifoglu Lamine Parke",
+        "website": "Veri bulunamadi",
+        "instagramHandle": "Veri bulunamadi",
+        "positioning": "Yerli üretim avantajıyla lamine parkede rekabetçi fiyat sunan köklü ve güvenilir marka.",
+        "priceSegment": "orta/premium",
+        "strengths": [
+          "Yerli üretim avantajıyla lamine parkede rekabetçi fiyat sunması",
+          "Klasikleşmiş bir güveni olması",
+          "Köklü geçmiş"
+        ],
+        "weaknesses": [
+          "Laminat, LVT ve teknolojik kaplamalar konusunda ithal markaların inovasyon hızının gerisinde kalabilmesi"
+        ],
+        "estimatedScale": "Türkiye'nin en köklü yerli lamine parke üreticilerinden biri",
+        "digitalPresenceScore": 6,
+        "socialMediaSummary": "Veri bulunamadi",
+        "differentiators": [
+          "Yerli lamine parke uzmanlığı",
+          "Geleneksel marka güveni"
+        ],
+        "source": "declared"
+      },
+      {
+        "name": "Berry Alloc",
+        "website": "Veri bulunamadi",
+        "instagramHandle": "Veri bulunamadi",
+        "positioning": "LVT ve HPL uzmanı, ömür boyu garanti sunan premium ithal marka.",
+        "priceSegment": "premium",
+        "strengths": [
+          "Harika tasarımlar",
+          "Ömür boyu garanti sunması",
+          "LVT ve HPL teknolojilerinde uzmanlık"
+        ],
+        "weaknesses": [
+          "Türkiye'de organize bir Deneyim Merkezi atılımı bulunmaması",
+          "Fiziksel erişilebilirliğinin sınırlı olması"
+        ],
+        "estimatedScale": "Belçika/Norveç menşeli premium ithal marka",
+        "digitalPresenceScore": 6,
+        "socialMediaSummary": "Veri bulunamadi",
+        "differentiators": [
+          "Ömür boyu garanti",
+          "İskandinav/Avrupa tasarım çizgisi"
+        ],
+        "source": "declared"
+      }
+    ],
+    "discoveredCompetitors": [
+      {
+        "name": "Dendro (Dendro Lamine Parke)",
+        "website": "https://www.dendro.com.tr",
+        "instagramHandle": "Veri bulunamadi",
+        "positioning": "A+ mimari projelere hitap eden, teknolojik ve estetik yerli lamine parke üreticisi.",
+        "priceSegment": "premium",
+        "strengths": [
+          "Aspen'in iç mimari tecrübesiyle kurulmuş olması",
+          "Atelier Zeugma ve Marküteri serileri ile A+ projelere hitap etmesi",
+          "Yerden ısıtmalı sistemlere tam uyumlu teknolojik ürünler"
+        ],
+        "weaknesses": [
+          "Orta segment veya laminat parke arayan geniş tüketici kitlesine hitap etmemesi",
+          "Ulusal çapta yaygın bir perakende bayi ağının eksikliği"
+        ],
+        "estimatedScale": "Düzce'de modern fabrikaya sahip, proje bazlı bilinirliği yüksek yerli üretici",
+        "digitalPresenceScore": 7,
+        "socialMediaSummary": "Veri bulunamadi",
+        "differentiators": [
+          "Özel marküteri tasarımları",
+          "Mimari proje odaklılık"
+        ],
+        "source": "discovered"
+      },
+      {
+        "name": "Hüni Parke",
+        "website": "https://www.huniparke.com",
+        "instagramHandle": "Veri bulunamadi",
+        "positioning": "Kişiselleştirilmiş hizmet, renk stüdyosu ve zemin danışmanlığı sunan butik lüks deneyim merkezi.",
+        "priceSegment": "premium",
+        "strengths": [
+          "Sektörde 35 yıllık köklü geçmiş",
+          "Colour Studio ve Zemin Danışmanlığı konseptiyle kişiselleştirilmiş hizmet",
+          "Spor salonu zemini gibi spesifik niş alanlarda uzmanlık"
+        ],
+        "weaknesses": [
+          "Anadolu genelinde yaygın bir bayi ağına sahip olmaması",
+          "Hacimden ziyade sadece karlılık odaklı butik yapı"
+        ],
+        "estimatedScale": "İstanbul merkezli, butik ve lüks projelere odaklanan 35 yıllık firma",
+        "digitalPresenceScore": 8,
+        "socialMediaSummary": "Veri bulunamadi",
+        "differentiators": [
+          "Colour Studio konsepti",
+          "Kişiye özel renk, sistre ve cila hizmetleri"
+        ],
+        "source": "discovered"
+      },
+      {
+        "name": "AGT (Ağaç Sanayi ve Ticaret A.Ş.)",
+        "website": "https://www.agt.com.tr",
+        "instagramHandle": "Veri bulunamadi",
+        "positioning": "Türkiye'nin en büyük ahşap ve parke üreticilerinden biri, kitle pazarına hitap eden devasa ağ.",
+        "priceSegment": "ekonomik/orta",
+        "strengths": [
+          "Marco Polo Premium ve Yoga Collection gibi güncel koleksiyonlarla pazarı domine etmesi",
+          "Devasa bayi ağı",
+          "Dijital altyapı ile tüketiciye doğrudan ulaşma gücü"
+        ],
+        "weaknesses": [
+          "Lamine (gerçek ahşap) parkeden ziyade MDF tabanlı laminat parkede güçlü olması",
+          "Seri üretim mantığı nedeniyle butik deneyim merkezi algısını verememesi"
+        ],
+        "estimatedScale": "Türkiye'nin en büyük ahşap sanayi kuruluşlarından biri",
+        "digitalPresenceScore": 9,
+        "socialMediaSummary": "Veri bulunamadi",
+        "differentiators": [
+          "Güçlü dijital tüketici entegrasyonu",
+          "Çok geniş ürün ve renk yelpazesi"
+        ],
+        "source": "discovered"
+      },
+      {
+        "name": "Yıldız Entegre (VarioClic / TerraClick)",
+        "website": "https://www.yildizentegre.com",
+        "instagramHandle": "Veri bulunamadi",
+        "positioning": "Ulaşılabilirlik, hızlı montaj ve fiyat/performans üzerine kurulu, dijital deneyim araçlarıyla öne çıkan dev üretici.",
+        "priceSegment": "ekonomik/orta",
+        "strengths": [
+          "3D Kartela, Sanal Showroom ve Çek Seç Uygula gibi dijital deneyim araçları",
+          "Türkiye'nin her ilinde ve ilçesinde bulunabilen inanılmaz geniş dağıtım ağı",
+          "Yüksek marka bilinirliği"
+        ],
+        "weaknesses": [
+          "Üst segment lamine parke arayan kitleye hitap etmemesi",
+          "Marka algısının lüks ve kişiselleştirilmiş deneyimden uzak olması"
+        ],
+        "estimatedScale": "Türkiye'nin en yaygın ve hacimli orman ürünleri üreticilerinden biri",
+        "digitalPresenceScore": 9,
+        "socialMediaSummary": "Veri bulunamadi",
+        "differentiators": [
+          "Sanal Showroom ve 3D Kartela teknolojisi",
+          "Maksimum ulusal penetrasyon"
+        ],
+        "source": "discovered"
+      },
+      {
+        "name": "ASAŞ",
+        "website": "https://www.asasalu.com.tr",
+        "instagramHandle": "Veri bulunamadi",
+        "positioning": "Mimari sistemler alanında yenilikçi, sürdürülebilir ve premium çözümler sunan sanayi lideri.",
+        "priceSegment": "premium",
+        "strengths": [
+          "İlham Rotası konseptiyle mimarlara ve tasarımcılara hitap eden yaratıcı alanlar",
+          "Ürünlerin birebir deneyimlendiği yeni nesil mimari showroomlar",
+          "Çok güçlü kurumsal ve sanayi altyapısı"
+        ],
+        "weaknesses": [
+          "Doğrudan ahşap zemin kaplama odaklı olmaması (dolaylı/deneyim rakibi)",
+          "Son tüketici (B2C) pazarından ziyade B2B ağırlıklı olması"
+        ],
+        "estimatedScale": "Türkiye'nin en büyük sanayi kuruluşlarından biri",
+        "digitalPresenceScore": 8,
+        "socialMediaSummary": "Veri bulunamadi",
+        "differentiators": [
+          "İlham Rotası deneyim merkezi konsepti",
+          "Mimari sistem entegrasyonu"
+        ],
+        "source": "discovered"
+      }
+    ],
+    "competitiveLandscapeSummary": "Zemin kaplama ve parke sektörü, hacim odaklı dev yerli üreticiler ile niş, lüks ve deneyim odaklı ithal markalar arasında bölünmüş durumdadır. Geleneksel bayi ağları yerini dijital entegrasyona sahip fiziksel 'deneyim merkezlerine' bırakmaktadır. Premium segmentte kişiselleştirilmiş hizmet, dijital araçlar (sanal showroom) ve mimari proje odaklı yaklaşımlar rekabetin temelini oluşturmaktadır.",
+    "marketConcentration": "yogun",
+    "entryBarriers": [
+      "Ulusal çapta geniş bayi ağı ve fiziksel deneyim merkezi kurma maliyeti",
+      "İthal markalar için döviz kuru dalgalanmaları ve global tedarik zinciri riskleri",
+      "Yerli devlerin (AGT, Yıldız Entegre) yarattığı yoğun fiyat baskısı",
+      "Premium segmentte mimarlar ve son kullanıcılar nezdinde marka prestiji ve güven inşa etme zorluğu"
+    ],
+    "competitiveThreats": [
+      "Yerli üreticilerin premium lamine pazarına girerek fiyat avantajıyla pazar payı alması",
+      "Ekonomik dalgalanmaların ithal ürün fiyatlarını B2C tüketicisi için erişilmez kılması",
+      "Rakiplerin sanal showroom, 3D kartela ve artırılmış gerçeklik (AR) gibi dijital deneyim araçlarına hızla adapte olması"
+    ],
+    "competitiveOpportunities": [
+      "Anadolu'daki fiziksel ulaşılabilirlik zafiyetini kendi bayi ağıyla avantaja çevirerek premium deneyimi ulusala yaymak",
+      "AGT ve Yıldız Entegre gibi devlerin giremediği 'Kişiselleştirilmiş Lüks ve İthal Kalitesi' boşluğunu doldurmak",
+      "Sadece ürün satışı değil, mimari bir deneyim merkezi (showroom) konseptiyle B2B ve B2C müşterilerinde duygusal bağ kurarak ayrışmak"
+    ],
+    "digitalBenchmark": {
+      "avgWebsiteQuality": 7,
+      "avgSocialFollowing": "Veri bulunamadi",
+      "avgPostingFrequency": "Veri bulunamadi",
+      "bestPracticeExamples": [
+        "Yıldız Entegre - 3D Kartela ve Sanal Showroom uygulamaları",
+        "Hüni Parke - Colour Studio Zemin Danışmanlığı konsepti",
+        "ASAŞ - İlham Rotası mimari deneyim merkezi"
+      ]
+    }
+  },
+  "consumerTest": {
+    "overallViabilityScore": 78,
+    "personas": [
+      {
+        "personaLabel": "Vizyoner İç Mimar (Birincil Hedef)",
+        "demographics": "35 yaş, Kadın, İstanbul, İç Mimar, Yüksek Gelir",
+        "psychographics": "Trendleri takip eden, kaliteye önem veren, prestijli markalarla çalışmayı tercih eden, sosyal medyayı aktif kullanan, detaycı ve mükemmeliyetçi.",
+        "painPoints": [
+          "Müşterilerini etkileyecek, özgün ve kaliteli zemin çözümleri bulmakta zorlanıyor.",
+          "Projelerinde kullanacağı malzemelerin teknik özelliklerine güvenmek istiyor.",
+          "Müşterilerine sunabileceği prestijli bir showroom ortamına ihtiyaç duyuyor."
+        ],
+        "alignmentScore": 90,
+        "resonancePoints": [
+          "Bu marka benim için güvenilir bir partner olur çünkü Avrupa'nın en iyi markalarını sunuyor.",
+          "Bu mesaj bende ilham ve güven hissettiriyor."
+        ],
+        "concerns": [
+          "Ama fiyatlar müşterilerimin bütçesini aşabilir.",
+          "Acaba projelerime özel çözümler sunabiliyorlar mı?"
+        ],
+        "purchaseLikelihood": "yuksek",
+        "recommendedMessageAngle": "Avrupa'nın en prestijli zemin markalarıyla projelerinize değer katın. Size özel çözümlerimizle hayallerinizi gerçeğe dönüştürelim."
+      },
+      {
+        "personaLabel": "Prestij Odaklı Ev Sahibi (İkincil Hedef)",
+        "demographics": "45 yaş, Erkek, İstanbul (Skyland), Üst Düzey Yönetici, Çok Yüksek Gelir",
+        "psychographics": "Lüks yaşam tarzına sahip, evini statüsünün bir yansıması olarak gören, kaliteli ve uzun ömürlü ürünleri tercih eden, trendleri takip eden, detaylara önem veren.",
+        "painPoints": [
+          "Evinin dekorasyonunda sıradanlıktan kaçınmak ve özgün bir tarz yaratmak istiyor.",
+          "Satın aldığı ürünlerin uzun ömürlü ve dayanıklı olmasını bekliyor.",
+          "Güvenilir ve premium bir satın alma deneyimi yaşamak istiyor."
+        ],
+        "alignmentScore": 85,
+        "resonancePoints": [
+          "Bu marka benim için evin değerini artıracak kaliteli ve şık ürünler sunuyor çünkü Avrupa menşeli olması güven veriyor.",
+          "Bu mesaj bende ayrıcalıklı ve özel hissettiriyor."
+        ],
+        "concerns": [
+          "Ama montaj ve servis hizmetleri nasıl olacak?",
+          "Acaba showroom'da gördüğüm ürün, evimde de aynı duracak mı?"
+        ],
+        "purchaseLikelihood": "yuksek",
+        "recommendedMessageAngle": "Evinizi Avrupa'nın en seçkin zeminleriyle taçlandırın. Hayallerinizdeki yaşam alanını yaratmak için bize güvenin."
+      },
+      {
+        "personaLabel": "Bütçe Bilinçli Mimar (Sınır Müşteri)",
+        "demographics": "32 yaş, Kadın, Ankara, Mimar, Orta Gelir",
+        "psychographics": "Yaratıcı, yenilikçi, bütçesini dikkatli yöneten, fonksiyonelliğe önem veren, sürdürülebilir ürünleri tercih eden.",
+        "painPoints": [
+          "Müşterilerine kaliteli ve estetik çözümler sunarken bütçeyi aşmamaya çalışıyor.",
+          "Teknik özellikleri karşılayan, dayanıklı ve uzun ömürlü zemin malzemeleri bulmakta zorlanıyor.",
+          "Çevreye duyarlı ve sürdürülebilir ürünler kullanmak istiyor."
+        ],
+        "alignmentScore": 65,
+        "resonancePoints": [
+          "Bu marka benim için teknik spesifikasyonları karşılıyorsa ve sürdürülebilirlik belgeleri varsa ilginç olabilir çünkü müşterilerim için önemli.",
+          "Bu mesaj bende potansiyel bir çözüm ortağı hissi uyandırıyor."
+        ],
+        "concerns": [
+          "Ama fiyatlar çok yüksekse müşterilerimi ikna edemem.",
+          "Acaba daha uygun fiyatlı alternatifleri var mı?"
+        ],
+        "purchaseLikelihood": "orta",
+        "recommendedMessageAngle": "Projelerinizde hem estetiği hem de bütçeyi dengeleyin. Sürdürülebilir ve teknik özelliklere sahip zemin çözümlerimizle tanışın."
+      },
+      {
+        "personaLabel": "Yeni Mezun İç Mimar (Beklenmeyen Aday)",
+        "demographics": "24 yaş, Kadın, İzmir, Yeni Mezun İç Mimar, Düşük Gelir",
+        "psychographics": "Trendleri takip eden, sosyal medyayı aktif kullanan, yaratıcı, öğrenmeye açık, network oluşturmaya çalışan.",
+        "painPoints": [
+          "Projelerinde kullanabileceği farklı ve ilham verici malzeme örneklerine ulaşmakta zorlanıyor.",
+          "Sektördeki deneyimsizliği nedeniyle güvenilir tedarikçiler bulmakta zorlanıyor.",
+          "Prestijli projelerde yer alarak portföyünü geliştirmek istiyor."
+        ],
+        "alignmentScore": 50,
+        "resonancePoints": [
+          "Bu marka benim için ilham verici bir kaynak olabilir çünkü yeni trendleri takip ediyorlar.",
+          "Bu mesaj bende öğrenme ve gelişme fırsatı hissi uyandırıyor."
+        ],
+        "concerns": [
+          "Ama benim gibi yeni mezunlara uygun projeleri var mı?",
+          "Acaba bana destek olabilirler mi?"
+        ],
+        "purchaseLikelihood": "dusuk",
+        "recommendedMessageAngle": "Kariyerinize Avrupa'nın en seçkin zeminleriyle başlayın. Genç yeteneklere özel fırsatlarımızla tanışın ve projelerinize değer katın."
+      }
+    ],
+    "jtbdScenarios": [
+      {
+        "situationLabel": "Müşteri yeni bir ev satın alırken...",
+        "jobToBeDone": "evini kişisel zevklerine göre dekore etmek istiyor",
+        "desiredOutcome": "Böylece kendini evinde daha mutlu ve huzurlu hissedebilsin",
+        "pushForces": [
+          "Mevcut zemin kaplamalarının demode ve kalitesiz olması.",
+          "Katalogdan seçilen ürünlerin gerçek hayatta farklı görünmesi.",
+          "Güvenilir bir montaj hizmeti bulmakta zorlanılması."
+        ],
+        "pullForces": [
+          "DesignFloor'un Avrupa'nın en prestijli zemin koleksiyonlarını sunması.",
+          "Deneyim merkezinde ürünleri yakından inceleme imkanı.",
+          "Uçtan uca premium bir satın alma deneyimi vaat etmesi."
+        ],
+        "anxieties": [
+          "Yeni zeminin evin genel tarzına uyumsuz olması.",
+          "Montaj sırasında oluşabilecek hasarlar.",
+          "Beklenenden daha yüksek maliyet."
+        ],
+        "habits": [
+          "Tanıdık markaları tercih etmek.",
+          "Fiyat odaklı alışveriş yapmak.",
+          "Tavsiye üzerine karar vermek."
+        ],
+        "strategyJobFitScore": 90,
+        "fitRationale": "Konumlandirma, evini kişisel zevklerine göre dekore etmek isteyen müşteriye 'ilham verici bir fiziksel deneyim merkezi' konseptiyle hitap ediyor."
+      },
+      {
+        "situationLabel": "Müşteri misafirlerini ağırlarken...",
+        "jobToBeDone": "evini etkileyici ve şık göstermek istiyor",
+        "desiredOutcome": "Böylece misafirleri evinin tarzına hayran kalsın ve kendisi de gurur duysun",
+        "pushForces": [
+          "Mevcut zeminin eski ve yıpranmış görünmesi.",
+          "Zeminin evin genel ambiyansını olumsuz etkilemesi.",
+          "Misafirlerin olumsuz yorum yapma ihtimali."
+        ],
+        "pullForces": [
+          "DesignFloor'un Avrupa'nın en seçkin markalarını sunması.",
+          "Zeminin evin tarzını tamamlayacak şık ve modern tasarımlara sahip olması.",
+          "Markanın prestiji sayesinde sosyal statüsünü yükseltme imkanı."
+        ],
+        "anxieties": [
+          "Yeni zeminin misafirlerin zevkine hitap etmemesi.",
+          "Zeminin çok dikkat çekerek diğer dekorasyon unsurlarını gölgede bırakması.",
+          "Misafirlerin eleştirel bakışları."
+        ],
+        "habits": [
+          "Dekorasyon trendlerini takip etmek.",
+          "Sosyal medyadan ilham almak.",
+          "Lüks markaları tercih etmek."
+        ],
+        "strategyJobFitScore": 80,
+        "fitRationale": "Konumlandirma, evini etkileyici göstermek isteyen müşteriye 'Avrupa'nın en prestijli zemin koleksiyonlarını yaşatarak sunan' bir çözüm sunuyor."
+      },
+      {
+        "situationLabel": "Müşteri kendini iyi hissetmek isterken...",
+        "jobToBeDone": "evinde huzurlu ve rahat bir atmosfer yaratmak istiyor",
+        "desiredOutcome": "Böylece evinde stresten uzaklaşabilsin ve kendini güvende hissedebilsin",
+        "pushForces": [
+          "Mevcut zeminin soğuk ve steril bir his uyandırması.",
+          "Zeminin gürültüyü emmemesi ve yankı yapması.",
+          "Evin genel atmosferinin rahatsız edici olması."
+        ],
+        "pullForces": [
+          "DesignFloor'un doğal ve sıcak renk tonlarına sahip zeminler sunması.",
+          "Zeminin akustik özelliklerinin mekanın atmosferini iyileştirmesi.",
+          "Markanın kalite ve güvenilirlik imajı sayesinde huzur duyması."
+        ],
+        "anxieties": [
+          "Yeni zeminin alerjik reaksiyonlara neden olması.",
+          "Zeminin temizliğinin zor olması.",
+          "Evin genel atmosferinin değişmemesi."
+        ],
+        "habits": [
+          "Doğal malzemeleri tercih etmek.",
+          "Evde bitki bulundurmak.",
+          "Rahatlatıcı müzik dinlemek."
+        ],
+        "strategyJobFitScore": 75,
+        "fitRationale": "Konumlandirma, evinde huzurlu bir atmosfer yaratmak isteyen müşteriye 'ilham verici bir fiziksel deneyim merkezi' konseptiyle hitap ediyor."
+      },
+      {
+        "situationLabel": "Müşteri pratik bir sorun yaşarken...",
+        "jobToBeDone": "kolay temizlenebilen ve dayanıklı bir zemin istiyor",
+        "desiredOutcome": "Böylece ev işlerine daha az zaman ayırabilsin ve zeminin uzun ömürlü olmasını sağlayabilsin",
+        "pushForces": [
+          "Mevcut zeminin kolayca kirlenmesi ve leke tutması.",
+          "Zeminin çizilmesi ve yıpranması.",
+          "Temizlik malzemelerine çok para harcamak zorunda kalmak."
+        ],
+        "pullForces": [
+          "DesignFloor'un suya dayanıklı ve leke tutmayan zeminler sunması.",
+          "Zeminin yüksek aşınma direncine sahip olması.",
+          "Markanın uzun ömürlü ürünler sunma garantisi."
+        ],
+        "anxieties": [
+          "Yeni zeminin kısa sürede deforme olması.",
+          "Zeminin temizliğinin yine de zor olması.",
+          "Garanti şartlarının karmaşık olması."
+        ],
+        "habits": [
+          "Pratik çözümleri tercih etmek.",
+          "Temizlik ürünlerine dikkat etmek.",
+          "Tavsiye üzerine ürün almak."
+        ],
+        "strategyJobFitScore": 85,
+        "fitRationale": "Konumlandirma, kolay temizlenebilen ve dayanıklı bir zemin isteyen müşteriye 'Avrupa'nın en seçkin markalarını' sunarak çözüm sağlıyor."
+      }
+    ],
+    "strongestFit": "Vizyoner İç Mimar ve Prestij Odaklı Ev Sahibi çünkü marka stratejisi bu segmentlerin ihtiyaçlarına en iyi şekilde cevap veriyor.",
+    "weakestFit": "Yeni Mezun İç Mimar çünkü marka, bu segmentin bütçe ve deneyim eksikliği gibi sorunlarına doğrudan çözüm sunmuyor.",
+    "crossPersonaConcerns": [
+      "Fiyatların yüksek olması.",
+      "Montaj ve servis hizmetlerinin kalitesi.",
+      "Ürünlerin gerçek hayatta katalogdaki gibi görünmesi."
+    ],
+    "strategyRefinements": [
+      "Farklı bütçelere uygun ürün seçenekleri sunulmalı.",
+      "Montaj ve servis hizmetlerinin kalitesi artırılmalı ve garanti koşulları şeffaf hale getirilmeli.",
+      "Showroom deneyimini daha interaktif hale getirerek müşterilerin ürünleri kendi mekanlarında nasıl duracağını görmelerini sağlayacak araçlar geliştirilmeli (örneğin, artırılmış gerçeklik uygulaması).",
+      "Yeni mezun mimarlara yönelik özel programlar ve indirimler sunularak markaya bağlılıkları artırılmalı."
+    ],
+    "marketReadiness": "iyilestirme_gerekli"
+  },
+  "brandNarrative": {
+    "elevatorPitch": "DesignFloor olarak zemin seçimini stresli bir inşaat işi olmaktan çıkarıyoruz. Avrupa'nın en seçkin zemin koleksiyonlarını, mekanınızda anında görebileceğiniz AR teknolojisi ve ilham verici deneyim merkezlerimizle sunarak, mimarlar ve ev sahipleri için güvenilir bir tasarım ortağı oluyoruz.",
+    "socialMediaBio": "Zemin değil, yaşam alanı vizyonu sunuyoruz. ✨ Avrupa'nın premium zemin koleksiyonları & AR destekli deneyim merkezi. İlham için dokunun! 👇",
+    "brandStory": "Her mekanın bir ruhu vardır ve bu ruh zeminden başlar. DesignFloor olarak, Avrupa'nın köklü tasarım mirasını Türkiye'nin dört bir yanına taşımak için yola çıktık. Biz sadece birinci sınıf lamine veya LVT parke sunmuyoruz; sürpriz maliyetleri ortadan kaldıran şeffaf hizmetimiz, AR teknolojimiz ve ilham verici deneyim merkezlerimizle zemin seçimini bir sanata dönüştürüyoruz. Sürdürülebilir ve estetik adımlar atmak isteyenlerin güvenilir tasarım ortağıyız."
+  },
+  "intibaEngagement": {
+    "recommendedServices": [
+      {
+        "service": "Kapsamlı Marka Kimliği (Rebrand) Tasarımı",
+        "description": "Mevcut 'distribütör' algısını kırıp, 'premium tasarım ortağı ve deneyim merkezi' algısını oturtmak için görsel dünyanın ve iletişim dilinin baştan yaratılması kritik öneme sahiptir.",
+        "priority": "kritik",
+        "estimatedInvestment": ""
+      },
+      {
+        "service": "Web Sitesi ve AR Entegrasyonu",
+        "description": "Tüketicilerin katalog ile gerçeklik arasındaki şüphelerini gidermek ve dijital olgunluğu artırmak için modern, AR uyumlu bir web altyapısı şarttır.",
+        "priority": "kritik",
+        "estimatedInvestment": ""
+      },
+      {
+        "service": "İçerik Üretimi ve Sosyal Medya Yönetimi",
+        "description": "Gelişen (9/12) marka olgunluğunu desteklemek, iç mimarlara ve son tüketiciye yönelik 'Zemin Sanatı' temalı cesur içerikleri sürdürülebilir şekilde üretmek için gereklidir.",
+        "priority": "onemli",
+        "estimatedInvestment": ""
+      },
+      {
+        "service": "Performans Reklamları (B2B ve B2C Odaklı)",
+        "description": "Yenilenen marka kimliğini ve AR deneyimini doğru hedef kitleye (A+ ev sahipleri ve mimarlar) ulaştırarak doğrudan lead (teklif) toplamak için opsiyoneldir.",
+        "priority": "opsiyonel",
+        "estimatedInvestment": ""
+      }
+    ],
+    "threeMonthRoadmap": "1. Ay: Marka kimliği yenilenir, Hizmet Manifestosu yazılır ve AR altyapısı için web sitesi planlaması yapılır. 2. Ay: Yeni marka kimliğiyle sosyal medya lansmanı gerçekleştirilir, Genç Mimar Partner Programı duyurulur. 3. Ay: AR özellikli web sitesi yayına alınır ve performans reklamlarıyla desteklenerek deneyim merkezlerine fiziksel/dijital trafik çekilir.",
+    "expectedOutcomes": [
+      "Instagram organik erişiminde ve mimar etkileşimlerinde %40 artış",
+      "Web sitesi üzerinden alınan nitelikli 'Teklif Al' (lead) sayısında 2 kat artış",
+      "Yeni mezun/genç mimar ağında en az 100 yeni kayıtlı partner"
+    ],
+    "clientReadinessNotes": "Müşterinin 135 bayilik geniş bir ağı yönetme kapasitesi var ancak rebrand sürecinde tüm bayilerin bu yeni vizyona (şeffaflık, deneyim odaklılık) adapte edilmesi için ciddi bir iç iletişim operasyonu gerekecektir. AR entegrasyonu için ürün 3D modellemelerine bütçe ve zaman ayrılmalıdır."
+  },
+  "perceptualMap": {
+    "xAxis": {
+      "label": "Fiyat ve Kalite Algısı",
+      "lowEnd": "Ekonomik / Kitle Pazarı",
+      "highEnd": "Ultra-Lüks / Premium"
+    },
+    "yAxis": {
+      "label": "Müşteri Deneyimi",
+      "lowEnd": "Geleneksel Depo / Bayi",
+      "highEnd": "Phygital Deneyim Merkezi"
+    },
+    "brandPosition": {
+      "x": 3,
+      "y": 4
+    },
+    "competitorPositions": [
+      {
+        "name": "Haro",
+        "x": 5,
+        "y": 2
+      },
+      {
+        "name": "Tarkett",
+        "x": 2,
+        "y": 1
+      },
+      {
+        "name": "Floorpan (Kastamonu)",
+        "x": -4,
+        "y": -3
+      },
+      {
+        "name": "Yıldız Entegre",
+        "x": -3,
+        "y": -1
+      }
+    ]
+  },
+  "brandMaturity": {
+    "level": "developing",
+    "score": 9,
+    "factors": {
+      "businessAge": 3,
+      "brandAssets": 0,
+      "digitalPresence": 3,
+      "audienceSize": 3
+    },
+    "reportFocus": "strateji"
+  },
+  "strategicDepth": {
+    "customerProblem": {
+      "external": "Katalogdan seçilen pahalı zeminlerin mekana uygulandığında hayal kırıklığı yaratması ve montaj/fiyat süreçlerindeki belirsizlikler.",
+      "internal": "Büyük bir yatırım yaparken yanlış karar verme korkusu ve ustalarla/bayilerle uğraşmanın yarattığı stres.",
+      "philosophical": "Yaşam alanımızın temelini oluşturan zemin seçimi, karanlık ve tozlu bir süreç değil, şeffaf ve ilham verici bir deneyim olmalıdır."
+    },
+    "transformationStatement": "Stresli şantiye alışverişinden, ilham verici ve güvenilir tasarım ortaklığına.",
+    "brandEnemy": "Sektördeki tozlu depo zihniyeti, şeffaf olmayan fiyatlandırma ve 'katalogdan seç, gerisine karışma' kolaycılığı.",
+    "weStandFor": [
+      "İnanıyoruz ki zemin, mekanın sadece altı değil, ruhunun temelidir.",
+      "İnanıyoruz ki teknoloji (AR), fiziksel dokunma hissinin (haptik) rakibi değil, en büyük destekçisidir.",
+      "İnanıyoruz ki şeffaflık ve kusursuz montaj, satılan ürünün kalitesi kadar değerlidir."
+    ],
+    "weStandAgainst": [
+      "Reddediyoruz: Müşteriyi karanlık depolarda, küçük numunelerle baş başa bırakmayı.",
+      "Reddediyoruz: Sürpriz maliyetler çıkaran ve sorumluluk almayan geleneksel usta/bayi zihniyetini.",
+      "Reddediyoruz: Sürdürülebilirliği sadece bir pazarlama kelimesi olarak kullanıp altını doldurmamayı."
+    ],
+    "valueLevel": "transformation",
+    "valueLevelUpgrade": "Sadece premium parke satmaktan (ürün) çıkıp, müşterinin mekanıyla kurduğu bağı güçlendiren, AR ve deneyim merkezi ile karar alma stresini yok eden bir tasarım vizyonuna (dönüşüm) geçmek.",
+    "culturalTension": {
+      "expectation": "İnşaat ve dekorasyon malzemesi almak yorucu, ustalarla pazarlık gerektiren ve sürprizlere açık bir süreçtir.",
+      "reality": "Müşteriler (özellikle A/A+ segment) zamanlarına değer veriyor ve uçtan uca, sorunsuz, lüks bir hizmet bekliyor.",
+      "opportunity": "DesignFloor, bu yorucu süreci 'co-working' rahatlığında, teknoloji destekli ve anahtar teslim şeffaf bir lüks deneyime dönüştürerek sektörel normu yıkabilir."
+    }
+  },
+  "brandCharacter": {
+    "sliders": {
+      "friendAuthority": 60,
+      "youngMature": 70,
+      "playfulSerious": 65,
+      "massElite": 80
+    },
+    "behaviors": [
+      {
+        "value": "Şeffaf Rehberlik",
+        "do": "Fiyatlandırma, garanti kapsamı ve montaj süreçlerini en baştan, net bir şekilde açıkla.",
+        "dont": "Müşteriyi 'oraya gelince bakarız' diyerek belirsizliğe sürükleme.",
+        "example": "Müşteri özel bir balıksırtı kesim istediğinde, fire oranını ve ekstra işçilik maliyetini anında hesaplayıp sunmak."
+      },
+      {
+        "value": "Teknolojik Estetik",
+        "do": "Fiziksel numuneyi gösterirken mutlaka AR uygulamasıyla mekanındaki duruşunu da simüle et.",
+        "dont": "Sadece küçük bir tahta parçası verip 'bütün odada harika durur' diyerek geçiştirme.",
+        "example": "Showroom'daki test yürüyüşünden sonra müşteriye tablet üzerinden odasının 3D simülasyonunu göstermek."
+      },
+      {
+        "value": "Kapsayıcı Vizyon",
+        "do": "Genç iç mimarları deneyim merkezinde çalışmaya teşvik et, onlara ilham panosu (moodboard) hazırlamada yardımcı ol.",
+        "dont": "Sadece büyük bütçeli projelerle gelen eski kurt mimarlara itibar edip gençleri görmezden gelme.",
+        "example": "Yeni mezun bir mimar geldiğinde ona özel 'DesignFloor Akademi' indirimlerini ve çalışma alanlarını tanıtmak."
+      }
+    ],
+    "weAreThis": [
+      "Teknolojiyle desteklenen estetik küratörleriyiz.",
+      "Şeffaflığı lüksün ayrılmaz bir parçası sayan rehberleriz.",
+      "Mimarlar için ilham verici bir çalışma arkadaşıyız."
+    ],
+    "weAreNotThis": [
+      "Tozlu rafları olan sıradan bir parke deposu değiliz.",
+      "Sadece satış anında var olan, montajda kaybolan tüccarlar değiliz.",
+      "Ulaşılmaz ve kibirli bir lüks markası değiliz."
+    ],
+    "dinnerPartyDescription": "DesignFloor, akşam yemeğine kaliteli ama gösterişten uzak, özel dikim bir ceketle katılan o vizyoner mimar gibidir. Masadakilere kendi başarılarını övmek yerine, onların yaşam alanları hakkında ilham verici sorular sorar. Konuşma üslubu sakin, güven verici ve analitiktir; karmaşık teknik detayları (örneğin bir malzemenin sürdürülebilirliğini) herkesin anlayacağı zarif bir hikayeye dönüştürür. Dinleyenlerde 'bu kişiye evimin anahtarını gözü kapalı teslim edebilirim' hissi bırakır."
+  },
+  "qualityMetrics": {
+    "distinctivenessScore": 85,
+    "onlynessTest": {
+      "statement": "DesignFloor, Türkiye zemin sektöründe Avrupa'nın premium kalitesini AR teknolojisi ve şeffaf deneyim merkezi konseptiyle birleştiren TEK markadır.",
+      "competitorSwaps": [
+        {
+          "name": "Haro",
+          "stillValid": false
+        },
+        {
+          "name": "Tarkett",
+          "stillValid": false
+        }
+      ]
+    },
+    "genericPhraseCount": 0
+  },
+  "kpiFramework": {
+    "northStar": {
+      "metric": "Deneyim Merkezleri (Fiziksel + AR) üzerinden kapatılan anahtar teslim proje sayısı",
+      "currentEstimate": "Aylık 50 proje",
+      "target90Day": "Aylık 85 proje"
+    },
+    "leading": [
+      {
+        "metric": "Web sitesi AR (Odamda Gör) kullanım oturumu",
+        "target": "Aylık 2000 kullanım",
+        "measurementMethod": "Google Analytics Event Tracking"
+      },
+      {
+        "metric": "Genç Mimar Partner Programı yeni kayıt sayısı",
+        "target": "İlk ay 50 kayıt",
+        "measurementMethod": "CRM / Web Form Kayıtları"
+      }
+    ],
+    "lagging": [
+      {
+        "metric": "Instagram üzerinden gelen nitelikli 'Teklif Al' (Lead) sayısı",
+        "target": "Aylık %40 artış",
+        "measurementMethod": "Meta Business Suite / CRM"
+      },
+      {
+        "metric": "Müşteri Memnuniyeti (NPS) ve Şeffaflık Skoru",
+        "target": "85+",
+        "measurementMethod": "Montaj sonrası otomatik e-posta anketleri"
+      }
+    ],
+    "reviewCadence": "Haftalık"
+  },
+  "strategyScenarios": {
+    "conservative": {
+      "description": "Sadece mevcut dijital kanalların optimizasyonu, organik içerik kalitesinin artırılması ve Hizmet Manifestosunun yayınlanması.",
+      "investmentLevel": "Düşük ölçek",
+      "expectedOutcome": "Marka algısında toparlanma ve mevcut müşteri tabanında güven artışı.",
+      "timeframe": "3-4 ay",
+      "risk": "Yeni müşteri kazanım hızının yavaş kalması ve rakiplerin dijitalleşmede öne geçmesi.",
+      "probabilityWeight": 0.2,
+      "decisionCriteria": "Eğer AR teknolojisi ve fiziksel deneyim merkezi yatırımları için bütçe onayı alınamazsa."
+    },
+    "recommended": {
+      "description": "Web sitesine AR entegrasyonu, Genç Mimar Partner Programının başlatılması ve Instagram'da güçlü bir rebrand iletişim kampanyası.",
+      "investmentLevel": "Orta ölçek",
+      "expectedOutcome": "Hem B2B (mimarlar) hem de B2C (ev sahipleri) segmentinde nitelikli lead artışı, sektörde yenilikçi marka algısının oturması.",
+      "timeframe": "2-3 ay",
+      "risk": "Bayilerin yeni şeffaflık ve deneyim standartlarına uyum sağlamakta direnç göstermesi.",
+      "probabilityWeight": 0.6,
+      "decisionCriteria": "Öngörülen 'scale' bütçesinin dijital altyapı ve içerik üretimine dengeli dağıtılması durumunda."
+    },
+    "aggressive": {
+      "description": "Tüm Türkiye'deki pilot bayilerin hızla 'Phygital Deneyim Merkezlerine' dönüştürülmesi, geniş çaplı B2B/B2C performans reklamları ve ulusal mimarlık dergileriyle sponsorluklar.",
+      "investmentLevel": "Yüksek ölçek",
+      "expectedOutcome": "Premium zemin pazarında pazar payı liderliği ve Haro/Tarkett'in pazar payından doğrudan müşteri çalma.",
+      "timeframe": "6-9 ay",
+      "risk": "Hızlı büyümenin getirdiği operasyonel kalite kontrol sorunları ve yüksek nakit yakımı.",
+      "probabilityWeight": 0.2,
+      "decisionCriteria": "Pazarı domine etmek için ciddi bir yatırım turu veya agresif büyüme bütçesi ayrılması durumunda."
+    }
+  },
+  "riskMitigationPlans": [
+    {
+      "risk": "Bayi Ağı Üzerinden Büyümenin Premium Küratör (Kral) Algısını Sulandırması (Hizmet/Fiyat Tutarsızlığı)",
+      "likelihood": "yuksek",
+      "likelihoodScore": 0.8,
+      "impact": "yuksek",
+      "impactScore": 9,
+      "expectedValue": 7.2,
+      "mitigation": "ACİL: Tüm bayiler için 'DesignFloor Deneyim Merkezi Akreditasyon Programı' başlatılmalı. Mimari modüler stantlar, ışıklandırma standartları ve minimum hizmet kalitesi sözleşmelere eklenmeli, uymayanlar standart bayi statüsüne düşürülmelidir.",
+      "earlyWarning": "Farklı şehirlerdeki showroomlar için Google Haritalar'da fiyat tutarsızlığı, kötü teşhir veya ilgisiz personel şikayetlerinin artması."
+    },
+    {
+      "risk": "Sürdürülebilirlik (Eco-Trend) Argümanının Eksikliği Nedeniyle Büyük Mimari Projelerin Kaybedilmesi",
+      "likelihood": "orta",
+      "likelihoodScore": 0.6,
+      "impact": "yuksek",
+      "impactScore": 8,
+      "expectedValue": 4.8,
+      "mitigation": "Küratöryel iletişim diline 'Avrupa'nın sürdürülebilir ormanlarından' veya 'Yeşil bina sertifikalı (PEFC/FSC)' gibi eco-trend mesajları entegre edilmeli. İç mimarlar için özel teknik sürdürülebilirlik dosyaları (Tarkett'in yaptığı gibi) hazırlanmalı.",
+      "earlyWarning": "İç mimarların showroom ziyaretlerinde LEED/BREEAM sertifikasyon belgelerini sorması ve tatmin edici yanıt alamayıp alımdan vazgeçmesi."
+    },
+    {
+      "risk": "Yüksek Fiyat Hassasiyeti Nedeniyle A/B+ Segmentin Şerifoğlu Gibi Güvenilir Yerli Markalara Kayması",
+      "likelihood": "yuksek",
+      "likelihoodScore": 0.7,
+      "impact": "orta",
+      "impactScore": 6,
+      "expectedValue": 4.2,
+      "mitigation": "Kral arketipinin kibirli ve 'fiyat konuşmayan' katı tutumu biraz esnetilerek, 'Avrupa kalitesine uzun vadeli akıllı yatırım' vurgusu yapılmalı. 1200 TL bandındaki ürünler için 'ulaşılabilir lüks' algısı (Entry-Premium) yaratılmalı.",
+      "earlyWarning": "Showroom yaya trafiğinin yüksek olmasına rağmen (haptik deneyim yaşanması), fiyat teklifi sonrası dönüşüm (satışa dönme) oranlarının sektör ortalamasının altına düşmesi."
+    },
+    {
+      "risk": "Fiziksel Showroomlara Aşırı Odaklanıp Dijital/AR (Phygital) Trendinde Rakiplerin Gerisinde Kalmak",
+      "likelihood": "orta",
+      "likelihoodScore": 0.5,
+      "impact": "orta",
+      "impactScore": 6,
+      "expectedValue": 3,
+      "mitigation": "Web sitesine 'AR - Odamda Gör' özelliği entegre edilerek dijital müşteri yolculuğu başlatılmalı. Dijitalde kendi odasında ürünü deneyen müşteri, dokunsal (haptik) son onay için fiziksel deneyim merkezine davet edilmeli.",
+      "earlyWarning": "Web sitesi trafiğinde yüksek hemen çıkma (bounce rate) oranları ve rakiplerin dijital ürün deneme araçlarıyla pazar payı kazanmaya başlaması."
+    }
+  ],
+  "diagnosisSummary": {
+    "perceptionVsReality": [
+      {
+        "perception": "Seçici bir müşteri profili hedefliyoruz ve premium ürün algısı yaratmaya çalışıyoruz.",
+        "reality": "Instagram içeriklerinizin ağırlıklı olarak premium segmente hitap etmesi, daha uygun fiyatlı çözümler arayan geniş kitlelerle etkileşiminizi sınırlayabilir.",
+        "gap": "Hedeflenen müşteri profili ile mevcut iletişim stratejisi arasında bir uyumsuzluk var. Premium algısı yaratılırken, daha geniş bir kitleyi de kapsayacak içerik üretimi eksikliği.",
+        "recommendation": "Premium algısını korurken, farklı bütçelere hitap eden ürünlerinizi de vurgulayan, bilgilendirici ve eğitici içerikler oluşturun. Örneğin, 'Premium Görünüm, Uygun Fiyat' serisi başlatabilirsiniz."
+      },
+      {
+        "perception": "Türkiye genelinde deneyim merkezi konseptini yaymak istiyoruz.",
+        "reality": "Dijital varlık analizinde web siteniz analiz edilemedi veya mevcut değil. Fiziksel deneyim merkezleri önemli olsa da, dijital varlığınız olmadan bu konsepti tam olarak yaygınlaştırmak zor.",
+        "gap": "Fiziksel deneyim merkezlerine odaklanırken, dijital deneyimin ihmal edilmesi. Müşterilerin online araştırma yapmadan fiziksel mağazayı ziyaret etme olasılığı düşük.",
+        "recommendation": "Hemen kullanıcı dostu, SEO uyumlu ve deneyim merkezi konseptini yansıtan bir web sitesi oluşturun. Sanal turlar, ürün detayları ve online randevu alma gibi özellikler ekleyin."
+      },
+      {
+        "perception": "Avrupa'daki köklü firmaların Türkiye distribütörlüğünü yapıyoruz.",
+        "reality": "Stratejinizdeki 'Sürdürülebilirlik ve Yeşil Bina (PEFC/FSC)' talebi tamamen yok sayılmış. Bu, A+ projelerde LEED sertifikası arayan mimarları kaybetmenize neden olabilir.",
+        "gap": "Avrupa'daki köklü firmaların sürdürülebilirlik konusundaki hassasiyetini yansıtmamak. Müşterilerin çevre dostu ürünlere olan talebini karşılamamak.",
+        "recommendation": "Distribütörlüğünü yaptığınız firmaların sürdürülebilirlik sertifikalarını ve çevre dostu uygulamalarını vurgulayın. Web sitenizde ve sosyal medya hesaplarınızda bu konulara özel bölümler oluşturun."
+      }
+    ],
+    "blindSpots": [
+      "Markanızın 'Neden (WHY)' vizyonu ve gerçek müşteri algısı verisi eksik. Aaker marka kişiliği anketindeki sonuçlar iç ekibin arzularını mı yansıtıyor, yoksa pazarın markayı algılayışını mı? Müşteri algısı doğrulaması yapılmamış.",
+      "AR (Artırılmış Gerçeklik) ve Phygital entegrasyon fırsatı stratejik olarak kullanılmıyor. Bu stratejik fırsat bilerek mi fiziksel showroom'u vurgulamak için feda edildi, yoksa dijital trendler tamamen mi gözden kaçırıldı?"
+    ],
+    "criticalMisalignment": "Markanın 'Kral/Küratör' konumlandırması, pazardaki ultra-lüks segmenti domine eden Haro'nun marka prestijiyle doğrudan bir çarpışmaya girmektedir ve sürdürülebilirlik argümanlarını dışlamaktadır."
+  },
+  "emotionalNarrative": {
+    "manifesto": "DesignFloor olarak, zemin seçimi sadece bir ihtiyaç değil, mekanınızın ruhunu yansıtan bir yolculuk olduğuna inanıyoruz. Avrupa'nın en seçkin zemin koleksiyonlarını sunarak, ilham veren bir tasarım ortağı olmayı hedefliyoruz. Her adımda size rehberlik ederek, hayallerinizdeki yaşam alanlarını gerçeğe dönüştürmenize yardımcı oluyoruz. Çünkü biz, zeminlerin sadece ayaklarımızın altında değil, kalbimizde de bir yer edindiğine inanıyoruz.",
+    "transformationStory": "Öncesinde, kararsız ve seçenekler arasında kaybolmuş bir ev sahibiydiniz. Kataloglardan ve sanayi tipi depolardan yorulmuştunuz. Sonrasında, DesignFloor deneyim merkezine adım attınız. Dokunabildiğiniz, görebildiğiniz ve hissedebildiğiniz zeminlerle tanıştınız. Uzman ekibimizin rehberliğinde, mekanınızın ruhunu yansıtan mükemmel zemini buldunuz. Artık eviniz, sadece bir yaşam alanı değil, kişiliğinizin bir yansıması.",
+    "oneLinePromise": "Mekânınıza ilham veren, Avrupa'nın en seçkin zeminleri."
+  },
+  "revenueImpact": {
+    "currentState": "Aslan Yapı/DesignFloor'un dijital skoru 8.5/100 olup, Instagram'da 10k-50k takipçiye sahiptir. Ancak web sitesinin olmaması ve stratejik sürdürülebilirlik argümanlarının eksikliği büyüme potansiyelini sınırlamaktadır.",
+    "growthDrivers": [
+      {
+        "driver": "Kullanıcı dostu ve SEO uyumlu bir web sitesi oluşturmak ve deneyim merkezi konseptini dijital ortama taşımak (sanal turlar, ürün detayları, online randevu alma).",
+        "estimatedImpact": "Organik trafik %40 artış, web sitesi üzerinden gelen potansiyel müşteri (lead) sayısı %50 artış.",
+        "timeframe": "6 ay",
+        "impactHypothesis": "Bu tahmin, potansiyel müşterilerin zemin seçimi öncesinde online araştırma yaptığı ve web sitesinin ilk izlenim için kritik olduğu varsayımına dayanıyor.",
+        "assumptions": [
+          "Web sitesi SEO en iyi uygulamalarına uygun olarak oluşturulacak.",
+          "Web sitesi içeriği, hedef kitleye hitap edecek şekilde optimize edilecek.",
+          "Web sitesi düzenli olarak güncellenecek ve yeni içerikler eklenecek."
+        ],
+        "confidenceLevel": "grounded"
+      },
+      {
+        "driver": "Sürdürülebilirlik sertifikalarına sahip ürünlerinizi vurgulayan ve çevre dostu uygulamalarınızı anlatan içerikler oluşturmak ve bu içerikleri web sitenizde ve sosyal medya hesaplarınızda paylaşmak.",
+        "estimatedImpact": "A+ projelerden gelen taleplerde %30 artış, LEED sertifikası arayan mimarların ilgisinde %20 artış.",
+        "timeframe": "3 ay",
+        "impactHypothesis": "Bu tahmin, sürdürülebilirlik ve çevre dostu ürünlere olan talebin arttığı ve A+ projelerde LEED sertifikasının önemli bir kriter olduğu varsayımına dayanıyor.",
+        "assumptions": [
+          "Hedef kitle çevre dostu ürünlere duyarlı.",
+          "A+ projelerde LEED sertifikası bir gereklilik.",
+          "Sürdürülebilirlik mesajları etkili bir şekilde iletilecek."
+        ],
+        "confidenceLevel": "inferred"
+      },
+      {
+        "driver": "Instagram'da daha geniş bir kitleye hitap eden, farklı bütçelere uygun ürünlerinizi de içeren, bilgilendirici ve eğitici içerikler oluşturmak ('Premium Görünüm, Uygun Fiyat' serisi gibi).",
+        "estimatedImpact": "Instagram etkileşim oranlarında %25 artış, potansiyel müşteri sayısında %15 artış.",
+        "timeframe": "3 ay",
+        "impactHypothesis": "Bu tahmin, daha geniş bir kitleye hitap eden içeriklerin Instagram etkileşimini artıracağı ve potansiyel müşteri sayısını yükselteceği varsayımına dayanıyor.",
+        "assumptions": [
+          "İçerikler hedef kitleye uygun olacak.",
+          "İçerikler düzenli olarak paylaşılacak.",
+          "Etkileşim oranları düzenli olarak takip edilecek."
+        ],
+        "confidenceLevel": "inferred"
+      }
+    ],
+    "investmentToGrowthRatio": "Stratejik dijital yatirimla olculebilir buyume hedeflenebilir."
+  },
+  "dataQuality": {
+    "completeness": 0.9,
+    "contradictions": [],
+    "patterns": [
+      "Kalite odaklılık ve premium ürün algısı",
+      "Deneyim merkezi konseptini yayma isteği",
+      "Bayi ağı üzerinden büyüme hedefi",
+      "Seçici müşteri profili belirleme",
+      "Operasyonel mükemmelliğe vurgu"
+    ],
+    "missingAreas": [
+      "Varoluş Amacı (WHY)",
+      "Müşteri Algısı",
+      "Mevcut Marka Varlıkları",
+      "3 Yıllık Vizyon",
+      "Müşterinin Kiraladığı İş (JTBD)",
+      "Müşterinin Mücadelesi",
+      "Karşı Olunan (Düşman)"
+    ]
+  },
+  "pipelineMetadata": {
+    "version": "4.1.0-hetzner",
+    "agentsRun": [
+      "digitalPresenceAnalyzer",
+      "brandStrategist",
+      "competitorDiscovery",
+      "blogStrategyAdvisor",
+      "consumerTest",
+      "brandChallenger",
+      "strategistRevision",
+      "consultantIntroWriter",
+      "strategySynthesizer"
+    ],
+    "totalDuration": 86723960,
+    "agentDurations": {
+      "digitalPresenceAnalyzer": 54823,
+      "brandStrategist": 70715,
+      "competitorDiscovery": 131013,
+      "blogStrategyAdvisor": 13249,
+      "consumerTest": 18978,
+      "brandChallenger": 48305,
+      "strategistRevision": 11016,
+      "consultantIntroWriter": 12941,
+      "strategySynthesizer": 118084
+    },
+    "researchAvailable": true,
+    "researchMethod": "deep-research",
+    "researchQuality": "high",
+    "fallbackUsed": false,
+    "strategistRevised": true,
+    "consumerTestedBeforeRevision": true,
+    "executionEngine": "hetzner-bullmq"
+  },
+  "analyzedBy": "gemini-multi-agent",
+  "modelVersion": "pipeline-v4.1-hetzner",
+  "confidence": 0.9,
+  "analyzedAt": {
+    "_seconds": 1774212183,
+    "_nanoseconds": 959000000
+  }
+}

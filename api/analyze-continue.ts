@@ -20,6 +20,7 @@ import {
   generateIntibaRoadmap,
   buildPipelineEvidence,
   runFrictionAnalyzer,
+  runPositioningConsensus,
 } from './_bundles/pipeline-bundle.mjs';
 import {
   loadCheckpoint,
@@ -420,6 +421,39 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
       });
     }
 
+    // ── Phase B.5: Multi-Model Consensus (MANDATORY) ─────────────────────────
+    // Validates brandStrategist's positioning + archetype decision before Phase C.
+    // If consensus fails (score < 60), revision becomes mandatory in Phase C.5
+    // regardless of whether challenger ran.
+    let consensusResult = (hasCheckpoint && cp?.consensusResult) || null;
+    if (consensusResult) {
+      console.log(`analyze-continue: Using checkpointed consensusResult (score=${consensusResult.consensusScore})`);
+      agentsRun.push('multiModelConsensus');
+    } else if (remaining() > 20_000) {
+      if (runId) await markAgentRunning(effectiveLeadId, runId, 'multiModelConsensus');
+      const consensusStart = Date.now();
+      try {
+        const contextStr = `Profil: ${normalizedData.overallProfile}. Farklilik: ${strategistOutput.differentiator}. Rekabet avantaji: ${strategistOutput.competitiveAdvantage}.${researchFindings ? ` Pazar: ${researchFindings.marketData.marketSize}. Rakipler: ${researchFindings.competitors.map((c: any) => c.name).join(', ')}.` : ''}`;
+        consensusResult = await runPositioningConsensus(
+          normalizedData.businessName,
+          normalizedData.sector,
+          strategistOutput.positioningStatement,
+          strategistOutput.archetype,
+          contextStr,
+        );
+        timings.multiModelConsensus = Date.now() - consensusStart;
+        agentsRun.push('multiModelConsensus');
+        if (runId) await checkpointAgent(effectiveLeadId, runId, 'multiModelConsensus', 'consensusResult', consensusResult, timings.multiModelConsensus);
+        console.log(`analyze-continue: multiModelConsensus done in ${timings.multiModelConsensus}ms — score=${consensusResult.consensusScore}, revisionNeeded=${consensusResult.revisionNeeded}`);
+      } catch (error: any) {
+        timings.multiModelConsensus = Date.now() - consensusStart;
+        errors.push({ agent: 'multiModelConsensus', error: error.message, timestamp: Date.now() });
+        if (runId) await markAgentFailed(effectiveLeadId, runId, 'multiModelConsensus', error.message, timings.multiModelConsensus);
+        console.error(`analyze-continue: multiModelConsensus failed — ${error.message}`);
+        // Non-fatal: continue without consensus
+      }
+    }
+
     // Agent 4a + 4b + 9: Challenger + Blog Advisor + Consumer Test (PARALLEL, optional)
     // Resume: use checkpointed outputs if available
     let challengerOutput = (hasCheckpoint && cp?.challengerOutput) || null;
@@ -547,43 +581,57 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
       }
     }
 
-    // NEW: Strategist Revision — give strategist a chance to defend/revise based on challenger critique
+    // Phase C.5: Strategist Revision
+    // Triggered by: (a) challenger critique OR (b) consensus failure (score < 60)
+    // Consensus failure makes revision MANDATORY — cascade risk mitigation.
+    const consensusFailed = consensusResult?.revisionNeeded === true;
+    const shouldRevise = challengerOutput || consensusFailed;
+
     let effectiveStrategistOutput = strategistOutput;
     const hasRevisionCheckpoint = hasCheckpoint && cp?.revisedStrategistOutput;
     if (hasRevisionCheckpoint) {
       effectiveStrategistOutput = cp.revisedStrategistOutput;
       console.log('analyze-continue: Using checkpointed revisedStrategistOutput');
       agentsRun.push('strategistRevision');
-    } else if (challengerOutput && remaining() > 100_000) {
+    } else if (shouldRevise && remaining() > 100_000) {
       if (runId) await markAgentRunning(effectiveLeadId, runId, 'strategistRevision');
       const revStart = Date.now();
+      const revisionTrigger = consensusFailed
+        ? `consensus_failure(score=${consensusResult?.consensusScore})`
+        : 'challenger_critique';
       try {
-        console.log(`analyze-continue: Running strategistRevision (remaining=${remaining()}ms)...`);
-        const revisedOutput = await runBrandStrategistRevision(normalizedData, strategistOutput, challengerOutput, researchFindings, consumerTestResult, input.adminNotes);
+        console.log(`analyze-continue: Running strategistRevision — trigger=${revisionTrigger}, remaining=${remaining()}ms`);
+        const revisedOutput = await runBrandStrategistRevision(
+          normalizedData,
+          strategistOutput,
+          challengerOutput,          // may be null — revision handles it
+          researchFindings,
+          consumerTestResult,
+          input.adminNotes,
+          consensusResult?.revisionReason,
+          consensusResult?.suggestedWeakness,
+        );
         timings.strategistRevision = Date.now() - revStart;
         agentsRun.push('strategistRevision');
         if (revisedOutput) {
           effectiveStrategistOutput = revisedOutput;
           if (runId) await checkpointAgent(effectiveLeadId, runId, 'strategistRevision', 'revisedStrategistOutput', revisedOutput, timings.strategistRevision);
         }
-        console.log(`analyze-continue: strategistRevision done in ${timings.strategistRevision}ms — archetype=${revisedOutput?.archetype}`);
+        console.log(`analyze-continue: strategistRevision done in ${timings.strategistRevision}ms — trigger=${revisionTrigger}, archetype=${revisedOutput?.archetype}`);
       } catch (error: any) {
         timings.strategistRevision = Date.now() - revStart;
         errors.push({ agent: 'strategistRevision', error: error.message, timestamp: Date.now() });
         if (runId) await markAgentFailed(effectiveLeadId, runId, 'strategistRevision', error.message, timings.strategistRevision);
         console.error(`analyze-continue: strategistRevision failed in ${timings.strategistRevision}ms: ${error.message}`);
-        // Fall back to original strategist output (already the default)
       }
-    } else if (challengerOutput && runId) {
-      // Not enough time for revision + synth + group3 — defer to next call via checkpoint
+    } else if (shouldRevise && runId) {
       console.log(`analyze-continue: Deferring pipeline — remaining=${remaining()}ms < 100s needed for revision+synth+group3`);
       return res.status(200).json({
         status: 'pipeline_partial',
         phase: 'awaiting_revision',
         debug: { timings, errors, agentsRun, remainingMs: remaining() },
       });
-    } else if (challengerOutput) {
-      // No runId, can't checkpoint — skip revision (legacy behavior)
+    } else if (shouldRevise) {
       console.log(`analyze-continue: SKIPPING strategistRevision — no runId for checkpoint deferral`);
     }
 

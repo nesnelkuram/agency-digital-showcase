@@ -1,0 +1,141 @@
+{
+  "website": {
+    "url": "https://designfloor.com.tr/",
+    "status": "analyzed",
+    "overallImpression": "DesignFloor, dünyanın önde gelen parke markalarını sunan, premium konumlandırmaya sahip profesyonel bir platformdur. Kullanıcılara alan hesaplama, moodboard ve ücretsiz numune gibi gelişmiş UX özellikleri sunarak satın alma kararını kolaylaştırmayı hedeflemektedir.",
+    "designQuality": 8,
+    "mobileOptimized": true,
+    "loadPerformance": "orta",
+    "products": [
+      {
+        "name": "Elegant - Laminat Parke",
+        "price": "1.470,75 TL",
+        "category": "Laminat Parke"
+      },
+      {
+        "name": "560 Stromboli",
+        "price": "1.315,50 TL",
+        "category": "Laminat Parke"
+      },
+      {
+        "name": "Kaindl - Natural Touch Standart 8.0",
+        "price": "1.970,25 TL",
+        "category": "Laminat Parke"
+      },
+      {
+        "name": "Herringbone 8mm - Balıksırtı",
+        "price": "2.293,00 TL",
+        "category": "Laminat Parke"
+      },
+      {
+        "name": "511 Kraft Oak",
+        "price": "1.696,00 TL",
+        "category": "Laminat Parke"
+      }
+    ],
+    "pricingStrategy": "premium",
+    "contentQuality": "İçerik kalitesi oldukça yüksek. Kullanıcıları eğitmeye yönelik SSS bölümleri, sürdürülebilirlik vurgusu, sertifika bilgileri ve ilham verici moodboard içerikleriyle zenginleştirilmiş.",
+    "callToActions": [
+      "HEMEN İLETİŞİME GEÇ",
+      "SATIŞ NOKTALARI",
+      "İNCELEYİN",
+      "HEMEN ARAYIN 0533 226 6252",
+      "Bayi Ara",
+      "3 Adımda Teklif Al!",
+      "YORUMLARI OKUYUN"
+    ],
+    "trustSignals": [
+      "PEFC ve GREENGUARD Sertifikaları",
+      "35 yıla varan parke garantisi",
+      "2 yıl montaj garantisi",
+      "90'dan fazla ülkede 200 milyondan fazla ev referansı",
+      "AlsaFloor, Kaindl, Weitzer, Pergo gibi global markaların temsilciliği",
+      "Binlerce mutlu müşteri ve seçkin mimar yorumları"
+    ],
+    "seoBasics": {
+      "hasTitle": true,
+      "hasDescription": true,
+      "hasOGTags": true,
+      "title": "Parke Modelleri ve Fiyatları 2026 | DesignFloor",
+      "description": "DesignFloor; laminat parke, lamine, masif ve parlak parke ürünleri başta olmak üzere, parkeye dair tüm çağrışımları duyup hissedebileceğiniz bir markadır."
+    },
+    "strengths": [
+      "Alan hesaplama ve 3 adımda teklif alma gibi interaktif araçlar",
+      "Ücretsiz numune gönderimi ve Parke Deneyim Merkezi imkanı",
+      "Çok güçlü güven sinyalleri (Uluslararası sertifikalar ve uzun garanti süreleri)",
+      "Kapsamlı filtreleme seçenekleri (Oda tipi, renk tonu, stil)"
+    ],
+    "weaknesses": [
+      "Ürün listeleme verilerinde isim ve fiyat eşleşmelerinin eksik veya karmaşık olması",
+      "Çok sayıda alt marka, katalog ve kategorinin navigasyonu karmaşıklaştırma potansiyeli"
+    ],
+    "recommendations": [
+      "Ürün kartlarında model isimleri ve indirimli fiyatlandırmaların daha net, okunabilir bir yapıda sunulması",
+      "Geniş navigasyon menüsünün (mega menü) mobil cihazlarda kullanıcıyı yormayacak şekilde sadeleştirilmesi",
+      "Kullanıcıyı doğrudan teklif formuna yönlendiren mikro dönüşümlerin (CTA) ürün sayfalarında daha belirgin hale getirilmesi"
+    ]
+  },
+  "instagram": {
+    "handle": "designfloorcemilay",
+    "status": "analyzed",
+    "followerRange": "1000-5000",
+    "estimatedPostCount": "Tahmini belirsiz (Hesap aktif olarak bulunamadı)",
+    "postingFrequency": "Tahmini duzensiz",
+    "contentThemes": [
+      "Showroom ve Deneyim Merkezi Videoları",
+      "Ürün Çeşitliliği (Balıksırtı, Macar Kesim, Geniş Plank)",
+      "Müşteri ve Mimar Deneyimi (Moodboard, Numune İnceleme)"
+    ],
+    "visualStyle": "Tahmini: Parke dokusunu, derz detaylarını ve ışık altındaki yansımalarını vurgulayan, estetik ve profesyonel showroom çekimleri.",
+    "captionStyle": "Tahmini: Fiyat, yerden ısıtma uyumu ve suya dayanıklılık (AC4/AC5) gibi teknik detayları içeren, profesyonel ve bilgilendirici dil.",
+    "hashtagUsage": "Tahmini: Hedef kitleye ve sektöre yönelik stratejik kullanım (#designfloor, #balıksırtıparke, #içmimarlık).",
+    "engagementLevel": "Tahmini orta",
+    "contentMix": {
+      "photoPercent": 30,
+      "videoPercent": 10,
+      "reelPercent": 40,
+      "carouselPercent": 20
+    },
+    "strengths": [
+      "DesignFloor gibi premium ve bilinen bir markanın gücünü arkasına alması",
+      "Zemin kaplamasında dokunma ve yakından görme hissini veren showroom avantajı",
+      "Mimarlar ve profesyoneller tarafından oluşturulan içerik (UGC) potansiyeli"
+    ],
+    "weaknesses": [
+      "Kullanıcı adının (designfloorcemilay) Instagram'da bulunamaması (görünürlük ve erişilebilirlik sorunu)",
+      "Hesabın gizli, dondurulmuş veya arama motorlarında indekslenmemiş olma ihtimali"
+    ],
+    "recommendations": [
+      "Hesabın gizlilik ayarlarını kontrol edip herkese açık hale getirmek ve kullanıcı adını daha bulunabilir bir formata (örn. designfloor_cemilay) güncellemek",
+      "Ünlü iç mimarlarla showroom'da bir günlük 'Takeover' (Hesap Devralma) etkinlikleri düzenlemek",
+      "Zemin değişiminin mekanın havasını nasıl değiştirdiğini gösteren Öncesi/Sonrası (Before/After) Reels videoları paylaşmak",
+      "Laminat ile lamine arasındaki farklar veya evcil hayvanlı evler için parke seçimi gibi konularda eğitici karuseller (kaydırmalı postlar) hazırlamak"
+    ]
+  },
+  "otherPlatforms": [
+    {
+      "platform": "LinkedIn",
+      "status": "yok",
+      "notes": ""
+    },
+    {
+      "platform": "TikTok",
+      "status": "yok",
+      "notes": ""
+    },
+    {
+      "platform": "YouTube",
+      "status": "yok",
+      "notes": ""
+    },
+    {
+      "platform": "X",
+      "status": "yok",
+      "notes": ""
+    }
+  ],
+  "overallDigitalScore": 6,
+  "digitalMaturityLevel": "olgun",
+  "criticalGaps": [],
+  "quickWins": []
+}

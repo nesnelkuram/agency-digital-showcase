@@ -47,10 +47,10 @@ export default function CoverSection({
         backgroundImage: bgUrl, backgroundSize: 'cover', backgroundPosition: 'center',
         filter: isBgImage ? 'saturate(0.3) brightness(1.15)' : 'saturate(0.85) brightness(0.92)',
       }} />
-      {/* Overlay — hafif tint, fotoğraf görünsün */}
+      {/* Overlay — minimal tint */}
       <div style={{
         position: 'absolute', inset: 0, zIndex: 1,
-        background: 'linear-gradient(160deg, rgba(245,242,236,0.52) 0%, rgba(236,231,221,0.45) 100%)',
+        background: 'linear-gradient(160deg, rgba(245,242,236,0.22) 0%, rgba(236,231,221,0.18) 100%)',
       }} />
 
       {/* Header bar */}

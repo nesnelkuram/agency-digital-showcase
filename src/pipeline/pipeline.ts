@@ -29,6 +29,8 @@ export { runConsumerTest } from './agents/consumerTest';
 export { runDeliverableEnricher } from './agents/deliverableEnricher';
 export { runStrategyHealthComparator } from './agents/strategyHealthComparator';
 export { runFrictionAnalyzer } from './agents/frictionAnalyzer';
+export { runPositioningConsensus } from './consensus';
+export type { ConsensusResult } from './consensus';
 export { fetchAndParseWebsite } from './utils/websiteFetcher';
 // Ensure sector enrichment modules are registered
 import './sectorEnrichment';

@@ -4,10 +4,13 @@ import type { NormalizedData, ResearchFindings, StrategistOutput, ChallengerOutp
 export async function runBrandStrategistRevision(
   normalizedData: NormalizedData,
   originalOutput: StrategistOutput,
-  challengerOutput: ChallengerOutput,
+  challengerOutput: ChallengerOutput | null,
   researchFindings: ResearchFindings | null,
   consumerTestOutput?: ConsumerTestOutput,
   adminNotes?: string,
+  // Consensus-driven revision: when challenger unavailable, use consensus signals
+  consensusRevisionReason?: string,
+  consensusSuggestedWeakness?: string,
 ): Promise<StrategistOutput> {
 
   // Format original strategy
@@ -21,14 +24,18 @@ export async function runBrandStrategistRevision(
     ? `\n- Urun/Hizmet: ${vpReasoning.whatBusinessProduces}\n- Temel Fayda: ${vpReasoning.coreBenefit}\n- Kimin Icin: ${vpReasoning.whoBenefits}\n- Fiyat: ${vpReasoning.pricePositioning}`
     : '';
 
-  // Format challenger critiques
-  const challengePointsList = challengerOutput.challengePoints
-    .map((p, i) => `${i + 1}. ${p}`)
-    .join('\n');
+  // Format challenger critiques (or consensus-driven fallback)
+  const challengePointsList = challengerOutput
+    ? challengerOutput.challengePoints.map((p, i) => `${i + 1}. ${p}`).join('\n')
+    : consensusRevisionReason
+      ? `1. Çoklu model konsensüsü başarısız: ${consensusRevisionReason}`
+      : '1. Konumlandırma yeterliliği sorgulandı — alternatif değerlendirilmeli';
 
-  const blindSpotsList = challengerOutput.blindSpots
-    .map((b, i) => `${i + 1}. ${b}`)
-    .join('\n');
+  const blindSpotsList = challengerOutput
+    ? challengerOutput.blindSpots.map((b, i) => `${i + 1}. ${b}`).join('\n')
+    : consensusSuggestedWeakness
+      ? `1. ${consensusSuggestedWeakness}`
+      : '1. Bağımsız model doğrulaması yetersiz güven verdi';
 
   // Research context
   let researchContext = '';
@@ -78,7 +85,11 @@ ${refinements}
     ? `\n\n⚠️ KRITIK ADMIN NOTU — REVIZYONDA KESINLIKLE DIKKATE AL:\n${adminNotes.trim()}\nBu bilgi isletmeyi taniyan uzman tarafindan yazilmistir. Revizyon sirasinda bu notla celisen duzeltmeler YAPMA.\n`
     : '';
 
-  const prompt = `Sen deneyimli bir marka strateji uzmanisin. Orijinal strateji onerilerini bir SEYTAN AVUKATI inceledi ve elestiriler yapti. Simdi bu elestirileri tek tek degerlendirecek ve stratejini savunacak veya revize edeceksin.
+  const revisionTrigger = challengerOutput
+    ? 'Orijinal strateji önerilerini bir ŞEYTAN AVUKATI inceledi ve eleştiriler yaptı. Simdi bu eleştirileri tek tek değerlendirecek ve stratejini savunacak veya revize edeceksin.'
+    : `Orijinal strateji önerisi ÇOKLU MODEL KONSENSÜS testinden geçemedi (skor < 60). Konumlandırma veya arketip seçiminde zayıflık tespit edildi. Stratejiyi bu sinyale göre güçlendirmen gerekiyor.`;
+
+  const prompt = `Sen deneyimli bir marka strateji uzmanisin. ${revisionTrigger}
 
 ## Isletme
 - Isletme: ${normalizedData.businessName}
@@ -96,28 +107,29 @@ ${refinements}
 - Farklilik: ${originalOutput.differentiator}
 - Rekabet Avantaji: ${originalOutput.competitiveAdvantage}
 
-## SEYTAN AVUKATININ ELESTIRILERI
+## ELEŞTİRİ / KONSENSÜS UYARILARI
 
-### Karsi Pozisyon
+${challengerOutput ? `### Karşı Pozisyon
 ${challengerOutput.counterPosition}
 
-### Alternatif Arketip Onerisi
+### Alternatif Arketip Önerisi
 ${challengerOutput.alternativeArchetype}: ${challengerOutput.alternativeArchetypeRationale}
 
-### Elestiri Noktalari
+### Risk Değerlendirmesi
+${challengerOutput.riskAssessment}` : `### Konsensüs Uyarısı
+${consensusRevisionReason || 'Çoklu model doğrulaması yetersiz güven skoru verdi.'}`}
+
+### Eleştiri / Zayıflık Noktaları
 ${challengePointsList}
 
-### Kor Noktalar
+### Kör Noktalar
 ${blindSpotsList}
-
-### Risk Degerlendirmesi
-${challengerOutput.riskAssessment}
 ${researchContext}
 ${consumerFeedbackSection}
 
 ---
 
-GOREV: ${consumerTestOutput ? 'Hem seytan avukatinin hem de tuketici simulasyonunun geri bildirimlerini degerlendir' : 'Her elestiriyi tek tek degerlendir'}:
+GOREV: ${consumerTestOutput ? 'Hem eleştiri/konsensüs sinyallerini hem de tüketici simülasyonunun geri bildirimlerini değerlendir' : 'Her eleştiriyi / konsensüs uyarısını tek tek değerlendir'}:
 - Hakli olan elestirileri KABUL ET ve stratejiyi buna gore REVIZE ET
 - Haksiz olan elestirileri KANITLARLA REDDET ve orijinal pozisyonunu koru${consumerTestOutput ? '\n- Tuketici endiselerini ciddiye al — dusuk uyum skorlu personaların sorunlarini gider' : ''}
 - Kor noktalari gidermeye calis

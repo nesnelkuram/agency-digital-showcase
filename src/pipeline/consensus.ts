@@ -11,6 +11,10 @@ export interface ConsensusResult {
   disagreements: string[];
   humanReviewRecommended: boolean;
   evidence: EvidenceChain;
+  // Populated when consensus fails — feeds mandatory revision
+  revisionNeeded: boolean;
+  revisionReason?: string;    // "Model güven farkı: Pro=45, Flash=78"
+  suggestedWeakness?: string; // consensus'un tespit ettiği zayıf nokta
 }
 
 interface ConsensusResponse {
@@ -65,6 +69,9 @@ KURALLAR:
       finalAnswer: '',
       disagreements: ['Her iki model de yanit veremedi'],
       humanReviewRecommended: true,
+      revisionNeeded: true,
+      revisionReason: 'Çoklu model doğrulaması başarısız — her iki model yanıt veremedi',
+      suggestedWeakness: 'Konumlandırma veya arketip seçimi doğrulanamadı',
       evidence: {
         claim: question,
         evidenceType: 'ai_inference',
@@ -91,13 +98,33 @@ KURALLAR:
 
   const consensusScore = disagreements.length === 0 ? Math.min(95, avgConfidence + 10) : Math.max(20, avgConfidence - 15);
   const best = proOpinion || flashOpinion!;
+  const revisionNeeded = consensusScore < 60;
+
+  // Build revision reason when consensus fails
+  let revisionReason: string | undefined;
+  let suggestedWeakness: string | undefined;
+  if (revisionNeeded) {
+    const parts: string[] = [];
+    if (proOpinion && flashOpinion) {
+      parts.push(`Model güven farkı: Pro=${proOpinion.confidence}, Flash=${flashOpinion.confidence}`);
+    }
+    if (disagreements.length > 0) parts.push(...disagreements);
+    revisionReason = parts.join(' | ');
+    // Use the lower-confidence model's rationale as the "weakness signal"
+    const weakerModel = (proOpinion?.confidence ?? 100) < (flashOpinion?.confidence ?? 100)
+      ? proOpinion : flashOpinion;
+    suggestedWeakness = weakerModel?.rationale?.slice(0, 200);
+  }
 
   return {
     consensusReached: consensusScore >= 60,
     consensusScore,
     finalAnswer: best.answer || '',
     disagreements,
-    humanReviewRecommended: consensusScore < 60,
+    humanReviewRecommended: revisionNeeded,
+    revisionNeeded,
+    revisionReason,
+    suggestedWeakness,
     evidence: {
       claim: question,
       evidenceType: consensusScore >= 60 ? 'framework' : 'ai_inference',
