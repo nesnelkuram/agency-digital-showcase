@@ -2,10 +2,11 @@ import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const SLIDES = [
-  { id: 'oak',      label: 'Açık Meşe Parke',  src: '/cemilay-hero.png' },
-  { id: 'marble',   label: 'Calacatta Mermer',  src: '/cemilay-marble.png' },
-  { id: 'walnut',   label: 'Ceviz Balıksırtı',  src: '/cemilay-walnut.png' },
-  { id: 'concrete', label: 'Mat Beton Efekt',    src: '/cemilay-concrete.png' },
+  { id: 'light',  label: 'Açık Kül Lamine Parke',   src: '/cemilay-hero.png' },
+  { id: 'medium', label: 'Orta Meşe Lamine Parke',  src: '/cemilay-marble.png' },
+  { id: 'honey',  label: 'Bal Meşe Balıksırtı',      src: '/cemilay-walnut.png' },
+  { id: 'blonde', label: 'Beyazlatılı Lamine Parke', src: '/cemilay-concrete.png' },
+  { id: 'dark',   label: 'Koyu Ceviz Lamine Parke',  src: '/cemilay-dark.png' },
 ];
 
 const SLIDE_DURATION = 5500; // ms
