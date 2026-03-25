@@ -11,8 +11,8 @@ export interface GroundedResponse {
 }
 
 const MODEL_IDS: Record<ModelTier, string> = {
-  flash: 'gemini-2.5-flash-preview-05-20',
-  pro: 'gemini-2.5-pro-preview-05-06',
+  flash: 'gemini-3.1-flash-lite-preview',
+  pro: 'gemini-3.1-pro-preview',
 };
 
 let _client: GoogleGenAI | null = null;
@@ -26,7 +26,7 @@ function getClient(): GoogleGenAI {
   return _client;
 }
 
-// Gemini 3 Pro: thinking tokens count against maxOutputTokens budget.
+// Gemini 3.1 Pro: thinking tokens count against maxOutputTokens budget.
 // A low maxOutputTokens causes truncated output (MAX_TOKENS finish reason).
 // We enforce a minimum to ensure enough room for both thinking + actual output.
 const PRO_MIN_OUTPUT_TOKENS = 16_384;
