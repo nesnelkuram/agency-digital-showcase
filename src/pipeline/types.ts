@@ -268,6 +268,11 @@ export interface ChallengerOutput {
     mitigation: string;
     earlyWarning: string;
   }>;
+  // Harry Dry Ekolu — Klişe Avı + Acımasız Geri Bildirim
+  identifiedCliches?: string[];         // Stratejide tespit edilen jenerik/romantik kelimeler
+  ruthlessFeedback?: string;            // Harry Dry tonunda, yapıcı ama sert net eleştiri
+  operationalContradictions?: string[]; // Fiziksel kapasite vs. vaat edilen strateji çelişkileri
+  challengerAlternatives?: string[];    // Klişesiz, pain-point'e vuran 2-3 alternatif konumlandırma
   // Evidence chains for challenger analysis
   _evidence?: EvidenceChain[];
 }
@@ -757,6 +762,10 @@ export interface DistilledAgentView {
     strongestBlindSpot: string;       // max 120 chars
     topChallengePoints: string[];     // max 3 items
     onlynessVerdict: 'strong' | 'weak' | 'generic' | null;
+    // Harry Dry signals — used by synthesizer to filter clichés
+    identifiedCliches: string[];      // klişe kelimeler — synthesizer bunları raporda kullanmaz
+    challengerAlternatives: string[]; // pain-point'e vuran alternatif konumlandırmalar
+    ruthlessFeedbackCore: string;     // net eleştirinin tek cümle özeti
   } | null;
   blog: {
     philosophicalAlignmentScore: number; // 0-10

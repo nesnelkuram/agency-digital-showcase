@@ -75,6 +75,9 @@ function distillAgentOutputs(
       strongestBlindSpot: (challengerOutput.blindSpots[0] ?? '').slice(0, 120),
       topChallengePoints: challengerOutput.challengePoints.slice(0, 3),
       onlynessVerdict: challengerOutput.onlynessTest?.verdict ?? null,
+      identifiedCliches: challengerOutput.identifiedCliches ?? [],
+      challengerAlternatives: (challengerOutput.challengerAlternatives ?? []).slice(0, 2),
+      ruthlessFeedbackCore: (challengerOutput.ruthlessFeedback ?? '').slice(0, 150),
     } : null,
 
     blog: blogAdvisorOutput ? {
@@ -270,6 +273,10 @@ ${JSON.stringify(distilled, null, 2)}
 \`\`\`
 ${sectorSpecificContext ? `\n## Sektöre Özgü Veriler\n${sectorSpecificContext}` : ''}
 ${sourceUrlsList ? `\n## Araştırma Kaynakları\n${sourceUrlsList}` : ''}
+${distilled.challenger?.identifiedCliches?.length
+  ? `\n⚠️ KLİŞE ENGELİ — Challenger ajanı aşağıdaki kelimelerin stratejide JENERİK ve KANITSIZ kullanıldığını tespit etti. Nihai raporda bu kelimeleri KULLANMA ya da spesifik, kanıtlı bir bağlamda kullan:\nYasak kelimeler: ${distilled.challenger.identifiedCliches.join(', ')}\nChallenger'ın önerdiği alternatif konumlandırmalar: ${distilled.challenger.challengerAlternatives?.join(' | ') || 'yok'}`
+  : ''
+}
 
 ---
 
