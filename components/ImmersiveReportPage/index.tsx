@@ -17,6 +17,7 @@ import DigitalSection from './sections/DigitalSection';
 import RisksSection from './sections/RisksSection';
 import ActionSection from './sections/ActionSection';
 import IntibaSection from './sections/IntibaSection';
+import RealityCheckSection from './sections/RealityCheckSection';
 import type { SectionVisual } from './SectionBase';
 
 type Visuals = Record<string, SectionVisual>;
@@ -64,7 +65,7 @@ function formatDate(ts: any): string {
 }
 
 const SECTION_IDS = [
-  'cover', 'diagnosis', 'identity', 'narrative', 'strategy',
+  'cover', 'diagnosis', 'realitycheck', 'identity', 'narrative', 'strategy',
   'audience', 'journey', 'language', 'content',
   'market', 'digital', 'risks', 'action', 'intiba',
 ];
@@ -193,10 +194,21 @@ export default function ImmersiveReportPage() {
           />
         </SectionErrorBoundary>
 
-        {/* 3. Brand Identity */}
+        {/* 3. Reality Check */}
+        <SectionErrorBoundary name="RealityCheck">
+          <RealityCheckSection
+            index={2} total={TOTAL}
+            visual={visuals.realitycheck}
+            executiveSummary={(a as any)?.executiveSummary}
+            realityCheck={(a as any)?.realityCheck}
+            soWhatAnalysis={(a as any)?.soWhatAnalysis}
+          />
+        </SectionErrorBoundary>
+
+        {/* 4. Brand Identity */}
         <SectionErrorBoundary name="BrandIdentity">
           <BrandIdentitySection
-            index={2} total={TOTAL}
+            index={3} total={TOTAL}
             visual={visuals.identity}
             brandPersonality={a?.brandPersonality}
             brandCharacter={a?.brandCharacter}
@@ -208,10 +220,10 @@ export default function ImmersiveReportPage() {
           />
         </SectionErrorBoundary>
 
-        {/* 4. Narrative & Messaging */}
+        {/* 5. Narrative & Messaging */}
         <SectionErrorBoundary name="Narrative">
           <NarrativeSection
-            index={3} total={TOTAL}
+            index={4} total={TOTAL}
             visual={visuals.narrative}
             brandNarrative={a?.brandNarrative}
             emotionalNarrative={a?.emotionalNarrative}
@@ -219,30 +231,30 @@ export default function ImmersiveReportPage() {
           />
         </SectionErrorBoundary>
 
-        {/* 5. Strategic Depth */}
+        {/* 6. Strategic Depth */}
         <SectionErrorBoundary name="Strategy">
           <StrategySection
-            index={4} total={TOTAL}
+            index={5} total={TOTAL}
             visual={visuals.strategy}
             strategicDepth={a?.strategicDepth}
             strategyScenarios={a?.strategyScenarios}
           />
         </SectionErrorBoundary>
 
-        {/* 6. Audience & Positioning */}
+        {/* 7. Audience & Positioning */}
         <SectionErrorBoundary name="Audience">
           <AudienceSection
-            index={5} total={TOTAL}
+            index={6} total={TOTAL}
             visual={visuals.audience}
             positioning={a?.positioning}
             consumerTest={a?.consumerTest}
           />
         </SectionErrorBoundary>
 
-        {/* 7. Customer Journey */}
+        {/* 8. Customer Journey */}
         <SectionErrorBoundary name="Journey">
           <JourneySection
-            index={6} total={TOTAL}
+            index={7} total={TOTAL}
             visual={visuals.journey}
             customerJourney={a?.customerJourney as any[]}
             consumerTest={a?.consumerTest}
@@ -251,10 +263,10 @@ export default function ImmersiveReportPage() {
           />
         </SectionErrorBoundary>
 
-        {/* 8. Language, Message & Claim */}
+        {/* 9. Language, Message & Claim */}
         <SectionErrorBoundary name="Language">
           <LanguageSection
-            index={7} total={TOTAL}
+            index={8} total={TOTAL}
             visual={visuals.language}
             brandClaim={a?.brandClaim}
             contentStrategy={a?.contentStrategy}
@@ -262,10 +274,10 @@ export default function ImmersiveReportPage() {
           />
         </SectionErrorBoundary>
 
-        {/* 9. Content Strategy */}
+        {/* 10. Content Strategy */}
         <SectionErrorBoundary name="Content">
           <ContentSection
-            index={8} total={TOTAL}
+            index={9} total={TOTAL}
             visual={visuals.content}
             contentStrategy={a?.contentStrategy}
             socialMediaTemplates={a?.socialMediaTemplates as any[]}
@@ -273,10 +285,10 @@ export default function ImmersiveReportPage() {
           />
         </SectionErrorBoundary>
 
-        {/* 10. Market & Competition */}
+        {/* 11. Market & Competition */}
         <SectionErrorBoundary name="Market">
           <MarketSection
-            index={9} total={TOTAL}
+            index={10} total={TOTAL}
             visual={visuals.market}
             sectorResearch={a?.sectorResearch}
             competitorDiscovery={a?.competitorDiscovery}
@@ -285,20 +297,20 @@ export default function ImmersiveReportPage() {
           />
         </SectionErrorBoundary>
 
-        {/* 11. Digital Presence & Visual World */}
+        {/* 12. Digital Presence & Visual World */}
         <SectionErrorBoundary name="Digital">
           <DigitalSection
-            index={10} total={TOTAL}
+            index={11} total={TOTAL}
             visual={visuals.digital}
             digitalPresence={a?.digitalPresence}
             visualWorld={a?.visualWorld}
           />
         </SectionErrorBoundary>
 
-        {/* 12. Risks & Quality */}
+        {/* 13. Risks & Quality */}
         <SectionErrorBoundary name="Risks">
           <RisksSection
-            index={11} total={TOTAL}
+            index={12} total={TOTAL}
             visual={visuals.risks}
             riskMitigationPlans={a?.riskMitigationPlans as any[]}
             qualityMetrics={a?.qualityMetrics}
@@ -306,10 +318,10 @@ export default function ImmersiveReportPage() {
           />
         </SectionErrorBoundary>
 
-        {/* 13. Action Plan */}
+        {/* 14. Action Plan */}
         <SectionErrorBoundary name="Action">
           <ActionSection
-            index={12} total={TOTAL}
+            index={13} total={TOTAL}
             visual={visuals.action}
             actionPlan={a?.actionPlan}
             kpiFramework={a?.kpiFramework}
@@ -317,10 +329,10 @@ export default function ImmersiveReportPage() {
           />
         </SectionErrorBoundary>
 
-        {/* 14. Intiba Services */}
+        {/* 15. Intiba Services */}
         <SectionErrorBoundary name="Intiba">
           <IntibaSection
-            index={13} total={TOTAL}
+            index={14} total={TOTAL}
             visual={visuals.intiba}
             intibaEngagement={a?.intibaEngagement}
             intibaRoadmap={a?.intibaRoadmap}
