@@ -47,10 +47,10 @@ export default function CoverSection({
         backgroundImage: bgUrl, backgroundSize: 'cover', backgroundPosition: 'center',
         filter: isBgImage ? 'saturate(0.3) brightness(1.15)' : 'saturate(0.85) brightness(0.92)',
       }} />
-      {/* Overlay — light cream tint to keep text readable */}
+      {/* Overlay — hafif tint, fotoğraf görünsün */}
       <div style={{
         position: 'absolute', inset: 0, zIndex: 1,
-        background: 'linear-gradient(160deg, rgba(245,242,236,0.82) 0%, rgba(236,231,221,0.75) 100%)',
+        background: 'linear-gradient(160deg, rgba(245,242,236,0.52) 0%, rgba(236,231,221,0.45) 100%)',
       }} />
 
       {/* Header bar */}
@@ -124,22 +124,31 @@ export default function CoverSection({
           </motion.div>
         )}
 
-        {/* Business name — split on "/" */}
+        {/* Business name — subName (Design Floor) büyük, primaryName (Aslan Yapı) küçük */}
         <div style={{ marginBottom: 28 }}>
-          <h1 style={{
-            color: C.text, fontSize: 'clamp(34px, 6.5vw, 78px)',
-            fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1,
-            marginBottom: subName ? 10 : 0,
-          }}>
-            {primaryName}
-          </h1>
-          {subName && (
-            <div style={{
-              color: C.mid, fontSize: 'clamp(16px, 2.2vw, 28px)',
-              fontWeight: 400, letterSpacing: '-0.01em', lineHeight: 1.2,
+          {subName ? (
+            <>
+              <div style={{
+                color: C.faint, fontSize: 'clamp(12px, 1.4vw, 16px)',
+                fontWeight: 500, letterSpacing: '0.04em', marginBottom: 8, lineHeight: 1,
+              }}>
+                {primaryName}
+              </div>
+              <h1 style={{
+                color: C.text, fontSize: 'clamp(38px, 7vw, 88px)',
+                fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1,
+                margin: 0,
+              }}>
+                {subName}
+              </h1>
+            </>
+          ) : (
+            <h1 style={{
+              color: C.text, fontSize: 'clamp(34px, 6.5vw, 78px)',
+              fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1, margin: 0,
             }}>
-              {subName}
-            </div>
+              {primaryName}
+            </h1>
           )}
         </div>
 
