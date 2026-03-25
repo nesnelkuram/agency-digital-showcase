@@ -28,6 +28,7 @@ const AgentOfficeSimulator = lazy(() => import('./components/AgentOfficeSimulato
 const FeedbackSharePage = lazy(() => import('./components/FeedbackSharePage'));
 const AnalysisReportPage = lazy(() => import('./components/AnalysisReportPage'));
 const ImmersiveReportPage = lazy(() => import('./components/ImmersiveReportPage'));
+const CemilayHero = lazy(() => import('./components/CemilayHero'));
 const ContentPlanSharePage = lazy(() => import('./components/ContentPlanSharePage'));
 const ProposalSharePage = lazy(() => import('./components/ProposalSharePage'));
 
@@ -297,6 +298,16 @@ const App: React.FC = () => {
           element={
             <Suspense fallback={<div className="min-h-screen" style={{ background: '#f5f2ec' }} />}>
               <ImmersiveReportPage />
+            </Suspense>
+          }
+        />
+
+        {/* Cemilay Hero Slideshow */}
+        <Route
+          path="/cemilay"
+          element={
+            <Suspense fallback={<div style={{ height: '100vh', background: '#f5f0e8' }} />}>
+              <CemilayHero />
             </Suspense>
           }
         />
