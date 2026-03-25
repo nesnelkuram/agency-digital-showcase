@@ -1,5 +1,5 @@
 // Multi-Agent Brand Analysis Pipeline Types
-import type { EvidenceChain, FrameworkScore, SectionEvidence, EvidenceSummaryV2 } from './evidence';
+import type { EvidenceChain, FrameworkScore, EvidenceSummaryV2 } from './evidence';
 
 export interface BusinessContextInput {
   businessDescription?: string;
@@ -726,5 +726,85 @@ export interface PipelineState {
   intibaRoadmap?: IntibaRoadmap;
   errors: Array<{ agent: string; error: string; timestamp: number }>;
   timings: Record<string, number>;
+}
+
+// ─── Synthesizer Distilled Input ────────────────────────────────────────────
+// Compact representation of all agent decisions passed to strategySynthesizer.
+// Avoids "Lost in the Middle" syndrome by replacing verbose prose summaries
+// with dense, structured key-value data. Each agent contributes only its
+// final decision, confidence signal, and primary risk — not raw reasoning.
+
+export interface DistilledAgentView {
+  strategist: {
+    archetype: string;
+    archetypeConfidence: number;      // derived from Aaker framework score or default 5
+    positioningCore: string;          // max 120 chars
+    primarySegmentCore: string;       // max 100 chars
+    secondarySegmentCore: string;     // max 100 chars
+    differentiatorCore: string;       // max 100 chars
+    valueLevel: string;               // commodity/product/service/experience/transformation
+    topCompetitorGaps: string[];      // max 4 items: "RakipAdı: avantajımız"
+    customerProblem: { external: string; internal: string; philosophical: string } | null;
+    transformationStatement: string | null;
+    brandEnemy: string | null;
+    aakerDominantDimension: string | null; // highest-scoring Aaker dimension name
+  };
+  challenger: {
+    verdict: 'validated' | 'challenged' | 'rejected';
+    distinctivenessScore: number;     // 0-100
+    mainRisk: string;                 // max 120 chars
+    alternativeArchetype: string | null;
+    strongestBlindSpot: string;       // max 120 chars
+    topChallengePoints: string[];     // max 3 items
+    onlynessVerdict: 'strong' | 'weak' | 'generic' | null;
+  } | null;
+  blog: {
+    philosophicalAlignmentScore: number; // 0-10
+    topAlignedPrinciples: string[];      // max 3
+    topConflictingPrinciples: string[];  // max 2
+    topRecommendations: string[];        // max 3: "[alan] öneri"
+    contentPillars: string[];            // max 4
+    narrativeApproach: string;
+  } | null;
+  research: {
+    marketSignal: string;             // growth rate or maturity descriptor
+    marketSize: string;
+    topCompetitorNames: string[];     // max 5
+    mainOpportunity: string;          // max 120 chars
+    mainThreat: string;               // max 120 chars
+    topConsumerTrends: string[];      // max 3
+    dataConfidence: 'high' | 'medium' | 'low';
+    sourcesUsed: number;
+  } | null;
+  consumerTest: {
+    viabilityScore: number;           // 0-100
+    strongestFit: string;
+    weakestFit: string;
+    topRefinements: string[];         // max 3
+    topCrossPersonaConcerns: string[]; // max 2
+    marketReadiness: string;
+  } | null;
+  digital: {
+    overallScore: number;             // 0-10
+    maturityLevel: string;
+    topCriticalGaps: string[];        // max 3
+    topQuickWins: string[];           // max 3
+    websiteQuality: number | null;    // 0-10
+    websiteStrengths: string[];       // max 2
+    instagramEngagement: string | null;
+  } | null;
+  competitorLandscape: {
+    landscapeSummary: string;         // max 120 chars
+    marketConcentration: string;
+    topOpportunities: string[];       // max 3
+    topThreats: string[];             // max 3
+    digitalBenchmark: string;         // "avg web 6/10, avg social 10K"
+    topCompetitors: Array<{
+      name: string;
+      priceSegment: string;
+      mainStrength: string;
+      mainWeakness: string;
+    }>;                               // max 5
+  } | null;
 }
 

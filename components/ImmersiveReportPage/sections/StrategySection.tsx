@@ -93,7 +93,30 @@ export default function StrategySection({ index, total, visual, strategicDepth, 
               {strategicDepth?.culturalTension && (
                 <GlassCard style={{ flex: 1 }}>
                   <SectionTitle>Kültürel Gerilim</SectionTitle>
-                  <p style={{ color: C.mid, fontSize: 12, lineHeight: 1.55 }}>{strategicDepth.culturalTension}</p>
+                  {typeof strategicDepth.culturalTension === 'object' ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {strategicDepth.culturalTension.expectation && (
+                        <div>
+                          <div style={{ color: C.faint, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', marginBottom: 2 }}>Beklenti</div>
+                          <p style={{ color: C.mid, fontSize: 12, lineHeight: 1.5 }}>{strategicDepth.culturalTension.expectation}</p>
+                        </div>
+                      )}
+                      {strategicDepth.culturalTension.reality && (
+                        <div>
+                          <div style={{ color: C.faint, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', marginBottom: 2 }}>Gerçeklik</div>
+                          <p style={{ color: C.mid, fontSize: 12, lineHeight: 1.5 }}>{strategicDepth.culturalTension.reality}</p>
+                        </div>
+                      )}
+                      {strategicDepth.culturalTension.opportunity && (
+                        <div>
+                          <div style={{ color: C.pos, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', marginBottom: 2 }}>Fırsat</div>
+                          <p style={{ color: C.mid, fontSize: 12, lineHeight: 1.5 }}>{strategicDepth.culturalTension.opportunity}</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p style={{ color: C.mid, fontSize: 12, lineHeight: 1.55 }}>{strategicDepth.culturalTension}</p>
+                  )}
                 </GlassCard>
               )}
               {strategicDepth?.valueLevel && (

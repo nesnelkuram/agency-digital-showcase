@@ -33,7 +33,7 @@ export { fetchAndParseWebsite } from './utils/websiteFetcher';
 import './sectorEnrichment';
 export { startDeepResearch, pollDeepResearch } from './geminiClient';
 export { buildDeepResearchPrompt } from './agents/sectorResearch';
-export type { PipelineInput, NormalizedData, ResearchFindings, StrategistOutput, ChallengerOutput, BlogAdvisorOutput, SynthesizedAnalysis, DigitalPresenceAnalysis, CompetitorDiscoveryOutput, ConsumerTestOutput, ValueMaximizerOutput } from './types';
+export type { PipelineInput, NormalizedData, ResearchFindings, StrategistOutput, ChallengerOutput, BlogAdvisorOutput, SynthesizedAnalysis, DigitalPresenceAnalysis, CompetitorDiscoveryOutput, ConsumerTestOutput, ValueMaximizerOutput, DistilledAgentView } from './types';
 export type { EvidenceChain, FrameworkScore, SectionEvidence, EvidenceSummaryV2, ConfidenceLevel } from './evidence';
 export { buildEvidenceSummary, buildSectionEvidence, createEvidence, getConfidenceLevel } from './evidence';
 export { getSectorFrameworkConfig } from './sectorFrameworks';

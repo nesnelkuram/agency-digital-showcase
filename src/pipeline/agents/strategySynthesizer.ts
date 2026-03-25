@@ -1,8 +1,143 @@
 import { generateJSON } from '../geminiClient';
-import type { NormalizedData, ResearchFindings, StrategistOutput, ChallengerOutput, BlogAdvisorOutput, SynthesizedAnalysis, BusinessContextInput, DigitalPresenceAnalysis, CompetitorDiscoveryOutput, ConsumerTestOutput } from '../types';
+import type { NormalizedData, ResearchFindings, StrategistOutput, ChallengerOutput, BlogAdvisorOutput, SynthesizedAnalysis, BusinessContextInput, DigitalPresenceAnalysis, CompetitorDiscoveryOutput, ConsumerTestOutput, DistilledAgentView } from '../types';
 import { getSectorEnrichment } from '../sectorEnrichment';
 import { getSectorFrameworkConfig } from '../sectorFrameworks';
 import { FOGG_PROMPT_SNIPPET } from '../frameworks/fogg-behavior';
+
+// ─── Distillation Layer ───────────────────────────────────────────────────────
+// Condenses all agent outputs into a compact DistilledAgentView.
+// Each agent contributes only its final decision, confidence signal, and primary
+// risk — NOT raw reasoning text. This prevents "Lost in the Middle" degradation
+// when all outputs are concatenated into the synthesizer prompt.
+function distillAgentOutputs(
+  strategistOutput: StrategistOutput,
+  challengerOutput: ChallengerOutput | null,
+  blogAdvisorOutput: BlogAdvisorOutput | null,
+  researchFindings: ResearchFindings | null,
+  consumerTestResult: ConsumerTestOutput | null,
+  digitalPresence: DigitalPresenceAnalysis | null,
+  competitorDiscovery: CompetitorDiscoveryOutput | null,
+): DistilledAgentView {
+  // Determine dominant Aaker dimension
+  let aakerDominantDimension: string | null = null;
+  if (strategistOutput.aakerPersonality) {
+    const ap = strategistOutput.aakerPersonality;
+    const dims = [
+      { name: 'Samimiyet', score: ap.sincerity },
+      { name: 'Heyecan', score: ap.excitement },
+      { name: 'Yetkinlik', score: ap.competence },
+      { name: 'Sofistike', score: ap.sophistication },
+      { name: 'Sağlamlık', score: ap.ruggedness },
+    ];
+    aakerDominantDimension = dims.reduce((a, b) => (b.score > a.score ? b : a)).name;
+  }
+
+  // Strategist primary/secondary segment
+  const ta = strategistOutput.targetAudience;
+  const primarySegmentCore = (typeof ta === 'object'
+    ? `${ta.primarySegment?.demographics || ''} — ${ta.primarySegment?.behavioralProfile || ''}`
+    : String(ta)
+  ).slice(0, 100);
+  const secondarySegmentCore = (typeof ta === 'object'
+    ? `${ta.secondarySegment?.demographics || ''} — ${ta.secondarySegment?.behavioralProfile || ''}`
+    : ''
+  ).slice(0, 100);
+
+  // Aaker framework score for archetype confidence
+  const archetypeConfidence = strategistOutput._frameworkScores
+    ?.find(s => s.framework?.toLowerCase().includes('aaker'))?.score
+    ?? (strategistOutput.aakerPersonality ? 6 : 4);
+
+  const distilled: DistilledAgentView = {
+    strategist: {
+      archetype: strategistOutput.archetype,
+      archetypeConfidence,
+      positioningCore: strategistOutput.positioningStatement.slice(0, 120),
+      primarySegmentCore,
+      secondarySegmentCore,
+      differentiatorCore: strategistOutput.differentiator.slice(0, 100),
+      valueLevel: strategistOutput.valueLevel ?? 'product',
+      topCompetitorGaps: (strategistOutput.competitiveMap ?? [])
+        .slice(0, 4)
+        .map(c => `${c.competitorName}: avantaj=${c.ourAdvantage.slice(0, 60)}`),
+      customerProblem: strategistOutput.customerProblem ?? null,
+      transformationStatement: strategistOutput.transformationStatement ?? null,
+      brandEnemy: strategistOutput.brandEnemy ?? null,
+      aakerDominantDimension,
+    },
+
+    challenger: challengerOutput ? {
+      verdict: (challengerOutput.distinctivenessScore ?? 50) >= 60 ? 'validated'
+        : (challengerOutput.distinctivenessScore ?? 50) >= 30 ? 'challenged' : 'rejected',
+      distinctivenessScore: challengerOutput.distinctivenessScore ?? 50,
+      mainRisk: challengerOutput.riskAssessment.slice(0, 120),
+      alternativeArchetype: challengerOutput.alternativeArchetype || null,
+      strongestBlindSpot: (challengerOutput.blindSpots[0] ?? '').slice(0, 120),
+      topChallengePoints: challengerOutput.challengePoints.slice(0, 3),
+      onlynessVerdict: challengerOutput.onlynessTest?.verdict ?? null,
+    } : null,
+
+    blog: blogAdvisorOutput ? {
+      philosophicalAlignmentScore: blogAdvisorOutput.philosophicalAlignment.score,
+      topAlignedPrinciples: blogAdvisorOutput.philosophicalAlignment.alignedPrinciples.slice(0, 3),
+      topConflictingPrinciples: blogAdvisorOutput.philosophicalAlignment.conflictingPrinciples.slice(0, 2),
+      topRecommendations: blogAdvisorOutput.strategicRecommendations
+        .slice(0, 3)
+        .map(r => `[${r.area}] ${r.recommendation.slice(0, 80)}`),
+      contentPillars: blogAdvisorOutput.contentStrategyInsights.contentPillars.slice(0, 4),
+      narrativeApproach: blogAdvisorOutput.contentStrategyInsights.narrativeApproach,
+    } : null,
+
+    research: researchFindings && researchFindings.sourcesUsed !== 0 ? {
+      marketSignal: researchFindings.marketData.growthRate,
+      marketSize: researchFindings.marketData.marketSize,
+      topCompetitorNames: researchFindings.competitors.slice(0, 5).map(c => c.name),
+      mainOpportunity: (researchFindings.opportunities[0] ?? '').slice(0, 120),
+      mainThreat: (researchFindings.threats[0] ?? '').slice(0, 120),
+      topConsumerTrends: researchFindings.marketData.consumerTrends.slice(0, 3),
+      dataConfidence: researchFindings.sourcesUsed >= 5 ? 'high'
+        : researchFindings.sourcesUsed >= 2 ? 'medium' : 'low',
+      sourcesUsed: researchFindings.sourcesUsed,
+    } : null,
+
+    consumerTest: consumerTestResult ? {
+      viabilityScore: consumerTestResult.overallViabilityScore,
+      strongestFit: consumerTestResult.strongestFit,
+      weakestFit: consumerTestResult.weakestFit,
+      topRefinements: (consumerTestResult.strategyRefinements ?? []).slice(0, 3),
+      topCrossPersonaConcerns: (consumerTestResult.crossPersonaConcerns ?? []).slice(0, 2),
+      marketReadiness: consumerTestResult.marketReadiness,
+    } : null,
+
+    digital: digitalPresence ? {
+      overallScore: digitalPresence.overallDigitalScore,
+      maturityLevel: digitalPresence.digitalMaturityLevel,
+      topCriticalGaps: (digitalPresence.criticalGaps ?? []).slice(0, 3),
+      topQuickWins: (digitalPresence.quickWins ?? []).slice(0, 3),
+      websiteQuality: digitalPresence.website?.designQuality ?? null,
+      websiteStrengths: (digitalPresence.website?.strengths ?? []).slice(0, 2),
+      instagramEngagement: digitalPresence.instagram?.engagementLevel ?? null,
+    } : null,
+
+    competitorLandscape: competitorDiscovery ? {
+      landscapeSummary: competitorDiscovery.competitiveLandscapeSummary.slice(0, 120),
+      marketConcentration: competitorDiscovery.marketConcentration,
+      topOpportunities: (competitorDiscovery.competitiveOpportunities ?? []).slice(0, 3),
+      topThreats: (competitorDiscovery.competitiveThreats ?? []).slice(0, 3),
+      digitalBenchmark: `web kalite ort. ${competitorDiscovery.digitalBenchmark?.avgWebsiteQuality ?? 'N/A'}/10, sosyal ort. ${competitorDiscovery.digitalBenchmark?.avgSocialFollowing ?? 'N/A'}`,
+      topCompetitors: [...competitorDiscovery.knownCompetitors, ...competitorDiscovery.discoveredCompetitors]
+        .slice(0, 5)
+        .map(c => ({
+          name: c.name,
+          priceSegment: c.priceSegment,
+          mainStrength: (c.strengths[0] ?? '').slice(0, 60),
+          mainWeakness: (c.weaknesses[0] ?? '').slice(0, 60),
+        })),
+    } : null,
+  };
+
+  return distilled;
+}
 
 export async function runStrategySynthesizer(
   normalizedData: NormalizedData,
@@ -17,114 +152,20 @@ export async function runStrategySynthesizer(
   adminNotes?: string,
 ): Promise<SynthesizedAnalysis> {
 
-  // Format target audience from strategist (segments, not personas)
-  const taSegments = strategistOutput.targetAudience;
-  const targetAudienceSummary = typeof taSegments === 'string'
-    ? taSegments
-    : `Birincil Segment: ${taSegments.primarySegment?.demographics || 'N/A'} — ${taSegments.primarySegment?.behavioralProfile || ''}\nIkincil Segment: ${taSegments.secondarySegment?.demographics || 'N/A'} — ${taSegments.secondarySegment?.behavioralProfile || ''}`;
+  // Build distilled view — replaces all verbose prose summary blocks
+  const distilled = distillAgentOutputs(
+    strategistOutput,
+    challengerOutput,
+    blogAdvisorOutput,
+    researchFindings,
+    consumerTestResult ?? null,
+    digitalPresence ?? null,
+    competitorDiscovery ?? null,
+  );
 
-  // Format value proposition reasoning
-  const vpReasoning = strategistOutput.valuePropositionReasoning;
-  const vpSummary = vpReasoning
-    ? `\n- Urun/Hizmet: ${vpReasoning.whatBusinessProduces}\n- Temel Fayda: ${vpReasoning.coreBenefit}\n- Kimin Icin: ${vpReasoning.whoBenefits}\n- Fiyat Konumlandirmasi: ${vpReasoning.pricePositioning}\n- Odemeye Istekli Profil: ${vpReasoning.willingToPayProfile}`
-    : '';
-
-  // Build strategist summary
-  const strategistSummary = `
-### Strateji Uzmani Onerisi
-- Arketip: ${strategistOutput.archetype}
-- Gerekce: ${strategistOutput.archetypeRationale}
-- Kisilik Ozellikleri: ${strategistOutput.traits.join(', ')}
-- Iletisim Tonu: ${strategistOutput.tone}
-- Marka Sesi: ${strategistOutput.voice}
-- Konumlandirma: ${strategistOutput.positioningStatement}${vpSummary}
-- Hedef Kitle: ${targetAudienceSummary}
-- Farklilik: ${strategistOutput.differentiator}
-- Rekabet Avantaji: ${strategistOutput.competitiveAdvantage}`;
-
-  // Build competitive map summary
-  let competitiveMapSummary = '';
-  if (strategistOutput.competitiveMap && strategistOutput.competitiveMap.length > 0) {
-    competitiveMapSummary = `\n\n### Rekabet Haritasi\n` +
-      strategistOutput.competitiveMap.map((cm) =>
-        `- vs ${cm.competitorName}: Avantajimiz: ${cm.ourAdvantage} | Dezavantajimiz: ${cm.ourWeakness}`
-      ).join('\n');
-  }
-
-  // Build challenger summary (if available)
-  let challengerSummary = '';
-  if (challengerOutput) {
-    challengerSummary = `
-
-### Seytan Avukati Karsi-Analizi
-- Karsi Pozisyon: ${challengerOutput.counterPosition}
-- Alternatif Arketip: ${challengerOutput.alternativeArchetype}
-- Alternatif Arketip Gerekce: ${challengerOutput.alternativeArchetypeRationale}
-- Elestiri Noktalari:
-${challengerOutput.challengePoints.map((p) => `  - ${p}`).join('\n')}
-- Alternatif Konumlandirmalar:
-${challengerOutput.alternativePositionings.map((p) => `  - ${p}`).join('\n')}
-- Risk Degerlendirmesi: ${challengerOutput.riskAssessment}
-- Kor Noktalar:
-${challengerOutput.blindSpots.map((b) => `  - ${b}`).join('\n')}`;
-  }
-
-  // Build blog advisor summary (if available)
-  let blogAdvisorSummary = '';
-  if (blogAdvisorOutput) {
-    blogAdvisorSummary = `
-
-### Stratejik Felsefe Degerlendirmesi
-- Felsefi Uyum Skoru: ${blogAdvisorOutput.philosophicalAlignment.score}/10
-- Gerekce: ${blogAdvisorOutput.philosophicalAlignment.rationale}
-- Uyumlu Prensipler: ${blogAdvisorOutput.philosophicalAlignment.alignedPrinciples.join('; ') || 'Yok'}
-- Celisen Prensipler: ${blogAdvisorOutput.philosophicalAlignment.conflictingPrinciples.join('; ') || 'Yok'}
-- Stratejik Oneriler:
-${blogAdvisorOutput.strategicRecommendations.map((r) => `  - [${r.area}] ${r.recommendation}`).join('\n')}
-- Icerik Stratejisi:
-  - Ton Uyumu: ${blogAdvisorOutput.contentStrategyInsights.toneAlignment}
-  - Icerik Sutunlari: ${blogAdvisorOutput.contentStrategyInsights.contentPillars.join(', ')}
-  - Anlati Yaklasimi: ${blogAdvisorOutput.contentStrategyInsights.narrativeApproach}
-- Stratejik Perspektif: ${blogAdvisorOutput.authorPerspective}
-- Alternatif Icgoruler:
-${blogAdvisorOutput.unconventionalInsights.map((i) => `  - ${i}`).join('\n')}`;
-  }
-
-  // Build rich research context (if available)
-  let researchContext = '';
-  let sourceUrlsList = '';
-  const hasResearch = researchFindings && researchFindings.sourcesUsed !== 0;
-  if (hasResearch) {
-    const competitorNames = researchFindings.competitors.map((c) => `${c.name}${c.website ? ` (${c.website})` : ''}`).join(', ');
-    const marketInfo = researchFindings.marketData;
-    const audience = researchFindings.targetAudienceInsights;
-
-    researchContext = `
-
-## Sektor Arastirmasi Verileri (Gercek Web Kaynaklari)
-- Rakipler: ${competitorNames || 'Bilgi yok'}
-- Pazar Buyuklugu: ${marketInfo.marketSize}
-- Buyume Hizi: ${marketInfo.growthRate}
-- Tuketici Trendleri: ${marketInfo.consumerTrends.join('; ') || 'Bilgi yok'}
-- Hedef Kitle Demografisi: ${audience.demographics}
-- Hedef Kitle Ihtiyaclari: ${audience.painPoints.join('; ') || 'Bilgi yok'}
-- Firsatlar: ${researchFindings.opportunities.join('; ') || 'Bilgi yok'}
-- Tehditler: ${researchFindings.threats.join('; ') || 'Bilgi yok'}
-- Sektor Standartlari: ${researchFindings.sectorBenchmarks.join('; ') || 'Bilgi yok'}
-- Kullanilan Kaynak Sayisi: ${researchFindings.sourcesUsed}`;
-
-    if (researchFindings.sourceUrls && researchFindings.sourceUrls.length > 0) {
-      sourceUrlsList = researchFindings.sourceUrls
-        .slice(0, 20)
-        .map((s) => `  - ${s.title}: ${s.url}`)
-        .join('\n');
-    }
-  }
-
-  // Sector-specific data injection via enrichment module
+  // Sector-specific data injection via enrichment module (kept as-is — sector context is authoritative)
   let sectorSpecificContext = '';
   const sectorEnrichment = getSectorEnrichment(normalizedData.sector);
-  // Sector framework configuration for perceptual map and priority frameworks
   const sectorFrameworkConfig = getSectorFrameworkConfig(normalizedData.sector);
   if (sectorEnrichment && researchFindings) {
     const sectorData = (researchFindings as any)[sectorEnrichment.dataFieldName];
@@ -133,63 +174,13 @@ ${blogAdvisorOutput.unconventionalInsights.map((i) => `  - ${i}`).join('\n')}`;
     }
   }
 
-  // Build digital presence context (if available)
-  let digitalPresenceContext = '';
-  if (digitalPresence) {
-    const parts: string[] = [];
-    if (digitalPresence.website && digitalPresence.website.status === 'analyzed') {
-      const w = digitalPresence.website;
-      parts.push(`Web Sitesi (${w.url}): Tasarim kalitesi ${w.designQuality}/10. ${w.overallImpression}`);
-      if (w.products?.length > 0) parts.push(`  Urunler: ${w.products.slice(0, 5).map(p => `${p.name}${p.price ? ` (${p.price})` : ''}`).join(', ')}`);
-      if (w.strengths?.length > 0) parts.push(`  Web Guclu: ${w.strengths.join('; ')}`);
-      if (w.weaknesses?.length > 0) parts.push(`  Web Zayif: ${w.weaknesses.join('; ')}`);
-    }
-    if (digitalPresence.instagram && digitalPresence.instagram.status === 'analyzed') {
-      const ig = digitalPresence.instagram;
-      parts.push(`Instagram (@${ig.handle}): Etkilesim ${ig.engagementLevel}, paylasim sikligi ${ig.postingFrequency || 'bilinmiyor'}, gorsel tarzi: ${ig.visualStyle}`);
-      if (ig.contentThemes?.length > 0) parts.push(`  Icerik temalari: ${ig.contentThemes.join(', ')}`);
-      if (ig.strengths?.length > 0) parts.push(`  IG Guclu: ${ig.strengths.join('; ')}`);
-      if (ig.weaknesses?.length > 0) parts.push(`  IG Zayif: ${ig.weaknesses.join('; ')}`);
-    }
-    parts.push(`Dijital Olgunluk: ${digitalPresence.digitalMaturityLevel} (${digitalPresence.overallDigitalScore}/10)`);
-    if (digitalPresence.criticalGaps?.length > 0) parts.push(`Kritik Eksikler: ${digitalPresence.criticalGaps.join('; ')}`);
-    if (digitalPresence.quickWins?.length > 0) parts.push(`Hizli Kazanimlar: ${digitalPresence.quickWins.join('; ')}`);
-    digitalPresenceContext = `\n\n## Dijital Varlik Analizi\n${parts.join('\n')}`;
-  }
-
-  // Build competitor discovery context (if available)
-  let competitorDiscoveryContext = '';
-  if (competitorDiscovery) {
-    const allCompetitors = [...competitorDiscovery.knownCompetitors, ...competitorDiscovery.discoveredCompetitors];
-    const competitorLines = allCompetitors.slice(0, 10).map(c =>
-      `- ${c.name} (${c.source}): ${c.positioning}. Fiyat: ${c.priceSegment}. Dijital: ${c.digitalPresenceScore}/10. Guclu: ${(c.strengths || []).slice(0, 2).join(', ')}. Zayif: ${(c.weaknesses || []).slice(0, 2).join(', ')}`
-    ).join('\n');
-    competitorDiscoveryContext = `\n\n## Genisletilmis Rakip Analizi (${allCompetitors.length} rakip)
-Rekabet Ortami: ${competitorDiscovery.competitiveLandscapeSummary}
-Pazar Yogunlugu: ${competitorDiscovery.marketConcentration}
-${competitorLines}
-Giris Engelleri: ${competitorDiscovery.entryBarriers?.join('; ') || 'Bilgi yok'}
-Firsatlar: ${competitorDiscovery.competitiveOpportunities?.join('; ') || 'Bilgi yok'}
-Dijital Benchmark: Web kalite ort. ${competitorDiscovery.digitalBenchmark?.avgWebsiteQuality ?? 'N/A'}/10, Sosyal medya ort. ${competitorDiscovery.digitalBenchmark?.avgSocialFollowing ?? 'N/A'}`;
-  }
-
-  // Build consumer test context (if available)
-  let consumerTestContext = '';
-  if (consumerTestResult) {
-    const personaSummaries = consumerTestResult.personas?.slice(0, 4).map((p) =>
-      `- ${p.personaLabel} (${p.demographics}): Uyum=${p.fitScore}/10. Guclu: ${(p.fitReasons || []).slice(0, 2).join('; ')}. Zayif: ${(p.gapReasons || []).slice(0, 2).join('; ')}`
-    ).join('\n') || '';
-    const jtbdSummaries = consumerTestResult.jtbdScenarios?.slice(0, 4).map((j) =>
-      `- "${j.jobStatement}" (Oncelik: ${j.priority}): ${j.currentSolution} → ${j.brandFit}`
-    ).join('\n') || '';
-    consumerTestContext = `\n\n## Tuketici Testi Sonuclari (Sanal Persona Dogrulamasi)
-- Genel Uygulanabilirlik Skoru: ${consumerTestResult.overallViabilityScore}/100
-- En Guclu Uyum: ${consumerTestResult.strongestFit}
-- En Zayif Uyum: ${consumerTestResult.weakestFit}
-${personaSummaries ? `\n### Persona Uyum Analizi\n${personaSummaries}` : ''}
-${jtbdSummaries ? `\n### JTBD Senaryolari (Jobs-to-be-Done)\n${jtbdSummaries}` : ''}
-${consumerTestResult.crossPersonaConcerns?.length ? `\n### Capraz Persona Kaygilari\n${consumerTestResult.crossPersonaConcerns.map(c => `- ${c}`).join('\n')}` : ''}
-${consumerTestResult.strategyRefinements?.length ? `\n### Strateji Iyilestirme Onerileri\n${consumerTestResult.strategyRefinements.map(r => `- ${r}`).join('\n')}` : ''}`;
+  // Source URLs — kept separately for evidence section (not part of distilled)
+  let sourceUrlsList = '';
+  if (researchFindings?.sourceUrls?.length) {
+    sourceUrlsList = researchFindings.sourceUrls
+      .slice(0, 10)
+      .map((s) => `  - ${s.title}: ${s.url}`)
+      .join('\n');
   }
 
   const expertCount = 1 + (challengerOutput ? 1 : 0) + (blogAdvisorOutput ? 1 : 0) + (consumerTestResult ? 1 : 0);
@@ -270,17 +261,15 @@ ${bc.futureVision ? `- 3 Yıllık Vizyon: ${bc.futureVision}` : ''}
 - Veri Kalitesi: ${normalizedData.dataQualityScore}
 - Tespit Edilen Oruntular: ${normalizedData.detectedPatterns.join('; ') || 'Yok'}
 ${businessContextSection}${adminNotesBlock}${maturityContext}
-## Uzman Gorusleri
-${strategistSummary}
-${competitiveMapSummary}
-${challengerSummary}
-${blogAdvisorSummary}
-${researchContext}${sectorSpecificContext}
-${digitalPresenceContext}
-${competitorDiscoveryContext}
-${consumerTestContext}
+## Ajan Kararları (Distilled Intelligence)
+Her ajanın nihai kararı, güven sinyali ve birincil riski aşağıdaki yapısal formatta sunulmuştur.
+Uzun gerekçeler yerine karar + kanıt + risk odaklı bu veriyi sentezle.
 
-${sourceUrlsList ? `## Arastirma Kaynaklari\n${sourceUrlsList}` : ''}
+\`\`\`json
+${JSON.stringify(distilled, null, 2)}
+\`\`\`
+${sectorSpecificContext ? `\n## Sektöre Özgü Veriler\n${sectorSpecificContext}` : ''}
+${sourceUrlsList ? `\n## Araştırma Kaynakları\n${sourceUrlsList}` : ''}
 
 ---
 
