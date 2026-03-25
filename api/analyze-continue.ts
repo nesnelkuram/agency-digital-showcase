@@ -19,6 +19,7 @@ import {
   runDeliverableEnricher,
   generateIntibaRoadmap,
   buildPipelineEvidence,
+  runFrictionAnalyzer,
 } from './_bundles/pipeline-bundle.mjs';
 import {
   loadCheckpoint,
@@ -424,20 +425,23 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
     let challengerOutput = (hasCheckpoint && cp?.challengerOutput) || null;
     let blogAdvisorOutput = (hasCheckpoint && cp?.blogAdvisorOutput) || null;
     let consumerTestResult = (hasCheckpoint && cp?.consumerTest) || null;
+    let frictionAnalysisResult = (hasCheckpoint && cp?.frictionAnalysis) || null;
 
     if (challengerOutput) { console.log('analyze-continue: Using checkpointed challengerOutput'); agentsRun.push('brandChallenger'); }
     if (blogAdvisorOutput) { console.log('analyze-continue: Using checkpointed blogAdvisorOutput'); agentsRun.push('blogStrategyAdvisor'); }
     if (consumerTestResult) { console.log('analyze-continue: Using checkpointed consumerTest'); agentsRun.push('consumerTest'); }
+    if (frictionAnalysisResult) { console.log('analyze-continue: Using checkpointed frictionAnalysis'); agentsRun.push('frictionAnalyzer'); }
 
     const needsChallenger = !challengerOutput;
     const needsBlog = !blogAdvisorOutput;
     const needsConsumerTest = !consumerTestResult;
+    const needsFriction = !frictionAnalysisResult;
 
-    if ((needsChallenger || needsBlog || needsConsumerTest) && remaining() > 30_000) {
+    if ((needsChallenger || needsBlog || needsConsumerTest || needsFriction) && remaining() > 30_000) {
       const parallelStart = Date.now();
-      console.log(`analyze-continue: Running parallel group 2 — challenger=${needsChallenger}, blog=${needsBlog}, consumerTest=${needsConsumerTest}`);
+      console.log(`analyze-continue: Running parallel group 2 — challenger=${needsChallenger}, blog=${needsBlog}, consumerTest=${needsConsumerTest}, friction=${needsFriction}`);
 
-      const [challResult, blogResult, ctResult] = await Promise.all([
+      const [challResult, blogResult, ctResult, frictionResult] = await Promise.all([
         (async () => {
           if (!needsChallenger) return challengerOutput;
           if (runId) await markAgentRunning(effectiveLeadId, runId, 'brandChallenger');
@@ -501,18 +505,45 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
             return null;
           }
         })(),
+        // Friction Analyzer: triangulates client beliefs vs. digital reality vs. market data
+        (async () => {
+          if (!needsFriction) return frictionAnalysisResult;
+          if (remaining() < 20_000) {
+            if (runId) await markAgentSkipped(effectiveLeadId, runId, 'frictionAnalyzer');
+            console.log(`analyze-continue: SKIPPING frictionAnalyzer — remaining=${remaining()}ms`);
+            return null;
+          }
+          if (runId) await markAgentRunning(effectiveLeadId, runId, 'frictionAnalyzer');
+          const s = Date.now();
+          try {
+            const r = await runFrictionAnalyzer(normalizedData, researchFindings, strategistOutput, digitalPresence, input.businessContext);
+            timings.frictionAnalyzer = Date.now() - s;
+            agentsRun.push('frictionAnalyzer');
+            if (runId) await checkpointAgent(effectiveLeadId, runId, 'frictionAnalyzer', 'frictionAnalysis', r, timings.frictionAnalyzer);
+            console.log(`analyze-continue: frictionAnalyzer done in ${timings.frictionAnalyzer}ms — insights=${r?.strategicInsights?.length}`);
+            return r;
+          } catch (error: any) {
+            timings.frictionAnalyzer = Date.now() - s;
+            errors.push({ agent: 'frictionAnalyzer', error: error.message, timestamp: Date.now() });
+            if (runId) await markAgentFailed(effectiveLeadId, runId, 'frictionAnalyzer', error.message, timings.frictionAnalyzer);
+            console.error(`analyze-continue: frictionAnalyzer failed in ${timings.frictionAnalyzer}ms: ${error.message}`);
+            return null;
+          }
+        })(),
       ]);
 
       challengerOutput = challResult;
       blogAdvisorOutput = blogResult;
       consumerTestResult = ctResult;
-      console.log(`analyze-continue: parallel group 2 done in ${Date.now() - parallelStart}ms — challenger=${!!challResult}, blogAdvisor=${!!blogResult}, consumerTest=${!!ctResult}`);
+      frictionAnalysisResult = frictionResult;
+      console.log(`analyze-continue: parallel group 2 done in ${Date.now() - parallelStart}ms — challenger=${!!challResult}, blogAdvisor=${!!blogResult}, consumerTest=${!!ctResult}, friction=${!!frictionResult}`);
     } else if (needsChallenger && needsBlog) {
       console.log(`analyze-continue: SKIPPING challenger+blogAdvisor+consumerTest — remaining=${remaining()}ms`);
       if (runId) {
         await markAgentSkipped(effectiveLeadId, runId, 'brandChallenger');
         await markAgentSkipped(effectiveLeadId, runId, 'blogStrategyAdvisor');
         await markAgentSkipped(effectiveLeadId, runId, 'consumerTest');
+        await markAgentSkipped(effectiveLeadId, runId, 'frictionAnalyzer');
       }
     }
 
@@ -609,7 +640,7 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
           if (runId) await markAgentRunning(effectiveLeadId, runId, 'strategySynthesizer');
           const synthStart = Date.now();
           try {
-            const result = await runStrategySynthesizer(normalizedData, researchFindings, effectiveStrategistOutput, challengerOutput, blogAdvisorOutput, input.businessContext, digitalPresence, competitorDiscovery, consumerTestResult, effectiveAdminNotes || input.adminNotes);
+            const result = await runStrategySynthesizer(normalizedData, researchFindings, effectiveStrategistOutput, challengerOutput, blogAdvisorOutput, input.businessContext, digitalPresence, competitorDiscovery, consumerTestResult, effectiveAdminNotes || input.adminNotes, frictionAnalysisResult);
             timings.strategySynthesizer = Date.now() - synthStart;
             agentsRun.push('strategySynthesizer');
             if (runId) await checkpointAgent(effectiveLeadId, runId, 'strategySynthesizer', 'synthesizedAnalysis', result, timings.strategySynthesizer);

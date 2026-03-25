@@ -28,12 +28,13 @@ export { runBrandStrategistRevision } from './agents/brandStrategistRevision';
 export { runConsumerTest } from './agents/consumerTest';
 export { runDeliverableEnricher } from './agents/deliverableEnricher';
 export { runStrategyHealthComparator } from './agents/strategyHealthComparator';
+export { runFrictionAnalyzer } from './agents/frictionAnalyzer';
 export { fetchAndParseWebsite } from './utils/websiteFetcher';
 // Ensure sector enrichment modules are registered
 import './sectorEnrichment';
 export { startDeepResearch, pollDeepResearch } from './geminiClient';
 export { buildDeepResearchPrompt } from './agents/sectorResearch';
-export type { PipelineInput, NormalizedData, ResearchFindings, StrategistOutput, ChallengerOutput, BlogAdvisorOutput, SynthesizedAnalysis, DigitalPresenceAnalysis, CompetitorDiscoveryOutput, ConsumerTestOutput, ValueMaximizerOutput, DistilledAgentView } from './types';
+export type { PipelineInput, NormalizedData, ResearchFindings, StrategistOutput, ChallengerOutput, BlogAdvisorOutput, SynthesizedAnalysis, DigitalPresenceAnalysis, CompetitorDiscoveryOutput, ConsumerTestOutput, ValueMaximizerOutput, DistilledAgentView, FrictionAnalysis, StrategicInsight } from './types';
 export type { EvidenceChain, FrameworkScore, SectionEvidence, EvidenceSummaryV2, ConfidenceLevel } from './evidence';
 export { buildEvidenceSummary, buildSectionEvidence, createEvidence, getConfidenceLevel } from './evidence';
 export { getSectorFrameworkConfig } from './sectorFrameworks';

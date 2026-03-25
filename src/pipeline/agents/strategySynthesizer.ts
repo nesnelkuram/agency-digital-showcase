@@ -1,5 +1,5 @@
 import { generateJSON } from '../geminiClient';
-import type { NormalizedData, ResearchFindings, StrategistOutput, ChallengerOutput, BlogAdvisorOutput, SynthesizedAnalysis, BusinessContextInput, DigitalPresenceAnalysis, CompetitorDiscoveryOutput, ConsumerTestOutput, DistilledAgentView } from '../types';
+import type { NormalizedData, ResearchFindings, StrategistOutput, ChallengerOutput, BlogAdvisorOutput, SynthesizedAnalysis, BusinessContextInput, DigitalPresenceAnalysis, CompetitorDiscoveryOutput, ConsumerTestOutput, DistilledAgentView, FrictionAnalysis } from '../types';
 import { getSectorEnrichment } from '../sectorEnrichment';
 import { getSectorFrameworkConfig } from '../sectorFrameworks';
 import { FOGG_PROMPT_SNIPPET } from '../frameworks/fogg-behavior';
@@ -17,6 +17,7 @@ function distillAgentOutputs(
   consumerTestResult: ConsumerTestOutput | null,
   digitalPresence: DigitalPresenceAnalysis | null,
   competitorDiscovery: CompetitorDiscoveryOutput | null,
+  frictionAnalysis: FrictionAnalysis | null,
 ): DistilledAgentView {
   // Determine dominant Aaker dimension
   let aakerDominantDimension: string | null = null;
@@ -137,6 +138,19 @@ function distillAgentOutputs(
           mainWeakness: (c.weaknesses[0] ?? '').slice(0, 60),
         })),
     } : null,
+
+    friction: frictionAnalysis ? {
+      biggestIllusion: frictionAnalysis.biggestIllusion,
+      opportunityCost: frictionAnalysis.opportunityCost,
+      criticalInsights: frictionAnalysis.strategicInsights
+        .filter(i => i.urgency === 'critical')
+        .slice(0, 2)
+        .map(i => ({
+          clientBelief: i.clientBelief.slice(0, 80),
+          theInsight: i.theInsight.slice(0, 100),
+          strategicPivot: i.strategicPivot.slice(0, 100),
+        })),
+    } : null,
   };
 
   return distilled;
@@ -153,6 +167,7 @@ export async function runStrategySynthesizer(
   competitorDiscovery?: CompetitorDiscoveryOutput | null,
   consumerTestResult?: ConsumerTestOutput | null,
   adminNotes?: string,
+  frictionAnalysis?: FrictionAnalysis | null,
 ): Promise<SynthesizedAnalysis> {
 
   // Build distilled view — replaces all verbose prose summary blocks
@@ -164,6 +179,7 @@ export async function runStrategySynthesizer(
     consumerTestResult ?? null,
     digitalPresence ?? null,
     competitorDiscovery ?? null,
+    frictionAnalysis ?? null,
   );
 
   // Sector-specific data injection via enrichment module (kept as-is — sector context is authoritative)
@@ -540,7 +556,18 @@ Tum verileri sentezleyerek asagidaki JSON yapisinda NIHAI marka stratejisi rapor
         "note": "Gorsel uzerine eklenen metin"
       }
     ]
-  }
+  },
+  "strategicInsights": [
+    {
+      "clientBelief": "Müşteri neye inanıyor (beyan veya örüntü kaynağı)",
+      "marketReality": "Veri/dijital/araştırma gerçekte ne gösteriyor",
+      "theInsight": "Tek net 'Aha!' cümlesi — soyut değil, somut",
+      "strategicPivot": "Bu yüzden şunu yap: somut, ölçülebilir eylem (rakip adı veya rakam içermeli)",
+      "evidenceSources": ["wizard", "digital", "research", "competitor"],
+      "urgency": "critical",
+      "opportunityCostHint": "Bu inanç yüzünden kaybedilen somut fırsat (yoksa null)"
+    }
+  ]
 }
 
 KRITIK KURALLAR — BU KURALLARA UYMAYAN RAPOR BASARISIZ SAYILIR:
@@ -579,6 +606,19 @@ KRITIK KURALLAR — BU KURALLARA UYMAYAN RAPOR BASARISIZ SAYILIR:
 
 9. Tum metinler TURKCE olmali.
 10. Sadece JSON don, baska bir sey yazma.
+
+${distilled.friction ? `
+27. ÜÇGENLEME İÇGÖRÜLERİ (strategicInsights): Friction analyzer ajanı müşterinin inançları ile gerçek pazar verilerini çarpıştırarak şu "Aha!" anlarını tespit etti:
+En kritik illüzyon: "${distilled.friction.biggestIllusion}"
+Fırsat maliyeti: "${distilled.friction.opportunityCost}"
+${distilled.friction.criticalInsights.length > 0 ? `Kritik içgörüler:\n${distilled.friction.criticalInsights.map(i => `  - İnanç: ${i.belief} → Gerçek: ${i.reality} → Pivot: ${i.pivot}`).join('\n')}` : ''}
+
+BU İÇGÖRÜLERİ "strategicInsights" dizisine ekle. Her içgörü:
+- "theInsight" tek net "Aha!" cümlesi olmalı — soyut değil, somut
+- "strategicPivot" yarın uygulanabilir bir eylem — rakip adı veya rakam içermeli
+- "So What?" filtresi: "Bu bu müşteri için ne anlama geliyor?" sorusu her içgörüde zaten cevaplanmış olmalı
+- "urgency" alanı "critical", "important" veya "useful" olmalı` : `
+27. STRATEJİK İÇGÖRÜLER (strategicInsights): Üçgenleme ajanı mevcut değil. Strateji uzmanı ve challenger çıktılarından kendi "Aha!" içgörülerini üret. Her içgörü müşterinin neye inandığını ve gerçekte ne olduğunu çarpıştırmalı.`}
 
 ${budgetCalibration}${stageCalibration}${digitalCalibration}${triggerCalibration}
 ${maturity ? `
@@ -814,5 +854,26 @@ ${maturity.level === 'mature' ? '- MATURE ise: buyume stratejisi, topluluk olust
             : [],
         }
       : undefined,
+    strategicInsights: (() => {
+      // First try: synthesizer's own output (enriched/refined)
+      if (Array.isArray(parsed.strategicInsights) && parsed.strategicInsights.length > 0) {
+        return parsed.strategicInsights
+          .filter((i: any) => i.clientBelief && i.theInsight && i.strategicPivot)
+          .map((i: any) => ({
+            clientBelief: String(i.clientBelief || ''),
+            marketReality: String(i.marketReality || ''),
+            theInsight: String(i.theInsight || ''),
+            strategicPivot: String(i.strategicPivot || ''),
+            evidenceSources: Array.isArray(i.evidenceSources) ? i.evidenceSources : ['wizard'],
+            urgency: (['critical', 'important', 'useful'].includes(i.urgency) ? i.urgency : 'important') as 'critical' | 'important' | 'useful',
+            opportunityCostHint: i.opportunityCostHint || undefined,
+          }));
+      }
+      // Fallback: use raw frictionAnalysis insights
+      if (frictionAnalysis && frictionAnalysis.strategicInsights.length > 0) {
+        return frictionAnalysis.strategicInsights;
+      }
+      return undefined;
+    })(),
   };
 }
