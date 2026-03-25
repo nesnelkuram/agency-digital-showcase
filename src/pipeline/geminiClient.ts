@@ -11,8 +11,8 @@ export interface GroundedResponse {
 }
 
 const MODEL_IDS: Record<ModelTier, string> = {
-  flash: 'gemini-2.0-flash',
-  pro: 'gemini-3-pro-preview',
+  flash: 'gemini-2.5-flash-preview-05-20',
+  pro: 'gemini-2.5-pro-preview-05-06',
 };
 
 let _client: GoogleGenAI | null = null;
@@ -52,8 +52,7 @@ export async function generateJSON<T>(
       topP: 0.9,
       maxOutputTokens: resolveMaxTokens(tier, config?.maxOutputTokens, 4096),
       responseMimeType: 'application/json',
-      // gemini-3-pro-preview requires thinking mode; flash models don't support it
-      ...(tier === 'pro' ? {} : { thinkingConfig: { thinkingBudget: 0 } }),
+      // Let models use default thinking configuration (don't disable with budget=0)
     },
   });
   const text = result.text ?? '';
