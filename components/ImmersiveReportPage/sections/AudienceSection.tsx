@@ -138,7 +138,7 @@ export default function AudienceSection({ index, total, visual, positioning, con
                       <div style={{ background: C.tagBg, borderRadius: 8, padding: '8px 12px', marginBottom: 8 }}>
                         <div style={{ color: C.faint, fontSize: 10, marginBottom: 3 }}>İŞ YAPILACAK SENARYO</div>
                         <p style={{ color: C.mid, fontSize: 12, lineHeight: 1.55 }}>
-                          {(consumerTest.jtbdScenarios[activeTab].scenario || consumerTest.jtbdScenarios[activeTab]).slice(0, 150)}
+                          {toStr(consumerTest.jtbdScenarios[activeTab].scenario || consumerTest.jtbdScenarios[activeTab]).slice(0, 150)}
                         </p>
                       </div>
                     )}

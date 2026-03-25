@@ -22,9 +22,10 @@ export default function CoverSection({
   businessName, sector, maturityLevel, brandClaim, consultantIntro, analyzedAt, visual, confidence,
 }: Props) {
   const isBgImage = !!visual?.imageB64;
+  // Always use the light cream bg for cover — dark fallbackGradients make text unreadable
   const bgStyle = isBgImage
     ? `url(data:image/png;base64,${visual!.imageB64})`
-    : (visual?.fallbackGradient || C.bg);
+    : C.bg;
 
   return (
     <section id="cover" style={{

@@ -124,7 +124,7 @@ export default function ContentSection({ index, total, visual, contentStrategy, 
                 {blogInsights.keyRecommendations.map((r: string, i: number) => (
                   <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 6, color: C.mid, fontSize: 12, lineHeight: 1.5 }}>
                     <span style={{ color: C.blue, fontWeight: 700 }}>→</span>
-                    <span>{r}</span>
+                    <span>{r.replace(/^\[[^\]]+\]\s*/, '')}</span>
                   </div>
                 ))}
               </GlassCard>

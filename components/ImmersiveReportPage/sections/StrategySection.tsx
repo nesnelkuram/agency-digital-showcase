@@ -34,7 +34,7 @@ export default function StrategySection({ index, total, visual, strategicDepth, 
           <div style={{ marginBottom: 24, maxWidth: 840, borderLeft: `3px solid rgba(0,0,0,0.18)`, paddingLeft: 18 }}>
             <SectionTitle>Dönüşüm İddiası</SectionTitle>
             <BigText style={{ fontSize: 'clamp(18px, 2.4vw, 34px)', lineHeight: 1.3 }}>
-              "{strategicDepth.transformationStatement}"
+              "{toStr(strategicDepth.transformationStatement)}"
             </BigText>
           </div>
         )}
@@ -51,9 +51,9 @@ export default function StrategySection({ index, total, visual, strategicDepth, 
               <GlassCard>
                 <SectionTitle>Müşteri Sorunu (3 Katman)</SectionTitle>
                 {[
-                  { label: 'İşlevsel', value: strategicDepth.customerProblem.functional, icon: '⚙️' },
-                  { label: 'Duygusal', value: strategicDepth.customerProblem.emotional, icon: '💭' },
-                  { label: 'Kimlik', value: strategicDepth.customerProblem.identity, icon: '🪞' },
+                  { label: 'İşlevsel', value: toStr(strategicDepth.customerProblem.functional), icon: '⚙️' },
+                  { label: 'Duygusal', value: toStr(strategicDepth.customerProblem.emotional), icon: '💭' },
+                  { label: 'Kimlik', value: toStr(strategicDepth.customerProblem.identity), icon: '🪞' },
                 ].filter(l => l.value).map(({ label, value, icon }) => (
                   <div key={label} style={{ marginBottom: 10, paddingBottom: 10, borderBottom: `1px solid ${C.cardBorder}` }}>
                     <div style={{ color: C.faint, fontSize: 10, marginBottom: 3 }}>{icon} {label}</div>
@@ -133,15 +133,15 @@ export default function StrategySection({ index, total, visual, strategicDepth, 
                       <span style={{ color: C.faint, fontSize: 10 }}>{data.timeframe}</span>
                     </div>
                     <p style={{ color: C.mid, fontSize: 13, lineHeight: 1.5, marginBottom: 8 }}>
-                      {data.description}
+                      {toStr(data.description)}
                     </p>
                     <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-                      {data.investmentLevel && <span style={{ color: C.faint, fontSize: 11 }}>💰 {data.investmentLevel}</span>}
-                      {data.risk && <span style={{ color: C.faint, fontSize: 11 }}>⚡ {data.risk}</span>}
-                      {data.expectedROI && <span style={{ color: C.faint, fontSize: 11 }}>📈 {data.expectedROI}</span>}
+                      {data.investmentLevel && <span style={{ color: C.faint, fontSize: 11 }}>💰 {toStr(data.investmentLevel)}</span>}
+                      {data.risk && <span style={{ color: C.faint, fontSize: 11 }}>⚡ {toStr(data.risk)}</span>}
+                      {data.expectedROI && <span style={{ color: C.faint, fontSize: 11 }}>📈 {toStr(data.expectedROI)}</span>}
                     </div>
                     {data.expectedOutcome && (
-                      <p style={{ color: C.mid, fontSize: 11, marginTop: 6, fontStyle: 'italic' }}>{data.expectedOutcome}</p>
+                      <p style={{ color: C.mid, fontSize: 11, marginTop: 6, fontStyle: 'italic' }}>{toStr(data.expectedOutcome)}</p>
                     )}
                   </GlassCard>
                 ))}
@@ -152,7 +152,7 @@ export default function StrategySection({ index, total, visual, strategicDepth, 
             {strategicDepth?.coreStrategy && (
               <GlassCard>
                 <SectionTitle>Temel Strateji</SectionTitle>
-                <p style={{ color: C.mid, fontSize: 13, lineHeight: 1.65 }}>{strategicDepth.coreStrategy}</p>
+                <p style={{ color: C.mid, fontSize: 13, lineHeight: 1.65 }}>{toStr(strategicDepth.coreStrategy)}</p>
               </GlassCard>
             )}
 
@@ -160,7 +160,7 @@ export default function StrategySection({ index, total, visual, strategicDepth, 
             {strategicDepth?.longTermVision && (
               <GlassCard>
                 <SectionTitle>Uzun Vadeli Vizyon</SectionTitle>
-                <p style={{ color: C.mid, fontSize: 13, lineHeight: 1.65 }}>{strategicDepth.longTermVision.slice(0, 200)}</p>
+                <p style={{ color: C.mid, fontSize: 13, lineHeight: 1.65 }}>{toStr(strategicDepth.longTermVision).slice(0, 200)}</p>
               </GlassCard>
             )}
           </div>

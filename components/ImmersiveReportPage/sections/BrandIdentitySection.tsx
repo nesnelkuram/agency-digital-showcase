@@ -37,12 +37,12 @@ export default function BrandIdentitySection({ index, total, visual, brandPerson
           <div>
             <SectionTitle>Marka Arketipi</SectionTitle>
             {brandPersonality?.archetype && (
-              <BigText style={{ marginBottom: 6 }}>{brandPersonality.archetype}</BigText>
+              <BigText style={{ marginBottom: 6 }}>{toStr(brandPersonality.archetype)}</BigText>
             )}
             <p style={{ color: C.mid, fontSize: 13, lineHeight: 1.6, marginBottom: 12 }}>
-              {brandPersonality?.tone && <span>Ton: <em>{brandPersonality.tone}</em></span>}
+              {brandPersonality?.tone && <span>Ton: <em>{toStr(brandPersonality.tone)}</em></span>}
               {brandPersonality?.tone && brandPersonality?.voice && <span style={{ color: C.xfaint }}> · </span>}
-              {brandPersonality?.voice && <span>Ses: <em>{brandPersonality.voice}</em></span>}
+              {brandPersonality?.voice && <span>Ses: <em>{toStr(brandPersonality.voice)}</em></span>}
             </p>
             {traits.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 4 }}>
@@ -91,7 +91,7 @@ export default function BrandIdentitySection({ index, total, visual, brandPerson
             <GlassCard>
               <SectionTitle>Kişilik Metaforu</SectionTitle>
               <p style={{ color: C.mid, fontSize: 13, lineHeight: 1.65, fontStyle: 'italic' }}>
-                "{brandCharacter.dinnerPartyDescription}"
+                "{toStr(brandCharacter.dinnerPartyDescription)}"
               </p>
             </GlassCard>
           )}
@@ -110,7 +110,7 @@ export default function BrandIdentitySection({ index, total, visual, brandPerson
             {brandEnemy && (
               <GlassCard style={{ flex: 2, padding: '14px 18px' }}>
                 <div style={{ color: C.neg, fontSize: 9, letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 4 }}>Marka Düşmanı</div>
-                <p style={{ color: C.text, fontSize: 13, fontWeight: 700, lineHeight: 1.4 }}>{brandEnemy}</p>
+                <p style={{ color: C.text, fontSize: 13, fontWeight: 700, lineHeight: 1.4 }}>{toStr(brandEnemy)}</p>
               </GlassCard>
             )}
           </div>
@@ -119,7 +119,7 @@ export default function BrandIdentitySection({ index, total, visual, brandPerson
           {qualityMetrics?.onlynessTest && (
             <GlassCard>
               <SectionTitle>Teklik Testi</SectionTitle>
-              <p style={{ color: C.mid, fontSize: 13, lineHeight: 1.65 }}>{qualityMetrics.onlynessTest}</p>
+              <p style={{ color: C.mid, fontSize: 13, lineHeight: 1.65 }}>{toStr(qualityMetrics.onlynessTest)}</p>
             </GlassCard>
           )}
 
@@ -127,7 +127,7 @@ export default function BrandIdentitySection({ index, total, visual, brandPerson
           {brandNarrative?.elevatorPitch && (
             <GlassCard>
               <SectionTitle>Asansör Konuşması</SectionTitle>
-              <p style={{ color: C.mid, fontSize: 13, lineHeight: 1.65 }}>{brandNarrative.elevatorPitch}</p>
+              <p style={{ color: C.mid, fontSize: 13, lineHeight: 1.65 }}>{toStr(brandNarrative.elevatorPitch)}</p>
             </GlassCard>
           )}
 
@@ -136,11 +136,11 @@ export default function BrandIdentitySection({ index, total, visual, brandPerson
             <GlassCard>
               <SectionTitle>Manifesto</SectionTitle>
               <p style={{ color: C.mid, fontSize: 12, lineHeight: 1.7, fontStyle: 'italic' }}>
-                {(emotionalNarrative?.manifesto || brandNarrative?.brandManifesto || '').slice(0, 250)}…
+                {toStr(emotionalNarrative?.manifesto || brandNarrative?.brandManifesto).slice(0, 250)}…
               </p>
               {emotionalNarrative?.oneLinePromise && (
                 <p style={{ color: C.text, fontSize: 13, fontWeight: 700, marginTop: 8 }}>
-                  "{emotionalNarrative.oneLinePromise}"
+                  "{toStr(emotionalNarrative.oneLinePromise)}"
                 </p>
               )}
             </GlassCard>
