@@ -87,43 +87,6 @@ export default function CoverSection({
         transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
         style={{ position: 'relative', zIndex: 2, textAlign: 'center', padding: '0 40px', maxWidth: 860 }}
       >
-        {/* intiba hazırladı badge */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 28,
-            background: 'rgba(255,255,255,0.55)', border: `1px solid ${C.cardBorder}`,
-            borderRadius: 24, padding: '6px 20px',
-          }}
-        >
-          <span style={{ color: C.text, fontSize: 11, fontWeight: 700, letterSpacing: '-0.02em' }}>intiba<span style={{ color: C.faint }}>.</span></span>
-          <span style={{ color: C.xfaint, fontSize: 9 }}>|</span>
-          <span style={{ color: C.faint, fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase', fontFamily: 'monospace' }}>Marka Strateji Raporu</span>
-        </motion.div>
-
-        {maturityLevel && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.45 }}
-            style={{
-              display: 'flex', justifyContent: 'center', marginBottom: 20,
-            }}
-          >
-            <span style={{
-              background: 'rgba(255,255,255,0.6)', border: `1px solid ${C.cardBorder}`,
-              borderRadius: 20, padding: '4px 16px',
-              color: C.faint, fontSize: 9,
-              letterSpacing: '0.22em', textTransform: 'uppercase',
-              fontFamily: 'monospace',
-            }}>
-              {sector?.replace(/_/g, ' ')} · {MATURITY_LABELS[maturityLevel] || maturityLevel}
-            </span>
-          </motion.div>
-        )}
-
         {/* Business name — subName (Design Floor) büyük, primaryName (Aslan Yapı) küçük */}
         <div style={{ marginBottom: 28 }}>
           {subName ? (
