@@ -176,7 +176,6 @@ export default function ImmersiveReportPage() {
             consultantIntro={a?.consultantIntro}
             analyzedAt={formatDate((lead as any).analyzedAt || (lead as any).updatedAt)}
             visual={visuals.cover}
-            confidence={a?.evidenceSummaryV2?.overallConfidence}
           />
         </SectionErrorBoundary>
 

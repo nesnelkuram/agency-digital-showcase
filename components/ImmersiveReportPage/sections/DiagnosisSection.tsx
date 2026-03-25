@@ -30,19 +30,19 @@ export default function DiagnosisSection({ index, total, visual, diagnosisSummar
     <SectionBase id="diagnosis" index={index} total={total} label="Teşhis & Öngörü" visual={visual}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
 
-        {/* Consultant intro or synthesis rationale */}
-        {(synthesisRationale || consultantIntro) && (
+        {/* Consultant intro — client-facing only */}
+        {consultantIntro && (
           <div style={{ marginBottom: 22, maxWidth: 860, borderLeft: `3px solid rgba(0,0,0,0.15)`, paddingLeft: 18 }}>
             <p style={{ color: C.mid, fontSize: 'clamp(13px, 1.4vw, 16px)', lineHeight: 1.7, fontStyle: 'italic' }}>
-              {synthesisRationale || consultantIntro}
+              {consultantIntro}
             </p>
           </div>
         )}
 
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
-          gap: 18,
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))',
+          gap: 18, alignItems: 'start',
         }}>
           {/* Left: Perception vs Reality */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

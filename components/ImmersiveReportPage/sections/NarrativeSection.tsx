@@ -134,20 +134,28 @@ export default function NarrativeSection({ index, total, visual, brandNarrative,
 
             {/* Manifesto */}
             {manifesto && (
-              <GlassCard style={{ background: C.text, border: 'none' }}>
-                <SectionTitle>Manifesto</SectionTitle>
-                <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13, lineHeight: 1.85, fontStyle: 'italic' }}>
+              <div style={{
+                background: 'rgba(28,25,22,0.9)', border: 'none', borderRadius: 14,
+                padding: '20px 24px', boxSizing: 'border-box',
+              }}>
+                <div style={{
+                  color: 'rgba(255,255,255,0.35)', fontSize: 10, letterSpacing: '0.32em',
+                  textTransform: 'uppercase', fontFamily: 'monospace', marginBottom: 12,
+                }}>
+                  Manifesto
+                </div>
+                <p style={{ color: 'rgba(255,255,255,0.72)', fontSize: 13, lineHeight: 1.85, fontStyle: 'italic' }}>
                   {manifesto}
                 </p>
                 {emotionalNarrative?.oneLinePromise && (
                   <div style={{
-                    marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.12)',
-                    color: 'rgba(255,255,255,0.5)', fontSize: 11, fontFamily: 'monospace',
+                    marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.1)',
+                    color: 'rgba(255,255,255,0.45)', fontSize: 11, fontFamily: 'monospace',
                   }}>
                     "{emotionalNarrative.oneLinePromise}"
                   </div>
                 )}
-              </GlassCard>
+              </div>
             )}
 
             {/* Transformation story */}

@@ -62,7 +62,7 @@ export default function SectionBase({
         display: 'flex',
         alignItems: 'flex-start',
         overflow: 'hidden',
-        background: isBgImage ? undefined : (visual?.fallbackGradient || C.bg),
+        background: isBgImage ? undefined : C.bg,
         boxSizing: 'border-box',
         width: '100%',
       }}

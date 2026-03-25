@@ -35,15 +35,26 @@ export default function BrandIdentitySection({ index, total, visual, brandPerson
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {/* Archetype */}
           <div>
-            <SectionTitle>Marka Arketipi</SectionTitle>
+            <SectionTitle>Marka Kişiliği</SectionTitle>
             {brandPersonality?.archetype && (
-              <BigText style={{ marginBottom: 6 }}>{toStr(brandPersonality.archetype)}</BigText>
+              <div style={{ marginBottom: 10 }}>
+                <div style={{
+                  display: 'inline-block',
+                  background: 'rgba(28,25,22,0.06)', border: `1px solid ${C.cardBorder}`,
+                  borderRadius: 10, padding: '8px 16px',
+                }}>
+                  <div style={{ color: C.xfaint, fontSize: 9, fontFamily: 'monospace', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 3 }}>Karakter Tipi</div>
+                  <div style={{ color: C.text, fontSize: 18, fontWeight: 700, letterSpacing: '-0.02em' }}>{toStr(brandPersonality.archetype)}</div>
+                </div>
+              </div>
             )}
-            <p style={{ color: C.mid, fontSize: 13, lineHeight: 1.6, marginBottom: 12 }}>
-              {brandPersonality?.tone && <span>Ton: <em>{toStr(brandPersonality.tone)}</em></span>}
-              {brandPersonality?.tone && brandPersonality?.voice && <span style={{ color: C.xfaint }}> · </span>}
-              {brandPersonality?.voice && <span>Ses: <em>{toStr(brandPersonality.voice)}</em></span>}
-            </p>
+            {(brandPersonality?.tone || brandPersonality?.voice) && (
+              <p style={{ color: C.mid, fontSize: 13, lineHeight: 1.6, marginBottom: 12 }}>
+                {brandPersonality?.tone && <span>Ton: <em>{toStr(brandPersonality.tone)}</em></span>}
+                {brandPersonality?.tone && brandPersonality?.voice && <span style={{ color: C.xfaint }}> · </span>}
+                {brandPersonality?.voice && <span>Ses: <em>{toStr(brandPersonality.voice)}</em></span>}
+              </p>
+            )}
             {traits.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 4 }}>
                 {traits.map((t: any, i: number) => <Tag key={i}>{toStr(t)}</Tag>)}
