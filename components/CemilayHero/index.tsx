@@ -1,197 +1,201 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-interface FloorImage {
-  id: string;
-  label: string;
-  imageB64: string | null;
-}
-
-const SLIDE_DURATION = 5000; // ms per slide
-const TRANSITION_DURATION = 1.2; // seconds
-
-const PLACEHOLDER_GRADIENTS = [
-  'linear-gradient(160deg, #f0ebe3 0%, #e2d8cc 100%)',
-  'linear-gradient(160deg, #e8e0d4 0%, #d4c8b8 100%)',
-  'linear-gradient(160deg, #ece6de 0%, #d8cfc4 100%)',
-  'linear-gradient(160deg, #f5f0e8 0%, #e8dfd4 100%)',
+const SLIDES = [
+  { id: 'oak',      label: 'Açık Meşe Parke',  src: '/cemilay-hero.png' },
+  { id: 'marble',   label: 'Calacatta Mermer',  src: '/cemilay-marble.png' },
+  { id: 'walnut',   label: 'Ceviz Balıksırtı',  src: '/cemilay-walnut.png' },
+  { id: 'concrete', label: 'Mat Beton Efekt',    src: '/cemilay-concrete.png' },
 ];
 
+const SLIDE_DURATION = 5500; // ms
+
 export default function CemilayHero() {
-  const [images, setImages] = useState<FloorImage[]>([]);
-  const [loading, setLoading] = useState(true);
   const [activeIdx, setActiveIdx] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => {
-    fetch('/api/cemilay-visuals', { method: 'POST' })
-      .then(r => r.json())
-      .then(data => {
-        if (data.images) setImages(data.images);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, []);
-
-  // Auto-advance slideshow
-  useEffect(() => {
-    const total = images.length || 4;
-    timerRef.current = setInterval(() => {
-      setActiveIdx(i => (i + 1) % total);
-    }, SLIDE_DURATION);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [images.length]);
-
-  const goTo = (i: number) => {
+  const startTimer = (startFrom: number) => {
     if (timerRef.current) clearInterval(timerRef.current);
-    setActiveIdx(i);
     timerRef.current = setInterval(() => {
-      setActiveIdx(prev => (prev + 1) % images.length);
+      setActiveIdx(i => (i + 1) % SLIDES.length);
     }, SLIDE_DURATION);
   };
 
-  const total = images.length || 4;
-  const currentImage = images[activeIdx];
+  useEffect(() => {
+    startTimer(0);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, []);
+
+  const goTo = (i: number) => {
+    setActiveIdx(i);
+    startTimer(i);
+  };
+
+  const slide = SLIDES[activeIdx];
 
   return (
     <div style={{
       width: '100%', height: '100vh', position: 'relative',
-      overflow: 'hidden', background: '#f5f0e8',
+      overflow: 'hidden', background: '#ece7dd',
     }}>
 
-      {/* Background images slideshow */}
+      {/* Background slideshow */}
       <AnimatePresence mode="sync">
         <motion.div
-          key={activeIdx}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+          key={slide.id}
+          initial={{ opacity: 0, scale: 1.04 }}
+          animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: TRANSITION_DURATION, ease: 'easeInOut' }}
+          transition={{ duration: 1.4, ease: [0.22, 1, 0.36, 1] }}
           style={{
             position: 'absolute', inset: 0, zIndex: 0,
-            background: currentImage?.imageB64
-              ? undefined
-              : PLACEHOLDER_GRADIENTS[activeIdx % PLACEHOLDER_GRADIENTS.length],
-            backgroundImage: currentImage?.imageB64
-              ? `url(data:image/png;base64,${currentImage.imageB64})`
-              : undefined,
+            backgroundImage: `url(${slide.src})`,
             backgroundSize: 'cover',
-            backgroundPosition: 'center bottom',
+            backgroundPosition: 'center',
           }}
         />
       </AnimatePresence>
 
-      {/* Subtle overlay for text readability */}
+      {/* Gradient overlay — bottom-heavy for text readability */}
       <div style={{
         position: 'absolute', inset: 0, zIndex: 1,
-        background: 'linear-gradient(to top, rgba(0,0,0,0.32) 0%, rgba(0,0,0,0.08) 50%, transparent 100%)',
+        background: 'linear-gradient(to top, rgba(10,8,6,0.55) 0%, rgba(10,8,6,0.12) 40%, transparent 70%)',
       }} />
 
-      {/* Loading spinner */}
-      {loading && (
-        <div style={{
-          position: 'absolute', inset: 0, zIndex: 10,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <motion.div
-            animate={{ opacity: [0.4, 1, 0.4] }}
-            transition={{ duration: 1.8, repeat: Infinity }}
-            style={{
-              color: 'rgba(255,255,255,0.7)', fontSize: 11,
-              letterSpacing: '0.3em', fontFamily: 'monospace', textTransform: 'uppercase',
-            }}
-          >
-            Görseller Hazırlanıyor…
-          </motion.div>
+      {/* Top bar */}
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, zIndex: 3,
+        padding: '28px 48px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <span style={{
+            color: 'rgba(255,255,255,0.95)', fontSize: 18, fontWeight: 800,
+            letterSpacing: '-0.04em', lineHeight: 1,
+          }}>
+            Design Floor
+          </span>
+          <span style={{
+            color: 'rgba(255,255,255,0.4)', fontSize: 9,
+            letterSpacing: '0.25em', textTransform: 'uppercase', fontFamily: 'monospace',
+          }}>
+            Cemilay
+          </span>
         </div>
-      )}
+        <nav style={{ display: 'flex', gap: 32 }}>
+          {['Koleksiyon', 'Projeler', 'Hakkımızda', 'İletişim'].map(item => (
+            <span key={item} style={{
+              color: 'rgba(255,255,255,0.7)', fontSize: 12,
+              letterSpacing: '0.06em', cursor: 'pointer',
+              transition: 'color 0.2s',
+            }}>
+              {item}
+            </span>
+          ))}
+        </nav>
+      </div>
 
-      {/* Content layer */}
+      {/* Center / hero content */}
       <div style={{
         position: 'absolute', inset: 0, zIndex: 2,
         display: 'flex', flexDirection: 'column',
-        justifyContent: 'flex-end', padding: '0 60px 72px',
+        justifyContent: 'flex-end', padding: '0 48px 80px',
       }}>
 
-        {/* Brand name */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
-        >
-          <div style={{
-            color: 'rgba(255,255,255,0.5)', fontSize: 11,
-            letterSpacing: '0.3em', textTransform: 'uppercase',
-            fontFamily: 'monospace', marginBottom: 10,
-          }}>
-            Zemin & Kaplama
-          </div>
-          <h1 style={{
-            color: '#fff', fontSize: 'clamp(42px, 6vw, 88px)',
-            fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1,
-            margin: 0,
-          }}>
-            Cemilay
-          </h1>
-        </motion.div>
-
-        {/* Active floor label */}
+        {/* Active floor label chip */}
         <AnimatePresence mode="wait">
-          {currentImage?.label && (
-            <motion.div
-              key={currentImage.id}
-              initial={{ opacity: 0, x: -12 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 12 }}
-              transition={{ duration: 0.4 }}
-              style={{
-                marginTop: 14,
-                display: 'inline-flex', alignItems: 'center', gap: 8,
-                background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(12px)',
-                border: '1px solid rgba(255,255,255,0.2)',
-                borderRadius: 20, padding: '5px 16px',
-                alignSelf: 'flex-start',
-              }}
-            >
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} />
-              <span style={{
-                color: 'rgba(255,255,255,0.85)', fontSize: 12,
-                letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: 'monospace',
-              }}>
-                {currentImage.label}
-              </span>
-            </motion.div>
-          )}
+          <motion.div
+            key={slide.id + '_label'}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.35 }}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(14px)',
+              WebkitBackdropFilter: 'blur(14px)',
+              border: '1px solid rgba(255,255,255,0.18)',
+              borderRadius: 24, padding: '5px 16px',
+              alignSelf: 'flex-start', marginBottom: 18,
+            }}
+          >
+            <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'rgba(255,255,255,0.8)', display: 'inline-block' }} />
+            <span style={{
+              color: 'rgba(255,255,255,0.88)', fontSize: 11,
+              letterSpacing: '0.16em', textTransform: 'uppercase', fontFamily: 'monospace',
+            }}>
+              {slide.label}
+            </span>
+          </motion.div>
         </AnimatePresence>
 
-        {/* Slide dots */}
-        <div style={{ display: 'flex', gap: 8, marginTop: 28 }}>
-          {Array.from({ length: total }).map((_, i) => (
-            <button
-              key={i}
-              onClick={() => goTo(i)}
-              style={{
-                width: i === activeIdx ? 28 : 8, height: 4, borderRadius: 2,
-                border: 'none', cursor: 'pointer', padding: 0,
-                background: i === activeIdx ? '#fff' : 'rgba(255,255,255,0.35)',
-                transition: 'all 0.3s ease',
-              }}
-            />
-          ))}
+        {/* Brand headline */}
+        <motion.h1
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
+          style={{
+            color: '#fff', fontSize: 'clamp(44px, 6.5vw, 96px)',
+            fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 0.95,
+            margin: '0 0 12px',
+          }}
+        >
+          Her mekan<br />
+          <span style={{ fontWeight: 300, letterSpacing: '-0.02em' }}>bir hikaye.</span>
+        </motion.h1>
+
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4, duration: 0.8 }}
+          style={{
+            color: 'rgba(255,255,255,0.6)', fontSize: 15, lineHeight: 1.6,
+            maxWidth: 380, margin: '0 0 36px',
+          }}
+        >
+          Premium zemin kaplama çözümleri ile yaşam alanlarınızı dönüştürün.
+        </motion.p>
+
+        {/* CTA + dots */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
+          <button style={{
+            background: '#fff', color: '#1a1612',
+            border: 'none', borderRadius: 28, padding: '13px 32px',
+            fontSize: 13, fontWeight: 700, letterSpacing: '0.04em',
+            cursor: 'pointer',
+          }}>
+            Koleksiyonu İncele
+          </button>
+
+          {/* Slide dots */}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {SLIDES.map((s, i) => (
+              <button
+                key={s.id}
+                onClick={() => goTo(i)}
+                style={{
+                  width: i === activeIdx ? 32 : 8, height: 4, borderRadius: 2,
+                  border: 'none', cursor: 'pointer', padding: 0,
+                  background: i === activeIdx ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.3)',
+                  transition: 'all 0.35s ease',
+                }}
+              />
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Progress bar */}
+      {/* Bottom progress bar */}
       <div style={{
-        position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 3, height: 2,
-        background: 'rgba(255,255,255,0.15)',
+        position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 4,
+        height: 2, background: 'rgba(255,255,255,0.12)',
       }}>
         <motion.div
-          key={activeIdx}
+          key={activeIdx + '_prog'}
           initial={{ width: '0%' }}
           animate={{ width: '100%' }}
           transition={{ duration: SLIDE_DURATION / 1000, ease: 'linear' }}
-          style={{ height: '100%', background: 'rgba(255,255,255,0.7)' }}
+          style={{ height: '100%', background: 'rgba(255,255,255,0.55)' }}
         />
       </div>
     </div>
