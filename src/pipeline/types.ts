@@ -467,6 +467,24 @@ export interface SynthesizedAnalysis {
     aggressive: { description: string; investmentLevel: string; expectedOutcome: string; timeframe: string; risk: string; probabilityWeight?: number; decisionCriteria?: string };
   };
 
+  // Triangulation — Algı vs. Gerçeklik içgörüleri
+  strategicInsights?: StrategicInsight[];
+
+  // C-Level Rapor Katmanı — Reality Check + So What?
+  executiveSummary?: string;  // Sert, klişesiz 3-4 cümle yönetici özeti (fırsat maliyeti + ana pivot)
+  realityCheck?: Array<{
+    clientBelief: string;        // Müşterinin inandığı/iddia ettiği durum
+    marketReality: string;       // Araştırma/dijital veri ne gösteriyor
+    theInsight: string;          // Çarpışmadan doğan Aha! anı
+    opportunityCost: string;     // Bu yanılgı yüzünden kaybedilen potansiyel
+    actionablePivot: string;     // Yarın atılacak somut adım
+  }>;
+  soWhatAnalysis?: Array<{
+    rawData: string;             // Pazar/rakip/tüketici hakkında önemli veri
+    implication: string;         // Eee, yani? — bu müşteri için ne anlama geliyor
+    action: string;              // Hemen alınması gereken aksiyon
+  }>;
+
   // Faz B — Mesajlaşma Mimarisi
   messagingArchitecture?: {
     coreMessage: string;
@@ -733,6 +751,26 @@ export interface PipelineState {
   timings: Record<string, number>;
 }
 
+// ─── Friction / Reality Check Layer ─────────────────────────────────────────
+// Triangulation of client beliefs vs. digital reality vs. market data.
+// Produces "Aha!" moments that the synthesizer embeds in the final report.
+
+export interface StrategicInsight {
+  clientBelief: string;        // "Müşteri X diye inanıyor" — wizard/beyan kaynağı
+  marketReality: string;       // "Ancak veri Y gösteriyor" — dijital/araştırma kaynağı
+  theInsight: string;          // Zıtlıktan çıkan "Aha!" anı — tek net cümle
+  strategicPivot: string;      // "Bu yüzden şunu yap" — somut eylem
+  evidenceSources: Array<'wizard' | 'digital' | 'research' | 'competitor'>;
+  urgency: 'critical' | 'important' | 'useful';
+  opportunityCostHint?: string; // "Bu inanç yüzünden ne kaybediliyor" — kısa finansal/fırsat çerçeveleme
+}
+
+export interface FrictionAnalysis {
+  strategicInsights: StrategicInsight[];
+  biggestIllusion: string;   // En kritik yanlış inanç tek cümle
+  opportunityCost: string;   // Mevcut inançlar yüzünden kaybedilen toplam fırsat özeti
+}
+
 // ─── Synthesizer Distilled Input ────────────────────────────────────────────
 // Compact representation of all agent decisions passed to strategySynthesizer.
 // Avoids "Lost in the Middle" syndrome by replacing verbose prose summaries
@@ -801,6 +839,15 @@ export interface DistilledAgentView {
     websiteQuality: number | null;    // 0-10
     websiteStrengths: string[];       // max 2
     instagramEngagement: string | null;
+  } | null;
+  friction: {
+    biggestIllusion: string;
+    opportunityCost: string;
+    criticalInsights: Array<{         // urgency=critical olanlar, max 2
+      clientBelief: string;
+      theInsight: string;
+      strategicPivot: string;
+    }>;
   } | null;
   competitorLandscape: {
     landscapeSummary: string;         // max 120 chars

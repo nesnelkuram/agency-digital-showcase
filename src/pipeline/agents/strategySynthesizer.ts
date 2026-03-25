@@ -567,6 +567,23 @@ Tum verileri sentezleyerek asagidaki JSON yapisinda NIHAI marka stratejisi rapor
       "urgency": "critical",
       "opportunityCostHint": "Bu inanç yüzünden kaybedilen somut fırsat (yoksa null)"
     }
+  ],
+  "executiveSummary": "Süslü kelimeler ve klişe sıfatlar içermeyen, markanın mevcut durumunu, en büyük kanamasını (fırsat maliyeti) ve yapması gereken ana pivotu anlatan 3-4 cümlelik sert ve net yönetici özeti. Pasif cümleler YASAK. Her cümle acı bir gerçeği ya da somut bir eylemi içermeli.",
+  "realityCheck": [
+    {
+      "clientBelief": "Müşterinin formda/verilerde inandığı veya iddia ettiği durum",
+      "marketReality": "Araştırma ve dijital analiz ajanlarından gelen gerçek veri",
+      "theInsight": "Bu ikisinin çarpışmasından doğan ufuk açıcı içgörü (Aha! anı)",
+      "opportunityCost": "Bu yanılgı yüzünden kaybedilen finansal/operasyonel potansiyel — somut rakamla veya rakip referansıyla",
+      "actionablePivot": "Bu durumu düzeltmek için yarın atılması gereken tek somut stratejik adım"
+    }
+  ],
+  "soWhatAnalysis": [
+    {
+      "rawData": "Rakipler, pazar veya tüketici hakkında önemli bir ham veri",
+      "implication": "Eee, yani? — bu müşteri için ne anlama geliyor (tek cümle, doğrudan)",
+      "action": "Hemen alınması gereken somut aksiyon (owner + metric belirt)"
+    }
   ]
 }
 
@@ -608,17 +625,19 @@ KRITIK KURALLAR — BU KURALLARA UYMAYAN RAPOR BASARISIZ SAYILIR:
 10. Sadece JSON don, baska bir sey yazma.
 
 ${distilled.friction ? `
-27. ÜÇGENLEME İÇGÖRÜLERİ (strategicInsights): Friction analyzer ajanı müşterinin inançları ile gerçek pazar verilerini çarpıştırarak şu "Aha!" anlarını tespit etti:
+27. ÜÇGENLEME İÇGÖRÜLERİ (strategicInsights + realityCheck): Friction analyzer şu çarpışmaları tespit etti:
 En kritik illüzyon: "${distilled.friction.biggestIllusion}"
 Fırsat maliyeti: "${distilled.friction.opportunityCost}"
-${distilled.friction.criticalInsights.length > 0 ? `Kritik içgörüler:\n${distilled.friction.criticalInsights.map(i => `  - İnanç: ${i.belief} → Gerçek: ${i.reality} → Pivot: ${i.pivot}`).join('\n')}` : ''}
+${distilled.friction.criticalInsights.length > 0 ? `Kritik inanç-gerçeklik çarpışmaları:\n${distilled.friction.criticalInsights.map(i => `  - İnanç: ${i.clientBelief} → Aha: ${i.theInsight} → Pivot: ${i.strategicPivot}`).join('\n')}` : ''}
 
-BU İÇGÖRÜLERİ "strategicInsights" dizisine ekle. Her içgörü:
-- "theInsight" tek net "Aha!" cümlesi olmalı — soyut değil, somut
-- "strategicPivot" yarın uygulanabilir bir eylem — rakip adı veya rakam içermeli
-- "So What?" filtresi: "Bu bu müşteri için ne anlama geliyor?" sorusu her içgörüde zaten cevaplanmış olmalı
-- "urgency" alanı "critical", "important" veya "useful" olmalı` : `
-27. STRATEJİK İÇGÖRÜLER (strategicInsights): Üçgenleme ajanı mevcut değil. Strateji uzmanı ve challenger çıktılarından kendi "Aha!" içgörülerini üret. Her içgörü müşterinin neye inandığını ve gerçekte ne olduğunu çarpıştırmalı.`}
+Bu içgörüleri hem "strategicInsights" hem "realityCheck" dizilerine ekle.
+strategicInsights: urgency=critical olanlar önce, "So What?" sorusu her içgörüde cevaplanmış olmalı.
+realityCheck: Her madde bir "opportunityCost" (rakam/rakip referanslı) ve "actionablePivot" (somut, ölçülebilir) içermeli. En az 3 madde.` : `
+27. STRATEJİK İÇGÖRÜLER: Üçgenleme ajanı mevcut değil — strategist + challenger + digital verilerinden kendi "Aha!" çarpışmalarını türet. Hem strategicInsights hem realityCheck dizilerini doldur. realityCheck'te en az 3 madde üret.`}
+
+28. YÖNETİCİ ÖZETİ (executiveSummary): 3-4 cümle, sert ve net. Süslü kelime YASAK. Format: "Mevcut durum → En büyük kanama (fırsat maliyeti) → Ana pivot." Pasif yapı KULLANMA. Her cümle ya acı bir gerçeği ya da somut eylemi içermeli.
+
+29. SO WHAT ANALİZİ (soWhatAnalysis): Her ham veriyi "Eee, yani?" sorusuyla kır. En az 4 madde. rawData (kuru veri) → implication (bu müşteri için tek cümle anlam) → action (yarın başlayacak somut adım, owner belirtilmeli).
 
 ${budgetCalibration}${stageCalibration}${digitalCalibration}${triggerCalibration}
 ${maturity ? `
@@ -875,5 +894,28 @@ ${maturity.level === 'mature' ? '- MATURE ise: buyume stratejisi, topluluk olust
       }
       return undefined;
     })(),
+    executiveSummary: parsed.executiveSummary
+      ? String(parsed.executiveSummary)
+      : undefined,
+    realityCheck: Array.isArray(parsed.realityCheck) && parsed.realityCheck.length > 0
+      ? parsed.realityCheck
+          .filter((r: any) => r.clientBelief && r.theInsight && r.actionablePivot)
+          .map((r: any) => ({
+            clientBelief: String(r.clientBelief || ''),
+            marketReality: String(r.marketReality || ''),
+            theInsight: String(r.theInsight || ''),
+            opportunityCost: String(r.opportunityCost || ''),
+            actionablePivot: String(r.actionablePivot || ''),
+          }))
+      : undefined,
+    soWhatAnalysis: Array.isArray(parsed.soWhatAnalysis) && parsed.soWhatAnalysis.length > 0
+      ? parsed.soWhatAnalysis
+          .filter((s: any) => s.rawData && s.implication && s.action)
+          .map((s: any) => ({
+            rawData: String(s.rawData || ''),
+            implication: String(s.implication || ''),
+            action: String(s.action || ''),
+          }))
+      : undefined,
   };
 }
