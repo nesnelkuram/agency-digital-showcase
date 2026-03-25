@@ -330,21 +330,6 @@ export default function ImmersiveReportPage() {
 
       </div>
 
-      {/* Back to classic */}
-      <Link
-        to={`/rapor/${shareToken}`}
-        style={{
-          position: 'fixed', top: 18, right: 18, zIndex: 200,
-          background: 'rgba(245,242,236,0.88)', backdropFilter: 'blur(12px)',
-          border: '1px solid rgba(0,0,0,0.1)',
-          color: 'rgba(28,25,22,0.5)', fontSize: 10,
-          padding: '6px 14px', borderRadius: 20, textDecoration: 'none',
-          letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: 'monospace',
-          boxShadow: '0 1px 6px rgba(0,0,0,0.06)',
-        }}
-      >
-        ← Klasik Görünüm
-      </Link>
     </div>
   );
 }
