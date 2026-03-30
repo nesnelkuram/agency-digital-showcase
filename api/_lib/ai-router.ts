@@ -2,11 +2,12 @@
  * AI Fallback Chain — Multi-provider routing with retry and fallback
  *
  * Routing chain: Gemini Flash → Gemini Pro → Claude Sonnet
+ * OpenRouter tiers: openrouter_claude, openrouter_gpt4o (for multi-model consensus)
  * Each provider gets maxRetries attempts before falling through.
  *
  * Usage:
  *   const result = await aiRouter.generate({ prompt, tier: 'flash' });
- *   const stream = aiRouter.stream({ prompt, tools, tier: 'flash' });
+ *   const result = await aiRouter.generate({ prompt, tier: 'openrouter_claude' });
  */
 
 import { GoogleGenAI } from '@google/genai';
@@ -16,7 +17,7 @@ import type { Result } from '../../shared/types/result.js';
 // Types
 // ============================================
 
-export type AITier = 'flash' | 'pro' | 'claude';
+export type AITier = 'flash' | 'pro' | 'claude' | 'openrouter_claude' | 'openrouter_gpt4o';
 
 export interface AIProviderConfig {
   tier: AITier;
@@ -54,15 +55,19 @@ export interface AIResponse {
 const PROVIDER_CHAIN: AITier[] = ['flash', 'pro', 'claude'];
 
 const MODEL_MAP: Record<AITier, string> = {
-  flash: 'gemini-2.0-flash',
-  pro: 'gemini-3-pro-preview',
-  claude: 'claude-sonnet-4-5-20250514',
+  flash: 'gemini-3.1-flash-lite-preview',
+  pro: 'gemini-3.1-pro-preview',
+  claude: 'claude-opus-4-6',
+  openrouter_claude: 'anthropic/claude-opus-4-6',
+  openrouter_gpt4o: 'openai/gpt-4o',
 };
 
 const TIMEOUT_MAP: Record<AITier, number> = {
   flash: 15_000,
   pro: 30_000,
   claude: 30_000,
+  openrouter_claude: 30_000,
+  openrouter_gpt4o: 30_000,
 };
 
 // ============================================
@@ -198,13 +203,95 @@ async function callClaude(
 }
 
 // ============================================
+// OpenRouter Provider (Claude, GPT-4o, etc.)
+// ============================================
+
+async function callOpenRouter(
+  model: string,
+  opts: GenerateOptions,
+  timeoutMs: number
+): Promise<string> {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) throw new Error('OPENROUTER_API_KEY not configured');
+
+  const messages: any[] = [];
+
+  if (opts.systemInstruction) {
+    messages.push({ role: 'system', content: opts.systemInstruction });
+  }
+
+  if (typeof opts.prompt === 'string') {
+    messages.push({ role: 'user', content: opts.prompt });
+  } else if (Array.isArray(opts.prompt)) {
+    for (const entry of opts.prompt) {
+      const role = entry.role === 'model' ? 'assistant' : 'user';
+      const textParts = (entry.parts || [])
+        .filter((p: any) => p.text)
+        .map((p: any) => p.text)
+        .join('\n');
+      if (textParts) {
+        messages.push({ role, content: textParts });
+      }
+    }
+  }
+
+  const body: Record<string, any> = {
+    model,
+    max_tokens: opts.maxOutputTokens ?? 4096,
+    messages,
+  };
+
+  if (opts.temperature !== undefined) {
+    body.temperature = opts.temperature;
+  }
+
+  if (opts.responseMimeType === 'application/json') {
+    body.response_format = { type: 'json_object' };
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'HTTP-Referer': 'https://intiba.co',
+        'X-Title': 'Intiba Pipeline',
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const errBody = await response.text();
+      throw new Error(`OpenRouter API ${response.status}: ${errBody}`);
+    }
+
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content ?? '';
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// ============================================
 // Router
 // ============================================
+
+function isOpenRouterTier(tier: AITier): boolean {
+  return tier === 'openrouter_claude' || tier === 'openrouter_gpt4o';
+}
 
 async function callProvider(tier: AITier, opts: GenerateOptions): Promise<string> {
   const model = MODEL_MAP[tier];
   const timeout = TIMEOUT_MAP[tier];
 
+  if (isOpenRouterTier(tier)) {
+    return callOpenRouter(model, opts, timeout);
+  }
   if (tier === 'claude') {
     return callClaude(model, opts, timeout);
   }
@@ -216,11 +303,15 @@ export async function generate(opts: GenerateOptions): Promise<AIResponse> {
   const maxRetries = opts.maxRetries ?? 2;
   const enableFallback = opts.fallback !== false;
 
-  // Build chain starting from the requested tier
-  const startIdx = PROVIDER_CHAIN.indexOf(startTier);
-  const chain = enableFallback
-    ? PROVIDER_CHAIN.slice(startIdx)
-    : [startTier];
+  // OpenRouter tiers are standalone — no fallback chain
+  // Main chain tiers: flash → pro → claude
+  const isOR = isOpenRouterTier(startTier);
+  const startIdx = isOR ? -1 : PROVIDER_CHAIN.indexOf(startTier);
+  const chain: AITier[] = isOR
+    ? [startTier]
+    : enableFallback
+      ? PROVIDER_CHAIN.slice(startIdx)
+      : [startTier];
 
   let totalFallbacks = 0;
 
@@ -292,10 +383,15 @@ export async function generateJSON<T = any>(
 /**
  * Health check — test each provider
  */
-export async function healthCheck(): Promise<Record<AITier, boolean>> {
+export async function healthCheck(): Promise<Record<string, boolean>> {
   const results: Record<string, boolean> = {};
 
-  for (const tier of PROVIDER_CHAIN) {
+  const allTiers: AITier[] = [...PROVIDER_CHAIN];
+  if (process.env.OPENROUTER_API_KEY) {
+    allTiers.push('openrouter_claude', 'openrouter_gpt4o');
+  }
+
+  for (const tier of allTiers) {
     try {
       await callProvider(tier, {
         prompt: 'Say "ok"',
@@ -308,7 +404,7 @@ export async function healthCheck(): Promise<Record<AITier, boolean>> {
     }
   }
 
-  return results as Record<AITier, boolean>;
+  return results;
 }
 
 // ============================================

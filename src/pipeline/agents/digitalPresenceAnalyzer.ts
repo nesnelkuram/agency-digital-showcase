@@ -1,12 +1,16 @@
 import { generateJSON, generateGroundedText } from '../geminiClient';
 import type { NormalizedData, ResearchFindings, BusinessContextInput, DigitalPresenceAnalysis, WebsiteAnalysis, InstagramAnalysis, PlatformPresence } from '../types';
 import type { FetchedWebsite } from '../utils/websiteFetcher';
+import type { InstagramPublicData } from '../utils/instagramScraper';
+import type { GooglePlacesData } from '../utils/googlePlacesScraper';
 
 export async function runDigitalPresenceAnalyzer(
   normalizedData: NormalizedData,
   researchFindings: ResearchFindings | null,
   businessContext?: BusinessContextInput,
   websiteData?: FetchedWebsite | null,
+  instagramData?: InstagramPublicData | null,
+  googlePlacesData?: GooglePlacesData | null,
 ): Promise<DigitalPresenceAnalysis> {
   const businessName = normalizedData.businessName;
   const sector = normalizedData.sector;
@@ -14,10 +18,34 @@ export async function runDigitalPresenceAnalyzer(
   const websiteUrl = businessContext?.websiteUrl || '';
   const declaredPlatforms = businessContext?.digitalPresence || [];
 
+  // Enrich businessContext with pre-gathered data
+  const enrichedFollowers = instagramData?.followerCount
+    ? `${instagramData.followerCount}`
+    : businessContext?.instagramFollowers;
+
+  // Build pre-gathered context for LLM prompts
+  const preGatheredContext: string[] = [];
+  if (websiteData?.businessIntel) {
+    const bi = websiteData.businessIntel;
+    if (bi.priceRange.segment !== 'unknown') preGatheredContext.push(`Website fiyat segmenti: ${bi.priceRange.segment} (${bi.priceRange.min}-${bi.priceRange.max} ${bi.priceRange.currency})`);
+    if (bi.foundingYear) preGatheredContext.push(`Kuruluş yılı: ${bi.foundingYear}`);
+    if (Object.keys(bi.socialLinks).length > 0) preGatheredContext.push(`Sosyal medya linkleri: ${Object.entries(bi.socialLinks).map(([k, v]) => `${k}: ${v}`).join(', ')}`);
+    if (bi.certifications.length > 0) preGatheredContext.push(`Sertifikalar: ${bi.certifications.join(', ')}`);
+    if (bi.locationCount > 0) preGatheredContext.push(`Lokasyon sayısı: ${bi.locationCount}`);
+  }
+  if (instagramData) {
+    preGatheredContext.push(`Instagram gerçek veri: @${instagramData.handle}, takipçi=${instagramData.followerCount}, post=${instagramData.postCount}, takip=${instagramData.followingCount}, verified=${instagramData.isVerified}, maturity=${instagramData.accountMaturity}`);
+    if (instagramData.bio) preGatheredContext.push(`Instagram bio: ${instagramData.bio}`);
+  }
+  if (googlePlacesData) {
+    preGatheredContext.push(`Google Maps: ${googlePlacesData.rating}/5 puan, ${googlePlacesData.reviewCount} değerlendirme, kategori=${googlePlacesData.category}, sentiment=${googlePlacesData.reviewSentiment}`);
+    if (googlePlacesData.address) preGatheredContext.push(`Adres: ${googlePlacesData.address}`);
+  }
+
   // Run website + instagram + other platforms analysis in PARALLEL
   const [website, instagram, otherPlatforms] = await Promise.all([
     analyzeWebsite(businessName, sector, websiteUrl, websiteData),
-    analyzeInstagram(businessName, sector, handle, businessContext?.instagramFollowers),
+    analyzeInstagram(businessName, sector, handle, enrichedFollowers, preGatheredContext.join('\n')),
     analyzeOtherPlatforms(businessName, declaredPlatforms),
   ]);
 
@@ -244,6 +272,7 @@ async function analyzeInstagram(
   sector: string,
   handle: string,
   followerRange?: string,
+  preGatheredContext?: string,
 ): Promise<InstagramAnalysis | null> {
   // Even without handle, try searching by business name
   const searchTarget = handle || businessName;
@@ -269,6 +298,7 @@ Marka: ${businessName}
 Instagram Handle: ${handle || 'Bilinmiyor'}
 Sektor: ${sector}
 ${followerRange ? `Bildirilen Takipci Araligi: ${followerRange}` : ''}
+${preGatheredContext ? `\n## Ön-Toplanan Gerçek Veriler (güvenilir — scrape edilmiş)\n${preGatheredContext}` : ''}
 
 ## Arastirma Verileri
 ${combinedText}

@@ -3,6 +3,8 @@ import type { NormalizedData, ResearchFindings, StrategistOutput, ChallengerOutp
 import { getSectorEnrichment } from '../sectorEnrichment';
 import { getSectorFrameworkConfig } from '../sectorFrameworks';
 import { FOGG_PROMPT_SNIPPET } from '../frameworks/fogg-behavior';
+import { runBrandValueMaximizer } from './brandValueMaximizer';
+import { runDeliverableEnricher } from './deliverableEnricher';
 
 // ─── Distillation Layer ───────────────────────────────────────────────────────
 // Condenses all agent outputs into a compact DistilledAgentView.
@@ -675,7 +677,7 @@ ${maturity.level === 'mature' ? '- MATURE ise: buyume stratejisi, topluluk olust
   // Deep validation with fallbacks for all required nested fields
   const emptyActionItem = { action: '', owner: '', metric: '', estimatedImpact: '' };
 
-  return {
+  const synthesisResult: SynthesizedAnalysis = {
     brandPersonality: {
       archetype: parsed.brandPersonality?.archetype || strategistOutput.archetype,
       traits: Array.isArray(parsed.brandPersonality?.traits) && parsed.brandPersonality.traits.length > 0
@@ -918,4 +920,61 @@ ${maturity.level === 'mature' ? '- MATURE ise: buyume stratejisi, topluluk olust
           }))
       : undefined,
   };
+
+  // ─── Internal Enrichment Passes (Flash, parallel) ──────────────────────────
+  // These were previously separate agents; now they run inside the synthesizer
+  // as focused Flash calls using the synthesis result as input.
+  try {
+    const [valueMaxResult, deliverableResult] = await Promise.all([
+      runBrandValueMaximizer(
+        normalizedData, researchFindings, synthesisResult, challengerOutput,
+        consumerTestResult ?? null, digitalPresence ?? null, businessContext,
+      ).catch((err) => {
+        console.warn(`[Synthesizer] valueMaximizer enrichment failed: ${err.message}`);
+        return null;
+      }),
+      runDeliverableEnricher(
+        synthesisResult,
+        normalizedData.businessName,
+        normalizedData.sector,
+        normalizedData.brandMaturity?.level,
+      ).catch((err) => {
+        console.warn(`[Synthesizer] deliverableEnricher enrichment failed: ${err.message}`);
+        return null;
+      }),
+    ]);
+
+    // Merge valueMaximizer outputs
+    if (valueMaxResult) {
+      if (valueMaxResult.consultantIntro) {
+        synthesisResult.consultantIntro = valueMaxResult.consultantIntro;
+      }
+      if (valueMaxResult.diagnosisSummary) {
+        synthesisResult.diagnosisSummary = valueMaxResult.diagnosisSummary;
+      }
+      if (valueMaxResult.emotionalNarrative) {
+        synthesisResult.emotionalNarrative = valueMaxResult.emotionalNarrative;
+      }
+      if (valueMaxResult.revenueImpact) {
+        synthesisResult.revenueImpact = valueMaxResult.revenueImpact;
+      }
+    }
+
+    // Merge deliverableEnricher outputs
+    if (deliverableResult) {
+      if (deliverableResult.messagingArchitecture) {
+        synthesisResult.messagingArchitecture = deliverableResult.messagingArchitecture;
+      }
+      if (deliverableResult.customerJourney?.length > 0) {
+        synthesisResult.customerJourney = deliverableResult.customerJourney;
+      }
+      if (deliverableResult.socialMediaTemplates?.length > 0) {
+        synthesisResult.socialMediaTemplates = deliverableResult.socialMediaTemplates;
+      }
+    }
+  } catch (err: any) {
+    console.warn(`[Synthesizer] enrichment passes failed: ${err.message}`);
+  }
+
+  return synthesisResult;
 }

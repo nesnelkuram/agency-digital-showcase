@@ -6,7 +6,16 @@ import { KANO_PROMPT_SNIPPET } from '../frameworks/kano-model';
 import { getSectorFrameworkConfig } from '../sectorFrameworks';
 import { searchKnowledgeCorpus, buildKnowledgeContext } from '../data/knowledgeCorpus';
 import { BLOG_PRINCIPLES, type BlogArticleSummary } from '../data/blogKnowledgeBase';
-import type { NormalizedData, ResearchFindings, StrategistOutput, BusinessContextInput } from '../types';
+import type { NormalizedData, ResearchFindings, StrategistOutput, BusinessContextInput, ChallengerOutput, ConsumerTestOutput } from '../types';
+import { runBrandStrategistRevision } from './brandStrategistRevision';
+
+export interface RevisionConfig {
+  originalOutput: StrategistOutput;
+  challengerOutput: ChallengerOutput | null;
+  consumerTestOutput?: ConsumerTestOutput;
+  consensusRevisionReason?: string;
+  consensusSuggestedWeakness?: string;
+}
 
 export async function runBrandStrategist(
   normalizedData: NormalizedData,
@@ -14,7 +23,21 @@ export async function runBrandStrategist(
   businessContext?: BusinessContextInput,
   adminNotes?: string,
   semanticBlogResults?: Array<{ title: string; slug: string; content: string; score: number; tags: string[] }>,
+  revisionConfig?: RevisionConfig,
 ): Promise<StrategistOutput> {
+  // ── Revision Mode: delegate to revision prompt with challenger/consensus feedback ──
+  if (revisionConfig) {
+    return runBrandStrategistRevision(
+      normalizedData,
+      revisionConfig.originalOutput,
+      revisionConfig.challengerOutput,
+      researchFindings,
+      revisionConfig.consumerTestOutput,
+      adminNotes,
+      revisionConfig.consensusRevisionReason,
+      revisionConfig.consensusSuggestedWeakness,
+    );
+  }
 
   // Build structured answers summary
   const answersSummary = normalizedData.structuredAnswers

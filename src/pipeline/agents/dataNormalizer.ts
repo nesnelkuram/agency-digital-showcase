@@ -1,6 +1,6 @@
 import { generateJSON } from '../geminiClient';
 import { resolveAnswers, STAGE_NAMES, STAGE_QUESTION_IDS, QUESTION_MAP } from '../prompts';
-import type { PipelineInput, NormalizedData, BrandMaturityLevel } from '../types';
+import type { PipelineInput, NormalizedData, BrandMaturityLevel, DataGap } from '../types';
 
 export async function runDataNormalizer(input: PipelineInput): Promise<NormalizedData> {
 
@@ -101,6 +101,7 @@ ONEMLI KURALLAR:
 
   // Calculate brand maturity score from business context signals
   const brandMaturity = calculateBrandMaturity(bc);
+  const dataGaps = detectDataGaps(bc);
 
   // Ensure required fields have fallback values
   return {
@@ -113,6 +114,7 @@ ONEMLI KURALLAR:
     missingAreas: parsed.missingAreas || [],
     overallProfile: parsed.overallProfile || `${contact.businessName} - ${sector} sektorunde faaliyet gostermektedir.`,
     brandMaturity,
+    dataGaps,
   };
 }
 
@@ -166,4 +168,86 @@ function calculateBrandMaturity(bc?: PipelineInput['businessContext']): Normaliz
     factors: { businessAge, brandAssets, digitalPresence, audienceSize },
     reportFocus,
   };
+}
+
+/**
+ * Detect data gaps — zero LLM cost.
+ * Checks which data fields are available, missing, or can be auto-filled
+ * by the pipeline's data gathering utilities.
+ */
+function detectDataGaps(bc?: PipelineInput['businessContext']): DataGap[] {
+  const gaps: DataGap[] = [];
+
+  // Wizard-sourced fields
+  gaps.push({
+    field: 'businessDescription',
+    source: 'wizard',
+    status: bc?.businessDescription ? 'complete' : 'missing',
+    canAutoFill: false,
+  });
+  gaps.push({
+    field: 'competitors',
+    source: 'wizard',
+    status: bc?.competitors ? 'complete' : 'missing',
+    canAutoFill: true, // research can discover competitors
+    dataOrigin: 'ai_inference',
+  });
+  gaps.push({
+    field: 'brandWhy',
+    source: 'wizard',
+    status: bc?.brandWhy ? 'complete' : 'missing',
+    canAutoFill: false,
+  });
+  gaps.push({
+    field: 'customerPerception',
+    source: 'wizard',
+    status: bc?.customerPerception ? 'complete' : 'missing',
+    canAutoFill: false,
+  });
+
+  // Website-sourced fields
+  gaps.push({
+    field: 'websiteData',
+    source: 'website',
+    status: bc?.websiteUrl ? 'partial' : 'missing', // partial until crawled
+    canAutoFill: !!bc?.websiteUrl,
+    dataOrigin: 'website_scrape',
+  });
+  gaps.push({
+    field: 'priceRange',
+    source: 'website',
+    status: 'missing', // updated after website crawl finds products
+    canAutoFill: !!bc?.websiteUrl,
+    dataOrigin: 'website_scrape',
+  });
+
+  // Instagram-sourced fields
+  const hasIG = !!(bc?.instagramHandle || bc?.instagramFollowers);
+  gaps.push({
+    field: 'instagramData',
+    source: 'instagram',
+    status: hasIG ? 'partial' : 'missing', // partial = self-reported, complete = scraped
+    canAutoFill: !!bc?.instagramHandle,
+    dataOrigin: hasIG ? 'wizard_input' : undefined,
+  });
+
+  // Google Places fields
+  gaps.push({
+    field: 'googleReviews',
+    source: 'google_places',
+    status: 'missing',
+    canAutoFill: true,
+    dataOrigin: 'website_scrape',
+  });
+
+  // Research fields
+  gaps.push({
+    field: 'marketData',
+    source: 'research',
+    status: 'missing', // updated after research phase
+    canAutoFill: true,
+    dataOrigin: 'grounding_search',
+  });
+
+  return gaps;
 }

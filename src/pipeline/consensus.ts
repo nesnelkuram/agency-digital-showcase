@@ -1,5 +1,6 @@
-// Multi-Model Consensus — Pipeline-local wrapper
-// Uses Gemini Pro + Flash for cross-validation of critical decisions
+// Multi-Model Consensus v2 — Cross-provider validation
+// Uses Gemini Pro output + OpenRouter Claude for genuine multi-model consensus.
+// Fallback: if OpenRouter unavailable, falls back to Gemini Pro + Flash (same-provider).
 
 import { generateJSON } from './geminiClient';
 import type { EvidenceChain } from './evidence';
@@ -11,16 +12,65 @@ export interface ConsensusResult {
   disagreements: string[];
   humanReviewRecommended: boolean;
   evidence: EvidenceChain;
-  // Populated when consensus fails — feeds mandatory revision
   revisionNeeded: boolean;
-  revisionReason?: string;    // "Model güven farkı: Pro=45, Flash=78"
-  suggestedWeakness?: string; // consensus'un tespit ettiği zayıf nokta
+  revisionReason?: string;
+  suggestedWeakness?: string;
+  // v2: track which providers were used
+  providersUsed: string[];
 }
 
 interface ConsensusResponse {
   answer: string;
   confidence: number;
   rationale: string;
+}
+
+// OpenRouter call for cross-provider consensus
+async function callOpenRouterForConsensus(
+  prompt: string,
+  model: string = 'anthropic/claude-opus-4-6',
+): Promise<ConsensusResponse | null> {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 30_000);
+
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'HTTP-Referer': 'https://intiba.co',
+        'X-Title': 'Intiba Consensus',
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 2048,
+        temperature: 0.3,
+        response_format: { type: 'json_object' },
+        messages: [{ role: 'user', content: prompt }],
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timer);
+
+    if (!response.ok) {
+      console.warn(`[Consensus] OpenRouter ${response.status} — falling back`);
+      return null;
+    }
+
+    const data = await response.json();
+    const text = data.choices?.[0]?.message?.content ?? '';
+    if (!text) return null;
+
+    return JSON.parse(text) as ConsensusResponse;
+  } catch (err: any) {
+    console.warn(`[Consensus] OpenRouter failed: ${err.message}`);
+    return null;
+  }
 }
 
 export async function runPositioningConsensus(
@@ -53,16 +103,38 @@ KURALLAR:
 3. Turkce yaz
 4. Sadece JSON don`;
 
-  // Run both models in parallel
-  const [proResult, flashResult] = await Promise.allSettled([
-    generateJSON<ConsensusResponse>('pro', prompt, 'ConsensusPro', { temperature: 0.3, maxOutputTokens: 2048 }),
-    generateJSON<ConsensusResponse>('flash', prompt, 'ConsensusFlash', { temperature: 0.3, maxOutputTokens: 2048 }),
-  ]);
+  // Strategy: Try OpenRouter Claude first (cross-provider), fall back to Flash (same-provider)
+  const providersUsed: string[] = [];
 
-  const proOpinion = proResult.status === 'fulfilled' ? proResult.value : null;
-  const flashOpinion = flashResult.status === 'fulfilled' ? flashResult.value : null;
+  // Model A: Gemini Pro (always runs)
+  const proResultP = generateJSON<ConsensusResponse>('pro', prompt, 'ConsensusPro', {
+    temperature: 0.3, maxOutputTokens: 2048,
+  }).catch(() => null);
 
-  if (!proOpinion && !flashOpinion) {
+  // Model B: OpenRouter Claude (preferred) or Gemini Flash (fallback)
+  const crossProviderP = callOpenRouterForConsensus(prompt);
+
+  const [proOpinion, crossOpinion] = await Promise.all([proResultP, crossProviderP]);
+
+  if (proOpinion) providersUsed.push('gemini-pro');
+
+  // If OpenRouter succeeded, use it. Otherwise fallback to Flash.
+  let secondOpinion = crossOpinion;
+  if (secondOpinion) {
+    providersUsed.push('openrouter-claude');
+  } else {
+    // Fallback: same-provider Flash
+    try {
+      secondOpinion = await generateJSON<ConsensusResponse>('flash', prompt, 'ConsensusFlash', {
+        temperature: 0.3, maxOutputTokens: 2048,
+      });
+      if (secondOpinion) providersUsed.push('gemini-flash');
+    } catch {
+      secondOpinion = null;
+    }
+  }
+
+  if (!proOpinion && !secondOpinion) {
     return {
       consensusReached: false,
       consensusScore: 0,
@@ -72,6 +144,7 @@ KURALLAR:
       revisionNeeded: true,
       revisionReason: 'Çoklu model doğrulaması başarısız — her iki model yanıt veremedi',
       suggestedWeakness: 'Konumlandırma veya arketip seçimi doğrulanamadı',
+      providersUsed,
       evidence: {
         claim: question,
         evidenceType: 'ai_inference',
@@ -83,38 +156,42 @@ KURALLAR:
     };
   }
 
-  const opinions = [proOpinion, flashOpinion].filter(Boolean) as ConsensusResponse[];
+  const opinions = [proOpinion, secondOpinion].filter(Boolean) as ConsensusResponse[];
   const avgConfidence = Math.round(opinions.reduce((sum, o) => sum + (o.confidence || 50), 0) / opinions.length);
 
   // Check agreement
   const disagreements: string[] = [];
-  if (proOpinion && flashOpinion) {
+  if (proOpinion && secondOpinion) {
     const proConf = proOpinion.confidence || 50;
-    const flashConf = flashOpinion.confidence || 50;
-    if (Math.abs(proConf - flashConf) > 25) {
-      disagreements.push(`Guven farki: Pro=${proConf}, Flash=${flashConf}`);
+    const secondConf = secondOpinion.confidence || 50;
+    if (Math.abs(proConf - secondConf) > 25) {
+      disagreements.push(`Güven farkı: ${providersUsed[0]}=${proConf}, ${providersUsed[1] || 'unknown'}=${secondConf}`);
     }
   }
 
-  const consensusScore = disagreements.length === 0 ? Math.min(95, avgConfidence + 10) : Math.max(20, avgConfidence - 15);
-  const best = proOpinion || flashOpinion!;
+  // Cross-provider consensus is more valuable: +5 bonus when different providers agree
+  const crossProviderBonus = providersUsed.includes('openrouter-claude') && disagreements.length === 0 ? 5 : 0;
+  const consensusScore = disagreements.length === 0
+    ? Math.min(95, avgConfidence + 10 + crossProviderBonus)
+    : Math.max(20, avgConfidence - 15);
+  const best = proOpinion || secondOpinion!;
   const revisionNeeded = consensusScore < 60;
 
-  // Build revision reason when consensus fails
   let revisionReason: string | undefined;
   let suggestedWeakness: string | undefined;
   if (revisionNeeded) {
     const parts: string[] = [];
-    if (proOpinion && flashOpinion) {
-      parts.push(`Model güven farkı: Pro=${proOpinion.confidence}, Flash=${flashOpinion.confidence}`);
+    if (proOpinion && secondOpinion) {
+      parts.push(`Model güven farkı: ${providersUsed[0]}=${proOpinion.confidence}, ${providersUsed[1] || 'unknown'}=${secondOpinion.confidence}`);
     }
     if (disagreements.length > 0) parts.push(...disagreements);
     revisionReason = parts.join(' | ');
-    // Use the lower-confidence model's rationale as the "weakness signal"
-    const weakerModel = (proOpinion?.confidence ?? 100) < (flashOpinion?.confidence ?? 100)
-      ? proOpinion : flashOpinion;
+    const weakerModel = (proOpinion?.confidence ?? 100) < (secondOpinion?.confidence ?? 100)
+      ? proOpinion : secondOpinion;
     suggestedWeakness = weakerModel?.rationale?.slice(0, 200);
   }
+
+  console.log(`[Consensus] score=${consensusScore}, providers=${providersUsed.join('+')}, crossProvider=${providersUsed.includes('openrouter-claude')}`);
 
   return {
     consensusReached: consensusScore >= 60,
@@ -125,15 +202,20 @@ KURALLAR:
     revisionNeeded,
     revisionReason,
     suggestedWeakness,
+    providersUsed,
     evidence: {
       claim: question,
       evidenceType: consensusScore >= 60 ? 'framework' : 'ai_inference',
-      sources: [
-        proOpinion ? `gemini-pro (guven: ${proOpinion.confidence})` : '',
-        flashOpinion ? `gemini-flash (guven: ${flashOpinion.confidence})` : '',
-      ].filter(Boolean),
+      sources: providersUsed.map((p, i) => {
+        const conf = i === 0 ? proOpinion?.confidence : secondOpinion?.confidence;
+        return `${p} (güven: ${conf ?? 'N/A'})`;
+      }),
       confidence: consensusScore,
-      assumptions: disagreements.length > 0 ? [`Modeller arasi gorus ayriligi: ${disagreements.length} noktada`] : [],
+      assumptions: disagreements.length > 0
+        ? [`Modeller arasi gorus ayriligi: ${disagreements.length} noktada`]
+        : providersUsed.includes('openrouter-claude')
+          ? ['Farklı AI sağlayıcıları aynı sonuca ulaştı (cross-provider consensus)']
+          : [],
       falsifiableBy: 'Alternatif konumlandirma ile karsilastirma',
     },
   };

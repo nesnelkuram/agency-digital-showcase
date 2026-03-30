@@ -6,7 +6,6 @@ import { runBrandStrategist } from './agents/brandStrategist';
 import { runBrandChallenger } from './agents/brandChallenger';
 import { runBlogStrategyAdvisor } from './agents/blogStrategyAdvisor';
 import { runStrategySynthesizer } from './agents/strategySynthesizer';
-import { runDeliverableEnricher } from './agents/deliverableEnricher';
 import { buildEvidenceSummary, buildSectionEvidence, createEvidence } from './evidence';
 import type { EvidenceChain, SectionEvidence, FrameworkScore } from './evidence';
 import { buildCalibrationSignals, calibrateSection } from './calibration';
@@ -17,28 +16,34 @@ export { runDataNormalizer } from './agents/dataNormalizer';
 export { runSectorResearch, extractResearchJSON } from './agents/sectorResearch';
 export type { SectorResearchOptions } from './agents/sectorResearch';
 export { runBrandStrategist } from './agents/brandStrategist';
+export type { RevisionConfig } from './agents/brandStrategist';
 export { runBrandChallenger } from './agents/brandChallenger';
 export { runBlogStrategyAdvisor } from './agents/blogStrategyAdvisor';
 export { runStrategySynthesizer } from './agents/strategySynthesizer';
-export { runConsultantIntroWriter } from './agents/consultantIntroWriter';
-export { runBrandValueMaximizer } from './agents/brandValueMaximizer';
 export { runDigitalPresenceAnalyzer } from './agents/digitalPresenceAnalyzer';
-export { runCompetitorDiscovery } from './agents/competitorDiscovery';
-export { runBrandStrategistRevision } from './agents/brandStrategistRevision';
 export { runConsumerTest } from './agents/consumerTest';
-export { runDeliverableEnricher } from './agents/deliverableEnricher';
-export { runStrategyHealthComparator } from './agents/strategyHealthComparator';
-export { runFrictionAnalyzer } from './agents/frictionAnalyzer';
 export { runPositioningConsensus } from './consensus';
 export type { ConsensusResult } from './consensus';
+// Absorbed agents (no longer exported as standalone):
+// - consultantIntroWriter → absorbed into strategySynthesizer
+// - brandValueMaximizer → absorbed into strategySynthesizer
+// - deliverableEnricher → absorbed into strategySynthesizer
+// - frictionAnalyzer → distilled into strategySynthesizer prompt
+// - brandStrategistRevision → revision mode in brandStrategist
+// - competitorDiscovery → research provides competitor data
+// - strategyHealthComparator → only for strategy refresh mode
 export { fetchAndParseWebsite } from './utils/websiteFetcher';
+export { scrapeInstagramPublic } from './utils/instagramScraper';
+export type { InstagramPublicData } from './utils/instagramScraper';
+export { fetchGooglePlacesData } from './utils/googlePlacesScraper';
+export type { GooglePlacesData } from './utils/googlePlacesScraper';
 // Ensure sector enrichment modules are registered
 import './sectorEnrichment';
 export { startDeepResearch, pollDeepResearch } from './geminiClient';
 export { buildDeepResearchPrompt } from './agents/sectorResearch';
 export type { PipelineInput, NormalizedData, ResearchFindings, StrategistOutput, ChallengerOutput, BlogAdvisorOutput, SynthesizedAnalysis, DigitalPresenceAnalysis, CompetitorDiscoveryOutput, ConsumerTestOutput, ValueMaximizerOutput, DistilledAgentView, FrictionAnalysis, StrategicInsight } from './types';
-export type { EvidenceChain, FrameworkScore, SectionEvidence, EvidenceSummaryV2, ConfidenceLevel } from './evidence';
-export { buildEvidenceSummary, buildSectionEvidence, createEvidence, getConfidenceLevel } from './evidence';
+export type { EvidenceChain, FrameworkScore, SectionEvidence, EvidenceSummaryV2, ConfidenceLevel, DataOrigin } from './evidence';
+export { buildEvidenceSummary, buildSectionEvidence, createEvidence, getConfidenceLevel, calculateConfidence, getOriginLabel } from './evidence';
 export { getSectorFrameworkConfig } from './sectorFrameworks';
 export type { SectorFrameworkConfig } from './sectorFrameworks';
 export { generateIntibaRoadmap } from './agents/roadmapGenerator';
@@ -161,29 +166,8 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineState> 
   );
   state.synthesizedAnalysis = synthesizedAnalysis;
 
-  // Step 4b: Agent 5b (Deliverable Enricher) — runs after synthesizer, uses Flash model
-  if (remainingTime(startTime) < 5_000) {
-    throw new Error('Timeout: not enough time for deliverable enricher agent');
-  }
-  const enricherOutput = await runAgent(
-    'deliverableEnricher',
-    () => runDeliverableEnricher(
-      state.synthesizedAnalysis!,
-      normalizedData.businessName,
-      normalizedData.sector,
-      normalizedData.brandMaturity?.level,
-    ),
-    state,
-  );
-  if (enricherOutput.messagingArchitecture) {
-    state.synthesizedAnalysis!.messagingArchitecture = enricherOutput.messagingArchitecture;
-  }
-  if (enricherOutput.customerJourney?.length > 0) {
-    state.synthesizedAnalysis!.customerJourney = enricherOutput.customerJourney;
-  }
-  if (enricherOutput.socialMediaTemplates?.length > 0) {
-    state.synthesizedAnalysis!.socialMediaTemplates = enricherOutput.socialMediaTemplates;
-  }
+  // Note: deliverableEnricher + brandValueMaximizer are now internal to strategySynthesizer
+  // (they run as parallel Flash enrichment passes within the synthesizer function)
 
   // Step 5: Build Evidence Summary & Calibrate
   try {
@@ -240,6 +224,20 @@ export function buildPipelineEvidence(state: PipelineState): {
     false, // challengePoints are constructive, not conflicting evidence
   );
 
+  // Data gap summary — missing fields reduce overall confidence
+  const dataGaps = state.normalizedData?.dataGaps || [];
+  const missingGaps = dataGaps.filter(g => g.status === 'missing').length;
+  const totalGaps = dataGaps.length;
+  const dataCompleteness = totalGaps > 0 ? Math.round(((totalGaps - missingGaps) / totalGaps) * 100) : 50;
+  // Each missing gap reduces confidence by ~3 points (capped at -20)
+  const gapPenalty = Math.min(missingGaps * 3, 20);
+
+  // Determine research origin based on how data was acquired
+  const researchOrigin: import('./evidence').DataOrigin = hasResearch
+    ? ((state.researchFindings?.sourcesUsed ?? 0) >= 5 ? 'deep_research' : 'grounding_search')
+    : 'ai_inference';
+  const consensusScore = state.consensusResults?.[0]?.consensusScore;
+
   // Section: Research
   if (state.researchFindings) {
     const researchChains: EvidenceChain[] = [];
@@ -249,9 +247,10 @@ export function buildPipelineEvidence(state: PipelineState): {
       `Pazar verisi: ${rf.marketData?.marketSize || 'Bilgi yok'}`,
       'research',
       rf.sourceUrls?.map(s => s.url) || [],
-      hasResearch ? 80 : 20,
+      0, // auto-calculated from dataOrigin
       [],
       'Pazar büyüklüğü kaynağı doğrulanarak',
+      researchOrigin,
     ));
 
     if (rf.competitors.length > 0) {
@@ -259,7 +258,10 @@ export function buildPipelineEvidence(state: PipelineState): {
         `${rf.competitors.length} rakip tespit edildi`,
         'research',
         rf.competitors.map(c => c.website).filter(Boolean),
-        rf.competitors.length >= 3 ? 80 : 50,
+        0,
+        [],
+        '',
+        researchOrigin,
       ));
     }
 
@@ -272,22 +274,30 @@ export function buildPipelineEvidence(state: PipelineState): {
     const strategyChains: EvidenceChain[] = [];
     const so = state.strategistOutput;
 
+    const archetypeOrigin: import('./evidence').DataOrigin = so.aakerPersonality ? 'deep_research' : 'ai_inference';
     strategyChains.push(createEvidence(
       `Arketip: ${so.archetype}`,
       so.aakerPersonality ? 'framework' : 'ai_inference',
       so.aakerPersonality ? ['Aaker Brand Personality 5 Boyut'] : [],
-      so.aakerPersonality ? 70 : 40,
+      0,
       so.aakerPersonality ? [] : ['Arketip seçimi framework puanlaması olmadan yapılmış'],
       'Farklı bir arketip ile aynı veriler analiz edilirse',
+      archetypeOrigin,
+      consensusScore,
     ));
 
+    const positioningOrigin: import('./evidence').DataOrigin = consensusScore && consensusScore >= 60
+      ? 'multi_model_validated'
+      : hasResearch ? 'grounding_search' : 'ai_inference';
     strategyChains.push(createEvidence(
       `Konumlandırma: ${so.positioningStatement.slice(0, 100)}`,
       hasResearch ? 'research' : 'ai_inference',
       [],
-      hasResearch ? 65 : 35,
+      0,
       hasResearch ? [] : ['Araştırma verisi olmadan konumlandırma yapılmış'],
       'Rakip swap testi ile',
+      positioningOrigin,
+      consensusScore,
     ));
 
     // Collect framework scores from strategist
@@ -309,9 +319,8 @@ export function buildPipelineEvidence(state: PipelineState): {
         `Onlyness testi: ${co.onlynessTest.verdict}`,
         'framework',
         ['Neumeier Onlyness Test'],
-        co.onlynessTest.verdict === 'strong' ? 85 : co.onlynessTest.verdict === 'weak' ? 50 : 25,
-        [],
-        'Rakip ismi değiştirilerek test tekrarlanabilir',
+        0, [], 'Rakip ismi değiştirilerek test tekrarlanabilir',
+        hasResearch ? 'grounding_search' : 'ai_inference',
       ));
     }
 
@@ -320,7 +329,8 @@ export function buildPipelineEvidence(state: PipelineState): {
         `Benzersizlik skoru: ${co.distinctivenessScore}/100`,
         'framework',
         ['Neumeier Distinctiveness Assessment'],
-        co.distinctivenessScore >= 60 ? 70 : 40,
+        0, [], '',
+        hasResearch ? 'grounding_search' : 'ai_inference',
       ));
     }
 
@@ -328,8 +338,8 @@ export function buildPipelineEvidence(state: PipelineState): {
       challengerChains.push(createEvidence(
         point.slice(0, 150),
         hasResearch ? 'research' : 'ai_inference',
-        [],
-        hasResearch ? 60 : 35,
+        [], 0, [], '',
+        hasResearch ? 'grounding_search' : 'ai_inference',
       ));
     });
 
@@ -345,21 +355,21 @@ export function buildPipelineEvidence(state: PipelineState): {
     consumerChains.push(createEvidence(
       `Genel uygulanabilirlik: ${ct.overallViabilityScore}/100`,
       'ai_inference',
-      [],
-      Math.min(50, ct.overallViabilityScore * 0.5),
+      [], 0,
       ['Sentetik persona testi — gerçek tüketici verisi değil'],
       'Gerçek müşteri görüşmeleri ile doğrulanabilir',
+      'ai_inference',
     ));
 
     if (ct.jtbdScenarios && ct.jtbdScenarios.length > 0) {
-      const avgFit = ct.jtbdScenarios.reduce((sum, s) => sum + s.strategyJobFitScore, 0) / ct.jtbdScenarios.length;
       consumerChains.push(createEvidence(
-        `JTBD Ortalama Uyum: ${Math.round(avgFit)}/100`,
+        `JTBD Ortalama Uyum: ${Math.round(ct.jtbdScenarios.reduce((sum, s) => sum + s.strategyJobFitScore, 0) / ct.jtbdScenarios.length)}/100`,
         'framework',
         ['JTBD Switch Interview Framework'],
-        Math.min(60, avgFit * 0.6),
+        0,
         ['Sentetik JTBD senaryoları — gerçek müşteri röportajı değil'],
         'Gerçek switch interview\'lar ile',
+        'ai_inference',
       ));
     }
 
@@ -376,37 +386,34 @@ export function buildPipelineEvidence(state: PipelineState): {
       'Nihai sentez raporu',
       hasResearch ? 'framework' : 'ai_inference',
       sa.evidenceSummary.keySourceUrls?.map(s => s.url) || [],
-      hasResearch ? 60 : 40,
+      0,
       state.challengerOutput ? [] : ['Eleştirel analiz olmadan sentez yapılmış'],
+      '',
+      researchOrigin,
+      consensusScore,
     ));
 
     if (sa.messagingArchitecture) {
       synthChains.push(createEvidence(
-        'Mesajlaşma mimarisi',
-        'framework',
-        [],
-        45,
-        ['AI üretimi — gerçek pazar testi yapılmamış'],
+        'Mesajlaşma mimarisi', 'framework', [], 0,
+        ['AI üretimi — gerçek pazar testi yapılmamış'], '',
+        'ai_inference',
       ));
     }
 
     if (sa.customerJourney && sa.customerJourney.length > 0) {
       synthChains.push(createEvidence(
-        'Müşteri yolculuğu haritası',
+        'Müşteri yolculuğu haritası', 'ai_inference', [], 0,
+        ['Sentetik yolculuk — gerçek kullanıcı gözlemi değil'], '',
         'ai_inference',
-        [],
-        40,
-        ['Sentetik yolculuk — gerçek kullanıcı gözlemi değil'],
       ));
     }
 
     if (sa.kpiFramework) {
       synthChains.push(createEvidence(
-        'KPI çerçevesi',
-        'framework',
-        [],
-        40,
-        ['Sektör kıyaslaması olmadan üretilmiş'],
+        'KPI çerçevesi', 'framework', [], 0,
+        ['Sektör kıyaslaması olmadan üretilmiş'], '',
+        'ai_inference',
       ));
     }
 
@@ -414,8 +421,16 @@ export function buildPipelineEvidence(state: PipelineState): {
     sections.push(calibrateSection(synthSection, signals));
   }
 
+  const summary = buildEvidenceSummary(sections);
+
+  // Apply data gap penalty to overall confidence
+  if (gapPenalty > 0) {
+    summary.overallConfidence = Math.max(10, summary.overallConfidence - gapPenalty);
+    summary.keyAssumptions.push(`${missingGaps} veri alanı eksik — genel güvenilirlik ${gapPenalty} puan düşürüldü (veri tamlığı: %${dataCompleteness})`);
+  }
+
   return {
-    summary: buildEvidenceSummary(sections),
+    summary,
     frameworkScores: allFrameworkScores,
   };
 }

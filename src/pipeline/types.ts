@@ -1,5 +1,14 @@
 // Multi-Agent Brand Analysis Pipeline Types
-import type { EvidenceChain, FrameworkScore, EvidenceSummaryV2 } from './evidence';
+import type { EvidenceChain, FrameworkScore, EvidenceSummaryV2, DataOrigin } from './evidence';
+
+/** Tracks what data is missing/present — agents and evidence use this for honest scoring */
+export interface DataGap {
+  field: string;                    // e.g. 'priceRange', 'competitorPricing', 'instagramData'
+  source: 'wizard' | 'website' | 'instagram' | 'google_places' | 'research';
+  status: 'missing' | 'partial' | 'complete';
+  canAutoFill: boolean;             // true if pipeline can discover this automatically
+  dataOrigin?: DataOrigin;          // links to evidence confidence scoring
+}
 
 export interface BusinessContextInput {
   businessDescription?: string;
@@ -62,6 +71,8 @@ export interface NormalizedData {
   dataQualityScore: number;
   missingAreas: string[];
   overallProfile: string;
+  // v2: Data gap tracking — each agent sees what's missing
+  dataGaps?: DataGap[];
   // Faz 2 — Brand maturity assessment
   brandMaturity?: {
     level: BrandMaturityLevel;
@@ -523,6 +534,30 @@ export interface SynthesizedAnalysis {
     callToAction: string;
     exampleCaption: string;
   }>;
+
+  // ValueMaximizer outputs (absorbed into synthesizer enrichment pass)
+  diagnosisSummary?: {
+    perceptionVsReality: Array<{ perception: string; reality: string; gap: string; recommendation: string }>;
+    blindSpots: string[];
+    criticalMisalignment: string;
+  };
+  emotionalNarrative?: {
+    manifesto: string;
+    transformationStory: string;
+    oneLinePromise: string;
+  };
+  revenueImpact?: {
+    currentState: string;
+    growthDrivers: Array<{
+      driver: string;
+      estimatedImpact: string;
+      timeframe: string;
+      impactHypothesis?: string;
+      assumptions?: string[];
+      confidenceLevel?: 'verified' | 'grounded' | 'inferred' | 'speculative';
+    }>;
+    investmentToGrowthRatio: string;
+  };
 }
 
 // Agent 7 Output — Digital Presence Analysis
