@@ -341,30 +341,9 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
     console.log(`analyze-continue: ROUTER — researchQuality=${researchQuality}, competitors=${researchFindings?.competitors?.length || 0}, sources=${researchFindings?.sourcesUsed || 0}`);
     console.log(`analyze-continue: PHASE B START — remaining=${remaining()}ms, hasResearch=${!!researchFindings}, sourcesUsed=${researchFindings?.sourcesUsed}`);
 
-    // ============================
-    // PHASE A.5: Competitor Intelligence (parallel, non-fatal)
-    // Gathers real data: competitor websites, Instagram, Google Places
-    // ============================
-    let competitorIntelligence: any = null;
-    if (researchFindings?.competitors?.length > 0) {
-      const compStart = Date.now();
-      const competitorNames = researchFindings.competitors.slice(0, 3).map((c: any) => c.name);
-      try {
-        competitorIntelligence = await gatherCompetitorIntelligence(
-          input.contact.businessName,
-          input.businessContext?.websiteUrl || null,
-          input.businessContext?.instagramHandle || null,
-          competitorNames,
-          input.sector,
-          input.businessContext?.geoScope,
-        );
-        timings.competitorIntelligence = Date.now() - compStart;
-        console.log(`analyze-continue: competitorIntelligence done in ${timings.competitorIntelligence}ms — ${competitorIntelligence?.competitors?.filter((c: any) => c.websiteData || c.instagramData || c.googlePlacesData).length}/${competitorNames.length} with data`);
-      } catch (err: any) {
-        timings.competitorIntelligence = Date.now() - compStart;
-        console.warn(`analyze-continue: competitorIntelligence failed: ${err.message}`);
-      }
-    }
+    // PHASE A.5: Competitor Intelligence — runs on HETZNER only (too slow for Vercel 300s)
+    // Vercel skips this; Hetzner worker handles it in its own pipeline flow
+    const competitorIntelligence: any = null;
 
     // Semantic search via Hetzner Qdrant (non-blocking, fallback to null)
     const semanticQuery = `${input.contact.businessName} ${input.sector} marka stratejisi konumlandırma`;
