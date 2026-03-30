@@ -291,7 +291,8 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
     // HETZNER DELEGATION: If Hetzner is configured, delegate the full pipeline
     // Research is already resolved at this point — send everything to Hetzner
     // ============================
-    if (isHetznerConfigured() && input.mode === 'full' && researchFindings) {
+    // Hetzner delegation temporarily disabled — Hetzner has old pipeline code, v2 runs on Vercel
+    if (false && isHetznerConfigured() && input.mode === 'full' && researchFindings) {
       const HETZNER_URL = process.env.HETZNER_PIPELINE_URL!;
       const PIPELINE_SECRET = process.env.PIPELINE_API_SECRET!;
       try {
