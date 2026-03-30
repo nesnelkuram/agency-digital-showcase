@@ -17,6 +17,7 @@ import {
   generateIntibaRoadmap,
   buildPipelineEvidence,
   runPositioningConsensus,
+  gatherCompetitorIntelligence,
 } from './_bundles/pipeline-bundle.mjs';
 // Removed: runConsultantIntroWriter, runBrandValueMaximizer, runDeliverableEnricher,
 //          runFrictionAnalyzer, runBrandStrategistRevision, runCompetitorDiscovery
@@ -339,6 +340,31 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
 
     console.log(`analyze-continue: ROUTER — researchQuality=${researchQuality}, competitors=${researchFindings?.competitors?.length || 0}, sources=${researchFindings?.sourcesUsed || 0}`);
     console.log(`analyze-continue: PHASE B START — remaining=${remaining()}ms, hasResearch=${!!researchFindings}, sourcesUsed=${researchFindings?.sourcesUsed}`);
+
+    // ============================
+    // PHASE A.5: Competitor Intelligence (parallel, non-fatal)
+    // Gathers real data: competitor websites, Instagram, Google Places
+    // ============================
+    let competitorIntelligence: any = null;
+    if (researchFindings?.competitors?.length > 0) {
+      const compStart = Date.now();
+      const competitorNames = researchFindings.competitors.slice(0, 3).map((c: any) => c.name);
+      try {
+        competitorIntelligence = await gatherCompetitorIntelligence(
+          input.contact.businessName,
+          input.businessContext?.websiteUrl || null,
+          input.businessContext?.instagramHandle || null,
+          competitorNames,
+          input.sector,
+          input.businessContext?.geoScope,
+        );
+        timings.competitorIntelligence = Date.now() - compStart;
+        console.log(`analyze-continue: competitorIntelligence done in ${timings.competitorIntelligence}ms — ${competitorIntelligence?.competitors?.filter((c: any) => c.websiteData || c.instagramData || c.googlePlacesData).length}/${competitorNames.length} with data`);
+      } catch (err: any) {
+        timings.competitorIntelligence = Date.now() - compStart;
+        console.warn(`analyze-continue: competitorIntelligence failed: ${err.message}`);
+      }
+    }
 
     // Semantic search via Hetzner Qdrant (non-blocking, fallback to null)
     const semanticQuery = `${input.contact.businessName} ${input.sector} marka stratejisi konumlandırma`;
@@ -824,6 +850,19 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
         instagramPublicData: instagramData || undefined,
         googlePlacesData: googlePlacesData || undefined,
       },
+
+      // Competitor intelligence (real data comparison)
+      competitorIntelligence: competitorIntelligence ? {
+        comparisonTable: competitorIntelligence.comparisonTable,
+        insights: competitorIntelligence.insights,
+        competitors: competitorIntelligence.competitors.map((c: any) => ({
+          name: c.name,
+          websiteUrl: c.websiteUrl,
+          instagramHandle: c.instagramHandle,
+          metrics: c.metrics,
+        })),
+        gatherDuration: competitorIntelligence.gatherDuration,
+      } : undefined,
 
       // Deliverable outputs (now internal to synthesizer)
       messagingArchitecture: synthesized.messagingArchitecture || undefined,

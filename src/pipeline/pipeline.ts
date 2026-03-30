@@ -37,6 +37,8 @@ export { scrapeInstagramPublic } from './utils/instagramScraper';
 export type { InstagramPublicData } from './utils/instagramScraper';
 export { fetchGooglePlacesData } from './utils/googlePlacesScraper';
 export type { GooglePlacesData } from './utils/googlePlacesScraper';
+export { gatherCompetitorIntelligence } from './utils/competitorIntelligence';
+export type { CompetitorComparison, CompetitorProfile, ComparisonRow } from './utils/competitorIntelligence';
 // Ensure sector enrichment modules are registered
 import './sectorEnrichment';
 export { startDeepResearch, pollDeepResearch } from './geminiClient';
