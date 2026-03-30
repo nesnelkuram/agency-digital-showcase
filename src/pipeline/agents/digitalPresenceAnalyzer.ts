@@ -161,7 +161,7 @@ KURALLAR:
 6. Tum metinler TURKCE.`;
 
   try {
-    const parsed = await generateJSON<any>('pro', prompt, 'DigitalPresence-Website', {
+    const parsed = await generateJSON<any>('flash', prompt, 'DigitalPresence-Website', {
       temperature: 0.5,
       maxOutputTokens: 4096,
     });
@@ -279,18 +279,26 @@ async function analyzeInstagram(
   if (!searchTarget) return null;
 
   try {
-    // Two parallel grounding searches
-    const handleQuery = handle
-      ? `site:instagram.com/${handle} "${handle}" profil bilgileri paylasimlar`
-      : `"${businessName}" instagram hesabi profil`;
-    const analysisQuery = `"${businessName}" instagram analiz istatistik takipci etkilesim ${sector}`;
+    // If we have pre-gathered Instagram data, skip expensive grounding searches
+    // This saves ~60s of Pro model grounding calls
+    let combinedText = '';
+    if (preGatheredContext && preGatheredContext.length > 50) {
+      console.log(`analyzeInstagram: Using pre-gathered data, skipping grounding searches`);
+      combinedText = `## Ön-Toplanan Gerçek Veriler\n${preGatheredContext}`;
+    } else {
+      // Fallback: Two parallel grounding searches (slow but necessary without pre-gathered data)
+      const handleQuery = handle
+        ? `site:instagram.com/${handle} "${handle}" profil bilgileri paylasimlar`
+        : `"${businessName}" instagram hesabi profil`;
+      const analysisQuery = `"${businessName}" instagram analiz istatistik takipci etkilesim ${sector}`;
 
-    const [profileRes, analysisRes] = await Promise.all([
-      generateGroundedText(handleQuery, 'DigitalPresence-IGProfile', { maxOutputTokens: 4096, modelTier: 'pro' }),
-      generateGroundedText(analysisQuery, 'DigitalPresence-IGAnalysis', { maxOutputTokens: 4096, modelTier: 'pro' }),
-    ]);
+      const [profileRes, analysisRes] = await Promise.all([
+        generateGroundedText(handleQuery, 'DigitalPresence-IGProfile', { maxOutputTokens: 4096, modelTier: 'pro' }),
+        generateGroundedText(analysisQuery, 'DigitalPresence-IGAnalysis', { maxOutputTokens: 4096, modelTier: 'pro' }),
+      ]);
 
-    const combinedText = `## Instagram Profil Bilgileri\n${profileRes.text}\n\n## Instagram Analiz\n${analysisRes.text}`;
+      combinedText = `## Instagram Profil Bilgileri\n${profileRes.text}\n\n## Instagram Analiz\n${analysisRes.text}`;
+    }
 
     const prompt = `Asagidaki Instagram arastirma verilerini analiz ederek JSON olustur.
 
@@ -298,7 +306,6 @@ Marka: ${businessName}
 Instagram Handle: ${handle || 'Bilinmiyor'}
 Sektor: ${sector}
 ${followerRange ? `Bildirilen Takipci Araligi: ${followerRange}` : ''}
-${preGatheredContext ? `\n## Ön-Toplanan Gerçek Veriler (güvenilir — scrape edilmiş)\n${preGatheredContext}` : ''}
 
 ## Arastirma Verileri
 ${combinedText}
@@ -328,7 +335,7 @@ KURALLAR:
 4. followerRange: ${followerRange || 'bilinmiyor'} (musteri bildirdiyse onu kullan).
 5. Tum metinler TURKCE.`;
 
-    const parsed = await generateJSON<any>('pro', prompt, 'DigitalPresence-IGStructure', {
+    const parsed = await generateJSON<any>('flash', prompt, 'DigitalPresence-IGStructure', {
       temperature: 0.4,
       maxOutputTokens: 4096,
     });
