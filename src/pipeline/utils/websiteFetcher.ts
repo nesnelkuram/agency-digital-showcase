@@ -1,4 +1,7 @@
 import * as cheerio from 'cheerio';
+import { findPhoneNumbersInText } from 'libphonenumber-js';
+// @ts-ignore — no type declarations
+import parseDecimalNumber from 'parse-decimal-number';
 
 export interface FetchedWebsite {
   url: string;
@@ -17,13 +20,14 @@ export interface FetchedWebsite {
   businessIntel: {
     socialLinks: Record<string, string>;  // instagram, facebook, twitter, linkedin, youtube, tiktok
     contactInfo: { phones: string[]; emails: string[]; addresses: string[] };
-    priceRange: { min: number | null; max: number | null; currency: string; segment: 'budget' | 'mid' | 'premium' | 'luxury' | 'unknown' };
+    priceRange: { min: number | null; max: number | null; currency: string; segment: 'budget' | 'mid' | 'premium' | 'luxury' | 'unknown'; avgPrice: number | null };
     aboutText: string;                    // hakkımızda/about page text
-    foundingYear: number | null;          // extracted from text patterns
+    foundingYear: number | null;          // extracted from text patterns + JSON-LD
     teamSize: string | null;              // "10+ kişi" etc.
     locationCount: number;                // number of branch/location mentions
     certifications: string[];             // ISO, TURKAK, etc.
     testimonialCount: number;             // review/testimonial sections found
+    jsonLd: Record<string, any>;          // raw JSON-LD structured data (schema.org)
   };
 }
 
@@ -152,16 +156,23 @@ function scoreUrl(url: string): number {
 
 // ─── Business Intelligence Extractors (zero LLM cost) ────────────────────────
 
-function extractSocialLinks(allLinks: string[]): Record<string, string> {
+// ─── Business Intelligence Extractors v2 ─────────────────────────────────────
+// Uses: libphonenumber-js, parse-decimal-number, cheerio-based JSON-LD extraction
+
+/** Extract social media links from all page links + footer + head + JSON-LD sameAs */
+function extractSocialLinks(allLinks: string[], htmlPages: string[]): Record<string, string> {
   const social: Record<string, string> = {};
   const patterns: Array<[string, RegExp]> = [
-    ['instagram', /instagram\.com\/([^/?#]+)/i],
-    ['facebook', /facebook\.com\/([^/?#]+)/i],
-    ['twitter', /(twitter|x)\.com\/([^/?#]+)/i],
-    ['linkedin', /linkedin\.com\/(company|in)\/([^/?#]+)/i],
-    ['youtube', /youtube\.com\/(channel|c|@)\/([^/?#]+)/i],
-    ['tiktok', /tiktok\.com\/@([^/?#]+)/i],
+    ['instagram', /(?:www\.)?instagram\.com\/([^/?#\s]+)/i],
+    ['facebook', /(?:www\.)?facebook\.com\/([^/?#\s]+)/i],
+    ['twitter', /(?:www\.)?(twitter|x)\.com\/([^/?#\s]+)/i],
+    ['linkedin', /(?:www\.)?linkedin\.com\/(company|in)\/([^/?#\s]+)/i],
+    ['youtube', /(?:www\.)?youtube\.com\/(channel|c|@|user)\/([^/?#\s]+)/i],
+    ['tiktok', /(?:www\.)?tiktok\.com\/@([^/?#\s]+)/i],
+    ['pinterest', /(?:www\.)?pinterest\.\w+\/([^/?#\s]+)/i],
   ];
+
+  // Check all collected links
   for (const link of allLinks) {
     for (const [platform, regex] of patterns) {
       if (!social[platform] && regex.test(link)) {
@@ -169,127 +180,255 @@ function extractSocialLinks(allLinks: string[]): Record<string, string> {
       }
     }
   }
+
+  // Also search JSON-LD sameAs and raw HTML for social links missed in text extraction
+  for (const html of htmlPages) {
+    // JSON-LD sameAs
+    const jsonLdMatches = html.match(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi) || [];
+    for (const block of jsonLdMatches) {
+      try {
+        const content = block.replace(/<\/?script[^>]*>/gi, '');
+        const ld = JSON.parse(content);
+        const sameAs = ld.sameAs || (Array.isArray(ld) ? ld[0]?.sameAs : null);
+        if (Array.isArray(sameAs)) {
+          for (const url of sameAs) {
+            for (const [platform, regex] of patterns) {
+              if (!social[platform] && typeof url === 'string' && regex.test(url)) {
+                social[platform] = url;
+              }
+            }
+          }
+        }
+      } catch { /* ignore parse errors */ }
+    }
+
+    // Footer and header links (often contain social icons)
+    const $ = cheerio.load(html);
+    $('footer a[href], header a[href], [class*="social"] a[href], [class*="footer"] a[href]').each((_, el) => {
+      const href = $(el).attr('href') || '';
+      for (const [platform, regex] of patterns) {
+        if (!social[platform] && regex.test(href)) {
+          social[platform] = href;
+        }
+      }
+    });
+  }
+
   return social;
 }
 
+/** Extract contact info using libphonenumber-js for proper Turkish phone parsing */
 function extractContactInfo(text: string, allLinks: string[]): { phones: string[]; emails: string[]; addresses: string[] } {
+  // Phones — libphonenumber-js handles all Turkish formats
+  const phoneNumbers = findPhoneNumbersInText(text, 'TR');
   const phones = [...new Set(
-    (text.match(/(?:\+90|0)[\s.-]?\d{3}[\s.-]?\d{3}[\s.-]?\d{2}[\s.-]?\d{2}/g) || [])
-      .map(p => p.replace(/[\s.-]/g, ''))
+    phoneNumbers.map(p => p.number.formatInternational())
   )].slice(0, 5);
 
-  const emails = [...new Set(
-    (text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || [])
-      .filter(e => !e.includes('example') && !e.includes('sentry'))
-  )].slice(0, 5);
+  // Emails — regex + mailto links
+  const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+  const foundEmails = (text.match(emailRegex) || [])
+    .filter(e => !e.includes('example') && !e.includes('sentry') && !e.includes('wixpress') && !e.includes('placeholder'));
 
-  // Look for mailto: links too
   for (const link of allLinks) {
     const m = link.match(/mailto:([^?]+)/);
-    if (m && !emails.includes(m[1])) emails.push(m[1]);
+    if (m) foundEmails.push(m[1]);
   }
+  const emails = [...new Set(foundEmails)].slice(0, 5);
 
+  // Addresses — Turkish patterns
   const addresses: string[] = [];
-  // Common Turkish address patterns
-  const addrPatterns = text.match(/(?:Mah\.|Cad\.|Sok\.|Bulvarı|No:|Kat:)[^.]{10,80}/gi) || [];
-  for (const a of addrPatterns.slice(0, 3)) {
-    addresses.push(a.trim());
+  const addrPatterns = [
+    /(?:Mah(?:allesi)?\.?\s*)[^,.\n]{5,60}(?:,\s*)?(?:Cad(?:desi)?\.?\s*|Sok(?:ak|ağı)?\.?\s*|Bulvarı\s*)?[^,.\n]{0,40}(?:No\.?\s*\d+)?/gi,
+    /(?:Cad(?:desi)?\.?\s*)[^,.\n]{5,60}(?:No\.?\s*:?\s*\d+)?/gi,
+  ];
+  for (const pattern of addrPatterns) {
+    const matches = text.match(pattern) || [];
+    for (const m of matches.slice(0, 3)) {
+      const cleaned = m.trim().replace(/\s+/g, ' ');
+      if (cleaned.length > 15 && !addresses.includes(cleaned)) {
+        addresses.push(cleaned);
+      }
+    }
   }
 
-  return { phones, emails, addresses };
+  return { phones, emails, addresses: addresses.slice(0, 3) };
 }
 
-function extractPriceRange(products: Array<{ price?: string }>): { min: number | null; max: number | null; currency: string; segment: 'budget' | 'mid' | 'premium' | 'luxury' | 'unknown' } {
+/** Parse Turkish price format: 1.315,50 TL = 1315.50 */
+function parseTurkishPrice(priceStr: string): number | null {
+  if (!priceStr) return null;
+  const cleaned = priceStr.replace(/[^\d.,]/g, '').trim();
+  if (!cleaned) return null;
+
+  // Try parse-decimal-number with Turkish locale (dot=thousands, comma=decimal)
+  const result = parseDecimalNumber(cleaned, { thousands: '.', decimal: ',' });
+  if (!isNaN(result) && result > 0 && result < 10_000_000) return result;
+
+  // Fallback: manual detection
+  if (cleaned.includes('.') && cleaned.includes(',')) {
+    // "1.315,50" → Turkish format
+    return parseFloat(cleaned.replace(/\./g, '').replace(',', '.'));
+  }
+  if (cleaned.includes('.') && !cleaned.includes(',')) {
+    const parts = cleaned.split('.');
+    const lastPart = parts[parts.length - 1];
+    // "1.315" (3 digits after dot) = thousands separator = 1315
+    if (lastPart.length === 3) return parseFloat(cleaned.replace(/\./g, ''));
+    // "1.50" (2 digits) = decimal
+    return parseFloat(cleaned);
+  }
+  if (cleaned.includes(',') && !cleaned.includes('.')) {
+    return parseFloat(cleaned.replace(',', '.'));
+  }
+  return parseFloat(cleaned) || null;
+}
+
+/** Extract price range from products with proper Turkish format handling */
+function extractPriceRange(products: Array<{ price?: string }>): { min: number | null; max: number | null; currency: string; segment: 'budget' | 'mid' | 'premium' | 'luxury' | 'unknown'; avgPrice: number | null } {
   const prices: number[] = [];
   for (const p of products) {
-    if (!p.price) continue;
-    const cleaned = p.price.replace(/[^\d.,]/g, '').replace(',', '.');
-    const num = parseFloat(cleaned);
-    if (!isNaN(num) && num > 0 && num < 1_000_000) prices.push(num);
+    const num = parseTurkishPrice(p.price || '');
+    if (num && num > 1 && num < 10_000_000) prices.push(num);
   }
 
-  if (prices.length === 0) return { min: null, max: null, currency: 'TRY', segment: 'unknown' };
+  if (prices.length === 0) return { min: null, max: null, currency: 'TRY', segment: 'unknown', avgPrice: null };
 
   const min = Math.min(...prices);
   const max = Math.max(...prices);
   const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
 
-  // Segment based on average price (rough TRY heuristic)
-  const segment = avg < 100 ? 'budget' : avg < 500 ? 'mid' : avg < 2000 ? 'premium' : 'luxury';
+  // Segment based on average price (TRY heuristic, 2026 pricing)
+  const segment = avg < 200 ? 'budget' : avg < 1000 ? 'mid' : avg < 5000 ? 'premium' : 'luxury';
 
-  return { min, max, currency: 'TRY', segment };
+  return { min: Math.round(min), max: Math.round(max), currency: 'TRY', segment, avgPrice: Math.round(avg) };
 }
 
-function extractFoundingYear(text: string): number | null {
-  // "2015'ten beri", "2018 yılında kuruldu", "since 2010", "est. 2005"
+/** Extract founding year from text + JSON-LD */
+function extractFoundingYear(text: string, htmlPages: string[]): number | null {
+  // Try JSON-LD foundingDate first (most reliable)
+  for (const html of htmlPages) {
+    const jsonLdMatches = html.match(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi) || [];
+    for (const block of jsonLdMatches) {
+      try {
+        const content = block.replace(/<\/?script[^>]*>/gi, '');
+        const ld = JSON.parse(content);
+        const date = ld.foundingDate || (Array.isArray(ld) ? ld[0]?.foundingDate : null);
+        if (date) {
+          const year = parseInt(String(date).slice(0, 4));
+          if (year >= 1900 && year <= new Date().getFullYear()) return year;
+        }
+      } catch { /* ignore */ }
+    }
+  }
+
+  // Fallback: regex patterns in text
   const patterns = [
     /(?:kuruldu|kurulmuş|beri|since|est\.?|founded)\s*(?:in\s+)?(\d{4})/i,
     /(\d{4})\s*(?:'[td]en|'dan|'den|yılından)\s*(?:beri|itibaren)/i,
-    /(\d{4})\s*yılında\s*(?:kurul|açıl|başla)/i,
+    /(\d{4})\s*yılında\s*(?:kurul|açıl|başla|faaliyet)/i,
+    /(\d{4})\s*(?:yılından|senesinden)\s*(?:bu yana|beri)/i,
   ];
   for (const pattern of patterns) {
     const match = text.match(pattern);
     if (match) {
       const year = parseInt(match[1]);
-      if (year >= 1950 && year <= new Date().getFullYear()) return year;
+      if (year >= 1900 && year <= new Date().getFullYear()) return year;
     }
   }
   return null;
 }
 
-function extractAboutText(pages: PageData[]): string {
-  // Find about/hakkımızda page
+/** Extract about/hakkımızda text from pages */
+function extractAboutText(pages: PageData[], htmlPages: string[]): string {
+  // Find about page
   const aboutPage = pages.find(p =>
-    /hakkimizda|hakkinda|about|biz-kimiz|hikayemiz|story/i.test(p.url)
+    /hakkimizda|hakkinda|about|biz-kimiz|hikayemiz|story|kurumsal/i.test(p.url)
   );
-  if (aboutPage) return aboutPage.textContent.slice(0, 2000);
+  if (aboutPage && aboutPage.textContent.length > 100) {
+    return aboutPage.textContent.slice(0, 2000);
+  }
 
-  // Fallback: look for about sections in homepage
+  // Try JSON-LD description
+  for (const html of htmlPages) {
+    const jsonLdMatches = html.match(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi) || [];
+    for (const block of jsonLdMatches) {
+      try {
+        const content = block.replace(/<\/?script[^>]*>/gi, '');
+        const ld = JSON.parse(content);
+        const desc = ld.description || (Array.isArray(ld) ? ld[0]?.description : null);
+        if (desc && desc.length > 50) return desc.slice(0, 2000);
+      } catch { /* ignore */ }
+    }
+  }
+
+  // Fallback: look for about sections in any page
   for (const page of pages) {
-    const aboutIdx = page.textContent.toLowerCase().indexOf('hakkımızda');
-    if (aboutIdx !== -1) return page.textContent.slice(aboutIdx, aboutIdx + 1500);
-    const aboutIdx2 = page.textContent.toLowerCase().indexOf('hikayemiz');
-    if (aboutIdx2 !== -1) return page.textContent.slice(aboutIdx2, aboutIdx2 + 1500);
+    const text = page.textContent.toLowerCase();
+    for (const keyword of ['hakkımızda', 'hakkimizda', 'hikayemiz', 'biz kimiz', 'about us']) {
+      const idx = text.indexOf(keyword);
+      if (idx !== -1) return page.textContent.slice(idx, idx + 1500);
+    }
   }
   return '';
 }
 
+/** Extract location/branch count */
 function extractLocationCount(text: string): number {
-  const branchPatterns = /(\d+)\s*(?:şube|mağaza|lokasyon|branch|location|store)/gi;
+  const branchPatterns = /(\d+)\s*(?:şube|mağaza|lokasyon|branch|location|store|bayi|showroom)/gi;
   const matches = [...text.matchAll(branchPatterns)];
   if (matches.length > 0) {
     return Math.max(...matches.map(m => parseInt(m[1])));
   }
-  // Count unique address-like mentions
   const addressCount = (text.match(/(?:Mah\.|Cad\.|Sok\.)/gi) || []).length;
-  return Math.min(addressCount, 10); // cap at 10
+  return Math.min(addressCount, 10);
 }
 
+/** Extract certifications */
 function extractCertifications(text: string): string[] {
   const certs: string[] = [];
   const patterns = [
-    /ISO\s*\d{4,5}/gi,
-    /TÜRKAK/gi,
-    /TSE/g,
-    /GMP/g,
-    /HACCP/gi,
-    /Helal\s*Sertifika/gi,
-    /Organik\s*Sertifika/gi,
+    /ISO\s*\d{4,5}(?::\d{4})?/gi,
+    /TÜRKAK/gi, /TSE\s*\w*/gi, /CE\s+(?:belgeli|sertifikalı|işaretli)/gi,
+    /GMP/g, /HACCP/gi, /Helal\s*(?:Sertifika|Belgeli)/gi,
+    /Organik\s*(?:Sertifika|Belgeli)/gi, /LEED\s*\w*/gi,
+    /EPD\s*(?:belgeli|sertifikalı)?/gi, /FSC\s*(?:belgeli|sertifikalı)?/gi,
   ];
   for (const p of patterns) {
     const m = text.match(p);
-    if (m) certs.push(...m);
+    if (m) certs.push(...m.map(c => c.trim()));
   }
-  return [...new Set(certs)].slice(0, 10);
+  return [...new Set(certs)].slice(0, 15);
 }
 
-function countTestimonials($pages: string[]): number {
+/** Count testimonials/reviews sections */
+function countTestimonials(textParts: string[]): number {
   let count = 0;
-  const keywords = /(?:referans|müşteri\s*yorum|testimonial|review|değerlendirme|görüş)/gi;
-  for (const text of $pages) {
+  const keywords = /(?:referans|müşteri\s*yorum|testimonial|review|değerlendirme|görüş|başarı\s*hikaye)/gi;
+  for (const text of textParts) {
     count += (text.match(keywords) || []).length;
   }
   return Math.min(count, 50);
+}
+
+/** Extract structured data from JSON-LD (schema.org) */
+function extractJsonLd(htmlPages: string[]): Record<string, any> {
+  const structured: Record<string, any> = {};
+  for (const html of htmlPages) {
+    const blocks = html.match(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi) || [];
+    for (const block of blocks) {
+      try {
+        const content = block.replace(/<\/?script[^>]*>/gi, '');
+        const ld = JSON.parse(content);
+        const items = Array.isArray(ld) ? ld : [ld];
+        for (const item of items) {
+          const type = item['@type'];
+          if (type && !structured[type]) structured[type] = item;
+        }
+      } catch { /* ignore */ }
+    }
+  }
+  return structured;
 }
 
 export async function fetchAndParseWebsite(url: string): Promise<FetchedWebsite | null> {
@@ -407,27 +546,39 @@ export async function fetchAndParseWebsite(url: string): Promise<FetchedWebsite 
       return true;
     }).slice(0, 50);
 
-    // --- Step 4: Extract structured business intelligence ---
+    // --- Step 4: Extract structured business intelligence (v2) ---
     const allText = textParts.join(' ');
-    // Social media links are often external — extract from text via regex
+    const allPages = [homePage, ...subPages];
+
+    // Collect all links (internal + external + social) from all pages
     const allExternalLinks: string[] = [];
-    const urlRegex = /https?:\/\/(?:www\.)?(?:instagram|facebook|twitter|x|linkedin|youtube|tiktok)\.com\/[^\s"'<>)]+/gi;
-    const socialMatches = allText.match(urlRegex) || [];
-    allExternalLinks.push(...socialMatches);
-    // Also check navigation for social links
-    for (const link of allInternalLinks) {
-      if (/instagram|facebook|twitter|linkedin|youtube|tiktok/i.test(link)) {
-        allExternalLinks.push(link);
-      }
+    const urlRegex = /https?:\/\/[^\s"'<>)]+/gi;
+    for (const text of textParts) {
+      const urls = text.match(urlRegex) || [];
+      allExternalLinks.push(...urls);
     }
 
-    const allPages = [homePage, ...subPages];
+    // Collect raw HTML from all pages for JSON-LD and footer extraction
+    const htmlPagesRaw: string[] = [homeResult.html];
+    // Note: subPages don't have raw HTML stored, only parsed data
+    // Re-fetch about page HTML for JSON-LD if we found one
+    const aboutPageUrl = allInternalLinks.find(u =>
+      /hakkimizda|hakkinda|about|biz-kimiz|hikayemiz|story|kurumsal/i.test(u)
+    );
+    if (aboutPageUrl && !htmlPagesRaw.some(h => h.includes(aboutPageUrl))) {
+      const aboutHtml = await fetchPage(aboutPageUrl);
+      if (aboutHtml) htmlPagesRaw.push(aboutHtml.html);
+    }
+
+    // Extract JSON-LD structured data
+    const jsonLd = extractJsonLd(htmlPagesRaw);
+
     const businessIntel: FetchedWebsite['businessIntel'] = {
-      socialLinks: extractSocialLinks([...allExternalLinks, ...allInternalLinks]),
+      socialLinks: extractSocialLinks([...allExternalLinks, ...allInternalLinks], htmlPagesRaw),
       contactInfo: extractContactInfo(allText, [...allExternalLinks, ...allInternalLinks]),
       priceRange: extractPriceRange(uniqueProducts),
-      aboutText: extractAboutText(allPages),
-      foundingYear: extractFoundingYear(allText),
+      aboutText: extractAboutText(allPages, htmlPagesRaw),
+      foundingYear: extractFoundingYear(allText, htmlPagesRaw),
       teamSize: (() => {
         const match = allText.match(/(\d+)\s*(?:\+\s*)?(?:kişi|çalışan|personel|ekip\s*üyesi|employee)/i);
         return match ? `${match[1]}+ kişi` : null;
@@ -435,9 +586,10 @@ export async function fetchAndParseWebsite(url: string): Promise<FetchedWebsite 
       locationCount: extractLocationCount(allText),
       certifications: extractCertifications(allText),
       testimonialCount: countTestimonials(textParts),
+      jsonLd,
     };
 
-    console.log(`websiteFetcher: Done — pages=${pagesScraped.length}, products=${uniqueProducts.length}, social=${Object.keys(businessIntel.socialLinks).length}, phones=${businessIntel.contactInfo.phones.length}, priceSegment=${businessIntel.priceRange.segment}, foundingYear=${businessIntel.foundingYear}, elapsed=${Date.now() - start}ms`);
+    console.log(`websiteFetcher: Done — pages=${pagesScraped.length}, products=${uniqueProducts.length}, social=${Object.keys(businessIntel.socialLinks).length}, phones=${businessIntel.contactInfo.phones.length}, priceSegment=${businessIntel.priceRange.segment}(avg:${businessIntel.priceRange.avgPrice}), foundingYear=${businessIntel.foundingYear}, jsonLd=${Object.keys(jsonLd).join(',') || 'none'}, elapsed=${Date.now() - start}ms`);
 
     return {
       url: normalizedUrl,
