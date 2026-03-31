@@ -156,6 +156,20 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
       instagramData = igResult;
       googlePlacesData = placesResult;
 
+      // If Instagram handle wasn't provided but website crawl found it, scrape now
+      if (!instagramData && websiteData?.businessIntel?.socialLinks?.instagram) {
+        const igUrl = websiteData.businessIntel.socialLinks.instagram;
+        const handleMatch = igUrl.match(/instagram\.com\/([^/?#\s]+)/i);
+        if (handleMatch) {
+          const discoveredHandle = handleMatch[1];
+          console.log(`analyze-continue: Instagram handle discovered from website: @${discoveredHandle} — scraping now`);
+          try {
+            instagramData = await scrapeInstagramPublic(discoveredHandle);
+            console.log(`analyze-continue: Instagram scrape (discovered) — followers=${instagramData?.followerCount}, engagement=${instagramData?.engagementRate}%`);
+          } catch { /* non-fatal */ }
+        }
+      }
+
       // Update dataGaps based on what was gathered
       if (normalizedData?.dataGaps) {
         for (const gap of normalizedData.dataGaps) {
