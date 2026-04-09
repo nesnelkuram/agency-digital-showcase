@@ -34,13 +34,12 @@ function buildImagenPrompt(sectionId: string, analysis: any, _businessName: stri
 
   const prompts: Record<string, string> = {
     cover: `Cinematic editorial photography, ${sectorEn} brand identity, ${mood} atmosphere, ${colors} color palette, luxury minimal composition, no text, no people, 16:9, ultra high quality`,
+    currentstate: `${sectorEn} business analysis, data visualization concept, ${mood}, professional diagnostic, abstract charts, ${colors}, no text, 16:9`,
     identity: `${archetype} brand archetype visual mood, ${mood}, ${colors} color tones, abstract editorial photography, brand essence, no text, artistic, 16:9`,
-    market: `${sectorEn} industry landscape, Turkish market, professional business photography, competitive environment, ${mood}, no text, 16:9`,
-    audience: `${segment} lifestyle photography, ${sectorEn} context, ${mood}, authentic, aspirational, no text, 16:9`,
-    strategy: `Brand strategy visualization, minimalist design, ${mood}, ${colors} gradient, strong typography composition concept, abstract, no text, 16:9`,
-    language: `Brand communication concept, editorial design, ${mood}, ${colors}, creative typography art direction, abstract, no text, 16:9`,
-    action: `Business growth journey, ${sectorEn} industry, milestone roadmap concept, ${mood}, ambitious, forward motion, no text, 16:9`,
-    intiba: `Creative agency studio, brand consultancy, ${mood}, collaborative workspace, premium, professional, no text, 16:9`,
+    positioning: `Brand strategy visualization, ${sectorEn} market positioning, minimalist design, ${mood}, ${colors} gradient, strong composition concept, abstract, no text, 16:9`,
+    messaging: `Brand communication concept, editorial design, ${mood}, ${colors}, creative typography art direction, abstract, no text, 16:9`,
+    marketdigital: `${sectorEn} industry landscape, Turkish market, professional business photography, competitive environment, ${mood}, no text, 16:9`,
+    actionplan: `Business growth journey, ${sectorEn} industry, milestone roadmap concept, ${mood}, ambitious, forward motion, no text, 16:9`,
   };
 
   return prompts[sectionId] || `${sectorEn} brand, ${mood}, professional, no text, 16:9`;

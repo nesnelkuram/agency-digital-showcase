@@ -4,21 +4,13 @@ import { motion } from 'framer-motion';
 import { getBrandLeadByShareToken } from '@/shared/services/brandLeadService';
 import type { BrandLead } from '@/shared/types/brandLead';
 import CoverSection from './sections/CoverSection';
-import DiagnosisSection from './sections/DiagnosisSection';
+import CurrentStateSection from './sections/CurrentStateSection';
 import BrandIdentitySection from './sections/BrandIdentitySection';
-import NarrativeSection from './sections/NarrativeSection';
-import StrategySection from './sections/StrategySection';
-import AudienceSection from './sections/AudienceSection';
-import JourneySection from './sections/JourneySection';
-import LanguageSection from './sections/LanguageSection';
-import ContentSection from './sections/ContentSection';
-import MarketSection from './sections/MarketSection';
-import DigitalSection from './sections/DigitalSection';
-import RisksSection from './sections/RisksSection';
-import ActionSection from './sections/ActionSection';
-import IntibaSection from './sections/IntibaSection';
-import RealityCheckSection from './sections/RealityCheckSection';
-import type { SectionVisual } from './SectionBase';
+import PositioningSection from './sections/PositioningSection';
+import MessagingSection from './sections/MessagingSection';
+import MarketDigitalSection from './sections/MarketDigitalSection';
+import ActionPlanSection from './sections/ActionPlanSection';
+import { C, type SectionVisual } from './SectionBase';
 
 type Visuals = Record<string, SectionVisual>;
 type VisualState = 'idle' | 'loading' | 'done' | 'error';
@@ -38,14 +30,15 @@ class SectionErrorBoundary extends Component<
     if (this.state.error) {
       return (
         <div style={{
-          minHeight: '100vh', background: '#fff5f5', display: 'flex',
-          alignItems: 'center', justifyContent: 'center', padding: 40,
+          minHeight: '100vh', background: '#fef5f5', display: 'flex',
+          alignItems: 'center', justifyContent: 'center', padding: 48,
+          fontFamily: C.sans,
         }}>
           <div style={{ maxWidth: 600 }}>
-            <div style={{ color: '#9b2335', fontSize: 12, fontWeight: 700, marginBottom: 8 }}>
+            <div style={{ color: C.neg, fontSize: 13, fontWeight: 700, marginBottom: 10, fontFamily: C.mono, letterSpacing: '0.1em' }}>
               RENDER HATASI — {this.props.name}
             </div>
-            <pre style={{ color: '#333', fontSize: 12, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+            <pre style={{ color: C.mid, fontSize: 13, whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.6 }}>
               {this.state.error}
             </pre>
           </div>
@@ -65,11 +58,20 @@ function formatDate(ts: any): string {
 }
 
 const SECTION_IDS = [
-  'cover', 'diagnosis', 'realitycheck', 'identity', 'narrative', 'strategy',
-  'audience', 'journey', 'language', 'content',
-  'market', 'digital', 'risks', 'action', 'intiba',
+  'cover', 'currentstate', 'identity', 'positioning',
+  'messaging', 'marketdigital', 'actionplan',
 ];
 const TOTAL = SECTION_IDS.length;
+
+const SECTION_LABELS: Record<string, string> = {
+  cover: 'Kapak',
+  currentstate: 'Mevcut Durum',
+  identity: 'Marka Kimliği',
+  positioning: 'Konumlandırma',
+  messaging: 'Mesaj & İçerik',
+  marketdigital: 'Pazar & Dijital',
+  actionplan: 'Eylem Planı',
+};
 
 export default function ImmersiveReportPage() {
   const { shareToken } = useParams<{ shareToken: string }>();
@@ -108,13 +110,22 @@ export default function ImmersiveReportPage() {
 
   if (loading) {
     return (
-      <div style={{ height: '100vh', background: '#f5f2ec', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <motion.div
-          animate={{ opacity: [0.3, 1, 0.3] }}
-          transition={{ duration: 2, repeat: Infinity }}
-          style={{ color: 'rgba(28,25,22,0.4)', fontSize: 12, letterSpacing: '0.3em', fontFamily: 'monospace', textTransform: 'uppercase' }}
-        >
-          Rapor Yükleniyor…
+      <div style={{
+        height: '100vh', background: C.bgFlat, display: 'flex',
+        flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16,
+        fontFamily: C.sans,
+      }}>
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+          <div style={{ color: C.text, fontSize: 20, fontWeight: 800, fontFamily: C.serif, letterSpacing: '-0.03em', marginBottom: 8, textAlign: 'center' }}>
+            intiba<span style={{ color: C.faint }}>.</span>
+          </div>
+          <motion.div
+            animate={{ opacity: [0.3, 1, 0.3] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            style={{ color: C.xfaint, fontSize: 13, letterSpacing: '0.2em', fontFamily: C.mono, textTransform: 'uppercase', textAlign: 'center' }}
+          >
+            Rapor Yükleniyor
+          </motion.div>
         </motion.div>
       </div>
     );
@@ -122,9 +133,14 @@ export default function ImmersiveReportPage() {
 
   if (error || !lead) {
     return (
-      <div style={{ height: '100vh', background: '#f5f2ec', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-        <div style={{ color: 'rgba(28,25,22,0.45)', fontSize: 14 }}>Rapor bulunamadı.</div>
-        <Link to="/" style={{ color: 'rgba(28,25,22,0.3)', fontSize: 12 }}>Ana sayfaya dön</Link>
+      <div style={{
+        height: '100vh', background: C.bgFlat, display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center', gap: 20, fontFamily: C.sans,
+      }}>
+        <div style={{ color: C.mid, fontSize: 16, fontWeight: 500 }}>Rapor bulunamadı.</div>
+        <Link to="/" style={{ color: C.faint, fontSize: 14, textDecoration: 'none', borderBottom: `1px solid ${C.xfaint}`, paddingBottom: 2 }}>
+          Ana sayfaya dön
+        </Link>
       </div>
     );
   }
@@ -138,27 +154,23 @@ export default function ImmersiveReportPage() {
     <div style={{ position: 'relative' }}>
       <NavDots sections={SECTION_IDS} containerRef={containerRef} />
 
-      {/* Visual generation status */}
       {visualState === 'loading' && (
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
           style={{
-            position: 'fixed', bottom: 24, right: 24, zIndex: 100,
-            background: 'rgba(245,242,236,0.92)', backdropFilter: 'blur(12px)',
-            border: '1px solid rgba(0,0,0,0.08)', borderRadius: 12, padding: '10px 16px',
-            color: 'rgba(28,25,22,0.45)', fontSize: 11,
-            fontFamily: 'monospace', letterSpacing: '0.1em',
-            display: 'flex', alignItems: 'center', gap: 8,
-            boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+            position: 'fixed', bottom: 28, right: 28, zIndex: 100,
+            background: 'rgba(255,255,255,0.94)', backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            border: `1px solid ${C.cardBorder}`, borderRadius: 14, padding: '12px 20px',
+            color: C.faint, fontSize: 13, fontFamily: C.mono, letterSpacing: '0.08em',
+            display: 'flex', alignItems: 'center', gap: 10, boxShadow: C.cardShadow,
           }}
         >
           <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity }}>●</motion.span>
-          Görseller üretiliyor…
+          Görseller üretiliyor
         </motion.div>
       )}
 
-      {/* Scroll container */}
       <div
         ref={containerRef}
         data-scroll-container
@@ -167,129 +179,75 @@ export default function ImmersiveReportPage() {
           scrollSnapType: 'y proximity', scrollBehavior: 'smooth',
         }}
       >
-        {/* 1. Cover */}
+        {/* 1. Kapak */}
         <SectionErrorBoundary name="Cover">
           <CoverSection
             businessName={businessName}
             sector={sector}
             maturityLevel={a?.brandMaturity?.level}
             brandClaim={a?.brandClaim?.claim}
-            consultantIntro={a?.consultantIntro}
             analyzedAt={formatDate((lead as any).analyzedAt || (lead as any).updatedAt)}
             visual={visuals.cover}
           />
         </SectionErrorBoundary>
 
-        {/* 2. Diagnosis */}
-        <SectionErrorBoundary name="Diagnosis">
-          <DiagnosisSection
+        {/* 2. Mevcut Durum */}
+        <SectionErrorBoundary name="CurrentState">
+          <CurrentStateSection
             index={1} total={TOTAL}
-            visual={visuals.diagnosis}
-            diagnosisSummary={a?.diagnosisSummary}
-            brandMaturity={a?.brandMaturity}
-            dataQuality={a?.dataQuality}
-            synthesisRationale={(a as any)?.debate?.synthesisRationale || (a as any)?.synthesisRationale}
-            consultantIntro={a?.consultantIntro}
-            businessContext={bc}
-          />
-        </SectionErrorBoundary>
-
-        {/* 3. Reality Check */}
-        <SectionErrorBoundary name="RealityCheck">
-          <RealityCheckSection
-            index={2} total={TOTAL}
-            visual={visuals.realitycheck}
+            visual={visuals.currentstate}
             executiveSummary={(a as any)?.executiveSummary}
-            realityCheck={(a as any)?.realityCheck}
+            brandMaturity={a?.brandMaturity}
+            businessContext={bc}
             soWhatAnalysis={(a as any)?.soWhatAnalysis}
+            blindSpots={a?.diagnosisSummary?.blindSpots}
           />
         </SectionErrorBoundary>
 
-        {/* 4. Brand Identity */}
+        {/* 3. Marka Kimliği */}
         <SectionErrorBoundary name="BrandIdentity">
           <BrandIdentitySection
-            index={3} total={TOTAL}
+            index={2} total={TOTAL}
             visual={visuals.identity}
             brandPersonality={a?.brandPersonality}
             brandCharacter={a?.brandCharacter}
             visualWorld={a?.visualWorld}
-            qualityMetrics={a?.qualityMetrics}
-            brandNarrative={a?.brandNarrative}
             emotionalNarrative={a?.emotionalNarrative}
             brandEnemy={a?.strategicDepth?.brandEnemy}
           />
         </SectionErrorBoundary>
 
-        {/* 5. Narrative & Messaging */}
-        <SectionErrorBoundary name="Narrative">
-          <NarrativeSection
-            index={4} total={TOTAL}
-            visual={visuals.narrative}
-            brandNarrative={a?.brandNarrative}
-            emotionalNarrative={a?.emotionalNarrative}
-            messagingArchitecture={a?.messagingArchitecture}
-          />
-        </SectionErrorBoundary>
-
-        {/* 6. Strategic Depth */}
-        <SectionErrorBoundary name="Strategy">
-          <StrategySection
-            index={5} total={TOTAL}
-            visual={visuals.strategy}
-            strategicDepth={a?.strategicDepth}
-            strategyScenarios={a?.strategyScenarios}
-          />
-        </SectionErrorBoundary>
-
-        {/* 7. Audience & Positioning */}
-        <SectionErrorBoundary name="Audience">
-          <AudienceSection
-            index={6} total={TOTAL}
-            visual={visuals.audience}
+        {/* 4. Konumlandırma */}
+        <SectionErrorBoundary name="Positioning">
+          <PositioningSection
+            index={3} total={TOTAL}
+            visual={visuals.positioning}
             positioning={a?.positioning}
-            consumerTest={a?.consumerTest}
-          />
-        </SectionErrorBoundary>
-
-        {/* 8. Customer Journey */}
-        <SectionErrorBoundary name="Journey">
-          <JourneySection
-            index={7} total={TOTAL}
-            visual={visuals.journey}
-            customerJourney={a?.customerJourney as any[]}
-            consumerTest={a?.consumerTest}
+            strategicDepth={a?.strategicDepth}
+            recommendedScenario={a?.strategyScenarios?.recommended}
             perceptualMap={a?.perceptualMap}
             businessName={businessName}
           />
         </SectionErrorBoundary>
 
-        {/* 9. Language, Message & Claim */}
-        <SectionErrorBoundary name="Language">
-          <LanguageSection
-            index={8} total={TOTAL}
-            visual={visuals.language}
+        {/* 5. Mesaj & İçerik */}
+        <SectionErrorBoundary name="Messaging">
+          <MessagingSection
+            index={4} total={TOTAL}
+            visual={visuals.messaging}
             brandClaim={a?.brandClaim}
-            contentStrategy={a?.contentStrategy}
+            brandNarrative={a?.brandNarrative}
             messagingArchitecture={a?.messagingArchitecture}
-          />
-        </SectionErrorBoundary>
-
-        {/* 10. Content Strategy */}
-        <SectionErrorBoundary name="Content">
-          <ContentSection
-            index={9} total={TOTAL}
-            visual={visuals.content}
             contentStrategy={a?.contentStrategy}
             socialMediaTemplates={a?.socialMediaTemplates as any[]}
-            blogInsights={(a as any)?.blogAdvisorInsights}
           />
         </SectionErrorBoundary>
 
-        {/* 11. Market & Competition */}
-        <SectionErrorBoundary name="Market">
-          <MarketSection
-            index={10} total={TOTAL}
-            visual={visuals.market}
+        {/* 6. Pazar & Dijital */}
+        <SectionErrorBoundary name="MarketDigital">
+          <MarketDigitalSection
+            index={5} total={TOTAL}
+            visual={visuals.marketdigital}
             sectorResearch={a?.sectorResearch}
             competitorDiscovery={a?.competitorDiscovery}
             analysis={a?.analysis}
@@ -297,51 +255,19 @@ export default function ImmersiveReportPage() {
           />
         </SectionErrorBoundary>
 
-        {/* 12. Digital Presence & Visual World */}
-        <SectionErrorBoundary name="Digital">
-          <DigitalSection
-            index={11} total={TOTAL}
-            visual={visuals.digital}
-            digitalPresence={a?.digitalPresence}
-            visualWorld={a?.visualWorld}
-          />
-        </SectionErrorBoundary>
-
-        {/* 13. Risks & Quality */}
-        <SectionErrorBoundary name="Risks">
-          <RisksSection
-            index={12} total={TOTAL}
-            visual={visuals.risks}
-            riskMitigationPlans={a?.riskMitigationPlans as any[]}
-            qualityMetrics={a?.qualityMetrics}
-            revenueImpact={a?.revenueImpact}
-          />
-        </SectionErrorBoundary>
-
-        {/* 14. Action Plan */}
-        <SectionErrorBoundary name="Action">
-          <ActionSection
-            index={13} total={TOTAL}
-            visual={visuals.action}
+        {/* 7. Eylem Planı */}
+        <SectionErrorBoundary name="ActionPlan">
+          <ActionPlanSection
+            index={6} total={TOTAL}
+            visual={visuals.actionplan}
             actionPlan={a?.actionPlan}
             kpiFramework={a?.kpiFramework}
             intibaRoadmap={a?.intibaRoadmap}
-          />
-        </SectionErrorBoundary>
-
-        {/* 15. Intiba Services */}
-        <SectionErrorBoundary name="Intiba">
-          <IntibaSection
-            index={14} total={TOTAL}
-            visual={visuals.intiba}
             intibaEngagement={a?.intibaEngagement}
-            intibaRoadmap={a?.intibaRoadmap}
             brandName={businessName}
           />
         </SectionErrorBoundary>
-
       </div>
-
     </div>
   );
 }
@@ -354,6 +280,7 @@ function NavDots({
   containerRef: React.RefObject<HTMLDivElement>;
 }) {
   const [active, setActive] = useState(0);
+  const [hovered, setHovered] = useState<number | null>(null);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -388,16 +315,43 @@ function NavDots({
 
   return (
     <div style={{
-      position: 'fixed', right: 16, top: '50%', transform: 'translateY(-50%)',
-      zIndex: 200, display: 'flex', flexDirection: 'column', gap: 5,
+      position: 'fixed', right: 22, top: '50%', transform: 'translateY(-50%)',
+      zIndex: 200, display: 'flex', flexDirection: 'column', alignItems: 'flex-end',
     }}>
-      {sections.map((_, i) => (
-        <button key={i} onClick={() => scrollTo(i)} style={{
-          width: active === i ? 6 : 3, height: active === i ? 6 : 3,
-          borderRadius: '50%', border: 'none', cursor: 'pointer', padding: 0,
-          background: active === i ? 'rgba(28,25,22,0.7)' : 'rgba(28,25,22,0.18)',
-          transition: 'all 0.25s ease',
-        }} />
+      {sections.map((id, i) => (
+        <div
+          key={i}
+          onMouseEnter={() => setHovered(i)}
+          onMouseLeave={() => setHovered(null)}
+          onClick={() => scrollTo(i)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: '5px 0', cursor: 'pointer',
+          }}
+        >
+          <motion.span
+            initial={false}
+            animate={{ opacity: hovered === i ? 1 : 0, x: hovered === i ? 0 : 8 }}
+            transition={{ duration: 0.2 }}
+            style={{
+              color: C.faint, fontSize: 12, fontFamily: C.sans,
+              fontWeight: 500, whiteSpace: 'nowrap', pointerEvents: 'none',
+              letterSpacing: '0.04em',
+            }}
+          >
+            {SECTION_LABELS[id] || id}
+          </motion.span>
+
+          <div style={{
+            width: active === i ? 10 : 5,
+            height: active === i ? 10 : 5,
+            borderRadius: '50%',
+            background: active === i ? C.text : C.xfaint,
+            transition: 'all 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
+            border: active === i ? `2px solid ${C.xfaint}` : '2px solid transparent',
+            boxSizing: 'content-box',
+          }} />
+        </div>
       ))}
     </div>
   );

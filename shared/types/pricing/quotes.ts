@@ -276,6 +276,7 @@ export type ValidityDays = 7 | 15 | 30;
 export interface WizardClientData {
   clientName: string;
   projectName: string;
+  projectDescription: string;
   validityDays: ValidityDays;
   billingType: BillingType;
   billingPeriodMonths: BillingPeriod;
@@ -305,6 +306,33 @@ export interface ExtrasData {
   stock: number;
   other: number;
   otherDescription?: string;
+}
+
+// ============================================
+// RENTAL CATALOG (Kiralacek.co)
+// ============================================
+
+export interface RentalCatalogItem {
+  id: string;
+  name: string;
+  slug: string;
+  category: string;
+  categoryLabel: string;
+  dailyPrice: number;
+  imageUrl: string;
+  sourceUrl: string;
+  isActive: boolean;
+}
+
+export interface RentalLineItem {
+  catalogItemId: string;
+  name: string;
+  category: string;
+  categoryLabel: string;
+  dailyPrice: number;
+  days: number;
+  total: number;
+  imageUrl: string;
 }
 
 export const DEFAULT_EXTRAS: ExtrasData = {
@@ -340,6 +368,10 @@ export interface QuoteWizardState {
   team: TeamMemberSelection[];
   equipment: EquipmentSelection[];
 
+  // Step 5: External crew & rental equipment (Kiralacek)
+  externalCrew: RentalLineItem[];
+  rentalItems: RentalLineItem[];
+
   // Step 6: Extras
   extras: ExtrasData;
 
@@ -356,6 +388,7 @@ export const INITIAL_WIZARD_STATE: QuoteWizardState = {
   client: {
     clientName: '',
     projectName: '',
+    projectDescription: '',
     validityDays: 30,
     billingType: 'one_time',
     billingPeriodMonths: 12,
@@ -365,6 +398,8 @@ export const INITIAL_WIZARD_STATE: QuoteWizardState = {
   variables: {},
   team: [],
   equipment: [],
+  externalCrew: [],
+  rentalItems: [],
   extras: { ...DEFAULT_EXTRAS },
   margin: 0.30,
   costs: {

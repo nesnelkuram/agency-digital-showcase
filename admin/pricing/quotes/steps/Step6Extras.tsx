@@ -55,9 +55,7 @@ const Step6Extras: React.FC<Step6ExtrasProps> = ({
               placeholder="0"
               className="w-full px-4 py-3 pr-12 bg-neutral-50 border border-neutral-200 rounded-lg font-grotesk text-[#171717] placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-[#171717]/10 focus:border-[#171717]"
             />
-            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 font-grotesk text-sm">
-              TL
-            </span>
+            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 font-grotesk text-sm">TL</span>
           </div>
         </div>
 
@@ -80,13 +78,11 @@ const Step6Extras: React.FC<Step6ExtrasProps> = ({
               placeholder="0"
               className="w-full px-4 py-3 pr-12 bg-neutral-50 border border-neutral-200 rounded-lg font-grotesk text-[#171717] placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-[#171717]/10 focus:border-[#171717]"
             />
-            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 font-grotesk text-sm">
-              TL
-            </span>
+            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 font-grotesk text-sm">TL</span>
           </div>
         </div>
 
-        {/* Stock (Music, Video, Images) */}
+        {/* Stock */}
         <div className="bg-white rounded-xl border border-neutral-200 p-4">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -105,9 +101,7 @@ const Step6Extras: React.FC<Step6ExtrasProps> = ({
               placeholder="0"
               className="w-full px-4 py-3 pr-12 bg-neutral-50 border border-neutral-200 rounded-lg font-grotesk text-[#171717] placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-[#171717]/10 focus:border-[#171717]"
             />
-            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 font-grotesk text-sm">
-              TL
-            </span>
+            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 font-grotesk text-sm">TL</span>
           </div>
         </div>
 
@@ -131,9 +125,7 @@ const Step6Extras: React.FC<Step6ExtrasProps> = ({
                 placeholder="0"
                 className="w-full px-4 py-3 pr-12 bg-neutral-50 border border-neutral-200 rounded-lg font-grotesk text-[#171717] placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-[#171717]/10 focus:border-[#171717]"
               />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 font-grotesk text-sm">
-                TL
-              </span>
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 font-grotesk text-sm">TL</span>
             </div>
             {extras.other > 0 && (
               <input
@@ -148,7 +140,6 @@ const Step6Extras: React.FC<Step6ExtrasProps> = ({
         </div>
       </div>
 
-      {/* Total */}
       {total > 0 && (
         <div className="mt-6 p-4 bg-neutral-100 rounded-xl">
           <div className="flex items-center justify-between">
@@ -160,7 +151,6 @@ const Step6Extras: React.FC<Step6ExtrasProps> = ({
         </div>
       )}
 
-      {/* Helper */}
       <div className="mt-6 p-4 bg-blue-50 rounded-xl">
         <p className="font-grotesk text-sm text-blue-700">
           <strong>Not:</strong> Bu masraflar dogrudan maliyete eklenir ve kar marjindan etkilenmez.

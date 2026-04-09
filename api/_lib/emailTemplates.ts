@@ -425,6 +425,120 @@ export function proposalSentEmail(params: {
   return { subject, html };
 }
 
+// =========================================================
+// Marketing: Daily Report + Action Plan
+// =========================================================
+export interface MarketingActionItem {
+  title: string;
+  description: string;
+  impact: 'high' | 'medium' | 'low';
+  campaignName?: string;
+  token?: string;       // present → approve/reject buttons
+  actionLabel?: string; // e.g. "Kampanyayı Duraklat"
+}
+
+export function marketingDailyReportEmail(params: {
+  recipientName: string;
+  reportDate: string;
+  campaigns: Array<{
+    name: string;
+    status: string;
+    spend?: number;
+    impressions?: number;
+    clicks?: number;
+    ctr?: number;
+    roas?: number;
+    budgetTotal?: number;
+  }>;
+  alerts: Array<{ title: string; message: string; severity: string }>;
+  actionItems: MarketingActionItem[];
+  baseUrl: string;
+}): { subject: string; html: string } {
+  const { recipientName, reportDate, campaigns, alerts, actionItems, baseUrl } = params;
+
+  const fmt = (n?: number, digits = 0) =>
+    n != null ? n.toLocaleString('tr-TR', { maximumFractionDigits: digits }) : '—';
+
+  // Campaign table rows
+  const campaignRows = campaigns.length === 0
+    ? '<tr><td colspan="6" style="text-align:center;color:#737373;padding:12px">Aktif kampanya bulunamadı</td></tr>'
+    : campaigns.map((c) => `
+      <tr style="border-bottom:1px solid #f0f0f0">
+        <td style="padding:8px 4px;font-weight:600;font-size:13px">${c.name}</td>
+        <td style="padding:8px 4px;text-align:right;font-size:13px">${c.spend != null ? fmt(c.spend) + ' ₺' : '—'}</td>
+        <td style="padding:8px 4px;text-align:right;font-size:13px">${fmt(c.impressions)}</td>
+        <td style="padding:8px 4px;text-align:right;font-size:13px">${c.ctr != null ? '%' + fmt(c.ctr, 2) : '—'}</td>
+        <td style="padding:8px 4px;text-align:right;font-size:13px">${c.roas != null ? 'x' + fmt(c.roas, 2) : '—'}</td>
+        <td style="padding:8px 4px;text-align:center;font-size:12px">
+          <span style="background:${c.status === 'active' ? '#d1fae5' : '#fee2e2'};color:${c.status === 'active' ? '#065f46' : '#991b1b'};padding:2px 8px;border-radius:100px">${c.status === 'active' ? 'Aktif' : 'Duraklatıldı'}</span>
+        </td>
+      </tr>`).join('');
+
+  // Alerts section
+  const alertsHtml = alerts.length === 0 ? '' : `
+    <h3 style="color:#991b1b;font-size:15px;margin:24px 0 8px">🚨 Alarmlar</h3>
+    ${alerts.map((a) => `
+      <div style="background:${a.severity === 'critical' ? '#fee2e2' : '#fef3c7'};border-left:4px solid ${a.severity === 'critical' ? '#dc2626' : '#d97706'};padding:10px 14px;border-radius:0 8px 8px 0;margin-bottom:8px;font-size:13px">
+        <strong>${a.title}</strong><br>${a.message}
+      </div>`).join('')}`;
+
+  // Action items
+  const actionHtml = actionItems.length === 0 ? '<p style="color:#737373;font-size:13px">Bugün önerilen aksiyon yok.</p>' :
+    actionItems.map((item, i) => {
+      const impactColor = item.impact === 'high' ? '#dc2626' : item.impact === 'medium' ? '#d97706' : '#059669';
+      const impactLabel = item.impact === 'high' ? 'Yüksek Öncelik' : item.impact === 'medium' ? 'Orta Öncelik' : 'Düşük Öncelik';
+      const buttons = item.token ? `
+        <div style="margin-top:10px">
+          <a href="${baseUrl}/api/marketing/approve-action?token=${item.token}&decision=approve" style="display:inline-block;background:#171717;color:white;text-decoration:none;padding:8px 18px;border-radius:100px;font-size:13px;font-weight:600;margin-right:8px">✅ ${item.actionLabel || 'Onayla'}</a>
+          <a href="${baseUrl}/api/marketing/approve-action?token=${item.token}&decision=reject" style="display:inline-block;background:white;color:#171717;text-decoration:none;padding:7px 18px;border-radius:100px;font-size:13px;font-weight:600;border:1.5px solid #e5e5e5">❌ Atla</a>
+        </div>` : `<p style="font-size:12px;color:#737373;margin-top:6px">ℹ️ Manuel aksiyon gerektirir</p>`;
+      return `
+        <div style="border:1px solid #e5e5e5;border-radius:10px;padding:14px 16px;margin-bottom:10px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <span style="font-size:14px;font-weight:700;color:#171717">${i + 1}. ${item.title}</span>
+            <span style="background:${impactColor}1a;color:${impactColor};font-size:11px;font-weight:600;padding:2px 8px;border-radius:100px">${impactLabel}</span>
+          </div>
+          ${item.campaignName ? `<p style="font-size:12px;color:#737373;margin:2px 0">📍 ${item.campaignName}</p>` : ''}
+          <p style="font-size:13px;color:#404040;margin:6px 0 0">${item.description}</p>
+          ${buttons}
+        </div>`;
+    }).join('');
+
+  const subject = `📊 Marketing Raporu — ${reportDate}`;
+  const html = wrapHtml(subject, `
+    <span class="badge badge-blue">Günlük Rapor</span>
+    <p>Merhaba <strong>${recipientName}</strong>,</p>
+    <p>İşte <strong>${reportDate}</strong> tarihli kampanya özeti ve aksiyon önerileri:</p>
+
+    <h3 style="font-size:15px;margin:20px 0 10px">📈 Kampanya Özeti (Son 7 Gün)</h3>
+    <table style="width:100%;border-collapse:collapse;font-family:inherit">
+      <thead>
+        <tr style="border-bottom:2px solid #171717">
+          <th style="padding:8px 4px;text-align:left;font-size:12px;color:#737373">Kampanya</th>
+          <th style="padding:8px 4px;text-align:right;font-size:12px;color:#737373">Harcama</th>
+          <th style="padding:8px 4px;text-align:right;font-size:12px;color:#737373">Gösterim</th>
+          <th style="padding:8px 4px;text-align:right;font-size:12px;color:#737373">CTR</th>
+          <th style="padding:8px 4px;text-align:right;font-size:12px;color:#737373">ROAS</th>
+          <th style="padding:8px 4px;text-align:center;font-size:12px;color:#737373">Durum</th>
+        </tr>
+      </thead>
+      <tbody>${campaignRows}</tbody>
+    </table>
+
+    ${alertsHtml}
+
+    <h3 style="font-size:15px;margin:24px 0 10px">💡 Aksiyon Planı</h3>
+    ${actionHtml}
+
+    <hr class="divider">
+    <p style="font-size:12px;color:#737373">Onay gerektiren aksiyonlar 48 saat geçerlidir. Tüm bütçe değişiklikleri onayınız olmadan gerçekleşmez.</p>
+    <div style="text-align:center;margin-top:16px">
+      <a href="${baseUrl}/admin/marketing" class="cta-outline">Marketing Paneline Git</a>
+    </div>
+  `);
+  return { subject, html };
+}
+
 export function wizardInvitationEmail(params: {
   recipientName: string;
   businessName: string;

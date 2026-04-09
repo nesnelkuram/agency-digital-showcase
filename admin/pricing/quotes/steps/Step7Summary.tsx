@@ -12,6 +12,7 @@ import {
   Flag,
   Calculator,
 } from 'lucide-react';
+
 import { QuoteWizardState, SERVICE_CATEGORY_LABELS, ServiceCategory } from '@/shared/types/pricing';
 
 interface Step7SummaryProps {
@@ -35,7 +36,7 @@ const Step7Summary: React.FC<Step7SummaryProps> = ({
   formatCurrency,
   nonDeductibleCost = 0,
 }) => {
-  const { client, category, costs, sellPrice, profit, margin, team, equipment, extras } = wizardState;
+  const { client, category, costs, sellPrice, profit, margin, team, equipment, extras, externalCrew, rentalItems } = wizardState;
 
   // Vergi hesaplaması - varsayılan %27 marjinal vergi oranı
   const TAX_RATE = 0.27;
@@ -193,6 +194,24 @@ const Step7Summary: React.FC<Step7SummaryProps> = ({
                   <span className="font-grotesk font-medium text-[#171717]">
                     {formatCurrency(costs.extras)}
                   </span>
+                </div>
+              )}
+              {((externalCrew && externalCrew.length > 0) || (rentalItems && rentalItems.length > 0)) && (
+                <div className="mt-2 space-y-1.5">
+                  <p className="font-grotesk text-xs font-semibold text-neutral-400 uppercase tracking-wider flex items-center gap-1">
+                    <Package className="w-3.5 h-3.5" />
+                    Ekipman & Ekip Kiralamaları
+                  </p>
+                  {[...(externalCrew || []), ...(rentalItems || [])].map((item) => (
+                    <div key={item.catalogItemId} className="flex justify-between items-center pl-5">
+                      <span className="font-grotesk text-xs text-neutral-600 truncate max-w-[180px]">
+                        {item.name} ({item.days} gün)
+                      </span>
+                      <span className="font-grotesk text-xs font-medium text-neutral-700">
+                        {formatCurrency(item.dailyPrice * item.days)}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               )}
               <div className="border-t border-neutral-200 pt-3 mt-3">

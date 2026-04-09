@@ -118,6 +118,8 @@ export {
   type ExtrasData,
   type WizardCosts,
   type QuoteWizardState,
+  type RentalCatalogItem,
+  type RentalLineItem,
 
   // Constants
   QUOTE_STATUS_LABELS,

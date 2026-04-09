@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import { db } from '@/lib/firebase/config';
 import { collection, getDocs, addDoc, Timestamp } from 'firebase/firestore';
+import { useAuth } from '@/contexts/AuthContext';
+import { useTenantId } from '@/shared/hooks/useTenant';
 import {
   QuoteWizardState,
   INITIAL_WIZARD_STATE,
@@ -43,10 +45,38 @@ const STEPS = [
   { id: 7, title: 'Ozet & Fiyat', shortTitle: 'Ozet' },
 ];
 
+const DRAFT_KEY = 'quote_wizard_draft';
+
+function loadDraft(): { step: number; state: QuoteWizardState } | null {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function saveDraft(step: number, state: QuoteWizardState) {
+  try {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({ step, state }));
+  } catch {}
+}
+
+function clearDraft() {
+  localStorage.removeItem(DRAFT_KEY);
+}
+
 const QuoteWizard: React.FC = () => {
   const navigate = useNavigate();
-  const [currentStep, setCurrentStep] = useState(1);
-  const [wizardState, setWizardState] = useState<QuoteWizardState>(INITIAL_WIZARD_STATE);
+  const { user } = useAuth();
+  const tenantId = useTenantId();
+
+  // Load draft on first render
+  const savedDraft = loadDraft();
+  const [currentStep, setCurrentStep] = useState(savedDraft?.step ?? 1);
+  const [wizardState, setWizardState] = useState<QuoteWizardState>(savedDraft?.state ?? INITIAL_WIZARD_STATE);
+  const [draftRestored, setDraftRestored] = useState(!!savedDraft);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -145,11 +175,17 @@ const QuoteWizard: React.FC = () => {
     const fixedCostShare = dailyShopCost * totalDays;
 
     // Extras
-    const extras =
+    const extrasBase =
       wizardState.extras.travel +
       wizardState.extras.accommodation +
       wizardState.extras.stock +
       wizardState.extras.other;
+
+    // External crew (Kiralıkkamera724) + Rental items (Kiralacek)
+    const externalCrewCost = wizardState.externalCrew.reduce((s, i) => s + i.total, 0);
+    const rentalCost = wizardState.rentalItems.reduce((s, i) => s + i.total, 0);
+
+    const extras = extrasBase + externalCrewCost + rentalCost;
 
     // Total cost
     const total = laborCost + equipmentCost + fixedCostShare + extras;
@@ -173,7 +209,7 @@ const QuoteWizard: React.FC = () => {
       sellPrice: Math.round(sellPrice),
       profit: Math.round(profit),
     };
-  }, [wizardState.team, wizardState.equipment, wizardState.extras, wizardState.margin, dailyShopCost]);
+  }, [wizardState.team, wizardState.equipment, wizardState.extras, wizardState.externalCrew, wizardState.rentalItems, wizardState.margin, dailyShopCost]);
 
   // Update wizard state with calculated costs
   useEffect(() => {
@@ -185,9 +221,21 @@ const QuoteWizard: React.FC = () => {
     }));
   }, [calculatedCosts]);
 
+  // Auto-save draft on every change
+  useEffect(() => {
+    saveDraft(currentStep, wizardState);
+  }, [currentStep, wizardState]);
+
   // Update wizard state helper
   const updateWizardState = (updates: Partial<QuoteWizardState>) => {
     setWizardState((prev) => ({ ...prev, ...updates }));
+  };
+
+  const handleNewQuote = () => {
+    clearDraft();
+    setWizardState(INITIAL_WIZARD_STATE);
+    setCurrentStep(1);
+    setDraftRestored(false);
   };
 
   // Navigation
@@ -202,7 +250,7 @@ const QuoteWizard: React.FC = () => {
       case 4:
         return true; // Variables are optional
       case 5:
-        return wizardState.team.length > 0; // At least one team member
+        return true; // Team & equipment are optional
       case 6:
         return true; // Extras are optional
       case 7:
@@ -241,9 +289,76 @@ const QuoteWizard: React.FC = () => {
     }).format(amount);
   };
 
+  // PDF print
+  const handlePrintPDF = () => {
+    const fmt = (n: number) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
+    const today = new Date().toLocaleDateString('tr-TR');
+    const validUntil = new Date();
+    validUntil.setDate(validUntil.getDate() + wizardState.client.validityDays);
+    const validUntilStr = validUntil.toLocaleDateString('tr-TR');
+
+    const teamRows = wizardState.team.map((m) =>
+      `<tr><td>${m.name}</td><td>${m.days} gün</td><td style="text-align:right">${fmt(m.dailyRate * m.days)}</td></tr>`
+    ).join('');
+    const equipRows = wizardState.equipment.map((e) =>
+      `<tr><td>${e.name}</td><td>${e.days} gün</td><td style="text-align:right">${fmt(e.dailyRate * e.days)}</td></tr>`
+    ).join('');
+    const rentalRows = [...wizardState.externalCrew, ...wizardState.rentalItems].map((r) =>
+      `<tr><td>${r.name}</td><td>${r.days} gün</td><td style="text-align:right">${fmt(r.dailyPrice * r.days)}</td></tr>`
+    ).join('');
+    const hasExtras = wizardState.extras.travel + wizardState.extras.accommodation + wizardState.extras.stock + wizardState.extras.other > 0;
+    const extraRows = hasExtras ? `
+      ${wizardState.extras.travel > 0 ? `<tr><td>Yol / Ulaşım</td><td></td><td style="text-align:right">${fmt(wizardState.extras.travel)}</td></tr>` : ''}
+      ${wizardState.extras.accommodation > 0 ? `<tr><td>Konaklama</td><td></td><td style="text-align:right">${fmt(wizardState.extras.accommodation)}</td></tr>` : ''}
+      ${wizardState.extras.stock > 0 ? `<tr><td>Stok Materyal</td><td></td><td style="text-align:right">${fmt(wizardState.extras.stock)}</td></tr>` : ''}
+      ${wizardState.extras.other > 0 ? `<tr><td>Diğer${wizardState.extras.otherDescription ? ` (${wizardState.extras.otherDescription})` : ''}</td><td></td><td style="text-align:right">${fmt(wizardState.extras.other)}</td></tr>` : ''}
+    ` : '';
+
+    const html = `<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8">
+    <title>Teklif — ${wizardState.client.clientName}</title>
+    <style>
+      body { font-family: 'Segoe UI', Arial, sans-serif; color: #171717; padding: 40px; max-width: 800px; margin: 0 auto; }
+      h1 { font-size: 26px; font-weight: 700; margin: 0 0 4px; }
+      .meta { color: #666; font-size: 13px; margin-bottom: 32px; }
+      h2 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #888; margin: 24px 0 8px; border-bottom: 1px solid #eee; padding-bottom: 6px; }
+      table { width: 100%; border-collapse: collapse; font-size: 14px; }
+      td, th { padding: 7px 4px; }
+      th { font-weight: 600; text-align: left; font-size: 12px; color: #555; }
+      tr:nth-child(even) td { background: #f9f9f9; }
+      .total-box { margin-top: 32px; background: #171717; color: #fff; padding: 20px 24px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; }
+      .total-box .label { font-size: 14px; opacity: .8; }
+      .total-box .price { font-size: 28px; font-weight: 700; }
+      .validity { margin-top: 16px; font-size: 12px; color: #888; text-align: right; }
+      .note { margin-top: 24px; font-size: 12px; color: #aaa; border-top: 1px solid #eee; padding-top: 16px; }
+      @media print { body { padding: 20px; } }
+    </style></head><body>
+    <h1>${wizardState.client.projectName || 'Fiyat Teklifi'}</h1>
+    <div class="meta">Müşteri: <strong>${wizardState.client.clientName}</strong> &nbsp;•&nbsp; Tarih: ${today} &nbsp;•&nbsp; Geçerlilik: ${validUntilStr}</div>
+
+    ${teamRows ? `<h2>Ekip</h2><table><tr><th>Ad</th><th>Süre</th><th style="text-align:right">Tutar</th></tr>${teamRows}</table>` : ''}
+    ${equipRows ? `<h2>Ekipman</h2><table><tr><th>Ad</th><th>Süre</th><th style="text-align:right">Tutar</th></tr>${equipRows}</table>` : ''}
+    ${rentalRows ? `<h2>Kiralık Ekipman & Ekip</h2><table><tr><th>Ad</th><th>Süre</th><th style="text-align:right">Tutar</th></tr>${rentalRows}</table>` : ''}
+    ${extraRows ? `<h2>Ek Masraflar</h2><table><tr><th>Açıklama</th><th></th><th style="text-align:right">Tutar</th></tr>${extraRows}</table>` : ''}
+
+    <div class="total-box">
+      <div class="label">Teklif Fiyatı (KDV Hariç)</div>
+      <div class="price">${fmt(wizardState.sellPrice)}</div>
+    </div>
+    <div class="validity">Bu teklif ${validUntilStr} tarihine kadar geçerlidir.</div>
+    <div class="note">Bu belge fiyat teklifi niteliğindedir ve sözleşme yerine geçmez.</div>
+    <script>window.onload = () => { window.print(); }</script>
+    </body></html>`;
+
+    const w = window.open('', '_blank', 'width=900,height=700');
+    if (w) { w.document.write(html); w.document.close(); }
+  };
+
   // Save quote to Firestore
   const saveQuote = async (status: QuoteStatus) => {
-    if (!db) return;
+    if (!db) {
+      setSaveError('Veritabanı bağlantısı kurulamadı');
+      return;
+    }
 
     setIsSaving(true);
     setSaveError(null);
@@ -253,9 +368,35 @@ const QuoteWizard: React.FC = () => {
       const validUntilDate = new Date();
       validUntilDate.setDate(validUntilDate.getDate() + wizardState.client.validityDays);
 
+      const totalDaysForSave = wizardState.team.length > 0
+        ? Math.max(...wizardState.team.map((m) => m.days))
+        : wizardState.equipment.length > 0
+        ? Math.max(...wizardState.equipment.map((e) => e.days))
+        : 1;
+
+      // Build serviceLines from wizard state so ProposalViewPage can generate line-by-line proposals
+      const serviceLines: Array<{ name: string; totalCost: number; quantity: number; unit: string }> = [];
+
+      wizardState.team.forEach((m) => {
+        serviceLines.push({ name: m.name, totalCost: m.dailyRate * m.days, quantity: m.days, unit: 'gün' });
+      });
+      wizardState.equipment.forEach((e) => {
+        serviceLines.push({ name: e.name, totalCost: e.dailyRate * e.days, quantity: e.days, unit: 'gün' });
+      });
+      [...wizardState.externalCrew, ...wizardState.rentalItems].forEach((r) => {
+        serviceLines.push({ name: r.name, totalCost: r.dailyPrice * r.days, quantity: r.days, unit: 'gün' });
+      });
+      if (wizardState.extras.travel > 0) serviceLines.push({ name: 'Yol / Ulaşım', totalCost: wizardState.extras.travel, quantity: 1, unit: 'kalem' });
+      if (wizardState.extras.accommodation > 0) serviceLines.push({ name: 'Konaklama', totalCost: wizardState.extras.accommodation, quantity: 1, unit: 'kalem' });
+      if (wizardState.extras.stock > 0) serviceLines.push({ name: 'Stok Materyal', totalCost: wizardState.extras.stock, quantity: 1, unit: 'kalem' });
+      if (wizardState.extras.other > 0) serviceLines.push({ name: wizardState.extras.otherDescription || 'Diğer Masraf', totalCost: wizardState.extras.other, quantity: 1, unit: 'kalem' });
+
       const quoteData: Omit<Quote, 'id'> = {
+        tenantId,
         clientName: wizardState.client.clientName,
         projectTitle: wizardState.client.projectName,
+        projectDescription: wizardState.client.projectDescription || undefined,
+        serviceLines: serviceLines.length > 0 ? serviceLines : undefined,
         items: [],
         totalLaborCost: wizardState.costs.labor,
         totalEquipmentCost: wizardState.costs.equipment,
@@ -270,21 +411,24 @@ const QuoteWizard: React.FC = () => {
         profit: wizardState.profit,
         actualMarginPercent: wizardState.sellPrice > 0 ? wizardState.profit / wizardState.sellPrice : 0,
         totalEstimatedHours: wizardState.team.reduce((sum, m) => sum + m.days * 8, 0),
-        totalEstimatedDays: Math.max(...wizardState.team.map(m => m.days), 1),
+        totalEstimatedDays: totalDaysForSave,
         status,
         validUntil: Timestamp.fromDate(validUntilDate),
         billingType: wizardState.client.billingType,
-        billingPeriodMonths: wizardState.client.billingType === 'recurring' ? wizardState.client.billingPeriodMonths : undefined,
+        ...(wizardState.client.billingType === 'recurring' && { billingPeriodMonths: wizardState.client.billingPeriodMonths }),
         version: 1,
         createdAt: now,
         updatedAt: now,
-        createdBy: 'system',
-        createdByName: 'Sistem',
-      };
+        createdBy: user?.uid || 'unknown',
+        createdByName: user?.displayName || user?.email || 'Kullanıcı',
+      } as Omit<Quote, 'id'>;
 
-      await addDoc(collection(db, 'quotes'), quoteData);
-
-      // Navigate to projections or quotes list
+      // Strip undefined fields (Firestore rejects them)
+      const cleanData = Object.fromEntries(
+        Object.entries(quoteData as Record<string, unknown>).filter(([, v]) => v !== undefined)
+      );
+      await addDoc(collection(db, 'quotes'), cleanData);
+      clearDraft();
       navigate('/admin/pricing/projections');
     } catch (err) {
       console.error('Error saving quote:', err);
@@ -335,8 +479,12 @@ const QuoteWizard: React.FC = () => {
             equipmentList={equipmentList}
             selectedTeam={wizardState.team}
             selectedEquipment={wizardState.equipment}
+            externalCrew={wizardState.externalCrew}
+            rentalItems={wizardState.rentalItems}
             onTeamChange={(team) => updateWizardState({ team })}
             onEquipmentChange={(equipment) => updateWizardState({ equipment })}
+            onExternalCrewChange={(externalCrew) => updateWizardState({ externalCrew })}
+            onRentalItemsChange={(rentalItems) => updateWizardState({ rentalItems })}
             formatCurrency={formatCurrency}
           />
         );
@@ -408,7 +556,23 @@ const QuoteWizard: React.FC = () => {
           </div>
         </div>
 
-        {/* Progress */}
+        {/* Draft restored banner */}
+        {draftRestored && (
+          <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-center justify-between">
+            <span className="font-grotesk text-sm text-amber-800">
+              Kaydedilmemiş taslak geri yüklendi — <strong>{wizardState.client.clientName || 'İsimsiz teklif'}</strong>
+            </span>
+            <button
+              type="button"
+              onClick={handleNewQuote}
+              className="font-grotesk text-xs text-amber-700 underline hover:text-amber-900 ml-4"
+            >
+              Temizle, yeniden başla
+            </button>
+          </div>
+        )}
+
+      {/* Progress */}
         <WizardProgress
           steps={STEPS}
           currentStep={currentStep}
@@ -460,6 +624,7 @@ const QuoteWizard: React.FC = () => {
                   Taslak Kaydet
                 </motion.button>
                 <motion.button
+                  onClick={handlePrintPDF}
                   className="inline-flex items-center gap-2 px-5 py-2.5 border border-neutral-300 text-neutral-700 rounded-xl font-grotesk text-sm font-medium hover:bg-neutral-50 transition-colors"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}

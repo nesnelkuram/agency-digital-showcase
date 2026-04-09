@@ -663,6 +663,13 @@ service cloud.firestore {
     }
 
     // =============================================
+    // Rental Catalog (Kiralacek.co) — global, tenant-independent
+    // =============================================
+    match /rental_catalog/{itemId} {
+      allow read: if true;
+      allow write: if isSuperAdmin() || (isAuthenticated() && getUserRole() == 'admin');
+    }
+
     // Background Agents — persistent autonomous agents
     // Admin-only write, tenant-level read
     // =============================================

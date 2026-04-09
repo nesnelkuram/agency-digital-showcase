@@ -79,6 +79,21 @@ const Step1Client: React.FC<Step1ClientProps> = ({ data, onChange }) => {
           />
         </div>
 
+        {/* Project Description */}
+        <div className="space-y-2">
+          <label className="flex items-center gap-2 font-grotesk text-sm font-medium text-neutral-700">
+            <FileText className="w-4 h-4" />
+            Proje Aciklamasi <span className="text-neutral-400 font-normal">(opsiyonel)</span>
+          </label>
+          <textarea
+            value={data.projectDescription || ''}
+            onChange={(e) => handleChange('projectDescription', e.target.value)}
+            placeholder="Projenin kapsamı, beklentiler veya özel notlar..."
+            rows={3}
+            className="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl font-grotesk text-[#171717] placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-[#171717]/10 focus:border-[#171717] resize-none"
+          />
+        </div>
+
         {/* Billing Type */}
         <div className="space-y-2">
           <label className="flex items-center gap-2 font-grotesk text-sm font-medium text-neutral-700">
