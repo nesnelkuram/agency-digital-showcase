@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIATA — Moodboard · Sunfinder 38 & 50</title>
+<style>
+  :root{
+    --bg:#F4EFE8;          /* warm cream */
+    --bg-2:#EAE3D6;
+    --ink:#1B2738;          /* deep navy */
+    --ink-2:#54627A;
+    --teal:#2E5C66;          /* deep teal water */
+    --gold:#B68A4E;          /* teak / golden hour */
+    --mute:#7A736A;
+    --line:rgba(27,39,56,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--ink);font-family:"Inter","Helvetica Neue",Arial,sans-serif;font-weight:400;line-height:1.55;-webkit-font-smoothing:antialiased}
+  .serif{font-family:"Cormorant Garamond","Playfair Display",Georgia,serif;font-weight:300;letter-spacing:.01em}
+  img{display:block;max-width:100%;height:auto}
+  a{color:inherit}
+
+  .wrap{max-width:1280px;margin:0 auto;padding:64px 40px}
+
+  /* ----- HERO ----- */
+  .hero{padding:96px 0 48px;border-bottom:1px solid var(--line)}
+  .eyebrow{font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--mute)}
+  .hero h1{font-size:clamp(56px,9vw,128px);line-height:.92;letter-spacing:-.02em;margin:24px 0 16px}
+  .hero .sub{font-family:"Cormorant Garamond",Georgia,serif;font-style:italic;font-size:clamp(20px,2.4vw,28px);color:var(--ink-2);max-width:780px}
+  .hero-meta{display:grid;grid-template-columns:repeat(4,1fr);gap:32px;margin-top:64px;border-top:1px solid var(--line);padding-top:24px}
+  .hero-meta div{font-size:13px;color:var(--ink-2)}
+  .hero-meta strong{display:block;color:var(--ink);font-size:14px;letter-spacing:.04em;margin-top:4px}
+
+  /* ----- SECTION ----- */
+  section{padding:80px 0;border-bottom:1px solid var(--line)}
+  section h2{font-family:"Cormorant Garamond",Georgia,serif;font-weight:400;font-size:clamp(36px,4.5vw,56px);letter-spacing:-.01em;line-height:1.05;margin-bottom:16px}
+  section h2 .num{font-family:"Inter",sans-serif;font-size:13px;font-weight:500;letter-spacing:.32em;color:var(--gold);display:block;margin-bottom:14px}
+  section .lede{font-size:18px;color:var(--ink-2);max-width:760px;margin-bottom:48px}
+
+  /* ----- PRINCIPLES ----- */
+  .principles{display:grid;grid-template-columns:repeat(5,1fr);gap:32px}
+  .p-card .kicker{font-size:48px;font-family:"Cormorant Garamond",Georgia,serif;color:var(--gold);font-weight:300;line-height:1}
+  .p-card h3{font-size:18px;font-weight:600;margin:12px 0 6px}
+  .p-card p{font-size:14px;color:var(--ink-2)}
+
+  /* ----- PALETTE ----- */
+  .palette{display:grid;grid-template-columns:repeat(6,1fr);gap:0;border-radius:0;overflow:hidden;box-shadow:0 30px 80px -40px rgba(27,39,56,.25)}
+  .swatch{aspect-ratio:1/1.2;padding:24px;display:flex;flex-direction:column;justify-content:flex-end;color:#fff}
+  .swatch.dark{color:#fff}
+  .swatch.light{color:var(--ink)}
+  .swatch .name{font-size:13px;letter-spacing:.18em;text-transform:uppercase;font-weight:500;margin-bottom:4px;opacity:.9}
+  .swatch .hex{font-family:"Courier New",monospace;font-size:11px;opacity:.75}
+  .palette-notes{margin-top:32px;display:grid;grid-template-columns:repeat(3,1fr);gap:32px;font-size:14px;color:var(--ink-2)}
+  .palette-notes h4{color:var(--ink);font-weight:600;margin-bottom:6px}
+
+  /* ----- DO / DONT ----- */
+  .dodont{display:grid;grid-template-columns:1fr 1fr;gap:48px}
+  .dodont .col{padding:32px;background:#fff;border-radius:2px}
+  .dodont .col.no{background:#1B2738;color:#EAE3D6}
+  .dodont h4{font-size:11px;letter-spacing:.32em;text-transform:uppercase;margin-bottom:24px;color:var(--gold)}
+  .dodont .col.no h4{color:#E0A04E}
+  .dodont ul{list-style:none}
+  .dodont li{padding:14px 0;border-bottom:1px solid rgba(27,39,56,.08);font-size:15px}
+  .dodont .col.no li{border-color:rgba(255,255,255,.1)}
+
+  /* ----- IMAGE GRID ----- */
+  .cat-head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:24px;border-bottom:1px solid var(--line);padding-bottom:14px}
+  .cat-head h3{font-family:"Cormorant Garamond",Georgia,serif;font-weight:400;font-size:32px;letter-spacing:-.005em}
+  .cat-head h3 .n{display:inline-block;font-family:"Inter",sans-serif;font-size:11px;letter-spacing:.32em;color:var(--gold);font-weight:500;margin-right:14px;vertical-align:middle}
+  .cat-head .cap{font-size:13px;color:var(--mute);max-width:520px;text-align:right}
+
+  .grid{display:grid;gap:14px}
+  .grid.g-2{grid-template-columns:1fr 1fr}
+  .grid.g-3{grid-template-columns:1.6fr 1fr 1fr}
+  .grid.g-4{grid-template-columns:repeat(4,1fr)}
+  .grid.g-asym{grid-template-columns:1.4fr 1fr;grid-auto-rows:240px}
+  .grid.g-mosaic{grid-template-columns:repeat(6,1fr);grid-auto-rows:170px}
+  .tile{position:relative;overflow:hidden;background:#1B2738}
+  .tile img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .8s ease}
+  .tile:hover img{transform:scale(1.04)}
+  .tile .badge{position:absolute;left:12px;top:12px;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:#fff;background:rgba(27,39,56,.55);backdrop-filter:blur(6px);padding:6px 10px;border-radius:1px}
+  .tile.span2{grid-column:span 2}
+  .tile.span3{grid-column:span 3}
+  .tile.span4{grid-column:span 4}
+  .tile.row2{grid-row:span 2}
+  .grid.g-asym .tile,
+  .grid.g-mosaic .tile{height:100%}
+
+  /* ----- BIG SPLIT (refs) ----- */
+  .refs{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .refs .tile{aspect-ratio:16/10}
+
+  /* ----- TYPOGRAPHY ----- */
+  .typo{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
+  .typo-sample{padding:48px;background:#fff}
+  .typo-sample .display{font-family:"Cormorant Garamond",Georgia,serif;font-weight:300;font-size:96px;letter-spacing:-.02em;line-height:.9}
+  .typo-sample .body{margin-top:16px;font-size:13px;letter-spacing:.32em;text-transform:uppercase;color:var(--mute)}
+  .typo .desc h4{font-family:"Cormorant Garamond",Georgia,serif;font-size:32px;font-weight:400;margin-bottom:14px}
+  .typo .desc p{color:var(--ink-2);margin-bottom:14px}
+  .typo .desc small{font-size:12px;color:var(--mute);display:block;margin-top:24px;letter-spacing:.06em}
+
+  /* ----- ROUTE ----- */
+  .route{position:relative}
+  .route-line{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:24px}
+  .stop{padding:32px;background:#fff;position:relative;border-top:3px solid var(--gold)}
+  .stop .day{font-size:11px;letter-spacing:.32em;color:var(--gold);text-transform:uppercase}
+  .stop h4{font-family:"Cormorant Garamond",Georgia,serif;font-size:36px;margin:8px 0 14px;font-weight:400}
+  .stop p{font-size:14px;color:var(--ink-2)}
+
+  /* ----- PACKAGES ----- */
+  .pkgs{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:24px}
+  .pkg{padding:32px;background:#fff;border-top:3px solid var(--ink-2);position:relative;display:flex;flex-direction:column}
+  .pkg.featured{border-top-color:var(--gold);background:#fff;box-shadow:0 30px 80px -40px rgba(27,39,56,.3)}
+  .pkg .tier{font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--mute)}
+  .pkg.featured .tier{color:var(--gold)}
+  .pkg h4{font-family:"Cormorant Garamond",Georgia,serif;font-size:36px;font-weight:400;margin:6px 0 4px}
+  .pkg .tagline{font-style:italic;color:var(--ink-2);font-size:14px;margin-bottom:18px}
+  .pkg .price{font-family:"Cormorant Garamond",Georgia,serif;font-size:42px;font-weight:300;letter-spacing:-.01em;color:var(--ink);margin:8px 0 20px}
+  .pkg .price small{font-size:11px;letter-spacing:.18em;color:var(--mute);display:block;font-family:"Inter",sans-serif;font-weight:400;margin-top:2px}
+  .pkg ul{list-style:none;font-size:13px;color:var(--ink-2)}
+  .pkg li{padding:10px 0;border-bottom:1px solid rgba(27,39,56,.06)}
+  .pkg li strong{color:var(--ink);font-weight:600}
+  .pkg .ribbon{position:absolute;right:0;top:0;background:var(--gold);color:#fff;font-size:10px;letter-spacing:.24em;text-transform:uppercase;padding:6px 12px}
+
+  .deliverables{display:grid;grid-template-columns:repeat(2,1fr);gap:24px;margin-top:48px}
+  .delv{padding:28px;background:rgba(255,255,255,.6);border-left:3px solid var(--gold)}
+  .delv h4{font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--gold);margin-bottom:12px}
+  .delv p{font-size:14px;color:var(--ink-2);margin-bottom:6px}
+  .delv strong{color:var(--ink)}
+
+  .proposal-link{display:inline-flex;align-items:center;gap:12px;margin-top:32px;padding:18px 28px;background:var(--ink);color:var(--bg);text-decoration:none;font-size:13px;letter-spacing:.18em;text-transform:uppercase;font-weight:500;transition:background .25s}
+  .proposal-link:hover{background:var(--teal)}
+  .proposal-link::after{content:"→";font-size:18px}
+
+  /* ----- LIGHTBOX ----- */
+  .tile{cursor:zoom-in}
+  .lb{position:fixed;inset:0;background:rgba(8,12,20,.94);display:none;align-items:center;justify-content:center;z-index:9999;padding:32px;backdrop-filter:blur(6px)}
+  .lb.open{display:flex}
+  .lb img{max-width:96vw;max-height:90vh;width:auto;height:auto;object-fit:contain;box-shadow:0 60px 120px -20px rgba(0,0,0,.6);animation:lbIn .25s ease}
+  @keyframes lbIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
+  .lb .lb-cap{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);color:#EAE3D6;font-size:12px;letter-spacing:.22em;text-transform:uppercase;background:rgba(0,0,0,.4);padding:8px 14px}
+  .lb .lb-close{position:absolute;top:24px;right:32px;color:#fff;font-size:32px;cursor:pointer;background:none;border:none;line-height:1;font-family:inherit}
+  .lb .lb-nav{position:absolute;top:50%;transform:translateY(-50%);color:#fff;font-size:48px;cursor:pointer;background:none;border:none;padding:24px;font-family:inherit;line-height:1;opacity:.7;transition:opacity .2s}
+  .lb .lb-nav:hover{opacity:1}
+  .lb .lb-nav.prev{left:8px}
+  .lb .lb-nav.next{right:8px}
+  body.lb-open{overflow:hidden}
+
+  /* ----- FOOTER ----- */
+  footer{padding:80px 0 64px;color:var(--ink-2);font-size:13px;display:flex;justify-content:space-between;align-items:flex-end;gap:32px}
+  footer .sig{font-family:"Cormorant Garamond",Georgia,serif;font-style:italic;font-size:24px;color:var(--ink)}
+
+  /* ----- PRINT ----- */
+  @media print{
+    body{background:#fff}
+    .wrap{padding:32px 24px}
+    section{break-inside:avoid;page-break-inside:avoid}
+    .hero{padding:32px 0}
+    .tile:hover img{transform:none}
+  }
+
+  @media (max-width: 900px){
+    .hero-meta{grid-template-columns:repeat(2,1fr)}
+    .principles{grid-template-columns:repeat(2,1fr)}
+    .palette{grid-template-columns:repeat(3,1fr)}
+    .palette-notes,.dodont,.refs,.typo,.route-line,.pkgs,.deliverables{grid-template-columns:1fr}
+    .grid.g-3,.grid.g-4{grid-template-columns:1fr 1fr}
+    .grid.g-mosaic{grid-template-columns:repeat(2,1fr)}
+    .cat-head{flex-direction:column;align-items:flex-start;gap:8px}
+    .cat-head .cap{text-align:left}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- HERO -->
+<section class="hero">
+  <div class="eyebrow">Moodboard · Mayıs 2026</div>
+  <h1 class="serif">Quiet Luxury<br>at&nbsp;Sea.</h1>
+  <p class="sub">Sunfinder 38 ve Sunfinder 50 için Ege'de bir prodüksiyon — ürün konuşur, ışık yönlendirir, cast nefes alır. Yıl boyunca her platformda taşınabilecek, exclusive ve gerçek bir görsel kütüphane.</p>
+  <div class="hero-meta">
+    <div>Marka<strong>AIATA</strong></div>
+    <div>Tekne<strong>Sunfinder 38 & 50</strong></div>
+    <div>Rota<strong>Çeşme → Bodrum → Göcek</strong></div>
+    <div>Süre<strong>6 gün · Mayıs 2026</strong></div>
+  </div>
+</section>
+
+<!-- VISUAL DNA / 5 Principles -->
+<section>
+  <h2><span class="num">01 — Görsel Dil</span>Beş Prensip</h2>
+  <p class="lede">Brief'in ruhunu beş kelimeye indirdik. Her kare bu beşin en az üçünü taşımak zorunda — yoksa elenir.</p>
+  <div class="principles">
+    <div class="p-card"><div class="kicker">01</div><h3>Minimal kompozisyon</h3><p>Hull profili her karede temiz okunsun. Karmaşık prop, kalabalık deck, gereksiz aksesuar yok.</p></div>
+    <div class="p-card"><div class="kicker">02</div><h3>Doğal ışık</h3><p>Çekimin %80'i golden hour ve mavi saatlerde. Stüdyo aydınlatma sadece interior dolgu.</p></div>
+    <div class="p-card"><div class="kicker">03</div><h3>Lens flare ↦ dost</h3><p>Anti-reflective filtre yok. Doğal flare kompozisyonun parçası.</p></div>
+    <div class="p-card"><div class="kicker">04</div><h3>Cast = atmosfer</h3><p>Maks. 2 figür, hep silhouette / blur / back-to-camera. Yüz kapanış yok.</p></div>
+    <div class="p-card"><div class="kicker">05</div><h3>Warm neutral</h3><p>Sıcak yarım stop. Soğuk denizci klişesi yasak. Tik + soft teal + krem hull = imza palet.</p></div>
+  </div>
+</section>
+
+<!-- COLOR PALETTE -->
+<section>
+  <h2><span class="num">02 — Renk Paleti</span>Aiata mavisi, tik, krem.</h2>
+  <p class="lede">Brief'in talimatına sadık: yumuşak mavi tonları, Aiata renkleri, nötr iç mekan, golden hour ışığı. Sıcak ton baskın — %60/40 sıcak.</p>
+  <div class="palette">
+    <div class="swatch dark" style="background:#1B2738"><div class="name">Deep Navy</div><div class="hex">#1B2738</div></div>
+    <div class="swatch dark" style="background:#2E5C66"><div class="name">Aegean Teal</div><div class="hex">#2E5C66</div></div>
+    <div class="swatch dark" style="background:#7AA0A8"><div class="name">Soft Aiata</div><div class="hex">#7AA0A8</div></div>
+    <div class="swatch light" style="background:#F4EFE8"><div class="name">Warm Cream</div><div class="hex">#F4EFE8</div></div>
+    <div class="swatch dark" style="background:#B68A4E"><div class="name">Teak Gold</div><div class="hex">#B68A4E</div></div>
+    <div class="swatch dark" style="background:#7A4A2C"><div class="name">Leather Brown</div><div class="hex">#7A4A2C</div></div>
+  </div>
+  <div class="palette-notes">
+    <div><h4>Tekne &amp; Arka Plan</h4>Soft Aiata + Warm Cream + Aegean Teal. Tekne yansımaları her zaman sıcak tarafa düşer.</div>
+    <div><h4>Aksan &amp; Detay</h4>Teak Gold + Leather Brown. Sunfinder 38'in mevcut DNA'sı. Minder ve güverte aynı tonun farklı doygunlukları.</div>
+    <div><h4>Derinlik &amp; Kontrast</h4>Deep Navy. Sadece silüet ve gölge için kullanılır; blok renk olarak yer almaz.</div>
+  </div>
+</section>
+
+<!-- REFERANSLAR -->
+<section>
+  <h2><span class="num">03 — Başlangıç Noktası</span>Sunfinder 38 &amp; 50 mevcut görseller.</h2>
+  <p class="lede">Aiata'nın bizimle paylaştığı 5 mevcut görsel. Tüm görsel yön doğrudan bu fotoğraflardaki DNA'dan türetildi: Sunfinder 38'in sıcak / sunset tonu ve Sunfinder 50'nin daha temiz / cruise tonu.</p>
+  <div class="refs">
+    <div class="tile"><img src="references/Sunfinder38_HERO-TEST2.jpg" alt="Sunfinder 38 hero"><div class="badge">Sunfinder 38 · Mevcut</div></div>
+    <div class="tile"><img src="references/Sunfinder38_pilothouse3.jpg" alt="Sunfinder 38 pilothouse"><div class="badge">Sunfinder 38 · Mevcut</div></div>
+    <div class="tile"><img src="references/DJI_20251221132454_0069_D.png" alt="Sunfinder 50 cruise"><div class="badge">Sunfinder 50 · Mevcut</div></div>
+    <div class="tile"><img src="references/DJI_20251221132834_0110_D (2).png" alt="Sunfinder 50 cruise 2"><div class="badge">Sunfinder 50 · Mevcut</div></div>
+    <div class="tile" style="grid-column:span 2;"><img src="references/DJI_20251221132918_0136_D (2).png" alt="Sunfinder 50 profile"><div class="badge">Sunfinder 50 · Mevcut</div></div>
+  </div>
+</section>
+
+<!-- KATEGORİ 1 — DRONE HERO -->
+<section>
+  <div class="cat-head">
+    <h3><span class="n">04 / I</span>Drone Kareler</h3>
+    <div class="cap">Tekneyi ölçeğiyle birlikte gösteren havadan kareler: hareket halinde, demirde, sahil boyunca, yukarıdan tepe açı.</div>
+  </div>
+  <div class="grid g-mosaic">
+    <div class="tile span3 row2"><img src="generated/01_drone_hero/01_sunfinder50_cruise.png" alt=""><div class="badge">Sunfinder 50 · Hareket</div></div>
+    <div class="tile span3"><img src="generated/01_drone_hero/02_anchored_cliffs_38.png" alt=""><div class="badge">Sunfinder 38 · Demirde · Golden Hour</div></div>
+    <div class="tile span2"><img src="generated/01_drone_hero/03_topdown_symmetry.png" alt=""><div class="badge">Tepe Açı · Simetri</div></div>
+    <div class="tile span1"><img src="generated/01_drone_hero/04_coastline_wide.png" alt=""><div class="badge">Sahil · Geniş Plan</div></div>
+  </div>
+</section>
+
+<!-- KATEGORİ 2 — EXTERIOR BEAUTY -->
+<section>
+  <div class="cat-head">
+    <h3><span class="n">04 / II</span>Dış Cephe Kareler</h3>
+    <div class="cap">Tekneyi su seviyesinden ve göz hizasından gösteren ürün portreleri. Yan profil, baş kısmı, kıç ve dalga izi.</div>
+  </div>
+  <div class="grid g-3">
+    <div class="tile" style="aspect-ratio:16/10"><img src="generated/02_exterior_beauty/01_water_level_38.png" alt=""><div class="badge">Sunfinder 38 · Su Seviyesi</div></div>
+    <div class="tile" style="aspect-ratio:16/10"><img src="generated/02_exterior_beauty/02_bow_sunset_flare.png" alt=""><div class="badge">Baş Detayı · Sunset</div></div>
+    <div class="tile" style="aspect-ratio:16/10"><img src="generated/02_exterior_beauty/03_wake_stern.png" alt=""><div class="badge">Kıç · Dalga İzi</div></div>
+  </div>
+</section>
+
+<!-- KATEGORİ 3 — INTERIOR / LIVING -->
+<section>
+  <div class="cat-head">
+    <h3><span class="n">04 / III</span>İç Mekan &amp; Yaşam Alanları</h3>
+    <div class="cap">Oturma alanı, dümen, güneşlenme alanı, kabin — premium otel süiti hissi.</div>
+  </div>
+  <div class="grid g-mosaic">
+    <div class="tile span4 row2"><img src="generated/03_interior_living/01_cockpit_golden_hour.png" alt=""><div class="badge">Oturma Alanı · Golden Hour</div></div>
+    <div class="tile span2"><img src="generated/03_interior_living/02_helm_detail.png" alt=""><div class="badge">Dümen · Detay</div></div>
+    <div class="tile span2"><img src="generated/03_interior_living/03_bow_sunpad.png" alt=""><div class="badge">Güneşlenme Alanı</div></div>
+    <div class="tile span2"><img src="generated/03_interior_living/04_cabin_interior.png" alt=""><div class="badge">Kabin · Süit Hissi</div></div>
+    <div class="tile span2"><img src="generated/05_atmosphere/01_teak_macro.png" alt=""><div class="badge">Tik Güverte · Detay</div></div>
+  </div>
+</section>
+
+<!-- KATEGORİ 4 — LIFESTYLE -->
+<section>
+  <div class="cat-head">
+    <h3><span class="n">04 / IV</span>Yaşam Tarzı · Sahiplik Hissi</h3>
+    <div class="cap">Cast minimal. Silüet, çıplak ayak, iki kadeh. Yaşanan bir an — hiçbir zaman satış pozu değil.</div>
+  </div>
+  <div class="grid g-3">
+    <div class="tile" style="aspect-ratio:16/10"><img src="generated/04_lifestyle/01_captain_silhouette.png" alt=""><div class="badge">Kaptan · Silüet</div></div>
+    <div class="tile" style="aspect-ratio:16/10"><img src="generated/04_lifestyle/02_bare_feet_teak.png" alt=""><div class="badge">Çıplak Ayak · Tik Güverte</div></div>
+    <div class="tile" style="aspect-ratio:16/10"><img src="generated/04_lifestyle/03_two_glasses_sunset.png" alt=""><div class="badge">İki Kadeh · Gün Batımı</div></div>
+  </div>
+</section>
+
+<!-- KATEGORİ 5 — ATMOSPHERE -->
+<section>
+  <div class="cat-head">
+    <h3><span class="n">04 / V</span>Atmosfer &amp; Doku</h3>
+    <div class="cap">Ara kareler ve dokular. Dalga köpüğü, tekne yansıması, tik güverte detayı — kurgunun nefes aldığı görseller.</div>
+  </div>
+  <div class="grid g-3">
+    <div class="tile" style="aspect-ratio:16/10"><img src="generated/05_atmosphere/02_wake_texture.png" alt=""><div class="badge">Dalga Köpüğü</div></div>
+    <div class="tile" style="aspect-ratio:16/10"><img src="generated/05_atmosphere/03_hull_flare.png" alt=""><div class="badge">Tekne · Güneş Yansıması</div></div>
+    <div class="tile" style="aspect-ratio:16/10"><img src="generated/05_atmosphere/01_teak_macro.png" alt=""><div class="badge">Tik · Pirinç Detay</div></div>
+  </div>
+</section>
+
+<!-- KATEGORİ 6 — LOCATION -->
+<section>
+  <div class="cat-head">
+    <h3><span class="n">04 / VI</span>Lokasyon · Çeşme → Bodrum → Göcek</h3>
+    <div class="cap">Türk Riviera. Üç bölge, üç doku: limestone Çeşme, pine Bodrum, deep-bay Göcek.</div>
+  </div>
+  <div class="grid g-3">
+    <div class="tile" style="aspect-ratio:16/10"><img src="generated/06_locations/02_cesme_alacati.png" alt=""><div class="badge">Çeşme · Alaçatı</div></div>
+    <div class="tile" style="aspect-ratio:16/10"><img src="generated/06_locations/03_bodrum_pine.png" alt=""><div class="badge">Bodrum · Pine Coast</div></div>
+    <div class="tile" style="aspect-ratio:16/10"><img src="generated/06_locations/01_gocek_bay.png" alt=""><div class="badge">Göcek · 12 Adalar</div></div>
+  </div>
+</section>
+
+<!-- ROUTE OVERVIEW -->
+<section class="route">
+  <h2><span class="num">05 — Rota</span>6 gün, 3 bölge, 1 tek hikâye.</h2>
+  <p class="lede">Sakız Adası dışarıda — vize/sınır lojistiği yerine Türk karasularında ışık-koy-renk üçlüsü. Daha verimli, daha sinematik.</p>
+  <div class="route-line">
+    <div class="stop">
+      <div class="day">Gün 1–2 · Çeşme</div>
+      <h4 class="serif">Wake &amp; Wind</h4>
+      <p>Ildırı koyu, Tavşan adası, Karaburun. S50 cruise + drone wake action. Açık deniz hareket çekimleri.</p>
+    </div>
+    <div class="stop">
+      <div class="day">Gün 3–4 · Bodrum</div>
+      <h4 class="serif">Pine &amp; Profile</h4>
+      <p>Yalıkavak, Türkbükü, Datça yarımadası. İki teknenin yan yana hero portresi. Cast'li gün burada.</p>
+    </div>
+    <div class="stop">
+      <div class="day">Gün 5–6 · Göcek</div>
+      <h4 class="serif">Anchor &amp; Quiet</h4>
+      <p>12 Adalar, Manastır Koyu, Tersane. Demirde tek başına hero. Cockpit golden hour. Yedek gün.</p>
+    </div>
+  </div>
+</section>
+
+<!-- DO / DONT -->
+<section>
+  <h2><span class="num">06 — Sınırlar</span>Ne olacak, ne olmayacak.</h2>
+  <p class="lede">Brief'teki "kaçınılması gerekenler" listesi bu projenin redline'ı. Aşağıdaki iki kolon arasında geçiş yok.</p>
+  <div class="dodont">
+    <div class="col">
+      <h4>Olacak</h4>
+      <ul>
+        <li>Tek kadeh, bulanık gün batımı, kimse yok</li>
+        <li>Çıplak ayak tik güverte üstünde</li>
+        <li>Dümen başında bir silüet</li>
+        <li>Boş bir koy, demirde tek tekne</li>
+        <li>Tekne üzerinde doğal güneş yansıması</li>
+        <li>Sıcak ve yumuşak doğal ışık</li>
+      </ul>
+    </div>
+    <div class="col no">
+      <h4>Olmayacak</h4>
+      <ul>
+        <li>Bikinili kalabalık parti</li>
+        <li>Şampanya patlatma, DJ'li güverte</li>
+        <li>Renkli kokteyller, neon aksesuar</li>
+        <li>Stok fotoğraf hissi, plastik gülüşler</li>
+        <li>Marka logosunun aşırı vurgusu</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- TYPOGRAPHY -->
+<section>
+  <h2><span class="num">07 — Tipografi</span>Sessiz ve güvenli.</h2>
+  <div class="typo">
+    <div class="typo-sample">
+      <div class="display">Sunfinder.</div>
+      <div class="body">Premium · Marine · 2026</div>
+    </div>
+    <div class="desc">
+      <h4 class="serif">Cormorant Garamond + Inter</h4>
+      <p>Display için <strong>Cormorant Garamond Light</strong> — Bvlgari/Aston Martin lüks dilinde, hafif kursif italikle nefes alıyor. Body için <strong>Inter</strong> — okunaklı, modern, sade.</p>
+      <p>Brand kullanımında: tüm başlıklar negative tracking (-1%), büyük harf yok. CTA ve menü için all-caps Inter Medium 11px, harf aralığı +320‰.</p>
+      <small>Açık kaynak alternatif: Playfair Display + Helvetica Neue Light. Bu dosya ön örnekleme amaçlıdır.</small>
+    </div>
+  </div>
+</section>
+
+<!-- BRIEF QA / DELIVERABLES -->
+<section>
+  <h2><span class="num">08 — Teslimat Kapsamı</span>Ne alacaksınız?</h2>
+  <p class="lede">Çekim sonunda elinize geçecek somut çıktıların özeti. Detaylı kırılım proposal dosyasındadır.</p>
+  <div class="deliverables">
+    <div class="delv">
+      <h4>Final Teslim Adetleri</h4>
+      <p>Tekne başına <strong>80–150 işlenmiş fotoğraf</strong> ve <strong>9–30 video çıktısı</strong>. Toplam görsel kütüphane <strong>160–300 fotoğraf</strong> ve yıl boyu kullanılabilecek bir video arşivi.</p>
+    </div>
+    <div class="delv">
+      <h4>Video Versiyonları</h4>
+      <p><strong>Marka filmi 60–90 sn</strong> · 30 sn kısa kurgu · 6× 15 sn sosyal medya · 3× dikey Reels · 1× LinkedIn versiyonu · 6 ürün detay videosu · 8 drone hareketi.</p>
+    </div>
+    <div class="delv">
+      <h4>Sosyal Medya Adaptasyonları</h4>
+      <p>Her video için <strong>4 farklı oran</strong> (kare, dikey 4:5, dikey 9:16, yatay 16:9). Her ana fotoğraf için <strong>3 farklı kadraj</strong>. LinkedIn versiyonları altyazılı teslim edilir.</p>
+    </div>
+    <div class="delv">
+      <h4>Post-Prodüksiyon</h4>
+      <p><strong>Fotoğraf:</strong> Sunfinder DNA'sına özel renk profili, tam retuş, 2 tur revize. <strong>Video:</strong> Profesyonel renk düzenleme (color grading), orijinal ses tasarımı, lisanslı müzik, 2 tur revize.</p>
+    </div>
+  </div>
+  <a class="proposal-link" href="proposal/Ordino_Proposal.md">Tam Proposal Dosyasını Aç</a>
+</section>
+
+<!-- PACKAGES -->
+<section>
+  <h2><span class="num">09 — Üç Paket</span>Yatırım seçenekleri.</h2>
+  <p class="lede">Üç farklı yatırım seviyesi, üç farklı çıktı paketi. Tüm paketlerde Aiata'nın beklediği premium kalite ve görsel dil korunur — fark, yıl boyunca kullanılacak içerik miktarında ve marka filmi kapsamındadır. KDV hariç. Yakıt ve tekne bakım maliyeti Aiata'ya aittir.</p>
+  <div class="pkgs">
+    <div class="pkg">
+      <div class="tier">Standart</div>
+      <h4 class="serif">Temel Kütüphane</h4>
+      <p class="tagline">Web ve sosyal medya için sağlam, kullanıma hazır içerik seti.</p>
+      <div class="price">₺850.000<small>KDV hariç · 5 hafta teslim</small></div>
+      <ul>
+        <li><strong>4 gün</strong> çekim · Çeşme + Bodrum</li>
+        <li><strong>160 işlenmiş fotoğraf</strong> (tekne başına 80)</li>
+        <li><strong>30 sn kısa marka kurgusu</strong></li>
+        <li><strong>4 sosyal medya videosu</strong> (15 sn)</li>
+        <li><strong>4 ürün detay videosu</strong></li>
+        <li>1 günlük yaşam tarzı çekimi (silüet)</li>
+        <li>Tüm ana fotoğraflar için 3 farklı kadraj</li>
+        <li>1 tur revize</li>
+      </ul>
+    </div>
+    <div class="pkg featured">
+      <div class="ribbon">Önerimiz</div>
+      <div class="tier">Premium</div>
+      <h4 class="serif">Marka Hikayesi</h4>
+      <p class="tagline">Yıl boyunca her mecrada kullanılabilecek tam kütüphane ve marka filmi.</p>
+      <div class="price">₺1.450.000<small>KDV hariç · 9 hafta teslim</small></div>
+      <ul>
+        <li><strong>6 gün</strong> çekim · Çeşme → Bodrum → Göcek tam rota</li>
+        <li><strong>240 işlenmiş fotoğraf</strong> (tekne başına 120)</li>
+        <li><strong>60–90 sn marka filmi</strong> (Hero video)</li>
+        <li><strong>30 sn kısa kurgu + LinkedIn versiyonu</strong></li>
+        <li><strong>6 sosyal medya videosu</strong> (15 sn) + dikey Reels</li>
+        <li><strong>6 ürün detay videosu</strong></li>
+        <li><strong>8 drone hareketi</strong> (10–15 sn)</li>
+        <li>1.5 gün yaşam tarzı çekimi (3 figür)</li>
+        <li>Lisanslı orijinal müzik</li>
+        <li>Tüm videolar için 4 farklı sosyal medya oranı</li>
+        <li>2 tur revize</li>
+      </ul>
+    </div>
+    <div class="pkg">
+      <div class="tier">Hero</div>
+      <h4 class="serif">Sinematik Amiral</h4>
+      <p class="tagline">Marka için bağımsız bir kısa film ve geniş yedek içerik arşivi.</p>
+      <div class="price">₺2.250.000<small>KDV hariç · 11 hafta teslim</small></div>
+      <ul>
+        <li><strong>7 gün</strong> çekim · genişletilmiş rota + ek gün doğumu/batımı günü</li>
+        <li><strong>300 işlenmiş fotoğraf + 12 büyük format baskı master'ı</strong></li>
+        <li><strong>90 sn marka filmi</strong> + 30 sn kısa kurgu + 15 sn teaser</li>
+        <li><strong>8 sosyal medya videosu + 8 ürün detay + 12 drone hareketi</strong></li>
+        <li>LinkedIn versiyonu</li>
+        <li>2 gün profesyonel casting (3 figür)</li>
+        <li>Stüdyo ses tasarımı, opsiyonel orijinal müzik bestesi</li>
+        <li><strong>90 sn kamera arkası belgeseli</strong></li>
+        <li>Tüm videolar için 4 farklı sosyal medya oranı</li>
+        <li>2 tur revize</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div>
+    <div class="eyebrow" style="margin-bottom:8px">AIATA · Moodboard v1 · Ordino tarafından hazırlandı</div>
+    Mayıs 2026 prodüksiyonu için hazırlanmıştır<br>
+    Sunulan moodboard görselleri yönlendirme amaçlıdır; final çekim Sunfinder 38 ve 50 modelleri üzerinde gerçekleştirilecektir.
+  </div>
+  <div class="sig">— quiet luxury at sea.</div>
+</footer>
+
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="Görsel önizleme">
+  <button class="lb-close" id="lbClose" aria-label="Kapat">×</button>
+  <button class="lb-nav prev" id="lbPrev" aria-label="Önceki">‹</button>
+  <button class="lb-nav next" id="lbNext" aria-label="Sonraki">›</button>
+  <img id="lbImg" src="" alt="">
+  <div class="lb-cap" id="lbCap"></div>
+</div>
+
+<script>
+(function(){
+  const tiles = Array.from(document.querySelectorAll('.tile'));
+  const lb = document.getElementById('lb');
+  const lbImg = document.getElementById('lbImg');
+  const lbCap = document.getElementById('lbCap');
+  const lbClose = document.getElementById('lbClose');
+  const lbPrev = document.getElementById('lbPrev');
+  const lbNext = document.getElementById('lbNext');
+  let idx = 0;
+
+  function open(i){
+    idx = (i + tiles.length) % tiles.length;
+    const t = tiles[idx];
+    const img = t.querySelector('img');
+    if(!img) return;
+    lbImg.src = img.src;
+    lbImg.alt = img.alt || '';
+    const badge = t.querySelector('.badge');
+    lbCap.textContent = badge ? badge.textContent : '';
+    lb.classList.add('open');
+    document.body.classList.add('lb-open');
+  }
+  function close(){
+    lb.classList.remove('open');
+    document.body.classList.remove('lb-open');
+    lbImg.src = '';
+  }
+  tiles.forEach((t, i) => {
+    t.addEventListener('click', () => open(i));
+  });
+  lbClose.addEventListener('click', close);
+  lbPrev.addEventListener('click', e => { e.stopPropagation(); open(idx - 1); });
+  lbNext.addEventListener('click', e => { e.stopPropagation(); open(idx + 1); });
+  lb.addEventListener('click', e => { if(e.target === lb || e.target === lbImg) close(); });
+  document.addEventListener('keydown', e => {
+    if(!lb.classList.contains('open')) return;
+    if(e.key === 'Escape') close();
+    else if(e.key === 'ArrowLeft') open(idx - 1);
+    else if(e.key === 'ArrowRight') open(idx + 1);
+  });
+})();
+</script>
+</body>
+</html>
