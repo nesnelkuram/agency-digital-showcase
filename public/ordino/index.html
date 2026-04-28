@@ -23,14 +23,16 @@
 
   .wrap{max-width:1280px;margin:0 auto;padding:64px 40px}
 
-  /* ----- HERO ----- */
-  .hero{padding:96px 0 48px;border-bottom:1px solid var(--line)}
-  .eyebrow{font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--mute)}
-  .hero h1{font-size:clamp(56px,9vw,128px);line-height:.92;letter-spacing:-.02em;margin:24px 0 16px}
-  .hero .sub{font-family:"Cormorant Garamond",Georgia,serif;font-style:italic;font-size:clamp(20px,2.4vw,28px);color:var(--ink-2);max-width:780px}
-  .hero-meta{display:grid;grid-template-columns:repeat(4,1fr);gap:32px;margin-top:64px;border-top:1px solid var(--line);padding-top:24px}
-  .hero-meta div{font-size:13px;color:var(--ink-2)}
-  .hero-meta strong{display:block;color:var(--ink);font-size:14px;letter-spacing:.04em;margin-top:4px}
+  /* ----- HERO (video) ----- */
+  .hero{position:relative;width:100vw;margin-left:calc(50% - 50vw);height:100vh;min-height:640px;padding:0;border-bottom:1px solid var(--line);overflow:hidden;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;color:#fff}
+  .hero video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+  .hero > *{position:relative;z-index:1}
+  .hero .eyebrow{color:rgba(255,255,255,.78);font-size:11px;letter-spacing:.32em;text-transform:uppercase}
+  .hero h1{color:#fff;font-size:clamp(56px,9vw,128px);line-height:.92;letter-spacing:-.02em;margin:24px 0 16px;text-shadow:0 2px 40px rgba(0,0,0,.25)}
+  .hero .sub{font-family:"Cormorant Garamond",Georgia,serif;font-style:italic;font-size:clamp(20px,2.4vw,28px);color:rgba(255,255,255,.88);max-width:780px;margin:0 auto;text-shadow:0 1px 20px rgba(0,0,0,.3)}
+  .hero-meta{display:grid;grid-template-columns:repeat(4,1fr);gap:32px;margin-top:64px;border-top:1px solid rgba(255,255,255,.25);padding-top:24px;width:100%;max-width:1100px}
+  .hero-meta div{font-size:13px;color:rgba(255,255,255,.7)}
+  .hero-meta strong{display:block;color:#fff;font-size:14px;letter-spacing:.04em;margin-top:4px}
 
   /* ----- SECTION ----- */
   section{padding:80px 0;border-bottom:1px solid var(--line)}
@@ -177,6 +179,9 @@
 
 <!-- HERO -->
 <section class="hero">
+  <video autoplay muted loop playsinline preload="auto" poster="references/Sunfinder38_HERO-TEST2.jpg">
+    <source src="hero.mp4" type="video/mp4">
+  </video>
   <div class="eyebrow">Moodboard · Mayıs 2026</div>
   <h1 class="serif">Quiet Luxury<br>at&nbsp;Sea.</h1>
   <p class="sub">Sunfinder 38 ve Sunfinder 50 için Ege'de bir prodüksiyon — ürün konuşur, ışık yönlendirir, cast nefes alır. Yıl boyunca her platformda taşınabilecek, exclusive ve gerçek bir görsel kütüphane.</p>
