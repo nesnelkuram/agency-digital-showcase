@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Innova Sultanahmet — İki İstanbul · Reklam Filmi Konsepti</title>
+<meta name="description" content="Innova Sultanahmet için kısa film tadında bir reklam senaryosu. Vertical 9:16 storyboard, character-locked AI üretimi, çekim izin analizi.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F4EFE8;
+    --bg-2:#EAE3D6;
+    --ink:#1B2738;
+    --ink-2:#54627A;
+    --teal:#2E5C66;
+    --gold:#B68A4E;
+    --rose:#A65C4E;
+    --mute:#7A736A;
+    --line:rgba(27,39,56,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--ink);font-family:"Inter","Helvetica Neue",Arial,sans-serif;font-weight:400;line-height:1.55;-webkit-font-smoothing:antialiased}
+  .serif{font-family:"Cormorant Garamond",Georgia,serif;font-weight:300;letter-spacing:.01em}
+  img{display:block;max-width:100%;height:auto}
+  a{color:inherit}
+
+  .wrap{max-width:1280px;margin:0 auto;padding:64px 40px}
+
+  /* HERO */
+  .hero{padding:96px 0 48px;border-bottom:1px solid var(--line)}
+  .eyebrow{font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--mute)}
+  .hero h1{font-size:clamp(56px,9vw,128px);line-height:.92;letter-spacing:-.02em;margin:24px 0 16px}
+  .hero .sub{font-family:"Cormorant Garamond",Georgia,serif;font-style:italic;font-size:clamp(20px,2.4vw,28px);color:var(--ink-2);max-width:780px}
+  .hero-meta{display:grid;grid-template-columns:repeat(4,1fr);gap:32px;margin-top:64px;border-top:1px solid var(--line);padding-top:24px}
+  .hero-meta div{font-size:13px;color:var(--ink-2)}
+  .hero-meta strong{display:block;color:var(--ink);font-size:14px;letter-spacing:.04em;margin-top:4px}
+
+  /* SECTION */
+  section{padding:80px 0;border-bottom:1px solid var(--line)}
+  section h2{font-family:"Cormorant Garamond",Georgia,serif;font-weight:400;font-size:clamp(36px,4.5vw,56px);letter-spacing:-.01em;line-height:1.05;margin-bottom:16px}
+  section h2 .num{font-family:"Inter",sans-serif;font-size:13px;font-weight:500;letter-spacing:.32em;color:var(--gold);display:block;margin-bottom:14px}
+  section .lede{font-size:18px;color:var(--ink-2);max-width:760px;margin-bottom:48px}
+
+  /* BIG IDEA */
+  .bigidea{display:grid;grid-template-columns:1.2fr 1fr;gap:64px;align-items:center}
+  .bigidea .quote{font-family:"Cormorant Garamond",Georgia,serif;font-weight:300;font-size:clamp(36px,4.5vw,64px);line-height:1.05;letter-spacing:-.01em}
+  .bigidea .quote em{font-style:italic;color:var(--gold)}
+  .bigidea .desc{color:var(--ink-2);font-size:16px;line-height:1.7}
+  .bigidea .desc h4{font-family:"Cormorant Garamond",serif;font-weight:400;font-size:24px;color:var(--ink);margin:24px 0 8px}
+
+  /* PRINCIPLES */
+  .principles{display:grid;grid-template-columns:repeat(3,1fr);gap:32px}
+  .p-card{padding:28px;background:#fff;border-top:3px solid var(--gold)}
+  .p-card .kicker{font-size:48px;font-family:"Cormorant Garamond",Georgia,serif;color:var(--gold);font-weight:300;line-height:1}
+  .p-card h3{font-size:18px;font-weight:600;margin:12px 0 6px}
+  .p-card p{font-size:14px;color:var(--ink-2)}
+
+  /* CHARACTER REF */
+  .char{display:grid;grid-template-columns:1fr 1.6fr;gap:48px;align-items:start}
+  .char .ref-img{aspect-ratio:9/16;background:#1B2738;overflow:hidden}
+  .char .ref-img img{width:100%;height:100%;object-fit:cover}
+  .char .desc h3{font-family:"Cormorant Garamond",serif;font-weight:400;font-size:36px;margin-bottom:14px}
+  .char .desc dl{display:grid;grid-template-columns:140px 1fr;gap:14px 24px;margin-top:24px;font-size:14px}
+  .char .desc dt{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);font-weight:500;padding-top:2px}
+  .char .desc dd{color:var(--ink-2)}
+
+  /* STORYBOARD GRID */
+  .scenes{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+  .scene{background:#1B2738;position:relative;overflow:hidden;cursor:zoom-in}
+  .scene img{width:100%;aspect-ratio:9/16;object-fit:cover;display:block;transition:transform .8s ease}
+  .scene:hover img{transform:scale(1.04)}
+  .scene .num-tag{position:absolute;top:12px;left:12px;background:rgba(244,239,232,.92);color:var(--ink);font-size:10px;letter-spacing:.22em;padding:5px 9px;font-weight:500;font-family:"Inter",sans-serif}
+  .scene .meta{position:absolute;left:0;right:0;bottom:0;padding:24px 16px 14px;background:linear-gradient(to top,rgba(8,12,20,.88),transparent);color:#EAE3D6}
+  .scene .meta .title{font-family:"Cormorant Garamond",serif;font-size:18px;font-weight:400;letter-spacing:-.005em;line-height:1.15}
+  .scene .meta .vo{display:block;margin-top:6px;font-size:12px;color:rgba(234,227,214,.75);font-style:italic;line-height:1.4}
+
+  /* SCRIPT */
+  .script{display:grid;grid-template-columns:1fr;gap:8px}
+  .scn{display:grid;grid-template-columns:120px 1fr 1fr;gap:32px;padding:28px 0;border-bottom:1px solid var(--line);align-items:start}
+  .scn:last-child{border-bottom:none}
+  .scn .time{font-family:"Inter",sans-serif;font-size:12px;letter-spacing:.22em;color:var(--gold);font-weight:500;padding-top:4px}
+  .scn .col h4{font-family:"Cormorant Garamond",serif;font-weight:500;font-size:16px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink);margin-bottom:10px}
+  .scn .col h4.alt{color:var(--rose)}
+  .scn .col p{font-size:14px;color:var(--ink-2);line-height:1.65}
+  .scn .vo{margin-top:14px;padding-top:14px;border-top:1px dashed rgba(27,39,56,.12);font-style:italic;color:var(--ink);font-family:"Cormorant Garamond",serif;font-size:18px;line-height:1.4;grid-column:1/-1}
+  .scn .vo small{display:block;margin-top:4px;color:var(--mute);font-size:12px;font-family:"Inter",sans-serif;font-style:normal;letter-spacing:.04em}
+
+  /* TAGLINE BLOCK */
+  .tagline{padding:64px 48px;background:#1B2738;color:#EAE3D6;text-align:center}
+  .tagline .display{font-family:"Cormorant Garamond",serif;font-weight:300;font-size:clamp(40px,6vw,80px);line-height:1.05;letter-spacing:-.01em}
+  .tagline .en{margin-top:16px;font-style:italic;color:rgba(234,227,214,.7);font-size:clamp(18px,2vw,24px)}
+  .tagline .badge{display:inline-block;margin-top:32px;font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--gold);border:1px solid var(--gold);padding:10px 16px}
+
+  /* CREDIT */
+  .credit{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
+  .credit-card{padding:40px;background:#fff;border-top:3px solid var(--gold)}
+  .credit-card .ribbon{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);font-weight:500}
+  .credit-card h4{font-family:"Cormorant Garamond",serif;font-weight:400;font-size:32px;margin:14px 0 6px}
+  .credit-card .score{font-family:"Cormorant Garamond",serif;font-size:72px;font-weight:300;line-height:1;color:var(--ink);margin:14px 0}
+  .credit-card small{font-size:12px;color:var(--mute);letter-spacing:.04em;display:block;margin-top:8px}
+
+  /* SOUND DESIGN */
+  .sound{display:grid;grid-template-columns:1fr 1fr;gap:48px}
+  .sound-card{padding:32px;background:rgba(255,255,255,.6);border-left:3px solid var(--gold)}
+  .sound-card h4{font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--gold);margin-bottom:14px}
+  .sound-card p{font-size:14px;color:var(--ink-2);line-height:1.65}
+  .sound-card p strong{color:var(--ink);font-weight:600}
+
+  /* PERMITS / BUDGET */
+  .alert{background:#1B2738;color:#EAE3D6;padding:32px;margin-bottom:32px;display:grid;grid-template-columns:48px 1fr;gap:20px;align-items:center}
+  .alert .ico{font-family:"Cormorant Garamond",serif;font-size:48px;color:var(--gold);line-height:1}
+  .alert h4{font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--gold);margin-bottom:4px}
+  .alert p{font-size:15px;line-height:1.5}
+
+  table.permits{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+  table.permits th{text-align:left;padding:14px 12px;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);font-weight:500;border-bottom:1px solid var(--line);background:rgba(255,255,255,.4)}
+  table.permits td{padding:14px 12px;border-bottom:1px solid var(--line);color:var(--ink-2);vertical-align:top}
+  table.permits tr:hover td{background:rgba(255,255,255,.5)}
+  table.permits .yes{color:#4A7A52;font-weight:600}
+  table.permits .no{color:var(--rose);font-weight:600}
+  table.permits .maybe{color:var(--gold);font-weight:600}
+
+  /* BUDGET TOTAL */
+  .budget-total{margin-top:32px;padding:32px;background:var(--ink);color:#EAE3D6;display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:center}
+  .budget-total .label{font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--gold);font-weight:500}
+  .budget-total .amount{font-family:"Cormorant Garamond",serif;font-weight:300;font-size:48px;line-height:1.05;margin-top:8px;letter-spacing:-.01em}
+  .budget-total .amount small{font-family:"Inter",sans-serif;font-size:12px;font-weight:400;letter-spacing:.18em;color:rgba(234,227,214,.6);display:block;margin-top:4px}
+  .budget-total .note{font-size:13px;color:rgba(234,227,214,.7);line-height:1.55;font-style:italic;font-family:"Cormorant Garamond",serif;font-size:16px}
+
+  /* FOOTER */
+  footer{padding:80px 0 64px;color:var(--ink-2);font-size:13px;display:flex;justify-content:space-between;align-items:flex-end;gap:32px}
+  footer .sig{font-family:"Cormorant Garamond",Georgia,serif;font-style:italic;font-size:24px;color:var(--ink)}
+  footer .meta{text-align:right;font-size:12px;letter-spacing:.04em}
+  footer .meta a{color:var(--gold);text-decoration:none;border-bottom:1px solid rgba(182,138,78,.4)}
+
+  /* LIGHTBOX */
+  .lb{position:fixed;inset:0;background:rgba(8,12,20,.94);display:none;align-items:center;justify-content:center;z-index:9999;padding:32px;backdrop-filter:blur(6px)}
+  .lb.open{display:flex}
+  .lb img{max-width:96vw;max-height:90vh;width:auto;height:auto;object-fit:contain;box-shadow:0 60px 120px -20px rgba(0,0,0,.6)}
+  .lb .lb-cap{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);color:#EAE3D6;font-size:12px;letter-spacing:.22em;text-transform:uppercase;background:rgba(0,0,0,.4);padding:8px 14px}
+  .lb .lb-close{position:absolute;top:24px;right:32px;color:#fff;font-size:32px;cursor:pointer;background:none;border:none;line-height:1;font-family:inherit}
+  body.lb-open{overflow:hidden}
+
+  /* PRINT */
+  @media print{
+    body{background:#fff}
+    .wrap{padding:32px 24px}
+    section{break-inside:avoid;page-break-inside:avoid}
+    .hero{padding:32px 0}
+  }
+
+  @media (max-width: 900px){
+    .wrap{padding:48px 24px}
+    .hero-meta{grid-template-columns:repeat(2,1fr)}
+    .principles{grid-template-columns:1fr}
+    .scenes{grid-template-columns:repeat(2,1fr)}
+    .bigidea,.char,.credit,.sound,.budget-total{grid-template-columns:1fr;gap:32px}
+    .scn{grid-template-columns:1fr;gap:16px}
+    .scn .time{margin-bottom:8px}
+    table.permits{font-size:12px}
+    table.permits td,table.permits th{padding:10px 8px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- HERO -->
+<section class="hero">
+  <div class="eyebrow">Reklam Filmi Konsepti · Nisan 2026</div>
+  <h1 class="serif">İki<br>İstanbul.</h1>
+  <p class="sub">Innova Sultanahmet için kısa film tadında bir reklam. Aynı şehir, aynı gün, aynı kadın — iki paralel zaman çizgisi. Tek değişken: konakladığı yer.</p>
+  <div class="hero-meta">
+    <div>Marka<strong>Innova Sultanahmet</strong></div>
+    <div>Format<strong>Vertical 9:16 · 80 saniye</strong></div>
+    <div>Stil<strong>Sinematik split-screen</strong></div>
+    <div>Üretim<strong>Gemini 3 Pro · Character-locked</strong></div>
+  </div>
+</section>
+
+<!-- BIG IDEA -->
+<section>
+  <h2><span class="num">01 — Big Idea</span>Aynı şehir. İki ayrı sen.</h2>
+  <p class="lede">Reklamda ikinci bir otel yok. Rakip yok. Karşılaştırma kendiyle. İzleyici "burada kalmasaydım nasıl olurdu?" sorusunu kafasında kendi soruyor — bu, satışı bağırarak yapmaktan çok daha güçlü.</p>
+
+  <div class="bigidea">
+    <div class="quote serif">
+      Bazıları İstanbul'u <em>ziyaret</em> eder.<br>
+      Bazıları <em>yaşar</em>.
+    </div>
+    <div class="desc">
+      <h4>Neden bu çalışıyor</h4>
+      <p>Innova'nın gerçek farkı pırıltılı lobi değil — <strong>konum</strong>. Yerebatan 100 metre, Sultanahmet Camii 6 dakika, Kapalıçarşı 250 metre. Bu sayıların kuru anlatımı broşür olur. İki paralel hayat anlatımı, izleyiciye sayıyı <em>hissettirir</em>: bir tarafta 100 metre, diğer tarafta 12 kilometre trafik.</p>
+      <h4>Otel ne zaman görünür?</h4>
+      <p>Toplam 80 saniyede sadece <strong>2 saniye</strong>: kapıdan çıkış (Sahne 3) ve son rooftop. Geri kalan 78 saniye otelin <em>değerini</em> anlatıyor — ürünün kendisini değil. Bu, premium tonun nedeni.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 5 PRINCIPLES -->
+<section>
+  <h2><span class="num">02 — Görsel Dil</span>Üç prensip.</h2>
+  <p class="lede">Her sahne aşağıdaki üçü taşımak zorunda. Yoksa kesilir.</p>
+  <div class="principles">
+    <div class="p-card"><div class="kicker">01</div><h3>İki ışık. İki ruh.</h3><p>Üst yarı her zaman 5500K sıcak Akdeniz ışığı. Alt yarı 3200K floresan / telefon mavisi. Aynı saat, ters atmosfer.</p></div>
+    <div class="p-card"><div class="kicker">02</div><h3>Karakter kilidi.</h3><p>Aynı kadın, aynı kıyafet, aynı yüz — 12 sahnenin hepsinde. AI üretim için Gemini 3 Pro Image karakter referansı kullanıldı.</p></div>
+    <div class="p-card"><div class="kicker">03</div><h3>Sayı yerine his.</h3><p>"100 metre Yerebatan'a" demek yok. Onun yerine: bir tarafta kapıdan çıkıp varış, diğerinde 18 dk trafik. İzleyici sonuca kendi varır.</p></div>
+  </div>
+</section>
+
+<!-- CHARACTER REFERENCE -->
+<section>
+  <h2><span class="num">03 — Karakter</span>Master referans.</h2>
+  <p class="lede">İlk üretilen referans portresi her sonraki sahneye girdi olarak verildi. Yüz, saç, göz rengi, kıyafet — tüm sahnelerde kilitli kaldı.</p>
+
+  <div class="char">
+    <div class="ref-img"><img src="00-character-ref.png" alt="Master karakter referansı"></div>
+    <div class="desc">
+      <h3>Solo gezgin · 32</h3>
+      <p>Kuzey Avrupa'dan, ilk kez İstanbul'da. Şehre bağlanması, yorulması, anılarla dönmesi 80 saniyede izleyiciyle paralel ilerler.</p>
+      <dl>
+        <dt>Saç</dt><dd>Bal sarısı, omuz altı, doğal dalgalı</dd>
+        <dt>Göz</dt><dd>Açık mavi</dd>
+        <dt>Cilt</dt><dd>Açık porselen, doğal allık</dd>
+        <dt>Kıyafet</dt><dd>Krem keten gömlek, kollar dirsekte kıvrık. İnce altın kolye.</dd>
+        <dt>Lens</dt><dd>50mm anamorfik · sığ alan derinliği</dd>
+        <dt>Işık</dt><dd>Doğal sabah, kamera-sağ</dd>
+        <dt>Renk</dt><dd>Sıcak nötr · gölgelerde hafif teal</dd>
+      </dl>
+    </div>
+  </div>
+</section>
+
+<!-- TAGLINE -->
+<section>
+  <div class="tagline">
+    <div class="display">Aynı şehir.<br>İki ayrı sen.</div>
+    <div class="en">Same city. Two different yous.</div>
+    <div class="badge">Innova Sultanahmet</div>
+  </div>
+</section>
+
+<!-- STORYBOARD GRID -->
+<section>
+  <h2><span class="num">04 — Storyboard</span>12 sahne · vertical 9:16.</h2>
+  <p class="lede">Her sahne üst/alt split. Üst — Innova konuğu, sıcak ışık, sakin. Alt — şehrin başka bir yerinde kalan, soğuk ışık, gergin. Tıkla → büyüt.</p>
+
+  <div class="scenes">
+    <figure class="scene"><div class="num-tag">01 / 07:14</div><img src="01-uyanma.png" alt="Uyanma"><figcaption class="meta"><span class="title">Uyanma</span><span class="vo">Bazı sabahları sen seçmezsin. Şehir seni seçer.</span></figcaption></figure>
+    <figure class="scene"><div class="num-tag">02</div><img src="02-kahvalti.png" alt="Kahvaltı"><figcaption class="meta"><span class="title">Kahvaltı</span><span class="vo">Rooftop · Marmara · simit, peynir, çay.</span></figcaption></figure>
+    <figure class="scene"><div class="num-tag">03</div><img src="03-kapi.png" alt="Kapı / Lobi"><figcaption class="meta"><span class="title">Kapı / Lobi</span><span class="vo">Bir tarafta kapı eşiği. Diğerinde 18 dakika.</span></figcaption></figure>
+    <figure class="scene"><div class="num-tag">04</div><img src="04-yerebatan.png" alt="Yerebatan / Trafik"><figcaption class="meta"><span class="title">Yerebatan / Trafik</span><span class="vo">100 metre vs 12 kilometre.</span></figcaption></figure>
+    <figure class="scene"><div class="num-tag">05</div><img src="05-ayasofya.png" alt="Ayasofya / Kuyruk"><figcaption class="meta"><span class="title">Ayasofya / Kuyruk</span><span class="vo">Bir tavan, bin yıl. Ya da iki saat kuyruk.</span></figcaption></figure>
+    <figure class="scene"><div class="num-tag">06</div><img src="06-sultanahmet.png" alt="Sultanahmet Camii"><figcaption class="meta"><span class="title">Mavi · Tur Otobüsü</span><span class="vo">Avluda yalnız. Veya otobüs camından geçerken.</span></figcaption></figure>
+    <figure class="scene"><div class="num-tag">07</div><img src="07-bogaz.png" alt="Boğaz / Karaya Vurmuş"><figcaption class="meta"><span class="title">Boğaz · Simit · Martılar</span><span class="vo">Eminönü iskelesi. Vapur. Galata. Veya bir parking lot.</span></figcaption></figure>
+    <figure class="scene"><div class="num-tag">08</div><img src="08-carsi.png" alt="Kapalıçarşı"><figcaption class="meta"><span class="title">Kapalıçarşı</span><span class="vo">Beş bin dükkân. Veya hâlâ Maps.</span></figcaption></figure>
+    <figure class="scene"><div class="num-tag">09</div><img src="09-hamam.png" alt="Hamam / Yorgun"><figcaption class="meta"><span class="title">Hamam · Yorgun</span><span class="vo">Üçüncü gün. Adınızı, gerginliğinizi bilirler.</span></figcaption></figure>
+    <figure class="scene"><div class="num-tag">10</div><img src="10-rooftop.png" alt="Rooftop / Otel Barı"><figcaption class="meta"><span class="title">Rooftop · Otel Barı</span><span class="vo">Bazıları ziyaret eder. Bazıları yaşar.</span></figcaption></figure>
+    <figure class="scene"><div class="num-tag">11</div><img src="11-birlesme.png" alt="Birleşme"><figcaption class="meta"><span class="title">Birleşme</span><span class="vo">İki ekran tek olur. Sen kalırsın.</span></figcaption></figure>
+    <figure class="scene"><div class="num-tag">12</div><img src="12-endcard.png" alt="End Card"><figcaption class="meta"><span class="title">End Card</span><span class="vo">Innova Sultanahmet.</span></figcaption></figure>
+  </div>
+</section>
+
+<!-- SCRIPT -->
+<section>
+  <h2><span class="num">05 — Senaryo</span>Sahne sahne · 80 saniye.</h2>
+  <p class="lede">VO satırları sayıları taşımaz; çünkü sayılar sahnede çoktan oynuyor. Üst sütun = Innova hayatı, alt sütun = uzak otel hayatı.</p>
+
+  <div class="script">
+    <div class="scn">
+      <div class="time">00:00 — 00:08<br>UYANMA</div>
+      <div class="col"><h4>Innova</h4><p>İpek perdeden süzülen turuncu şafak. Pencere açılır — Marmara, ufukta Adalar, iki minare silueti. Çay buharı. Sessizlik.</p></div>
+      <div class="col"><h4 class="alt">Uzak Otel</h4><p>Çalan alarm. Karanlık oda. Klima sesi. Heavy blackout perde. Telefon ekranı yüze düşen tek ışık.</p></div>
+      <div class="vo">"Bazı sabahları sen seçmezsin. Şehir seni seçer."<small>Some mornings, you don't choose. The city chooses you.</small></div>
+    </div>
+
+    <div class="scn">
+      <div class="time">00:08 — 00:14<br>KAHVALTI</div>
+      <div class="col"><h4>Innova</h4><p>Rooftop. Türk kahvaltısı. Marmara golden hour. Karşı sandalye boş ama yalnız değil. Ne kuyruk var, ne floresan ışık.</p></div>
+      <div class="col"><h4 class="alt">Uzak Otel</h4><p>Kalabalık büfe. Plastik tabak. Kuyruk. Birinin dirseği omzuna değiyor. Telefon yüz üstü masada.</p></div>
+    </div>
+
+    <div class="scn">
+      <div class="time">00:14 — 00:24<br>KAPI vs LOBİ</div>
+      <div class="col"><h4>Innova</h4><p>Kapı açılır. Tek adım. Sokak. Ayağı taşa değer. 100 metre ötede Yerebatan'ın taş kemerli kapısı. Kuyruk yok. Tek başına bir Medusa.</p></div>
+      <div class="col"><h4 class="alt">Uzak Otel</h4><p>Lobi. Sofa. Ride-share uygulaması: "12 dk." Olur 18. Trafik. Şoför Spotify'da çalan şarkıyı söylüyor.</p></div>
+      <div class="vo">"Bir tarafta yüz metre. Diğer tarafta on iki kilometre."<small>One side: a hundred meters. The other: twelve kilometers.</small></div>
+    </div>
+
+    <div class="scn">
+      <div class="time">00:24 — 00:36<br>ANITLAR</div>
+      <div class="col"><h4>Innova</h4><p>Ayasofya kubbesinin altında — küçücük bir nokta, devasa bir kubbe. Sultanahmet avlusunda güvercinler havalanır slow-motion.</p></div>
+      <div class="col"><h4 class="alt">Uzak Otel</h4><p>Ayasofya kuyruğunun arkasında. Önündeki turist grubu selfie çekiyor. Tur otobüsünün penceresinden caminin geçişi.</p></div>
+      <div class="vo">"Aynı şehir, aynı saat. Birinin İstanbul'u var. Diğerinin İstanbul programı."<small>Same city, same hour. One has Istanbul. The other has an Istanbul itinerary.</small></div>
+    </div>
+
+    <div class="scn">
+      <div class="time">00:36 — 00:48<br>BOĞAZ vs ÇARŞI</div>
+      <div class="col"><h4>Innova</h4><p>Eminönü sahili — vapur düdüğü, martı slow-motion, simit, Galata silüeti. Sonra Kapalıçarşı: bakırcıyla pazarlık, çay bardağı eline tutuşuyor.</p></div>
+      <div class="col"><h4 class="alt">Uzak Otel</h4><p>Hâlâ trafikte. Maps "35 dk Grand Bazaar" diyor. Manzara: dört şeritli yol. Sahil cafe yerine parking lot.</p></div>
+    </div>
+
+    <div class="scn">
+      <div class="time">00:48 — 00:58<br>DİNLENME</div>
+      <div class="col"><h4>Innova</h4><p>Dönüş 4 dakika. Türk hamamının buharı. Bir çift el omzundaki gerginliği bulur. Yüz yumuşar. İlk kez bütün gün — nefes.</p></div>
+      <div class="col"><h4 class="alt">Uzak Otel</h4><p>Yatağa düşer. Ayakkabılar yataktan sarkıyor. Telefon ekranı: 23.847 adım. Gözler kapanmıyor.</p></div>
+      <div class="vo">"Bazıları seni iki günde tanır. Üçüncü günde affeder."<small>Some learn your name in two days. By the third, they forgive you.</small></div>
+    </div>
+
+    <div class="scn">
+      <div class="time">00:58 — 01:10<br>GÜN BATIMI</div>
+      <div class="col"><h4>Innova</h4><p>Rooftop. Marmara'ya inen turuncu güneş. Vapur düdüğü uzakta. Karşı sandalye boş ama "az sonra dolacak" gibi duruyor.</p></div>
+      <div class="col"><h4 class="alt">Uzak Otel</h4><p>Otel barı. Kafeterya ışığı. Kadehte aynı şarap — ama renk floresan altında yanlış. Telefonda fotoğraflar. Hiçbiri istediği gibi çıkmamış.</p></div>
+      <div class="vo">"Bazıları İstanbul'u ziyaret eder. Bazıları yaşar."<small>Some visit Istanbul. Some live in it.</small></div>
+    </div>
+
+    <div class="scn">
+      <div class="time">01:10 — 01:20<br>BİRLEŞME</div>
+      <div class="col"><h4>Innova · Tek Ekran</h4><p>İki yarı yavaşça birleşir. Sadece üst (Innova) kalır. Kadın ilk kez kameraya döner. Yarı gülümser. Davet eder.</p></div>
+      <div class="col"><h4 class="alt">End Card</h4><p>Siyah perde. Beyaz serif tipografi. BA Holidays Customer Excellence Award rozeti. Tek bir vapur düdüğü. Karartma.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- SOUND DESIGN -->
+<section>
+  <h2><span class="num">06 — Müzik &amp; Ses</span>Bir tema. İki versiyon.</h2>
+  <p class="lede">Aynı melodi, iki ruh hali. Üst için ney + akustik. Alt için aynı melodinin elektronik gergin remix'i. Custom besteleme — telifsiz, özgün.</p>
+
+  <div class="sound">
+    <div class="sound-card">
+      <h4>Üst Şerit</h4>
+      <p><strong>Ana enstrüman:</strong> Ney solo, sıcak alt-mid registerinde<br>
+      <strong>Perküsyon:</strong> Yumuşak el davulu, oud arka plan<br>
+      <strong>Tempo:</strong> 60–80 BPM, nefes alır gibi<br>
+      <strong>Foley:</strong> Çay tıngırtısı, ezan (uzak), güvercin kanadı, su damlası, vapur düdüğü</p>
+    </div>
+    <div class="sound-card">
+      <h4>Alt Şerit</h4>
+      <p><strong>Ana enstrüman:</strong> Aynı ney melodisi, distortion ile<br>
+      <strong>Perküsyon:</strong> Klakson, klima drone, telefon bildirimi<br>
+      <strong>Tempo:</strong> Aynı 60 BPM ama dağılmış — ritim oturmaz<br>
+      <strong>Foley:</strong> Trafik, floresan zırıltısı, asansör, alarm</p>
+    </div>
+  </div>
+
+  <div class="sound" style="margin-top:32px">
+    <div class="sound-card">
+      <h4>VO — Türkçe</h4>
+      <p>Olgun erkek, sıcak alt-mid. <strong>Halil Ergün / Çetin Tekindor</strong> dokusu. Mid-forward mix. Şair değil, hikâyeci ton.</p>
+    </div>
+    <div class="sound-card">
+      <h4>VO — English</h4>
+      <p>Neutral accent, BBC tonu. <strong>Hugh Bonneville</strong> alt registeri. Aynı tempoyu Türkçe ile lock'lı senkron tutmak için yumuşak compression.</p>
+    </div>
+  </div>
+</section>
+
+<!-- BA HOLIDAYS CREDIT -->
+<section>
+  <h2><span class="num">07 — Kredi</span>Bin gerçek misafir.</h2>
+  <p class="lede">Senaryoda krediler kapanışta gelir, gizlenmez. "Bin İngiliz misafirden 4.6 puan" — anonim editöryal listeden çok daha güçlü bir güvendir.</p>
+
+  <div class="credit">
+    <div class="credit-card">
+      <div class="ribbon">British Airways Holidays</div>
+      <h4 class="serif">Customer Excellence Award</h4>
+      <div class="score serif">4.6<span style="font-size:32px;color:var(--mute)">/5</span></div>
+      <small>Feefo · doğrulanmış misafir puanı · 2025</small>
+    </div>
+    <div>
+      <h4 class="serif" style="font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:400;margin-bottom:14px">Neden bu kredi, "Top 19" değil?</h4>
+      <p style="color:var(--ink-2);font-size:15px;line-height:1.65">Araştırmamız BA High Life "Top 19 Hotels" iddiasını <strong>doğrulayamadı</strong>. Bunun yerine somut belge taşıyan rozeti kullanıyoruz: <strong>Customer Excellence Award 2025 · Feefo 4.6/5</strong>.</p>
+      <p style="color:var(--ink-2);font-size:15px;line-height:1.65;margin-top:12px">Pratikte daha güçlü: editöryal liste anonim, müşteri puanı somut. "Biz değil — bin İngiliz misafir söylüyor" mesajı, satışın güven omurgasını kurar.</p>
+      <p style="margin-top:24px;font-size:12px;color:var(--mute);letter-spacing:.04em">Ek doğrulanmış: TripAdvisor Travelers' Choice ✓ · Booking 9.0/10 (471 yorum) ✓</p>
+    </div>
+  </div>
+</section>
+
+<!-- PERMITS / BUDGET -->
+<section>
+  <h2><span class="num">08 — Çekim İzinleri &amp; Bütçe</span>Sultanahmet'te neyin ne kadarı?</h2>
+  <p class="lede">Her sahne için izin mercii ayrı, süreç ayrı, ücret ayrı. Aşağıda doğrulanmış bilgi + sektör pratiği fiyat aralıkları. Kesin rakam fixer quote'una bağlı.</p>
+
+  <div class="alert">
+    <div class="ico">!</div>
+    <div>
+      <h4>Hikayeyi Değiştiren 3 Bulgu</h4>
+      <p><strong>1.</strong> Topkapı Sarayı'nda reklam çekimi <strong>yasak</strong> (Milli Saraylar 2026 yönetmeliği). &nbsp; <strong>2.</strong> Yerebatan Sarnıcı 1 Nisan 2026'da Vakıflar Genel Müdürlüğü'ne devredildi — yetki değişikliği yeni. &nbsp; <strong>3.</strong> Ayasofya + Sultanahmet Camii ibadethane statüsünde — iç mekân ticari çekim pratikte reddedilir.</p>
+    </div>
+  </div>
+
+  <table class="permits">
+    <thead>
+      <tr>
+        <th>Lokasyon</th>
+        <th>İzin Mercii</th>
+        <th>Süreç</th>
+        <th>Ticari Reklam</th>
+        <th>Tahmini Maliyet (TL)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Topkapı Sarayı</strong> (iç + bahçe)</td><td>Milli Saraylar Başkanlığı</td><td>—</td><td class="no">YASAK</td><td>—</td></tr>
+      <tr><td><strong>Ayasofya</strong> (iç)</td><td>Diyanet İşleri</td><td>4–6 hafta</td><td class="maybe">Düşük olasılık</td><td>Tarife yok / case-by-case</td></tr>
+      <tr><td><strong>Ayasofya</strong> (dış cephe)</td><td>Fatih Bld. + İl Komisyonu</td><td>2–3 hafta</td><td class="yes">Mümkün</td><td>100K – 300K</td></tr>
+      <tr><td><strong>Sultanahmet Camii</strong> (avlu)</td><td>Diyanet + Vakıflar</td><td>3–4 hafta</td><td class="maybe">Sınırlı</td><td>50K – 200K</td></tr>
+      <tr><td><strong>Yerebatan Sarnıcı</strong></td><td>Vakıflar Genel Müdürlüğü <small>(yeni)</small></td><td>6–8 hafta</td><td class="yes">Geçmişte verildi</td><td>500K – 1.500K</td></tr>
+      <tr><td><strong>Kapalıçarşı</strong> (koridor + dükkân)</td><td>Esnaflar Derneği + Fatih Bld.</td><td>2–3 hafta</td><td class="yes">Mümkün</td><td>200K – 500K</td></tr>
+      <tr><td><strong>Eminönü sahil + Galata</strong></td><td>İBB + Fatih + Beyoğlu + Sahil Güv.</td><td>2–3 hafta</td><td class="yes">Mümkün</td><td>150K – 400K</td></tr>
+      <tr><td><strong>Drone</strong> — Sultanahmet özel zone</td><td>SHGM + Valilik + DHMİ + Askeri</td><td>10+ iş günü</td><td class="maybe">Çoğu zaman red</td><td>300K – 600K (helikopter alt.)</td></tr>
+      <tr><td><strong>Genel sokak</strong> (Fatih)</td><td>İl Çekim Koordinasyon Komisyonu</td><td>2 hafta</td><td class="yes">Mümkün</td><td>80K – 200K</td></tr>
+      <tr><td><strong>Fixer / Line Producer</strong> (5 gün)</td><td>—</td><td>—</td><td>—</td><td>250K – 500K</td></tr>
+      <tr><td><strong>Sigorta</strong> (3. şahıs + ekipman)</td><td>—</td><td>—</td><td>—</td><td>100K – 200K</td></tr>
+    </tbody>
+  </table>
+
+  <div class="budget-total">
+    <div>
+      <div class="label">İzin + Fixer + Sigorta</div>
+      <div class="amount serif">1.7 — 4.4M TL<small>$46K — $118K (sadece izin/lokasyon)</small></div>
+    </div>
+    <div class="note">Bu yalnız izin kalemi. Cast, ekipman, post-production, müzik, ulaşım, konaklama hariç. Tam reklam prodüksiyonu için <strong style="color:#fff">6–15M TL</strong> ($165K – $400K) bandı.</div>
+  </div>
+
+  <div style="margin-top:32px;padding:24px;background:rgba(46,92,102,.1);border-left:3px solid var(--teal);font-size:14px;color:var(--ink-2)">
+    <strong style="color:var(--ink)">%30 cash rebate fırsatı:</strong> Yabancı yapım olarak (örn. UK ajansı üzerinden) kurgulanırsa, Türkiye'de harcanan tutarın %30'u Sinema Genel Müdürlüğü tarafından geri ödenir. Türk hizmet sağlayıcı şirket + min 10 iş günü önceden başvuru zorunlu. Innova brief'i için bu yapı net düşünülmeli.
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="sig">— "İmparatorluklar yorulur. Misafirperverlik yorulmaz."</div>
+  <div class="meta">
+    Innova Sultanahmet · İki İstanbul<br>
+    Reklam Filmi Konsepti · 28 Nisan 2026<br>
+    <a href="00-character-ref.png">Karakter referansı →</a>
+  </div>
+</footer>
+
+</div>
+
+<!-- Lightbox -->
+<div class="lb" id="lb">
+  <button class="lb-close" id="lbClose" aria-label="Kapat">×</button>
+  <img id="lbImg" alt="">
+  <div class="lb-cap" id="lbCap"></div>
+</div>
+
+<script>
+  const lb = document.getElementById('lb');
+  const lbImg = document.getElementById('lbImg');
+  const lbCap = document.getElementById('lbCap');
+  document.querySelectorAll('.scene').forEach((scene) => {
+    scene.addEventListener('click', () => {
+      const img = scene.querySelector('img');
+      const title = scene.querySelector('.title')?.textContent || '';
+      lbImg.src = img.src;
+      lbImg.alt = img.alt;
+      lbCap.textContent = title;
+      lb.classList.add('open');
+      document.body.classList.add('lb-open');
+    });
+  });
+  function closeLB(){ lb.classList.remove('open'); document.body.classList.remove('lb-open'); }
+  document.getElementById('lbClose').addEventListener('click', closeLB);
+  lb.addEventListener('click', (e) => { if (e.target === lb) closeLB(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeLB(); });
+</script>
+</body>
+</html>
