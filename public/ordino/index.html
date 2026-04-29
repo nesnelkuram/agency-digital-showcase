@@ -171,6 +171,8 @@
   .vtile.portrait{aspect-ratio:4/5}
   .vtile.wide{aspect-ratio:21/9;grid-column:span 2}
   .vtile.full{grid-column:1/-1;aspect-ratio:21/9}
+  .vtile.featured{grid-column:span 2;grid-row:span 2;aspect-ratio:9/16}
+  .vtile.featured .badge{font-size:12px;padding:8px 14px;letter-spacing:.32em}
 
   /* ----- FOOTER ----- */
   footer{padding:80px 0 64px;color:var(--ink-2);font-size:13px;display:flex;justify-content:space-between;align-items:flex-end;gap:32px}
@@ -195,7 +197,7 @@
     .grid.g-3,.grid.g-4{grid-template-columns:1fr 1fr}
     .grid.g-mosaic{grid-template-columns:repeat(2,1fr)}
     .videos{grid-template-columns:1fr}
-    .vtile.wide{grid-column:auto}
+    .vtile.wide,.vtile.featured{grid-column:auto;grid-row:auto}
     .cat-head{flex-direction:column;align-items:flex-start;gap:8px}
     .cat-head .cap{text-align:left}
   }
@@ -264,12 +266,72 @@
 <section>
   <div class="cat-head">
     <h3><span class="n">02 / A</span>Referanslar</h3>
-    <div class="cap">Brief'in çıkış noktası — bu klibin tonu, ışığı ve kompozisyonu projenin görsel kuzeyi.</div>
+    <div class="cap">Tirhandil — projenin görsel kuzeyi. Yanında ekibimizin geçmiş tekne çekimlerinden seçki.</div>
   </div>
   <div class="videos">
-    <div class="vtile tall" data-src="videos/ig1-reference.mp4">
+    <div class="vtile featured" data-src="videos/ig1-reference.mp4">
       <video src="videos/ig1-reference.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
-      <div class="badge">Instagram · Hareket Referansı</div>
+      <div class="badge">Tirhandil</div>
+      <div class="play"></div>
+    </div>
+    <div class="vtile tall" data-src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/full/01.mp4">
+      <video src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/01.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
+      <div class="badge">01</div>
+      <div class="play"></div>
+    </div>
+    <div class="vtile tall" data-src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/full/02.mp4">
+      <video src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/02.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
+      <div class="badge">02</div>
+      <div class="play"></div>
+    </div>
+    <div class="vtile tall" data-src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/full/03.mp4">
+      <video src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/03.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
+      <div class="badge">03</div>
+      <div class="play"></div>
+    </div>
+    <div class="vtile tall" data-src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/full/04.mp4">
+      <video src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/04.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
+      <div class="badge">04</div>
+      <div class="play"></div>
+    </div>
+    <div class="vtile tall" data-src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/full/05.mp4">
+      <video src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/05.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
+      <div class="badge">05</div>
+      <div class="play"></div>
+    </div>
+    <div class="vtile tall" data-src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/full/06.mp4">
+      <video src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/06.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
+      <div class="badge">06</div>
+      <div class="play"></div>
+    </div>
+    <div class="vtile tall" data-src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/full/07.mp4">
+      <video src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/07.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
+      <div class="badge">07</div>
+      <div class="play"></div>
+    </div>
+    <div class="vtile tall" data-src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/full/08.mp4">
+      <video src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/08.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
+      <div class="badge">08</div>
+      <div class="play"></div>
+    </div>
+    <div class="vtile tall" data-src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/full/09.mp4">
+      <video src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/09.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
+      <div class="badge">09</div>
+      <div class="play"></div>
+    </div>
+    <div class="vtile tall" data-src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/full/010.mp4">
+      <video src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/010.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
+      <div class="badge">10</div>
+      <div class="play"></div>
+    </div>
+    <div class="vtile tall" data-src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/full/011.mp4">
+      <video src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/011.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
+      <div class="badge">11</div>
+      <div class="play"></div>
+    </div>
+    <div class="vtile tall" data-src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/full/012.mp4">
+      <video src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/012.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
+      <div class="badge">12</div>
       <div class="play"></div>
     </div>
   </div>
