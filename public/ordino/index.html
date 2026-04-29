@@ -118,8 +118,7 @@
   .pkg.featured .tier{color:var(--gold)}
   .pkg h4{font-family:"Cormorant Garamond",Georgia,serif;font-size:36px;font-weight:400;margin:6px 0 4px}
   .pkg .tagline{font-style:italic;color:var(--ink-2);font-size:14px;margin-bottom:18px}
-  .pkg .price{font-family:"Cormorant Garamond",Georgia,serif;font-size:42px;font-weight:300;letter-spacing:-.01em;color:var(--ink);margin:8px 0 20px}
-  .pkg .price small{font-size:11px;letter-spacing:.18em;color:var(--mute);display:block;font-family:"Inter",sans-serif;font-weight:400;margin-top:2px}
+  .pkg .price-meta{font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--gold);font-weight:500;margin:14px 0 24px;padding-bottom:14px;border-bottom:1px solid rgba(27,39,56,.08)}
   .pkg ul{list-style:none;font-size:13px;color:var(--ink-2)}
   .pkg li{padding:10px 0;border-bottom:1px solid rgba(27,39,56,.06)}
   .pkg li strong{color:var(--ink);font-weight:600}
@@ -158,6 +157,15 @@
   .preloader .pl-bar::after{content:"";position:absolute;left:-40%;top:0;height:100%;width:40%;background:#B68A4E;animation:plSlide 1.4s ease-in-out infinite}
   @keyframes plSlide{0%{left:-40%}100%{left:100%}}
   .preloader .pl-meta{font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:rgba(234,227,214,.45)}
+
+  /* ----- EDITORIAL GALLERY ----- */
+  .editorial-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+  .editorial-grid .tile{aspect-ratio:4/5;background:#1B2738}
+  .editorial-grid .tile.hero{grid-column:span 2;grid-row:span 2;aspect-ratio:auto}
+  @media (max-width: 900px){
+    .editorial-grid{grid-template-columns:repeat(2,1fr)}
+    .editorial-grid .tile.hero{grid-column:span 2;grid-row:auto;aspect-ratio:4/5}
+  }
 
   /* ----- VIDEO TILES ----- */
   .videos{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;align-items:start}
@@ -240,7 +248,7 @@
     <div class="p-card"><div class="kicker">01</div><h3>Minimal kompozisyon</h3><p>Hull profili her karede temiz okunsun. Karmaşık prop, kalabalık deck, gereksiz aksesuar yok.</p></div>
     <div class="p-card"><div class="kicker">02</div><h3>Doğal ışık</h3><p>Çekimin %80'i golden hour ve mavi saatlerde. Stüdyo aydınlatma sadece interior dolgu.</p></div>
     <div class="p-card"><div class="kicker">03</div><h3>Lens flare ↦ dost</h3><p>Anti-reflective filtre yok. Doğal flare kompozisyonun parçası.</p></div>
-    <div class="p-card"><div class="kicker">04</div><h3>Cast = atmosfer</h3><p>Maks. 2 figür, hep silhouette / blur / back-to-camera. Yüz kapanış yok.</p></div>
+    <div class="p-card"><div class="kicker">04</div><h3>Cast = atmosfer</h3><p>1–3 figür. Anlık ve sahici. Yüze izin var, satış pozuna yok. Loro Piana / Sail Provisions tonu — moment, poz değil.</p></div>
     <div class="p-card"><div class="kicker">05</div><h3>Warm neutral</h3><p>Sıcak yarım stop. Soğuk denizci klişesi yasak. Tik + soft teal + krem hull = imza palet.</p></div>
   </div>
 </section>
@@ -380,6 +388,26 @@
   </div>
 </section>
 
+<!-- EDITORIAL GALLERY -->
+<section>
+  <div class="cat-head">
+    <h3><span class="n">02 / C</span>Editorial · Yaşam Tarzı</h3>
+    <div class="cap">Loro Piana / Sail Provisions tonu — yüze izin var, satış pozuna yok. Anlık moment, vintage prop, sıcak doğal ışık. Tıkla → büyüt.</div>
+  </div>
+  <div class="grid editorial-grid">
+    <div class="tile hero"><img src="editorial/01-water-pasta.png" alt="Sahil restoranı, su içen genç"><div class="badge">Sahilde · Mavi Keten</div></div>
+    <div class="tile"><img src="editorial/02-dive.png" alt="Riva'dan suya atlamak"><div class="badge">Atlayış · Riva</div></div>
+    <div class="tile"><img src="editorial/03-legs-railing.png" alt="Küpeşte üstünde adım"><div class="badge">Küpeşte · Beyaz Keten</div></div>
+    <div class="tile"><img src="editorial/04-cheese-rose.png" alt="Brie, üzüm, rosé"><div class="badge">Slow Lunch · Rosé</div></div>
+    <div class="tile"><img src="editorial/05-backgammon.png" alt="Tavla, çizgili havlu, Perrier"><div class="badge">Tavla · Liman</div></div>
+    <div class="tile"><img src="editorial/06-friends-sailboat.png" alt="İki arkadaş, küçük yelken"><div class="badge">Arkadaşlar · Yelken</div></div>
+    <div class="tile"><img src="editorial/07-rugby-sunfish.png" alt="Sunfish çizgili rugby"><div class="badge">Sunfish · Heritage</div></div>
+    <div class="tile"><img src="editorial/08-hands-rope.png" alt="Halat tutan eller"><div class="badge">Eller · Manila</div></div>
+    <div class="tile"><img src="editorial/09-back-deck.png" alt="Aft güvertede sırt dönük figür"><div class="badge">Aft · Magic Hour</div></div>
+    <div class="tile"><img src="editorial/10-couple-sunset.png" alt="Gün batımında çift"><div class="badge">Çift · Sunset</div></div>
+  </div>
+</section>
+
 <!-- REFERANSLAR -->
 <section>
   <h2><span class="num">03 — Başlangıç Noktası</span>Sunfinder 38 &amp; 50 mevcut görseller.</h2>
@@ -505,21 +533,22 @@
     <div class="col">
       <h4>Olacak</h4>
       <ul>
-        <li>Tek kadeh, bulanık gün batımı, kimse yok</li>
-        <li>Çıplak ayak tik güverte üstünde</li>
-        <li>Dümen başında bir silüet</li>
-        <li>Boş bir koy, demirde tek tekne</li>
-        <li>Tekne üzerinde doğal güneş yansıması</li>
-        <li>Sıcak ve yumuşak doğal ışık</li>
+        <li>Editorial moment — gülen yüz, candid bakış, gerçek an</li>
+        <li>Çıplak ayak tik güverte üstünde, eller halatta</li>
+        <li>Tek kadeh, brie, üzüm, açık tavla — slow lunch</li>
+        <li>Boş bir koy, demirde tek tekne, çizgili havlu</li>
+        <li>Vintage prop: Perrier, eski cooler, manila halat</li>
+        <li>Sıcak ve yumuşak doğal ışık, magic hour</li>
       </ul>
     </div>
     <div class="col no">
       <h4>Olmayacak</h4>
       <ul>
-        <li>Bikinili kalabalık parti</li>
+        <li>Bikinili kalabalık parti, kızlar gemide poz</li>
         <li>Şampanya patlatma, DJ'li güverte</li>
         <li>Renkli kokteyller, neon aksesuar</li>
         <li>Stok fotoğraf hissi, plastik gülüşler</li>
+        <li>Reklam pozu, kameraya bakış, satış jesti</li>
         <li>Marka logosunun aşırı vurgusu</li>
       </ul>
     </div>
@@ -571,20 +600,20 @@
 <!-- PACKAGES -->
 <section>
   <h2><span class="num">09 — Üç Paket</span>Yatırım seçenekleri.</h2>
-  <p class="lede">Üç farklı yatırım seviyesi, üç farklı çıktı paketi. Tüm paketlerde Aiata'nın beklediği premium kalite ve görsel dil korunur — fark, yıl boyunca kullanılacak içerik miktarında ve marka filmi kapsamındadır. KDV hariç. Yakıt ve tekne bakım maliyeti Aiata'ya aittir.</p>
+  <p class="lede">Üç farklı çıktı paketi. Tüm paketlerde Aiata'nın beklediği premium kalite ve görsel dil korunur — fark, yıl boyunca kullanılacak içerik miktarında ve marka filmi kapsamındadır. Yakıt ve tekne bakım maliyeti Aiata'ya aittir. Bütçe için ayrıca konuşulur.</p>
   <div class="pkgs">
     <div class="pkg">
       <div class="tier">Standart</div>
       <h4 class="serif">Temel Kütüphane</h4>
       <p class="tagline">Web ve sosyal medya için sağlam, kullanıma hazır içerik seti.</p>
-      <div class="price">₺850.000<small>KDV hariç · 5 hafta teslim</small></div>
+      <div class="price-meta">5 hafta teslim</div>
       <ul>
         <li><strong>4 gün</strong> çekim · Çeşme + Bodrum</li>
         <li><strong>160 işlenmiş fotoğraf</strong> (tekne başına 80)</li>
         <li><strong>30 sn kısa marka kurgusu</strong></li>
         <li><strong>4 sosyal medya videosu</strong> (15 sn)</li>
         <li><strong>4 ürün detay videosu</strong></li>
-        <li>1 günlük yaşam tarzı çekimi (silüet)</li>
+        <li>1 günlük editorial yaşam tarzı çekimi</li>
         <li>Tüm ana fotoğraflar için 3 farklı kadraj</li>
         <li>1 tur revize</li>
       </ul>
@@ -594,7 +623,7 @@
       <div class="tier">Premium</div>
       <h4 class="serif">Marka Hikayesi</h4>
       <p class="tagline">Yıl boyunca her mecrada kullanılabilecek tam kütüphane ve marka filmi.</p>
-      <div class="price">₺1.450.000<small>KDV hariç · 9 hafta teslim</small></div>
+      <div class="price-meta">9 hafta teslim</div>
       <ul>
         <li><strong>6 gün</strong> çekim · Çeşme → Bodrum → Göcek tam rota</li>
         <li><strong>240 işlenmiş fotoğraf</strong> (tekne başına 120)</li>
@@ -603,7 +632,7 @@
         <li><strong>6 sosyal medya videosu</strong> (15 sn) + dikey Reels</li>
         <li><strong>6 ürün detay videosu</strong></li>
         <li><strong>8 drone hareketi</strong> (10–15 sn)</li>
-        <li>1.5 gün yaşam tarzı çekimi (3 figür)</li>
+        <li>1.5 gün editorial yaşam tarzı çekimi (1–3 cast)</li>
         <li>Lisanslı orijinal müzik</li>
         <li>Tüm videolar için 4 farklı sosyal medya oranı</li>
         <li>2 tur revize</li>
@@ -613,14 +642,14 @@
       <div class="tier">Hero</div>
       <h4 class="serif">Sinematik Amiral</h4>
       <p class="tagline">Marka için bağımsız bir kısa film ve geniş yedek içerik arşivi.</p>
-      <div class="price">₺2.250.000<small>KDV hariç · 11 hafta teslim</small></div>
+      <div class="price-meta">11 hafta teslim</div>
       <ul>
         <li><strong>7 gün</strong> çekim · genişletilmiş rota + ek gün doğumu/batımı günü</li>
         <li><strong>300 işlenmiş fotoğraf + 12 büyük format baskı master'ı</strong></li>
         <li><strong>90 sn marka filmi</strong> + 30 sn kısa kurgu + 15 sn teaser</li>
         <li><strong>8 sosyal medya videosu + 8 ürün detay + 12 drone hareketi</strong></li>
         <li>LinkedIn versiyonu</li>
-        <li>2 gün profesyonel casting (3 figür)</li>
+        <li>2 gün editorial cast — 2–3 figür profesyonel casting</li>
         <li>Stüdyo ses tasarımı, opsiyonel orijinal müzik bestesi</li>
         <li><strong>90 sn kamera arkası belgeseli</strong></li>
         <li>Tüm videolar için 4 farklı sosyal medya oranı</li>
