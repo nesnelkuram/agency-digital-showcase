@@ -171,8 +171,10 @@
   .vtile.portrait{aspect-ratio:4/5}
   .vtile.wide{aspect-ratio:21/9;grid-column:span 2}
   .vtile.full{grid-column:1/-1;aspect-ratio:21/9}
-  .vtile.featured{grid-column:span 2;grid-row:span 2;aspect-ratio:9/16}
-  .vtile.featured .badge{font-size:12px;padding:8px 14px;letter-spacing:.32em}
+  .vtile.featured{position:relative;aspect-ratio:9/16}
+  .vtile.featured::after{content:"";position:absolute;inset:0;border:2px solid var(--gold);pointer-events:none;z-index:3}
+  .vtile.featured .badge{background:var(--gold);color:var(--ink);font-weight:600;letter-spacing:.32em}
+  .vtile.featured .pin{position:absolute;right:12px;top:12px;font-size:9px;letter-spacing:.32em;text-transform:uppercase;color:var(--gold);background:rgba(8,12,20,.7);padding:5px 9px;z-index:2;font-weight:500}
 
   /* ----- FOOTER ----- */
   footer{padding:80px 0 64px;color:var(--ink-2);font-size:13px;display:flex;justify-content:space-between;align-items:flex-end;gap:32px}
@@ -269,69 +271,70 @@
     <div class="cap">Tirhandil — projenin görsel kuzeyi. Yanında ekibimizin geçmiş tekne çekimlerinden seçki.</div>
   </div>
   <div class="videos">
-    <div class="vtile featured" data-src="videos/ig1-reference.mp4">
-      <video src="videos/ig1-reference.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
+    <div class="vtile tall featured" data-src="videos/ig1-reference.mp4">
+      <video src="videos/ig1-reference.mp4" poster="posters/ig1-reference.jpg" muted loop playsinline webkit-playsinline preload="metadata"></video>
+      <div class="pin">Konu</div>
       <div class="badge">Tirhandil</div>
       <div class="play"></div>
     </div>
     <div class="vtile tall" data-src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/full/01.mp4">
-      <video src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/01.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
-      <div class="badge">01</div>
+      <video src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/01.mp4" poster="posters/01.jpg" muted loop playsinline webkit-playsinline preload="metadata"></video>
+      <div class="badge">Demirde</div>
       <div class="play"></div>
     </div>
     <div class="vtile tall" data-src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/full/02.mp4">
-      <video src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/02.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
-      <div class="badge">02</div>
+      <video src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/02.mp4" poster="posters/02.jpg" muted loop playsinline webkit-playsinline preload="metadata"></video>
+      <div class="badge">Pilothouse</div>
       <div class="play"></div>
     </div>
     <div class="vtile tall" data-src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/full/03.mp4">
-      <video src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/03.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
-      <div class="badge">03</div>
+      <video src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/03.mp4" poster="posters/03.jpg" muted loop playsinline webkit-playsinline preload="metadata"></video>
+      <div class="badge">Sunset Drone</div>
       <div class="play"></div>
     </div>
     <div class="vtile tall" data-src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/full/04.mp4">
-      <video src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/04.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
-      <div class="badge">04</div>
+      <video src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/04.mp4" poster="posters/04.jpg" muted loop playsinline webkit-playsinline preload="metadata"></video>
+      <div class="badge">Yan Profil</div>
       <div class="play"></div>
     </div>
     <div class="vtile tall" data-src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/full/05.mp4">
-      <video src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/05.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
-      <div class="badge">05</div>
+      <video src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/05.mp4" poster="posters/05.jpg" muted loop playsinline webkit-playsinline preload="metadata"></video>
+      <div class="badge">Hareket</div>
       <div class="play"></div>
     </div>
     <div class="vtile tall" data-src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/full/06.mp4">
-      <video src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/06.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
-      <div class="badge">06</div>
+      <video src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/06.mp4" poster="posters/06.jpg" muted loop playsinline webkit-playsinline preload="metadata"></video>
+      <div class="badge">Cabin</div>
       <div class="play"></div>
     </div>
     <div class="vtile tall" data-src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/full/07.mp4">
-      <video src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/07.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
-      <div class="badge">07</div>
+      <video src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/07.mp4" poster="posters/07.jpg" muted loop playsinline webkit-playsinline preload="metadata"></video>
+      <div class="badge">Tik Detay</div>
       <div class="play"></div>
     </div>
     <div class="vtile tall" data-src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/full/08.mp4">
-      <video src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/08.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
-      <div class="badge">08</div>
+      <video src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/08.mp4" poster="posters/08.jpg" muted loop playsinline webkit-playsinline preload="metadata"></video>
+      <div class="badge">Wake İz</div>
       <div class="play"></div>
     </div>
     <div class="vtile tall" data-src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/full/09.mp4">
-      <video src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/09.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
-      <div class="badge">09</div>
+      <video src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/09.mp4" poster="posters/09.jpg" muted loop playsinline webkit-playsinline preload="metadata"></video>
+      <div class="badge">Bow Sunpad</div>
       <div class="play"></div>
     </div>
     <div class="vtile tall" data-src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/full/010.mp4">
-      <video src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/010.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
-      <div class="badge">10</div>
+      <video src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/010.mp4" poster="posters/010.jpg" muted loop playsinline webkit-playsinline preload="metadata"></video>
+      <div class="badge">Coastal</div>
       <div class="play"></div>
     </div>
     <div class="vtile tall" data-src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/full/011.mp4">
-      <video src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/011.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
-      <div class="badge">11</div>
+      <video src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/011.mp4" poster="posters/011.jpg" muted loop playsinline webkit-playsinline preload="metadata"></video>
+      <div class="badge">Marina</div>
       <div class="play"></div>
     </div>
     <div class="vtile tall" data-src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/full/012.mp4">
-      <video src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/012.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
-      <div class="badge">12</div>
+      <video src="https://ml0qkja5xmbjesrt.public.blob.vercel-storage.com/videos/preview/012.mp4" poster="posters/012.jpg" muted loop playsinline webkit-playsinline preload="metadata"></video>
+      <div class="badge">Cruise Hız</div>
       <div class="play"></div>
     </div>
   </div>
@@ -345,27 +348,27 @@
   </div>
   <div class="videos">
     <div class="vtile tall" data-src="videos/pin2-feadship-flag.mp4">
-      <video src="videos/pin2-feadship-flag.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
+      <video src="videos/pin2-feadship-flag.mp4" poster="posters/pin2-feadship-flag.jpg" muted loop playsinline webkit-playsinline preload="metadata"></video>
       <div class="badge">Feadship "Flag" · 62m · Capri</div>
       <div class="play"></div>
     </div>
     <div class="vtile tall" data-src="videos/pin3-feadship.mp4">
-      <video src="videos/pin3-feadship.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
+      <video src="videos/pin3-feadship.mp4" poster="posters/pin3-feadship.jpg" muted loop playsinline webkit-playsinline preload="metadata"></video>
       <div class="badge">Feadship · Açık Deniz</div>
       <div class="play"></div>
     </div>
     <div class="vtile tall" data-src="videos/pin5-yacht.mp4">
-      <video src="videos/pin5-yacht.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
+      <video src="videos/pin5-yacht.mp4" poster="posters/pin5-yacht.jpg" muted loop playsinline webkit-playsinline preload="metadata"></video>
       <div class="badge">Yat · Hareket</div>
       <div class="play"></div>
     </div>
     <div class="vtile tall" data-src="videos/pin6-yacht.mp4">
-      <video src="videos/pin6-yacht.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
+      <video src="videos/pin6-yacht.mp4" poster="posters/pin6-yacht.jpg" muted loop playsinline webkit-playsinline preload="metadata"></video>
       <div class="badge">Yat · Sinematik</div>
       <div class="play"></div>
     </div>
     <div class="vtile portrait" data-src="videos/pin4-yacht.mp4">
-      <video src="videos/pin4-yacht.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
+      <video src="videos/pin4-yacht.mp4" poster="posters/pin4-yacht.jpg" muted loop playsinline webkit-playsinline preload="metadata"></video>
       <div class="badge">Yat · Portrait Çekim</div>
       <div class="play"></div>
     </div>
@@ -663,21 +666,35 @@
     html.classList.remove('loading');
     setTimeout(() => { if(preloader && preloader.parentNode) preloader.parentNode.removeChild(preloader); }, 800);
   }
+  /* preload all video poster images (thumbnails) before reveal */
+  const posterUrls = Array.from(document.querySelectorAll('video[poster]'))
+    .map(v => v.getAttribute('poster'))
+    .filter(Boolean);
+  const posterPromise = Promise.all(posterUrls.map(url => new Promise(res => {
+    const img = new Image();
+    img.onload = img.onerror = () => res();
+    img.src = url;
+  })));
+
   if(heroVideo){
     /* explicit play kick — Safari/iOS often need this even with autoplay */
     const tryPlay = () => { const p = heroVideo.play(); if(p && p.catch) p.catch(() => {}); };
-    /* reveal only when actual playback has started */
-    heroVideo.addEventListener('playing', reveal, { once: true });
-    heroVideo.addEventListener('error', reveal, { once: true });
+    /* hero video must be playing AND all thumbnails loaded before reveal */
+    const heroPromise = new Promise(res => {
+      heroVideo.addEventListener('playing', res, { once: true });
+      heroVideo.addEventListener('error', res, { once: true });
+    });
     if(heroVideo.readyState >= 2){ tryPlay(); }
     else {
       heroVideo.addEventListener('canplay', tryPlay, { once: true });
       heroVideo.addEventListener('loadeddata', tryPlay, { once: true });
     }
-    /* safety fallback — never block longer than 8s even on slow nets */
-    setTimeout(reveal, 8000);
+    Promise.all([heroPromise, posterPromise]).then(reveal);
+    /* safety fallback — never block longer than 10s even on slow nets */
+    setTimeout(reveal, 10000);
   } else {
-    reveal();
+    posterPromise.then(reveal);
+    setTimeout(reveal, 10000);
   }
   /* if user navigates away before reveal, also clean up */
   window.addEventListener('pageshow', () => { if(!revealed) reveal(); });
