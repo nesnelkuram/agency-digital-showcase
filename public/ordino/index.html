@@ -214,7 +214,7 @@
 
 <!-- HERO -->
 <section class="hero">
-  <video autoplay muted loop playsinline webkit-playsinline disablepictureinpicture preload="auto" poster="references/Sunfinder38_HERO-TEST2.jpg" aria-hidden="true">
+  <video autoplay muted loop playsinline webkit-playsinline disablepictureinpicture preload="auto" aria-hidden="true">
     <source src="hero.mp4" type="video/mp4">
   </video>
   <div class="eyebrow">Moodboard · Mayıs 2026</div>
@@ -257,6 +257,48 @@
     <div><h4>Tekne &amp; Arka Plan</h4>Soft Aiata + Warm Cream + Aegean Teal. Tekne yansımaları her zaman sıcak tarafa düşer.</div>
     <div><h4>Aksan &amp; Detay</h4>Teak Gold + Leather Brown. Sunfinder 38'in mevcut DNA'sı. Minder ve güverte aynı tonun farklı doygunlukları.</div>
     <div><h4>Derinlik &amp; Kontrast</h4>Deep Navy. Sadece silüet ve gölge için kullanılır; blok renk olarak yer almaz.</div>
+  </div>
+</section>
+
+<!-- VIDEO ÖRNEKLERİ -->
+<section>
+  <div class="cat-head">
+    <h3><span class="n">02 / B</span>Örnek Videolar</h3>
+    <div class="cap">Hareket referansları ve ilham klipleri. Hover → inline play, tıkla → tam ekran. Mobilde otomatik oynar.</div>
+  </div>
+  <div class="videos">
+    <div class="vtile tall" data-src="videos/pin2-feadship-flag.mp4">
+      <video src="videos/pin2-feadship-flag.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
+      <div class="badge">Feadship "Flag" · 62m · Capri</div>
+      <div class="play"></div>
+    </div>
+    <div class="vtile tall" data-src="videos/pin3-feadship.mp4">
+      <video src="videos/pin3-feadship.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
+      <div class="badge">Feadship · Açık Deniz</div>
+      <div class="play"></div>
+    </div>
+    <div class="vtile tall" data-src="videos/pin5-yacht.mp4">
+      <video src="videos/pin5-yacht.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
+      <div class="badge">Yat · Hareket</div>
+      <div class="play"></div>
+    </div>
+    <div class="vtile tall" data-src="videos/pin6-yacht.mp4">
+      <video src="videos/pin6-yacht.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
+      <div class="badge">Yat · Sinematik</div>
+      <div class="play"></div>
+    </div>
+    <div class="vtile portrait" data-src="videos/pin4-yacht.mp4">
+      <video src="videos/pin4-yacht.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
+      <div class="badge">Yat · Portrait Çekim</div>
+      <div class="play"></div>
+    </div>
+    <!-- Yeni video eklemek için aşağıyı kopyala:
+    <div class="vtile" data-src="videos/example.mp4">
+      <video src="videos/example.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
+      <div class="badge">Başlık · Açıklama</div>
+      <div class="play"></div>
+    </div>
+    -->
   </div>
 </section>
 
@@ -351,38 +393,6 @@
     <div class="tile" style="aspect-ratio:16/10"><img src="generated/06_locations/02_cesme_alacati.png" alt=""><div class="badge">Çeşme · Alaçatı</div></div>
     <div class="tile" style="aspect-ratio:16/10"><img src="generated/06_locations/03_bodrum_pine.png" alt=""><div class="badge">Bodrum · Pine Coast</div></div>
     <div class="tile" style="aspect-ratio:16/10"><img src="generated/06_locations/01_gocek_bay.png" alt=""><div class="badge">Göcek · 12 Adalar</div></div>
-  </div>
-</section>
-
-<!-- VIDEO ÖRNEKLERİ -->
-<section>
-  <div class="cat-head">
-    <h3><span class="n">04 / VII</span>Örnek Videolar</h3>
-    <div class="cap">Hareket örnekleri ve test çekimleri. Tıkla → büyüt &amp; oynat. Yeni klipler buraya eklenecek.</div>
-  </div>
-  <div class="videos">
-    <div class="vtile tall" data-src="videos/pin2-feadship-flag.mp4">
-      <video src="videos/pin2-feadship-flag.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
-      <div class="badge">Feadship "Flag" · 62m · Capri</div>
-      <div class="play"></div>
-    </div>
-    <div class="vtile tall" data-src="videos/pin3-feadship.mp4">
-      <video src="videos/pin3-feadship.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
-      <div class="badge">Feadship · Açık Deniz</div>
-      <div class="play"></div>
-    </div>
-    <div class="vtile portrait" data-src="videos/pin4-yacht.mp4">
-      <video src="videos/pin4-yacht.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
-      <div class="badge">Yat · Portrait Çekim</div>
-      <div class="play"></div>
-    </div>
-    <!-- Yeni video eklemek için aşağıyı kopyala:
-    <div class="vtile" data-src="videos/example.mp4">
-      <video src="videos/example.mp4" muted loop playsinline webkit-playsinline preload="metadata"></video>
-      <div class="badge">Başlık · Açıklama</div>
-      <div class="play"></div>
-    </div>
-    -->
   </div>
 </section>
 
@@ -577,11 +587,15 @@
     setTimeout(() => { if(preloader && preloader.parentNode) preloader.parentNode.removeChild(preloader); }, 800);
   }
   if(heroVideo){
-    if(heroVideo.readyState >= 3){ reveal(); }
+    /* explicit play kick — Safari/iOS often need this even with autoplay */
+    const tryPlay = () => { const p = heroVideo.play(); if(p && p.catch) p.catch(() => {}); };
+    /* reveal only when actual playback has started */
+    heroVideo.addEventListener('playing', reveal, { once: true });
+    heroVideo.addEventListener('error', reveal, { once: true });
+    if(heroVideo.readyState >= 2){ tryPlay(); }
     else {
-      heroVideo.addEventListener('canplay', reveal, { once: true });
-      heroVideo.addEventListener('loadeddata', reveal, { once: true });
-      heroVideo.addEventListener('error', reveal, { once: true });
+      heroVideo.addEventListener('canplay', tryPlay, { once: true });
+      heroVideo.addEventListener('loadeddata', tryPlay, { once: true });
     }
     /* safety fallback — never block longer than 8s even on slow nets */
     setTimeout(reveal, 8000);
