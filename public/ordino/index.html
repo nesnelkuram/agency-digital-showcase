@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="tr">
+<html lang="tr" class="loading">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -149,6 +149,16 @@
   .lb .lb-nav.next{right:8px}
   body.lb-open{overflow:hidden}
 
+  /* ----- PRELOADER ----- */
+  html.loading,html.loading body{overflow:hidden;height:100%}
+  .preloader{position:fixed;inset:0;background:#0d0e10;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;transition:opacity .6s ease,visibility .6s ease;color:#EAE3D6}
+  .preloader.done{opacity:0;visibility:hidden;pointer-events:none}
+  .preloader .pl-mark{font-family:"Cormorant Garamond",Georgia,serif;font-style:italic;font-size:32px;font-weight:300;letter-spacing:.02em;opacity:.85}
+  .preloader .pl-bar{width:120px;height:1px;background:rgba(234,227,214,.18);position:relative;overflow:hidden}
+  .preloader .pl-bar::after{content:"";position:absolute;left:-40%;top:0;height:100%;width:40%;background:#B68A4E;animation:plSlide 1.4s ease-in-out infinite}
+  @keyframes plSlide{0%{left:-40%}100%{left:100%}}
+  .preloader .pl-meta{font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:rgba(234,227,214,.45)}
+
   /* ----- VIDEO TILES ----- */
   .videos{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;align-items:start}
   .vtile{position:relative;overflow:hidden;background:#0d0e10;aspect-ratio:16/10;cursor:pointer}
@@ -192,6 +202,14 @@
 </style>
 </head>
 <body>
+
+<!-- PRELOADER -->
+<div class="preloader" id="preloader" aria-hidden="true">
+  <div class="pl-mark">quiet luxury at sea</div>
+  <div class="pl-bar"></div>
+  <div class="pl-meta">yükleniyor</div>
+</div>
+
 <div class="wrap">
 
 <!-- HERO -->
@@ -546,6 +564,33 @@
 
 <script>
 (function(){
+  /* ----- PRELOADER — hide once hero video is ready ----- */
+  const html = document.documentElement;
+  const preloader = document.getElementById('preloader');
+  const heroVideo = document.querySelector('.hero video');
+  let revealed = false;
+  function reveal(){
+    if(revealed) return;
+    revealed = true;
+    preloader.classList.add('done');
+    html.classList.remove('loading');
+    setTimeout(() => { if(preloader && preloader.parentNode) preloader.parentNode.removeChild(preloader); }, 800);
+  }
+  if(heroVideo){
+    if(heroVideo.readyState >= 3){ reveal(); }
+    else {
+      heroVideo.addEventListener('canplay', reveal, { once: true });
+      heroVideo.addEventListener('loadeddata', reveal, { once: true });
+      heroVideo.addEventListener('error', reveal, { once: true });
+    }
+    /* safety fallback — never block longer than 8s even on slow nets */
+    setTimeout(reveal, 8000);
+  } else {
+    reveal();
+  }
+  /* if user navigates away before reveal, also clean up */
+  window.addEventListener('pageshow', () => { if(!revealed) reveal(); });
+
   const tiles = Array.from(document.querySelectorAll('.tile'));
   const lb = document.getElementById('lb');
   const lbImg = document.getElementById('lbImg');
