@@ -279,19 +279,34 @@ const QuoteWizard: React.FC = () => {
     }
   };
 
-  // Format currency
+  // Format currency — converts TRY internal amount to selected display currency
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('tr-TR', {
+    const currency = wizardState.currency;
+    const rate = wizardState.exchangeRate || 1;
+    const displayAmount = currency === 'TRY' ? amount : amount / rate;
+    const localeMap: Record<typeof currency, string> = {
+      TRY: 'tr-TR',
+      USD: 'en-US',
+      EUR: 'de-DE',
+      GBP: 'en-GB',
+    };
+    return new Intl.NumberFormat(localeMap[currency], {
       style: 'currency',
-      currency: 'TRY',
+      currency,
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(amount);
+    }).format(displayAmount);
   };
 
   // PDF print
   const handlePrintPDF = () => {
-    const fmt = (n: number) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
+    const _cur = wizardState.currency;
+    const _rate = wizardState.exchangeRate || 1;
+    const _localeMap: Record<typeof _cur, string> = { TRY: 'tr-TR', USD: 'en-US', EUR: 'de-DE', GBP: 'en-GB' };
+    const fmt = (n: number) => {
+      const v = _cur === 'TRY' ? n : n / _rate;
+      return new Intl.NumberFormat(_localeMap[_cur], { style: 'currency', currency: _cur, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
+    };
     const today = new Date().toLocaleDateString('tr-TR');
     const validUntil = new Date();
     validUntil.setDate(validUntil.getDate() + wizardState.client.validityDays);
@@ -344,6 +359,14 @@ const QuoteWizard: React.FC = () => {
       <div class="label">Teklif Fiyatı (KDV Hariç)</div>
       <div class="price">${fmt(wizardState.sellPrice)}</div>
     </div>
+    ${wizardState.kdvRate > 0 ? `
+    <table style="margin-top:16px">
+      <tr><td>Net Toplam (KDV hariç)</td><td style="text-align:right">${fmt(wizardState.sellPrice)}</td></tr>
+      <tr><td>KDV (%${Math.round(wizardState.kdvRate * 100)})</td><td style="text-align:right">${fmt(wizardState.sellPrice * wizardState.kdvRate)}</td></tr>
+      <tr><td><strong>Genel Toplam (KDV dahil)</strong></td><td style="text-align:right"><strong>${fmt(wizardState.sellPrice * (1 + wizardState.kdvRate))}</strong></td></tr>
+    </table>
+    ` : ''}
+    ${wizardState.currency !== 'TRY' ? `<div class="note" style="border:none;padding-top:8px;color:#888">Para birimi: <strong>${wizardState.currency}</strong> · Kur: 1 ${wizardState.currency} = ${wizardState.exchangeRate} TRY</div>` : ''}
     <div class="validity">Bu teklif ${validUntilStr} tarihine kadar geçerlidir.</div>
     <div class="note">Bu belge fiyat teklifi niteliğindedir ve sözleşme yerine geçmez.</div>
     <script>window.onload = () => { window.print(); }</script>
@@ -406,6 +429,9 @@ const QuoteWizard: React.FC = () => {
         discountAmount: 0,
         targetMarginPercent: wizardState.margin,
         safetyBufferPercent: 0,
+        kdvRate: wizardState.kdvRate,
+        currency: wizardState.currency,
+        exchangeRate: wizardState.exchangeRate,
         rawCost: wizardState.costs.total,
         sellPrice: wizardState.sellPrice,
         profit: wizardState.profit,
@@ -509,6 +535,9 @@ const QuoteWizard: React.FC = () => {
           <Step7Summary
             wizardState={wizardState}
             onMarginChange={(margin) => updateWizardState({ margin })}
+            onKdvRateChange={(kdvRate) => updateWizardState({ kdvRate })}
+            onCurrencyChange={(currency, rate) => updateWizardState({ currency, exchangeRate: rate })}
+            onExchangeRateChange={(exchangeRate) => updateWizardState({ exchangeRate })}
             formatCurrency={formatCurrency}
             nonDeductibleCost={nonDeductibleForProject}
           />

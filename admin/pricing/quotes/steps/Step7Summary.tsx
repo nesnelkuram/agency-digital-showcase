@@ -13,11 +13,23 @@ import {
   Calculator,
 } from 'lucide-react';
 
-import { QuoteWizardState, SERVICE_CATEGORY_LABELS, ServiceCategory } from '@/shared/types/pricing';
+import {
+  QuoteWizardState,
+  SERVICE_CATEGORY_LABELS,
+  ServiceCategory,
+  KDV_RATE_OPTIONS,
+  CURRENCY_OPTIONS,
+  DEFAULT_EXCHANGE_RATES,
+  QuoteKdvRate,
+  QuoteCurrency,
+} from '@/shared/types/pricing';
 
 interface Step7SummaryProps {
   wizardState: QuoteWizardState;
   onMarginChange: (margin: number) => void;
+  onKdvRateChange?: (rate: QuoteKdvRate) => void;
+  onCurrencyChange?: (currency: QuoteCurrency, rate: number) => void;
+  onExchangeRateChange?: (rate: number) => void;
   formatCurrency: (amount: number) => string;
   nonDeductibleCost?: number;
 }
@@ -33,10 +45,13 @@ const MARGIN_PRESETS = [
 const Step7Summary: React.FC<Step7SummaryProps> = ({
   wizardState,
   onMarginChange,
+  onKdvRateChange,
+  onCurrencyChange,
+  onExchangeRateChange,
   formatCurrency,
   nonDeductibleCost = 0,
 }) => {
-  const { client, category, costs, sellPrice, profit, margin, team, equipment, extras, externalCrew, rentalItems } = wizardState;
+  const { client, category, costs, sellPrice, profit, margin, team, equipment, extras, externalCrew, rentalItems, kdvRate, currency, exchangeRate } = wizardState;
 
   // Vergi hesaplaması - varsayılan %27 marjinal vergi oranı
   const TAX_RATE = 0.27;
@@ -325,11 +340,74 @@ const Step7Summary: React.FC<Step7SummaryProps> = ({
             </div>
           </motion.div>
 
-          {/* KDV Note */}
-          <div className="p-3 bg-neutral-100 rounded-xl">
-            <p className="font-grotesk text-xs text-neutral-500 text-center">
-              KDV dahil fiyat: <strong>{formatCurrency(sellPrice * 1.20)}</strong> (%20 KDV ile)
-            </p>
+          {/* Currency Selector */}
+          <div className="bg-white rounded-2xl border border-neutral-200 p-5">
+            <h3 className="font-grotesk text-sm font-medium text-neutral-500 mb-3">Para Birimi</h3>
+            <div className="grid grid-cols-4 gap-2 mb-3">
+              {CURRENCY_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => onCurrencyChange?.(opt.value, opt.value === 'TRY' ? 1 : DEFAULT_EXCHANGE_RATES[opt.value])}
+                  className={`px-3 py-2 rounded-lg font-grotesk text-sm font-medium border transition-all ${
+                    currency === opt.value
+                      ? 'bg-[#171717] text-white border-[#171717]'
+                      : 'bg-white text-neutral-600 border-neutral-200 hover:border-neutral-400'
+                  }`}
+                >
+                  {opt.symbol} {opt.value}
+                </button>
+              ))}
+            </div>
+            {currency !== 'TRY' && (
+              <div className="flex items-center gap-2 mt-3">
+                <span className="font-grotesk text-xs text-neutral-500 whitespace-nowrap">1 {currency} =</span>
+                <input
+                  type="number"
+                  value={exchangeRate}
+                  step="0.01"
+                  min="0"
+                  onChange={(e) => onExchangeRateChange?.(parseFloat(e.target.value) || 0)}
+                  className="flex-1 px-3 py-1.5 border border-neutral-200 rounded-lg font-grotesk text-sm focus:outline-none focus:border-[#171717]"
+                />
+                <span className="font-grotesk text-xs text-neutral-500">TRY</span>
+              </div>
+            )}
+          </div>
+
+          {/* KDV Selector */}
+          <div className="bg-white rounded-2xl border border-neutral-200 p-5">
+            <h3 className="font-grotesk text-sm font-medium text-neutral-500 mb-3">KDV Oranı</h3>
+            <div className="grid grid-cols-4 gap-2">
+              {KDV_RATE_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => onKdvRateChange?.(opt.value)}
+                  className={`px-3 py-2 rounded-lg font-grotesk text-sm font-medium border transition-all ${
+                    kdvRate === opt.value
+                      ? 'bg-[#171717] text-white border-[#171717]'
+                      : 'bg-white text-neutral-600 border-neutral-200 hover:border-neutral-400'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <div className="mt-4 pt-4 border-t border-neutral-100 space-y-1.5">
+              <div className="flex justify-between font-grotesk text-sm">
+                <span className="text-neutral-500">Net (KDV hariç)</span>
+                <span className="font-medium text-[#171717]">{formatCurrency(sellPrice)}</span>
+              </div>
+              <div className="flex justify-between font-grotesk text-sm">
+                <span className="text-neutral-500">KDV ({Math.round(kdvRate * 100)}%)</span>
+                <span className="font-medium text-[#171717]">{formatCurrency(sellPrice * kdvRate)}</span>
+              </div>
+              <div className="flex justify-between font-grotesk text-sm pt-1.5 border-t border-neutral-100">
+                <span className="font-medium text-[#171717]">Toplam (KDV dahil)</span>
+                <span className="font-bold text-[#171717]">{formatCurrency(sellPrice * (1 + kdvRate))}</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>

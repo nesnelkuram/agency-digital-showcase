@@ -118,6 +118,8 @@ export {
   type ExtrasData,
   type WizardCosts,
   type QuoteWizardState,
+  type QuoteKdvRate,
+  type QuoteCurrency,
   type RentalCatalogItem,
   type RentalLineItem,
 
@@ -128,6 +130,9 @@ export {
   BILLING_PERIOD_LABELS,
   DEFAULT_EXTRAS,
   INITIAL_WIZARD_STATE,
+  KDV_RATE_OPTIONS,
+  CURRENCY_OPTIONS,
+  DEFAULT_EXCHANGE_RATES,
 
   // Functions
   calculateQuoteTotals,

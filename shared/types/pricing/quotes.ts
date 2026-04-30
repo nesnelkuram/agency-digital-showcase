@@ -134,6 +134,11 @@ export interface Quote {
   targetMarginPercent: number;
   safetyBufferPercent: number;
 
+  // KDV & Para Birimi
+  kdvRate?: number;            // 0 / 0.10 / 0.15 / 0.20 (default 0.20)
+  currency?: 'TRY' | 'USD' | 'EUR' | 'GBP';  // default TRY
+  exchangeRate?: number;       // TRY per 1 unit currency (1 if TRY)
+
   // Final fiyat
   rawCost: number;            // Dış maliyetler (başkan payı hariç)
   sellPrice: number;          // Satis fiyati
@@ -351,6 +356,31 @@ export interface WizardCosts {
   breakEven: number;
 }
 
+export type QuoteKdvRate = 0 | 0.10 | 0.15 | 0.20;
+export type QuoteCurrency = 'TRY' | 'USD' | 'EUR' | 'GBP';
+
+export const KDV_RATE_OPTIONS: { value: QuoteKdvRate; label: string }[] = [
+  { value: 0, label: '%0' },
+  { value: 0.10, label: '%10' },
+  { value: 0.15, label: '%15' },
+  { value: 0.20, label: '%20' },
+];
+
+export const CURRENCY_OPTIONS: { value: QuoteCurrency; label: string; symbol: string }[] = [
+  { value: 'TRY', label: 'Türk Lirası', symbol: '₺' },
+  { value: 'USD', label: 'ABD Doları', symbol: '$' },
+  { value: 'EUR', label: 'Euro', symbol: '€' },
+  { value: 'GBP', label: 'İngiliz Sterlini', symbol: '£' },
+];
+
+// Defaults — TRY per 1 unit of foreign currency. User can override.
+export const DEFAULT_EXCHANGE_RATES: Record<QuoteCurrency, number> = {
+  TRY: 1,
+  USD: 39,
+  EUR: 42,
+  GBP: 49,
+};
+
 export interface QuoteWizardState {
   // Step 1: Client
   client: WizardClientData;
@@ -378,6 +408,11 @@ export interface QuoteWizardState {
   // Step 7: Margin
   margin: number; // 0.30 = 30%
 
+  // Step 7: KDV & Currency
+  kdvRate: QuoteKdvRate;       // 0 / 0.10 / 0.15 / 0.20
+  currency: QuoteCurrency;     // TRY / USD / EUR / GBP
+  exchangeRate: number;        // 1 unit currency = N TRY (TRY when currency=TRY = 1)
+
   // Calculated
   costs: WizardCosts;
   sellPrice: number;
@@ -402,6 +437,9 @@ export const INITIAL_WIZARD_STATE: QuoteWizardState = {
   rentalItems: [],
   extras: { ...DEFAULT_EXTRAS },
   margin: 0.30,
+  kdvRate: 0.20,
+  currency: 'TRY',
+  exchangeRate: 1,
   costs: {
     labor: 0,
     equipment: 0,
