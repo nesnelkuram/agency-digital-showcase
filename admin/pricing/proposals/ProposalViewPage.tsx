@@ -100,6 +100,9 @@ const ProposalViewPage: React.FC = () => {
   const [editClientAddress, setEditClientAddress] = useState('');
   const [editProjectDescription, setEditProjectDescription] = useState('');
   const [editValidityDays, setEditValidityDays] = useState(30);
+  const [editKdvRate, setEditKdvRate] = useState<number>(0.20);
+  const [editCurrency, setEditCurrency] = useState<'TRY' | 'USD' | 'EUR' | 'GBP'>('TRY');
+  const [editExchangeRate, setEditExchangeRate] = useState<number>(1);
   const [showPaymentPlans, setShowPaymentPlans] = useState(true);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
@@ -156,8 +159,12 @@ const ProposalViewPage: React.FC = () => {
     try {
       const docSnap = await getDoc(doc(db, 'quotes', qId));
       if (docSnap.exists()) {
-        const quoteData = { id: docSnap.id, ...docSnap.data() };
+        const quoteData: any = { id: docSnap.id, ...docSnap.data() };
         setQuote(quoteData);
+        // Seed KDV/currency from quote if present
+        if (quoteData.kdvRate !== undefined) setEditKdvRate(quoteData.kdvRate);
+        if (quoteData.currency) setEditCurrency(quoteData.currency);
+        if (quoteData.exchangeRate) setEditExchangeRate(quoteData.exchangeRate);
         generateProposal(quoteData);
       }
     } catch (err) {
@@ -235,7 +242,7 @@ const ProposalViewPage: React.FC = () => {
 
     const subtotal = serviceLines.reduce((sum, line) => sum + line.total, 0);
     const netTotal = subtotal;
-    const kdvRate = 0.20;
+    const kdvRate = editKdvRate;
     const kdvAmount = Math.round(netTotal * kdvRate);
     const grandTotal = netTotal + kdvAmount;
 
@@ -246,6 +253,8 @@ const ProposalViewPage: React.FC = () => {
       quoteId: '',
       quoteVersion: 0,
       leadId: leadData.id,
+      currency: editCurrency,
+      exchangeRate: editExchangeRate,
       proposalNumber: generateProposalNumber(1),
       companyName: COMPANY_INFO.name,
       companyTitle: COMPANY_INFO.title,
@@ -395,7 +404,7 @@ const ProposalViewPage: React.FC = () => {
     const serviceLinesTotal = serviceLines.reduce((sum, line) => sum + line.total, 0);
     const subtotal = price > 0 ? price : serviceLinesTotal;
     const netTotal = subtotal;
-    const kdvRate = 0.20;
+    const kdvRate = editKdvRate;
     const kdvAmount = Math.round(netTotal * kdvRate);
     const grandTotal = netTotal + kdvAmount;
 
@@ -441,6 +450,8 @@ const ProposalViewPage: React.FC = () => {
     const proposalData: Omit<ProposalDocument, 'id' | 'createdAt' | 'updatedAt'> = {
       quoteId: quoteData.id,
       quoteVersion: 1,
+      currency: editCurrency,
+      exchangeRate: editExchangeRate,
       proposalNumber: generateProposalNumber(1),
       companyName: COMPANY_INFO.name,
       companyTitle: COMPANY_INFO.title,
@@ -498,6 +509,10 @@ const ProposalViewPage: React.FC = () => {
       const validUntilDate = new Date();
       validUntilDate.setDate(validUntilDate.getDate() + editValidityDays);
 
+      // KDV ve para birimi yeniden hesapla
+      const recomputedKdvAmount = Math.round(proposal.netTotal * editKdvRate);
+      const recomputedGrandTotal = proposal.netTotal + recomputedKdvAmount;
+
       const proposalToSave = {
         ...proposal,
         clientCompany: editClientCompany || proposal.clientCompany,
@@ -507,6 +522,11 @@ const ProposalViewPage: React.FC = () => {
         validUntil: Timestamp.fromDate(validUntilDate),
         terms: editTerms,
         economicParameters: editParams,
+        kdvRate: editKdvRate,
+        kdvAmount: recomputedKdvAmount,
+        grandTotal: recomputedGrandTotal,
+        currency: editCurrency,
+        exchangeRate: editExchangeRate,
         showPaymentPlans,
         proposalNumber: proposal.id ? proposal.proposalNumber : generateProposalNumber(nextNumber),
         status: proposal.id ? proposal.status : 'ready',
@@ -532,6 +552,11 @@ const ProposalViewPage: React.FC = () => {
           validityDays: proposalToSave.validityDays,
           terms: editTerms,
           economicParameters: editParams,
+          kdvRate: editKdvRate,
+          kdvAmount: recomputedKdvAmount,
+          grandTotal: recomputedGrandTotal,
+          currency: editCurrency,
+          exchangeRate: editExchangeRate,
         });
       } else {
         // Yeni olustur
@@ -761,6 +786,9 @@ const ProposalViewPage: React.FC = () => {
                 if (proposal.clientAddress) setEditClientAddress(proposal.clientAddress || '');
                 if (proposal.projectDescription) setEditProjectDescription(proposal.projectDescription);
                 if (proposal.validityDays) setEditValidityDays(proposal.validityDays);
+                if (proposal.kdvRate !== undefined) setEditKdvRate(proposal.kdvRate);
+                if (proposal.currency) setEditCurrency(proposal.currency);
+                if (proposal.exchangeRate) setEditExchangeRate(proposal.exchangeRate);
               }}
               className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-full font-grotesk text-sm font-medium hover:bg-amber-700 transition-colors"
               whileHover={{ scale: 1.02 }}
@@ -928,6 +956,52 @@ const ProposalViewPage: React.FC = () => {
                 <option value={30}>30 gun</option>
               </select>
             </div>
+            <div>
+              <label className="block font-grotesk text-xs text-amber-700 mb-1">KDV Orani</label>
+              <select
+                value={editKdvRate}
+                onChange={(e) => setEditKdvRate(Number(e.target.value))}
+                className="w-full px-3 py-2 rounded-lg border border-amber-200 font-grotesk text-sm focus:outline-none focus:border-amber-400 bg-white"
+              >
+                <option value={0}>%0</option>
+                <option value={0.10}>%10</option>
+                <option value={0.15}>%15</option>
+                <option value={0.20}>%20</option>
+              </select>
+            </div>
+            <div>
+              <label className="block font-grotesk text-xs text-amber-700 mb-1">Para Birimi</label>
+              <select
+                value={editCurrency}
+                onChange={(e) => {
+                  const val = e.target.value as 'TRY' | 'USD' | 'EUR' | 'GBP';
+                  setEditCurrency(val);
+                  if (val === 'TRY') setEditExchangeRate(1);
+                  else {
+                    const defaults = { USD: 39, EUR: 42, GBP: 49 } as const;
+                    setEditExchangeRate(defaults[val] ?? 1);
+                  }
+                }}
+                className="w-full px-3 py-2 rounded-lg border border-amber-200 font-grotesk text-sm focus:outline-none focus:border-amber-400 bg-white"
+              >
+                <option value="TRY">₺ TRY</option>
+                <option value="USD">$ USD</option>
+                <option value="EUR">€ EUR</option>
+                <option value="GBP">£ GBP</option>
+              </select>
+            </div>
+            {editCurrency !== 'TRY' && (
+              <div>
+                <label className="block font-grotesk text-xs text-amber-700 mb-1">Kur (1 {editCurrency} = ? TRY)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={editExchangeRate}
+                  onChange={(e) => setEditExchangeRate(parseFloat(e.target.value) || 0)}
+                  className="w-full px-3 py-2 rounded-lg border border-amber-200 font-grotesk text-sm focus:outline-none focus:border-amber-400 bg-white"
+                />
+              </div>
+            )}
             <div>
               <label className="block font-grotesk text-xs text-amber-700 mb-1">Mevduat Faizi (%)</label>
               <input

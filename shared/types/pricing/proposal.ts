@@ -155,6 +155,10 @@ export interface ProposalDocument {
   kdvAmount: number;              // KDV tutari
   grandTotal: number;             // Genel toplam (KDV dahil)
 
+  // Para Birimi (opsiyonel — eski tekliflerde TRY varsayilir)
+  currency?: 'TRY' | 'USD' | 'EUR' | 'GBP';
+  exchangeRate?: number;          // 1 birim currency = N TRY (TRY ise 1)
+
   // Odeme planlari
   paymentPlans: PrepaymentTier[];
 
