@@ -12,6 +12,13 @@ export type TaskStatus =
 export type TaskPriority = 'critical' | 'high' | 'medium' | 'low';
 export type TaskRiskLevel = 'none' | 'low' | 'medium' | 'high';
 
+// ─── Task Category ───────────────────────────────────────────────────────────
+// 'brand'    → markalarımız (her marka = bir Project, projectId ile bağlı)
+// 'admin'    → idari işler (faturalandırma, ekip yönetimi, ofis vb.)
+// 'personal' → kişisel işler (özel notlar, kişisel takvim)
+export type TaskCategory = 'brand' | 'admin' | 'personal';
+export type CategorySource = 'ai' | 'manual';
+
 // ─── Main Task Document (Firestore: `tasks`) ─────────────────────────────────
 export interface Task {
   id: string;
@@ -44,6 +51,11 @@ export interface Task {
   projectName?: string;
   clientId?: string;
   clientName?: string;
+
+  // Category (markalarımız / idari / kişisel)
+  category?: TaskCategory;
+  categorySource?: CategorySource;
+  categoryConfidence?: number;     // 0–1 (sadece AI atamalarında)
 
   // Time
   dueDate?: Timestamp;
@@ -90,8 +102,11 @@ export interface UnifiedTaskItem {
   aiRiskFlags?: string[];
   assigneeId?: string;
   assigneeName?: string;
+  projectId?: string;
   projectName?: string;
   clientName?: string;
+  category?: TaskCategory;
+  categorySource?: CategorySource;
 
   // Standalone fields
   task?: Task;
@@ -144,4 +159,16 @@ export const TASK_RISK_LABELS: Record<TaskRiskLevel, string> = {
   low: 'Düşük Risk',
   medium: 'Orta Risk',
   high: 'Yüksek Risk',
+};
+
+export const TASK_CATEGORY_LABELS: Record<TaskCategory, string> = {
+  brand: 'Markalarımız',
+  admin: 'İdari İşler',
+  personal: 'Kişisel İşler',
+};
+
+export const TASK_CATEGORY_COLORS: Record<TaskCategory, { dot: string; bg: string; text: string; border: string }> = {
+  brand:    { dot: 'bg-indigo-500',  bg: 'bg-indigo-50',  text: 'text-indigo-700',  border: 'border-indigo-200' },
+  admin:    { dot: 'bg-slate-500',   bg: 'bg-slate-50',   text: 'text-slate-700',   border: 'border-slate-200' },
+  personal: { dot: 'bg-emerald-500', bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
 };

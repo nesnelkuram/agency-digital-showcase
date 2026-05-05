@@ -39,6 +39,11 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
       'description',
       'tags',
       'reminderConfig',
+      'category',
+      'projectId',
+      'projectName',
+      'clientId',
+      'clientName',
     ];
 
     const updates: Record<string, any> = {};
@@ -48,6 +53,14 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
       if (field in body) {
         updates[field] = body[field];
       }
+    }
+
+    // Manual category/brand changes lock out the AI auto-classifier
+    const categoryFieldsTouched =
+      'category' in body || 'projectId' in body || 'projectName' in body;
+    if (categoryFieldsTouched) {
+      updates.categorySource = 'manual';
+      updates.categoryConfidence = 1;
     }
 
     // Handle delegation approval specially

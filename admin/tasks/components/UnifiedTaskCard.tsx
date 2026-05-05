@@ -8,9 +8,19 @@ import {
   ChevronRight,
   AlertTriangle,
   Sparkles,
+  Briefcase,
+  Settings2,
+  User,
 } from 'lucide-react';
-import type { UnifiedTaskItem } from '@/shared/types/task';
+import type { UnifiedTaskItem, TaskCategory } from '@/shared/types/task';
+import { TASK_CATEGORY_COLORS, TASK_CATEGORY_LABELS } from '@/shared/types/task';
 import AIPriorityBadge from './AIPriorityBadge';
+
+const CATEGORY_ICONS: Record<TaskCategory, React.ComponentType<{ className?: string }>> = {
+  brand: Briefcase,
+  admin: Settings2,
+  personal: User,
+};
 
 interface UnifiedTaskCardProps {
   item: UnifiedTaskItem;
@@ -39,6 +49,15 @@ const UnifiedTaskCard: React.FC<UnifiedTaskCardProps> = ({ item, onClick }) => {
   const isWorkflowStep = item.source === 'workflow_step';
   const hasRisk = item.aiRiskLevel === 'high' || item.aiRiskLevel === 'medium';
   const isAnalyzing = item.source === 'standalone' && item.task && item.task.aiAnalyzed === false;
+
+  const category = item.category;
+  const categoryColors = category ? TASK_CATEGORY_COLORS[category] : null;
+  const CategoryIcon = category ? CATEGORY_ICONS[category] : null;
+  const isAiGuess =
+    item.categorySource === 'ai' &&
+    item.task &&
+    typeof item.task.categoryConfidence === 'number' &&
+    item.task.categoryConfidence < 0.6;
 
   const href = isWorkflowStep && item.instanceId && item.nodeId
     ? `/admin/workflows/instance/${item.instanceId}/step/${encodeURIComponent(item.nodeId)}`
@@ -85,6 +104,17 @@ const UnifiedTaskCard: React.FC<UnifiedTaskCardProps> = ({ item, onClick }) => {
 
       {/* Badges row */}
       <div className="flex items-center gap-2 flex-wrap">
+        {category && categoryColors && CategoryIcon && (
+          <span
+            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium uppercase tracking-wide ${categoryColors.bg} ${categoryColors.text}`}
+          >
+            <CategoryIcon className="w-2.5 h-2.5" />
+            {category === 'brand' && item.projectName ? item.projectName : TASK_CATEGORY_LABELS[category]}
+            {isAiGuess && (
+              <Sparkles className="w-2.5 h-2.5 ml-0.5 opacity-70" />
+            )}
+          </span>
+        )}
         {isWorkflowStep && (
           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium bg-neutral-100 text-neutral-500 uppercase tracking-wide">
             <GitBranch className="w-2.5 h-2.5" /> Workflow

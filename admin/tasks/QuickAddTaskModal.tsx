@@ -1,10 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Plus, Sparkles, Loader2, Calendar } from 'lucide-react';
+import { X, Plus, Sparkles, Loader2, Calendar, Briefcase, Settings2, User as UserIcon } from 'lucide-react';
 import { createTask } from '@/shared/services/taskService';
 import { Timestamp } from 'firebase/firestore';
 import { useTenant } from '@/shared/hooks/useTenant';
 import { useAuth } from '@/contexts/AuthContext';
+import { useActiveProjects } from '@/shared/hooks/useActiveProjects';
+import type { TaskCategory } from '@/shared/types/task';
+
+type CategoryChoice = 'auto' | TaskCategory;
+
+const CATEGORY_PILLS: Array<{ id: CategoryChoice; label: string; icon: React.ComponentType<{ className?: string }> | null }> = [
+  { id: 'auto',     label: 'AI Karar',      icon: Sparkles },
+  { id: 'brand',    label: 'Markalarımız',  icon: Briefcase },
+  { id: 'admin',    label: 'İdari',         icon: Settings2 },
+  { id: 'personal', label: 'Kişisel',       icon: UserIcon },
+];
 
 interface QuickAddTaskModalProps {
   onClose: () => void;
@@ -22,8 +33,11 @@ async function getAuthToken(): Promise<string> {
 const QuickAddTaskModal: React.FC<QuickAddTaskModalProps> = ({ onClose, onTaskCreated }) => {
   const { tenantId } = useTenant(); // raw value — null while loading
   const { user } = useAuth();
+  const { projects } = useActiveProjects();
   const [title, setTitle] = useState('');
   const [dueDate, setDueDate] = useState('');
+  const [categoryChoice, setCategoryChoice] = useState<CategoryChoice>('auto');
+  const [brandId, setBrandId] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -45,6 +59,21 @@ const QuickAddTaskModal: React.FC<QuickAddTaskModalProps> = ({ onClose, onTaskCr
     setError(null);
 
     try {
+      // Manual category overrides — passed straight into Firestore
+      const manualFields: Record<string, any> = {};
+      if (categoryChoice !== 'auto') {
+        manualFields.category = categoryChoice;
+        manualFields.categorySource = 'manual';
+        manualFields.categoryConfidence = 1;
+        if (categoryChoice === 'brand' && brandId) {
+          const brand = projects.find((p) => p.id === brandId);
+          if (brand) {
+            manualFields.projectId = brand.id;
+            manualFields.projectName = brand.name;
+          }
+        }
+      }
+
       // 1. Create task instantly in Firestore
       const taskId = await createTask(tenantId, {
         title: trimmed,
@@ -56,9 +85,11 @@ const QuickAddTaskModal: React.FC<QuickAddTaskModalProps> = ({ onClose, onTaskCr
         createdBy: user?.uid || '',
         createdByName: user?.displayName || user?.email || '',
         ...(dueDate ? { dueDate: Timestamp.fromDate(new Date(dueDate)) } : {}),
+        ...manualFields,
       });
 
       // 2. Fire-and-forget AI analysis
+      // (analyze-task respects categorySource='manual' and won't overwrite the user's choice)
       getAuthToken()
         .then((token) =>
           fetch('/api/tasks/analyze-task', {
@@ -154,6 +185,51 @@ const QuickAddTaskModal: React.FC<QuickAddTaskModalProps> = ({ onClose, onTaskCr
                 onChange={(e) => setDueDate(e.target.value)}
                 className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-neutral-200 bg-neutral-50 font-commons text-sm text-neutral-600 focus:outline-none focus:border-indigo-300 focus:bg-white transition-all"
               />
+            </div>
+
+            {/* Category pills */}
+            <div className="space-y-1.5">
+              <label className="font-commons text-[10px] font-medium text-neutral-500 uppercase tracking-wide px-1">
+                Kategori
+              </label>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {CATEGORY_PILLS.map((pill) => {
+                  const Icon = pill.icon;
+                  const active = categoryChoice === pill.id;
+                  return (
+                    <button
+                      key={pill.id}
+                      type="button"
+                      onClick={() => {
+                        setCategoryChoice(pill.id);
+                        if (pill.id !== 'brand') setBrandId('');
+                      }}
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg font-commons text-xs font-medium transition-all ${
+                        active
+                          ? 'bg-[#171717] text-white'
+                          : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                      }`}
+                    >
+                      {Icon && <Icon className="w-3 h-3" />}
+                      {pill.label}
+                    </button>
+                  );
+                })}
+              </div>
+              {categoryChoice === 'brand' && (
+                <select
+                  value={brandId}
+                  onChange={(e) => setBrandId(e.target.value)}
+                  className="w-full mt-1.5 px-3 py-2 rounded-lg border border-neutral-200 bg-neutral-50 font-commons text-sm text-neutral-700 focus:outline-none focus:border-indigo-300 focus:bg-white"
+                >
+                  <option value="">Marka seç (boş bırakırsan AI önerir)...</option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}{p.clientName ? ` — ${p.clientName}` : ''}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             {error && (

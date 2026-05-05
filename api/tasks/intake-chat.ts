@@ -4,6 +4,7 @@ import { getAdminDb, getFieldValue } from '../_lib/firebaseAdmin.js';
 import { generateJSON } from '../_lib/gemini-bundle.mjs';
 import { withAuth, AuthenticatedRequest } from '../_lib/withAuth.js';
 import { applyRateLimit, LIMITS } from '../_lib/rateLimit.js';
+import { getActiveProjects, formatProjectsForPrompt } from '../_lib/getActiveProjects.js';
 
 export const config = {
   maxDuration: 60,
@@ -43,6 +44,13 @@ Başlangıç: 50
 - Teknik, geliştirme → admin
 - Müşteri görüşmesi → account_manager
 
+## Kategori (ZORUNLU)
+- "brand"    → Aktif projelerden/markalardan biriyle ilgili (aşağıdaki listede projectId bul)
+- "admin"    → İdari/kurum içi iş (ekip, faturalandırma, ofis, satın alma)
+- "personal" → Kişisel iş (özel notlar, ajans dışı)
+
+projectId ataması yaparken sadece listede olan id'leri kullan. Emin değilsen category="admin" yap.
+
 ## save_task Aksiyonu
 Son turda (veya yeterli bilgi toplandığında) taskDraft'ı tamamla ve save_task aksiyonunu döndür.
 
@@ -75,6 +83,9 @@ Başlangıç: 50
     "aiRiskLevel": "none" | "low" | "medium" | "high",
     "aiRiskFlags": ["string"],
     "suggestedAssigneeRole": "string",
+    "category": "brand" | "admin" | "personal",
+    "projectId": "string | null (sadece liste içinden)",
+    "categoryConfidence": 0.0-1.0,
     "projectName": "string (opsiyonel)",
     "clientName": "string (opsiyonel)",
     "estimatedHours": 0,
@@ -131,8 +142,15 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
     const currentDraft = sessionData.taskDraft || null;
     const turnCount = Math.floor(history.length / 2); // user/assistant pairs
 
+    // Load active projects for category resolution
+    const activeProjects = await getActiveProjects(req.tenantId);
+
     // Build prompt
     const parts: string[] = [SYSTEM_PROMPT, ''];
+
+    parts.push('## Aktif Projeler / Markalar');
+    parts.push(formatProjectsForPrompt(activeProjects));
+    parts.push('');
 
     if (currentDraft) {
       parts.push('## Mevcut Görev Taslağı');
@@ -268,7 +286,31 @@ Sadece geçerli JSON döndür:
       if (taskDraft.suggestedAssigneeRole) taskData.suggestedAssigneeRole = taskDraft.suggestedAssigneeRole;
       if (suggestedAssigneeId) taskData.suggestedAssigneeId = suggestedAssigneeId;
       if (suggestedAssigneeName) taskData.suggestedAssigneeName = suggestedAssigneeName;
-      if (taskDraft.projectName) taskData.projectName = taskDraft.projectName;
+
+      // Category + project resolution
+      const draftCategory: 'brand' | 'admin' | 'personal' =
+        taskDraft.category === 'brand' || taskDraft.category === 'personal'
+          ? taskDraft.category
+          : 'admin';
+      taskData.category = draftCategory;
+      taskData.categorySource = 'ai';
+      if (typeof taskDraft.categoryConfidence === 'number') {
+        taskData.categoryConfidence = Math.max(0, Math.min(1, taskDraft.categoryConfidence));
+      }
+
+      // Validate projectId against active list
+      if (draftCategory === 'brand' && taskDraft.projectId) {
+        const matched = activeProjects.find((p) => p.id === taskDraft.projectId);
+        if (matched) {
+          taskData.projectId = matched.id;
+          taskData.projectName = matched.name;
+        } else if (taskDraft.projectName) {
+          taskData.projectName = taskDraft.projectName;
+        }
+      } else if (taskDraft.projectName) {
+        taskData.projectName = taskDraft.projectName;
+      }
+
       if (taskDraft.clientName) taskData.clientName = taskDraft.clientName;
       if (taskDraft.estimatedHours) taskData.estimatedHours = taskDraft.estimatedHours;
       if (dueDateValue) taskData.dueDate = dueDateValue;

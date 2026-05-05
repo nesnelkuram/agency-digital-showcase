@@ -8,7 +8,6 @@ import {
   Calendar,
   CheckCircle,
   Tag,
-  FolderOpen,
   Building2,
 } from 'lucide-react';
 import type { Task, TaskStatus } from '@/shared/types/task';
@@ -16,6 +15,7 @@ import { updateTask } from '@/shared/services/taskService';
 import { useTenantId } from '@/shared/hooks/useTenant';
 import AIPriorityBadge from './components/AIPriorityBadge';
 import DelegationApprovalBar from './components/DelegationApprovalBar';
+import CategorySelector from './components/CategorySelector';
 
 interface TaskDetailPanelProps {
   task: Task;
@@ -129,6 +129,9 @@ const TaskDetailPanel: React.FC<TaskDetailPanelProps> = ({ task, onClose, onUpda
                 </p>
               </div>
             )}
+
+            {/* Category + Brand selector */}
+            <CategorySelector task={task} onUpdated={onUpdated} />
 
             {/* Status */}
             <div>
@@ -246,12 +249,6 @@ const TaskDetailPanel: React.FC<TaskDetailPanelProps> = ({ task, onClose, onUpda
                       <CheckCircle className="inline w-3 h-3 text-green-500 ml-1" />
                     )}
                   </span>
-                </div>
-              )}
-              {task.projectName && (
-                <div className="flex items-center gap-2">
-                  <FolderOpen className="w-4 h-4 text-neutral-400" />
-                  <span className="font-commons text-xs text-neutral-600">{task.projectName}</span>
                 </div>
               )}
               {task.clientName && (

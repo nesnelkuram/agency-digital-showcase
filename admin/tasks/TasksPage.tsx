@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useMemo, useState } from 'react';
 import {
   ClipboardList,
   Loader2,
@@ -11,17 +10,19 @@ import {
   Plus,
   RefreshCw,
   Send,
-  Copy,
-  Check,
-  X,
+  Briefcase,
+  Settings2,
+  User,
+  LayoutGrid,
+  Sparkles,
 } from 'lucide-react';
 import { useUnifiedTasks } from '@/shared/hooks/useUnifiedTasks';
+import { useActiveProjects } from '@/shared/hooks/useActiveProjects';
 import UnifiedTaskCard from './components/UnifiedTaskCard';
 import QuickAddTaskModal from './QuickAddTaskModal';
 import TaskDetailPanel from './TaskDetailPanel';
 import TelegramLinkModal from './TelegramLinkModal';
-import type { UnifiedTaskItem } from '@/shared/types/task';
-import type { StepInstance } from '@/shared/types/workflow/instance';
+import type { UnifiedTaskItem, TaskCategory } from '@/shared/types/task';
 
 // ─── Kanban column config ─────────────────────────────────────────────────────
 const KANBAN_COLUMNS: Array<{
@@ -30,44 +31,123 @@ const KANBAN_COLUMNS: Array<{
   statuses: string[];
   color: string;
 }> = [
-  {
-    id: 'todo',
-    title: 'Yapılacak',
-    statuses: ['open', 'ready'],
-    color: 'border-blue-300',
-  },
-  {
-    id: 'in_progress',
-    title: 'Devam Eden',
-    statuses: ['in_progress', 'revision_needed'],
-    color: 'border-amber-300',
-  },
-  {
-    id: 'ai_review',
-    title: 'AI / İnceleme',
-    statuses: ['awaiting_review', 'ai_processing', 'ai_review'],
-    color: 'border-violet-300',
-  },
-  {
-    id: 'blocked',
-    title: 'Engellendi',
-    statuses: ['blocked'],
-    color: 'border-red-300',
-  },
+  { id: 'todo',        title: 'Yapılacak',     statuses: ['open', 'ready'],                                 color: 'border-blue-300' },
+  { id: 'in_progress', title: 'Devam Eden',    statuses: ['in_progress', 'revision_needed'],                color: 'border-amber-300' },
+  { id: 'ai_review',   title: 'AI / İnceleme', statuses: ['awaiting_review', 'ai_processing', 'ai_review'], color: 'border-violet-300' },
+  { id: 'blocked',     title: 'Engellendi',    statuses: ['blocked'],                                       color: 'border-red-300' },
 ];
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// ─── Category tab config ──────────────────────────────────────────────────────
+type CategoryTab = 'all' | TaskCategory;
+
+const CATEGORY_TABS: Array<{ id: CategoryTab; label: string; icon: React.ComponentType<any> }> = [
+  { id: 'all',      label: 'Tümü',         icon: LayoutGrid },
+  { id: 'brand',    label: 'Markalarımız', icon: Briefcase },
+  { id: 'admin',    label: 'İdari İşler',  icon: Settings2 },
+  { id: 'personal', label: 'Kişisel',      icon: User },
+];
+
 const TasksPage: React.FC = () => {
   const { items, loading, error, refresh } = useUnifiedTasks({ mode: 'all' });
+  const { projects } = useActiveProjects();
   const [intakeOpen, setIntakeOpen] = useState(false);
   const [telegramOpen, setTelegramOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<UnifiedTaskItem | null>(null);
+  const [activeCategory, setActiveCategory] = useState<CategoryTab>('all');
+  const [activeBrandId, setActiveBrandId] = useState<string | 'all' | 'unassigned'>('all');
+  const [backfilling, setBackfilling] = useState(false);
+  const [backfillMsg, setBackfillMsg] = useState<string | null>(null);
+
+  // Tasks missing category — backfill candidates
+  const uncategorizedCount = useMemo(
+    () => items.filter((i) => i.source === 'standalone' && !i.category).length,
+    [items]
+  );
+
+  const runBackfill = async () => {
+    setBackfilling(true);
+    setBackfillMsg(null);
+    try {
+      const { getAuth } = await import('firebase/auth');
+      const u = getAuth().currentUser;
+      if (!u) throw new Error('Oturum bulunamadı');
+      const token = await u.getIdToken();
+
+      let totalProcessed = 0;
+      let hasMore = true;
+      // Loop in batches of 10 (server caps each call)
+      while (hasMore) {
+        const res = await fetch('/api/tasks/backfill-categories', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || 'Backfill başarısız');
+        totalProcessed += json.processed || 0;
+        hasMore = json.hasMore;
+        setBackfillMsg(`İşleniyor... (${totalProcessed} tamamlandı, ${json.remaining} kaldı)`);
+        if (!hasMore) break;
+      }
+      setBackfillMsg(`✓ ${totalProcessed} eski görev sınıflandırıldı`);
+      refresh();
+    } catch (err: any) {
+      setBackfillMsg(`Hata: ${err.message}`);
+    } finally {
+      setBackfilling(false);
+    }
+  };
+
+  // Brands present in current task list (sorted; "isimsiz" / unassigned grouped at end)
+  const brandsInUse = useMemo(() => {
+    const map = new Map<string, { id: string; name: string }>();
+    let hasUnassigned = false;
+    items.forEach((item) => {
+      const cat = item.category ?? (item.source === 'workflow_step' ? 'brand' : undefined);
+      if (cat !== 'brand') return;
+      if (item.projectId && item.projectName) {
+        if (!map.has(item.projectId)) map.set(item.projectId, { id: item.projectId, name: item.projectName });
+      } else {
+        hasUnassigned = true;
+      }
+    });
+    // Merge with project list so empty brands also appear (Rakle, Dieci even if no task yet)
+    projects.forEach((p) => {
+      if (!map.has(p.id)) map.set(p.id, { id: p.id, name: p.name });
+    });
+    const list = Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+    return { list, hasUnassigned };
+  }, [items, projects]);
+
+  // Counts per category (for stat tiles)
+  const counts = useMemo(() => {
+    const c = { all: items.length, brand: 0, admin: 0, personal: 0 };
+    items.forEach((item) => {
+      const cat = item.category ?? (item.source === 'workflow_step' ? 'brand' : undefined);
+      if (cat === 'brand') c.brand++;
+      else if (cat === 'admin') c.admin++;
+      else if (cat === 'personal') c.personal++;
+    });
+    return c;
+  }, [items]);
+
+  // Filtered items based on active tab + brand chip
+  const filteredItems = useMemo(() => {
+    return items.filter((item) => {
+      const cat = item.category ?? (item.source === 'workflow_step' ? 'brand' : undefined);
+      if (activeCategory !== 'all' && cat !== activeCategory) return false;
+      if (activeCategory === 'brand') {
+        if (activeBrandId === 'unassigned') return !item.projectId;
+        if (activeBrandId !== 'all' && item.projectId !== activeBrandId) return false;
+      }
+      return true;
+    });
+  }, [items, activeCategory, activeBrandId]);
 
   const stats = {
-    total: items.length,
-    todo: items.filter((i) => ['open', 'ready'].includes(i.status)).length,
-    inProgress: items.filter((i) => ['in_progress', 'revision_needed'].includes(i.status)).length,
-    aiReview: items.filter((i) =>
+    total: filteredItems.length,
+    todo: filteredItems.filter((i) => ['open', 'ready'].includes(i.status)).length,
+    inProgress: filteredItems.filter((i) => ['in_progress', 'revision_needed'].includes(i.status)).length,
+    aiReview: filteredItems.filter((i) =>
       ['awaiting_review', 'ai_processing', 'ai_review'].includes(i.status)
     ).length,
   };
@@ -87,7 +167,7 @@ const TasksPage: React.FC = () => {
             Görevlerim
           </h1>
           <p className="font-commons text-sm text-neutral-500 mt-0.5">
-            Tüm görevler (standalone + workflow adımları) — AI öncelikli sıralama
+            Markalarımız, idari işler ve kişisel görevler — AI öncelikli sıralama
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -118,6 +198,88 @@ const TasksPage: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Category tabs */}
+      <div className="flex items-center gap-1 bg-neutral-100 p-1 rounded-xl w-fit">
+        {CATEGORY_TABS.map((tab) => {
+          const Icon = tab.icon;
+          const count = counts[tab.id];
+          const active = activeCategory === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => {
+                setActiveCategory(tab.id);
+                if (tab.id !== 'brand') setActiveBrandId('all');
+              }}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg font-commons text-sm font-medium transition-all ${
+                active
+                  ? 'bg-white text-[#171717] shadow-sm'
+                  : 'text-neutral-500 hover:text-neutral-700'
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              {tab.label}
+              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                active ? 'bg-indigo-100 text-indigo-700' : 'bg-neutral-200 text-neutral-500'
+              }`}>
+                {count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Brand chips (only when Markalarımız is active) */}
+      {activeCategory === 'brand' && (brandsInUse.list.length > 0 || brandsInUse.hasUnassigned) && (
+        <div className="flex items-center gap-2 flex-wrap pl-1">
+          <button
+            onClick={() => setActiveBrandId('all')}
+            className={`px-3 py-1 rounded-full font-commons text-xs font-medium transition-all ${
+              activeBrandId === 'all'
+                ? 'bg-indigo-600 text-white'
+                : 'bg-white border border-neutral-200 text-neutral-600 hover:border-indigo-300'
+            }`}
+          >
+            Tüm Markalar
+          </button>
+          {brandsInUse.list.map((brand) => {
+            const taskCount = items.filter((i) => i.projectId === brand.id).length;
+            const active = activeBrandId === brand.id;
+            return (
+              <button
+                key={brand.id}
+                onClick={() => setActiveBrandId(brand.id)}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-commons text-xs font-medium transition-all ${
+                  active
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-white border border-neutral-200 text-neutral-600 hover:border-indigo-300'
+                }`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-white' : 'bg-indigo-400'}`} />
+                {brand.name}
+                {taskCount > 0 && (
+                  <span className={`text-[10px] font-semibold ${active ? 'text-indigo-100' : 'text-neutral-400'}`}>
+                    {taskCount}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+          {brandsInUse.hasUnassigned && (
+            <button
+              onClick={() => setActiveBrandId('unassigned')}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-commons text-xs font-medium transition-all ${
+                activeBrandId === 'unassigned'
+                  ? 'bg-amber-500 text-white'
+                  : 'bg-white border border-amber-200 text-amber-700 hover:border-amber-400'
+              }`}
+            >
+              ⚠️ Marka Atanmamış
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -151,14 +313,16 @@ const TasksPage: React.FC = () => {
       )}
 
       {/* Empty */}
-      {!loading && !error && items.length === 0 && (
+      {!loading && !error && filteredItems.length === 0 && (
         <div className="text-center py-16 bg-white rounded-2xl border border-neutral-100">
           <CheckCircle className="w-10 h-10 text-green-400 mx-auto mb-3" />
           <p className="font-grotesk text-lg font-semibold text-neutral-700">
-            Tüm görevler tamamlandı!
+            {activeCategory === 'all' ? 'Tüm görevler tamamlandı!' : 'Bu kategoride görev yok'}
           </p>
           <p className="font-commons text-sm text-neutral-400 mt-1">
-            Şu an size atanmış aktif görev yok.
+            {activeCategory === 'all'
+              ? 'Şu an aktif görev bulunmuyor.'
+              : 'Filtreyi değiştir veya yeni görev ekle.'}
           </p>
           <button
             onClick={() => setIntakeOpen(true)}
@@ -171,10 +335,10 @@ const TasksPage: React.FC = () => {
       )}
 
       {/* Kanban */}
-      {!loading && !error && items.length > 0 && (
+      {!loading && !error && filteredItems.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           {KANBAN_COLUMNS.map((col) => {
-            const columnItems = items.filter((i) => col.statuses.includes(i.status));
+            const columnItems = filteredItems.filter((i) => col.statuses.includes(i.status));
             return (
               <div
                 key={col.id}
@@ -209,20 +373,31 @@ const TasksPage: React.FC = () => {
         </div>
       )}
 
-      {/* Telegram Link Modal */}
-      {telegramOpen && (
-        <TelegramLinkModal onClose={() => setTelegramOpen(false)} />
+      {/* Backfill banner — shown when there are tasks without category */}
+      {uncategorizedCount > 0 && (
+        <div className="flex items-center justify-between gap-3 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-amber-600 flex-shrink-0" />
+            <p className="font-commons text-xs text-amber-800">
+              {uncategorizedCount} eski görev henüz kategorize edilmemiş.
+              {backfillMsg && <span className="ml-2 font-medium">{backfillMsg}</span>}
+            </p>
+          </div>
+          <button
+            onClick={runBackfill}
+            disabled={backfilling}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 text-white font-commons text-xs font-medium hover:bg-amber-700 disabled:opacity-50 transition-colors"
+          >
+            {backfilling ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+            {backfilling ? 'Sınıflandırılıyor...' : 'AI ile Sınıflandır'}
+          </button>
+        </div>
       )}
 
-      {/* Quick Add Modal */}
+      {telegramOpen && <TelegramLinkModal onClose={() => setTelegramOpen(false)} />}
       {intakeOpen && (
-        <QuickAddTaskModal
-          onClose={() => setIntakeOpen(false)}
-          onTaskCreated={handleTaskCreated}
-        />
+        <QuickAddTaskModal onClose={() => setIntakeOpen(false)} onTaskCreated={handleTaskCreated} />
       )}
-
-      {/* Detail Panel */}
       {selectedItem && selectedItem.source === 'standalone' && selectedItem.task && (
         <TaskDetailPanel
           task={selectedItem.task}

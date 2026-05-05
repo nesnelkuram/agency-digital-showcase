@@ -87,8 +87,11 @@ function normalizeTask(task: Task): UnifiedTaskItem {
     aiRiskFlags: task.aiRiskFlags,
     assigneeId: task.assigneeId,
     assigneeName: task.assigneeName,
+    projectId: task.projectId,
     projectName: task.projectName,
     clientName: task.clientName,
+    category: task.category,
+    categorySource: task.categorySource,
     task,
   };
 }

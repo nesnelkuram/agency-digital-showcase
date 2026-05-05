@@ -3,15 +3,29 @@ import { getAdminDb } from '../_lib/firebaseAdmin.js';
 // @ts-ignore — pre-bundled by esbuild during vercel-build
 import { generateJSON } from '../_lib/gemini-bundle.mjs';
 import { withAuth, AuthenticatedRequest } from '../_lib/withAuth.js';
+import { getActiveProjects, formatProjectsForPrompt } from '../_lib/getActiveProjects.js';
 
-const PROMPT_TEMPLATE = (title: string, description: string) => `
+const PROMPT_TEMPLATE = (title: string, description: string, projectListBlock: string) => `
 Bir dijital ajans görevi için analiz yap. Aşağıdaki görevi değerlendir ve JSON döndür.
 
 Görev: ${title}
 ${description ? `Açıklama: ${description}` : ''}
 
-Kurallar:
-- projectName: Metinden çıkar. "Rakle", "ABC Ajans", "XYZ" gibi özel isimler. Yoksa null.
+## Aktif Projeler / Markalar
+${projectListBlock}
+
+## Kategori Sınıflandırması (ZORUNLU)
+- "brand"    → Görev yukarıdaki aktif projelerden/markalardan biriyle ilgiliyse (Rakle, Dieci vb.)
+- "admin"    → İdari iş: ekip yönetimi, faturalandırma, ofis, yazılım, satın alma, bordro, iş başvurusu, kurum içi süreç
+- "personal" → Kişisel/özel iş: özel takvim, kişisel notlar, ajans dışı kişisel görevler
+
+## Proje Eşleştirme
+- Eğer category="brand" ise yukarıdaki listeden en uygun projenin **id**'sini "projectId" alanında döndür.
+- Eşleşme net değilse veya proje listede yoksa: category="admin" yap, projectId=null bırak.
+- Emin değilsen düşük confidence ver, yanlış marka atama!
+
+## Diğer Kurallar
+- projectName: Sadece liste dışı bir marka adı geçerse (eski/eksik proje), düz metin olarak döndür. Liste içindeyse "projectId" verince zaten otomatik dolacak — burayı null bırak.
 - clientName: Müşteri adı. Yoksa null.
 - suggestedAssigneeRole: Sadece birini seç → videographer | designer | social_media_manager | project_manager | editor | admin | account_manager
   * Video kurgu, çekim, prodüksiyon → videographer
@@ -34,9 +48,13 @@ Kurallar:
 - aiRiskFlags: Kısa risk açıklamaları dizisi. Max 3 madde.
 - tags: Kısa etiketler dizisi. Max 5 madde.
 - aiScoreRationale: 1 cümle Türkçe açıklama.
+- categoryConfidence: 0.0–1.0 arası, kategori atamasının güvenirliği.
 
 SADECE geçerli JSON döndür, başka hiçbir şey yazma:
 {
+  "category": "brand" | "admin" | "personal",
+  "projectId": string | null,
+  "categoryConfidence": number,
   "projectName": string | null,
   "clientName": string | null,
   "suggestedAssigneeRole": string,
@@ -49,6 +67,9 @@ SADECE geçerli JSON döndür, başka hiçbir şey yazma:
 }`;
 
 interface AnalysisResult {
+  category: 'brand' | 'admin' | 'personal';
+  projectId: string | null;
+  categoryConfidence: number;
   projectName: string | null;
   clientName: string | null;
   suggestedAssigneeRole: string;
@@ -86,15 +107,32 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
       return res.status(403).json({ error: 'Access denied' });
     }
 
+    // Don't overwrite manual category assignments
+    const isManualCategory = taskData.categorySource === 'manual';
+
     const title = taskData.title || '';
     const description = taskData.description || '';
 
+    const projects = await getActiveProjects(req.tenantId);
+    const projectBlock = formatProjectsForPrompt(projects);
+
     const result = await generateJSON<AnalysisResult>(
       'flash',
-      PROMPT_TEMPLATE(title, description),
+      PROMPT_TEMPLATE(title, description, projectBlock),
       'task-analyze',
       { maxOutputTokens: 1024, temperature: 0.3 }
     );
+
+    // Validate AI projectId actually exists in the active list
+    let resolvedProjectId: string | undefined;
+    let resolvedProjectName: string | undefined;
+    if (result.projectId) {
+      const match = projects.find((p) => p.id === result.projectId);
+      if (match) {
+        resolvedProjectId = match.id;
+        resolvedProjectName = match.name;
+      }
+    }
 
     // Resolve suggestedAssigneeRole → actual user
     let suggestedAssigneeId: string | undefined;
@@ -131,7 +169,22 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
       updatedAt: new Date(),
     };
 
-    if (result.projectName) updates.projectName = result.projectName;
+    // Category — only override when not manually set
+    if (!isManualCategory) {
+      updates.category = result.category || 'admin';
+      updates.categorySource = 'ai';
+      updates.categoryConfidence = typeof result.categoryConfidence === 'number'
+        ? Math.max(0, Math.min(1, result.categoryConfidence))
+        : 0.5;
+
+      if (resolvedProjectId) {
+        updates.projectId = resolvedProjectId;
+        updates.projectName = resolvedProjectName;
+      } else if (result.projectName) {
+        updates.projectName = result.projectName;
+      }
+    }
+
     if (result.clientName) updates.clientName = result.clientName;
     if (suggestedAssigneeId) updates.suggestedAssigneeId = suggestedAssigneeId;
     if (suggestedAssigneeName) updates.suggestedAssigneeName = suggestedAssigneeName;
