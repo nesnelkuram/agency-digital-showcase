@@ -42,7 +42,7 @@ import {
   serverTimestamp,
   Timestamp,
 } from 'firebase/firestore';
-import { formatCurrency, Quote } from '@/shared/types/pricing';
+import { formatProposalAmount, Quote } from '@/shared/types/pricing';
 import { usePermission } from '@/shared/hooks/usePermission';
 import { PERMISSIONS } from '@/lib/rbac/permissions';
 import {
@@ -688,7 +688,7 @@ const ProposalViewPage: React.FC = () => {
           projectTitle: proposal.projectTitle,
           proposalNumber: proposal.proposalNumber,
           proposalId: proposal.id,
-          grandTotal: formatCurrency(proposal.grandTotal),
+          grandTotal: formatProposalAmount(proposal.grandTotal, proposal.currency ?? 'TRY', proposal.exchangeRate ?? 1),
           validityDays: proposal.validityDays,
           shareUrl,
           senderName: proposal.companyTitle,
@@ -1101,7 +1101,7 @@ const ProposalViewPage: React.FC = () => {
                         />
                       </td>
                       <td className="py-1.5 px-2 text-right font-grotesk text-amber-900 font-medium whitespace-nowrap">
-                        {formatCurrency(line.total)} TL
+                        {formatProposalAmount(line.total, editCurrency, editExchangeRate)}
                       </td>
                       <td className="py-1.5 px-1">
                         <button
@@ -1122,7 +1122,7 @@ const ProposalViewPage: React.FC = () => {
                       Ara Toplam
                     </td>
                     <td className="py-2 px-2 text-right font-grotesk font-bold text-amber-900 text-xs whitespace-nowrap">
-                      {formatCurrency(proposal.subtotal)} TL
+                      {formatProposalAmount(proposal.subtotal, editCurrency, editExchangeRate)}
                     </td>
                     <td />
                   </tr>
@@ -1272,10 +1272,10 @@ const ProposalViewPage: React.FC = () => {
                       {line.unit}
                     </td>
                     <td className="py-4 px-2 text-right font-grotesk text-sm text-neutral-700">
-                      {formatCurrency(line.unitPrice)} TL
+                      {formatProposalAmount(line.unitPrice, proposal.currency ?? 'TRY', proposal.exchangeRate ?? 1)}
                     </td>
                     <td className="py-4 px-2 text-right font-grotesk text-sm font-medium text-[#171717]">
-                      {formatCurrency(line.total)} TL
+                      {formatProposalAmount(line.total, proposal.currency ?? 'TRY', proposal.exchangeRate ?? 1)}
                     </td>
                   </tr>
                 ))}
@@ -1286,7 +1286,7 @@ const ProposalViewPage: React.FC = () => {
                     Ara Toplam
                   </td>
                   <td className="py-3 px-2 text-right font-grotesk text-sm font-medium text-[#171717]">
-                    {formatCurrency(proposal.subtotal)} TL
+                    {formatProposalAmount(proposal.subtotal, proposal.currency ?? 'TRY', proposal.exchangeRate ?? 1)}
                   </td>
                 </tr>
                 {proposal.discountAmount > 0 && (
@@ -1295,7 +1295,7 @@ const ProposalViewPage: React.FC = () => {
                       Iskonto ({proposal.discountPercent ? `%${proposal.discountPercent * 100}` : ''})
                     </td>
                     <td className="py-2 px-2 text-right font-grotesk text-sm font-medium text-green-600">
-                      -{formatCurrency(proposal.discountAmount)} TL
+                      -{formatProposalAmount(proposal.discountAmount, proposal.currency ?? 'TRY', proposal.exchangeRate ?? 1)}
                     </td>
                   </tr>
                 )}
@@ -1304,7 +1304,7 @@ const ProposalViewPage: React.FC = () => {
                     KDV (%{proposal.kdvRate * 100})
                   </td>
                   <td className="py-2 px-2 text-right font-grotesk text-sm text-neutral-600">
-                    {formatCurrency(proposal.kdvAmount)} TL
+                    {formatProposalAmount(proposal.kdvAmount, proposal.currency ?? 'TRY', proposal.exchangeRate ?? 1)}
                   </td>
                 </tr>
                 <tr className="bg-[#171717]">
@@ -1312,7 +1312,7 @@ const ProposalViewPage: React.FC = () => {
                     GENEL TOPLAM (KDV Dahil)
                   </td>
                   <td className="py-4 px-4 text-right font-grotesk text-xl font-bold text-white">
-                    {formatCurrency(proposal.grandTotal)} TL
+                    {formatProposalAmount(proposal.grandTotal, proposal.currency ?? 'TRY', proposal.exchangeRate ?? 1)}
                   </td>
                 </tr>
               </tfoot>
@@ -1382,7 +1382,7 @@ const ProposalViewPage: React.FC = () => {
                       {plan.period === 1 ? (
                         <div className="text-center mb-4">
                           <p className={`font-grotesk text-2xl font-bold ${isPopular ? 'text-white' : 'text-[#171717]'}`}>
-                            {formatCurrency(plan.monthlyAmount)} TL
+                            {formatProposalAmount(plan.monthlyAmount, proposal.currency ?? 'TRY', proposal.exchangeRate ?? 1)}
                           </p>
                           <p className={`font-grotesk text-xs ${isPopular ? 'text-neutral-400' : 'text-neutral-500'}`}>
                             / ay (KDV haric)
@@ -1391,16 +1391,16 @@ const ProposalViewPage: React.FC = () => {
                       ) : (
                         <div className="text-center mb-4">
                           <p className={`font-grotesk text-xs line-through ${isPopular ? 'text-neutral-500' : 'text-neutral-400'}`}>
-                            {formatCurrency(plan.totalWithoutDiscount)} TL
+                            {formatProposalAmount(plan.totalWithoutDiscount, proposal.currency ?? 'TRY', proposal.exchangeRate ?? 1)}
                           </p>
                           <p className={`font-grotesk text-2xl font-bold ${isPopular ? 'text-white' : 'text-[#171717]'}`}>
-                            {formatCurrency(plan.totalWithDiscount)} TL
+                            {formatProposalAmount(plan.totalWithDiscount, proposal.currency ?? 'TRY', proposal.exchangeRate ?? 1)}
                           </p>
                           <p className={`font-grotesk text-xs ${isPopular ? 'text-neutral-400' : 'text-neutral-500'}`}>
                             / {plan.period} ay toplam (KDV haric)
                           </p>
                           <p className={`font-grotesk text-xs mt-1 ${isPopular ? 'text-green-400' : 'text-green-600'}`}>
-                            {formatCurrency(plan.discountAmount)} TL tasarruf
+                            {formatProposalAmount(plan.discountAmount, proposal.currency ?? 'TRY', proposal.exchangeRate ?? 1)} tasarruf
                           </p>
                         </div>
                       )}
@@ -1410,18 +1410,18 @@ const ProposalViewPage: React.FC = () => {
                       {hasDiscount ? (
                         <>
                           <p className={`font-grotesk text-xs line-through ${isPopular ? 'text-neutral-500' : 'text-neutral-400'}`}>
-                            {formatCurrency(plan.totalWithoutDiscount)} TL
+                            {formatProposalAmount(plan.totalWithoutDiscount, proposal.currency ?? 'TRY', proposal.exchangeRate ?? 1)}
                           </p>
                           <p className={`font-grotesk text-2xl font-bold ${isPopular ? 'text-white' : 'text-[#171717]'}`}>
-                            {formatCurrency(plan.totalWithDiscount)} TL
+                            {formatProposalAmount(plan.totalWithDiscount, proposal.currency ?? 'TRY', proposal.exchangeRate ?? 1)}
                           </p>
                           <p className={`font-grotesk text-xs mt-1 ${isPopular ? 'text-green-400' : 'text-green-600'}`}>
-                            {formatCurrency(plan.discountAmount)} TL tasarruf
+                            {formatProposalAmount(plan.discountAmount, proposal.currency ?? 'TRY', proposal.exchangeRate ?? 1)} tasarruf
                           </p>
                         </>
                       ) : (
                         <p className={`font-grotesk text-2xl font-bold ${isPopular ? 'text-white' : 'text-[#171717]'}`}>
-                          {formatCurrency(plan.totalWithDiscount)} TL
+                          {formatProposalAmount(plan.totalWithDiscount, proposal.currency ?? 'TRY', proposal.exchangeRate ?? 1)}
                         </p>
                       )}
                     </div>
@@ -1735,7 +1735,7 @@ const ProposalViewPage: React.FC = () => {
                       <strong>Teklif:</strong> {proposal.proposalNumber} — {proposal.projectTitle}
                     </p>
                     <p className="font-grotesk text-sm text-neutral-600">
-                      <strong>Tutar:</strong> {formatCurrency(proposal.grandTotal)} TL
+                      <strong>Tutar:</strong> {formatProposalAmount(proposal.grandTotal, proposal.currency ?? 'TRY', proposal.exchangeRate ?? 1)}
                     </p>
                   </div>
                   <p className="font-grotesk text-xs text-neutral-400">

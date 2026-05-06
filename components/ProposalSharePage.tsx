@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { db } from '@/lib/firebase/config';
 import { collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
-import { formatCurrency } from '@/shared/types/pricing';
+import { formatProposalAmount } from '@/shared/types/pricing';
 import type { ProposalDocument, ProposalServiceLine, PrepaymentTier } from '@/shared/types/pricing/proposal';
 import {
   calculateAllPaymentPlans,
@@ -248,6 +248,9 @@ const ProposalSharePage: React.FC = () => {
     );
   }
 
+  const fmt = (amount: number) =>
+    formatProposalAmount(amount, proposal.currency ?? 'TRY', proposal.exchangeRate ?? 1);
+
   return (
     <div className="min-h-screen bg-neutral-50">
       {/* ── Header ─────────────────────────────── */}
@@ -420,7 +423,7 @@ const ProposalSharePage: React.FC = () => {
                         {line.unit}
                       </td>
                       <td className="py-4 px-4 text-right font-grotesk text-sm text-neutral-600">
-                        {formatCurrency(line.unitPrice)} TL
+                        {fmt(line.unitPrice)}
                       </td>
                       <td className="py-4 px-6 text-right">
                         <AnimatePresence mode="wait">
@@ -432,7 +435,7 @@ const ProposalSharePage: React.FC = () => {
                               isRemoved ? 'text-neutral-300' : 'text-[#171717]'
                             }`}
                           >
-                            {formatCurrency(line.total)} TL
+                            {fmt(line.total)}
                           </motion.span>
                         </AnimatePresence>
                       </td>
@@ -469,7 +472,7 @@ const ProposalSharePage: React.FC = () => {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="font-grotesk text-xs text-neutral-500">
-                      {formatCurrency(line.unitPrice)} TL / {line.unit}
+                      {fmt(line.unitPrice)} / {line.unit}
                     </span>
                     <AnimatePresence mode="wait">
                       <motion.span
@@ -480,7 +483,7 @@ const ProposalSharePage: React.FC = () => {
                           isRemoved ? 'text-neutral-300' : 'text-[#171717]'
                         }`}
                       >
-                        {formatCurrency(line.total)} TL
+                        {fmt(line.total)}
                       </motion.span>
                     </AnimatePresence>
                   </div>
@@ -501,7 +504,7 @@ const ProposalSharePage: React.FC = () => {
                     animate={{ opacity: 1 }}
                     className="font-grotesk text-sm font-medium text-[#171717]"
                   >
-                    {formatCurrency(calculated.subtotal)} TL
+                    {fmt(calculated.subtotal)}
                   </motion.span>
                 </AnimatePresence>
               </div>
@@ -516,7 +519,7 @@ const ProposalSharePage: React.FC = () => {
                     animate={{ opacity: 1 }}
                     className="font-grotesk text-sm text-neutral-500"
                   >
-                    {formatCurrency(calculated.kdvAmount)} TL
+                    {fmt(calculated.kdvAmount)}
                   </motion.span>
                 </AnimatePresence>
               </div>
@@ -530,7 +533,7 @@ const ProposalSharePage: React.FC = () => {
                     {calculated.savings > 0 ? 'Orijinal teklife göre tasarruf' : 'Orijinal teklife göre ek'}
                   </span>
                   <span className={`font-grotesk text-xs font-medium ${calculated.savings > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                    {calculated.savings > 0 ? '-' : '+'}{formatCurrency(Math.abs(calculated.savings))} TL
+                    {calculated.savings > 0 ? '-' : '+'}{fmt(Math.abs(calculated.savings))}
                   </span>
                 </motion.div>
               )}
@@ -544,7 +547,7 @@ const ProposalSharePage: React.FC = () => {
                   animate={{ opacity: 1, scale: 1 }}
                   className="font-grotesk text-xl font-bold text-white"
                 >
-                  {formatCurrency(calculated.grandTotal)} TL
+                  {fmt(calculated.grandTotal)}
                 </motion.span>
               </AnimatePresence>
             </div>
@@ -613,7 +616,7 @@ const ProposalSharePage: React.FC = () => {
                           <AnimatePresence mode="wait">
                             <motion.p key={plan.monthlyAmount} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                               className={`font-grotesk text-2xl font-bold ${isPopular ? 'text-white' : 'text-[#171717]'}`}>
-                              {formatCurrency(plan.monthlyAmount)} TL
+                              {fmt(plan.monthlyAmount)}
                             </motion.p>
                           </AnimatePresence>
                           <p className={`font-grotesk text-xs ${isPopular ? 'text-neutral-400' : 'text-neutral-500'}`}>
@@ -623,19 +626,19 @@ const ProposalSharePage: React.FC = () => {
                       ) : (
                         <div className="text-center">
                           <p className={`font-grotesk text-xs line-through ${isPopular ? 'text-neutral-500' : 'text-neutral-400'}`}>
-                            {formatCurrency(plan.totalWithoutDiscount)} TL
+                            {fmt(plan.totalWithoutDiscount)}
                           </p>
                           <AnimatePresence mode="wait">
                             <motion.p key={plan.totalWithDiscount} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                               className={`font-grotesk text-2xl font-bold ${isPopular ? 'text-white' : 'text-[#171717]'}`}>
-                              {formatCurrency(plan.totalWithDiscount)} TL
+                              {fmt(plan.totalWithDiscount)}
                             </motion.p>
                           </AnimatePresence>
                           <p className={`font-grotesk text-xs ${isPopular ? 'text-neutral-400' : 'text-neutral-500'}`}>
                             / {plan.period} ay toplam (KDV hariç)
                           </p>
                           <p className={`font-grotesk text-xs mt-1 ${isPopular ? 'text-green-400' : 'text-green-600'}`}>
-                            {formatCurrency(plan.discountAmount)} TL tasarruf
+                            {fmt(plan.discountAmount)} tasarruf
                           </p>
                         </div>
                       )
@@ -644,23 +647,23 @@ const ProposalSharePage: React.FC = () => {
                         {hasDiscount ? (
                           <>
                             <p className={`font-grotesk text-xs line-through ${isPopular ? 'text-neutral-500' : 'text-neutral-400'}`}>
-                              {formatCurrency(plan.totalWithoutDiscount)} TL
+                              {fmt(plan.totalWithoutDiscount)}
                             </p>
                             <AnimatePresence mode="wait">
                               <motion.p key={plan.totalWithDiscount} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                                 className={`font-grotesk text-2xl font-bold ${isPopular ? 'text-white' : 'text-[#171717]'}`}>
-                                {formatCurrency(plan.totalWithDiscount)} TL
+                                {fmt(plan.totalWithDiscount)}
                               </motion.p>
                             </AnimatePresence>
                             <p className={`font-grotesk text-xs mt-1 ${isPopular ? 'text-green-400' : 'text-green-600'}`}>
-                              {formatCurrency(plan.discountAmount)} TL tasarruf
+                              {fmt(plan.discountAmount)} tasarruf
                             </p>
                           </>
                         ) : (
                           <AnimatePresence mode="wait">
                             <motion.p key={plan.totalWithDiscount} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                               className={`font-grotesk text-2xl font-bold ${isPopular ? 'text-white' : 'text-[#171717]'}`}>
-                              {formatCurrency(plan.totalWithDiscount)} TL
+                              {fmt(plan.totalWithDiscount)}
                             </motion.p>
                           </AnimatePresence>
                         )}

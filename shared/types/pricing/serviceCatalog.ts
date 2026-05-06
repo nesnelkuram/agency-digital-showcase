@@ -351,6 +351,37 @@ export function formatCurrency(amount: number): string {
 }
 
 /**
+ * Desteklenen para birimi sembolleri
+ */
+export const CURRENCY_SYMBOLS: Record<'TRY' | 'USD' | 'EUR' | 'GBP', string> = {
+  TRY: 'TL',
+  USD: '$',
+  EUR: '€',
+  GBP: '£',
+};
+
+/**
+ * Teklif tutarini secilen para birimine cevir ve formatla.
+ * - tryAmount: kayitli TRY tutari
+ * - currency: hedef para birimi (varsayilan TRY)
+ * - exchangeRate: 1 birim hedef para = N TRY (TRY ise 1)
+ */
+export function formatProposalAmount(
+  tryAmount: number,
+  currency: 'TRY' | 'USD' | 'EUR' | 'GBP' = 'TRY',
+  exchangeRate: number = 1,
+): string {
+  const safeRate = exchangeRate && exchangeRate > 0 ? exchangeRate : 1;
+  const converted = currency === 'TRY' ? tryAmount : tryAmount / safeRate;
+  const digits = currency === 'TRY' ? 0 : 2;
+  const formatted = new Intl.NumberFormat('tr-TR', {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  }).format(converted);
+  return `${formatted} ${CURRENCY_SYMBOLS[currency]}`;
+}
+
+/**
  * Marj ile satis fiyati hesapla
  * Formul: satisPrice = cost / (1 - margin)
  * Ornek: 10000 TL maliyet, %30 marj = 10000 / 0.70 = 14285 TL

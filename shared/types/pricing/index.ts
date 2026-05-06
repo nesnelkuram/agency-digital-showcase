@@ -230,6 +230,8 @@ export {
   // Functions
   getApplicableTier,
   formatCurrency,
+  formatProposalAmount,
+  CURRENCY_SYMBOLS,
   calculateSellPrice,
   calculateProfit,
   calculateProfitPercentage,
