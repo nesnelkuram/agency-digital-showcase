@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>KAEN SUSHI — Intro Film Storyboard</title>
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --card: #141414;
+    --line: #222;
+    --text: #e8e2d6;
+    --muted: #8a8275;
+    --accent: #d6a463;
+    --warn: #c45c3a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0;
+    background: var(--bg); color: var(--text);
+    font-family: 'Georgia', 'Times New Roman', serif;
+    line-height: 1.55;
+  }
+  header {
+    padding: 60px 48px 40px;
+    border-bottom: 1px solid var(--line);
+    display: flex; justify-content: space-between; align-items: flex-end;
+    flex-wrap: wrap; gap: 24px;
+  }
+  header h1 {
+    font-size: 42px; margin: 0;
+    font-weight: 400; letter-spacing: 6px;
+  }
+  header .sub {
+    color: var(--muted); font-size: 14px;
+    margin-top: 8px; letter-spacing: 2px; text-transform: uppercase;
+  }
+  header .meta {
+    text-align: right; font-size: 13px; color: var(--muted);
+    line-height: 1.8;
+  }
+  header .meta b { color: var(--text); font-weight: normal; }
+
+  .intro {
+    padding: 32px 48px;
+    border-bottom: 1px solid var(--line);
+    max-width: 980px;
+    font-size: 15px; color: #b8b0a3;
+  }
+  .intro h2 { font-size: 13px; letter-spacing: 3px; color: var(--accent); text-transform: uppercase; margin: 0 0 12px; }
+
+  .act {
+    padding: 48px 48px 24px;
+    border-bottom: 1px solid var(--line);
+  }
+  .act-head {
+    display: flex; align-items: baseline; gap: 20px;
+    margin-bottom: 32px;
+  }
+  .act-head .num {
+    font-size: 11px; letter-spacing: 4px;
+    color: var(--accent); text-transform: uppercase;
+  }
+  .act-head h2 {
+    font-size: 26px; margin: 0;
+    font-weight: 400; letter-spacing: 2px;
+  }
+  .act-head .range {
+    margin-left: auto; color: var(--muted);
+    font-family: 'SF Mono', 'Monaco', monospace; font-size: 13px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+    gap: 28px;
+  }
+  .shot {
+    background: var(--card);
+    border: 1px solid var(--line);
+    overflow: hidden;
+  }
+  .frame {
+    position: relative; width: 100%;
+    aspect-ratio: 2.39 / 1;
+    background: #000;
+    overflow: hidden;
+  }
+  .frame img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .frame .num {
+    position: absolute; top: 10px; left: 14px;
+    font-family: 'SF Mono', monospace; font-size: 11px;
+    color: rgba(255,255,255,0.75);
+    background: rgba(0,0,0,0.55);
+    padding: 4px 8px; letter-spacing: 1px;
+  }
+  .frame .tc {
+    position: absolute; bottom: 10px; right: 14px;
+    font-family: 'SF Mono', monospace; font-size: 11px;
+    color: rgba(255,255,255,0.75);
+    background: rgba(0,0,0,0.55);
+    padding: 4px 8px; letter-spacing: 1px;
+  }
+
+  .meta-body { padding: 20px 22px 22px; }
+  .meta-body h3 {
+    margin: 0 0 4px; font-size: 17px;
+    font-weight: 400; letter-spacing: 0.5px;
+  }
+  .meta-body .action {
+    color: var(--muted); font-size: 13px; font-style: italic;
+    margin-bottom: 14px;
+  }
+  .meta-row {
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    gap: 4px 14px;
+    font-size: 13px;
+    padding: 6px 0;
+    border-top: 1px dashed #1f1f1f;
+  }
+  .meta-row .k {
+    color: var(--accent);
+    letter-spacing: 1.5px; text-transform: uppercase; font-size: 10px;
+    padding-top: 2px;
+  }
+  .meta-row .v { color: #c5bdaf; }
+
+  .audio {
+    margin-top: 14px;
+    padding: 12px 14px;
+    background: #0e0e0e;
+    border-left: 2px solid var(--warn);
+    font-size: 12px; color: #b8b0a3; font-style: italic;
+  }
+  .audio b { color: var(--warn); font-style: normal; font-weight: normal; letter-spacing: 1.5px; text-transform: uppercase; font-size: 10px; display: block; margin-bottom: 4px; }
+
+  footer {
+    padding: 48px;
+    border-top: 1px solid var(--line);
+    color: var(--muted); font-size: 13px;
+  }
+  footer h2 { font-size: 13px; letter-spacing: 3px; color: var(--accent); text-transform: uppercase; margin: 0 0 12px; }
+  footer .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 32px; max-width: 1200px; }
+
+  @media (max-width: 720px) {
+    header, .act, .intro, footer { padding-left: 24px; padding-right: 24px; }
+    header h1 { font-size: 28px; letter-spacing: 3px; }
+    .act-head { flex-wrap: wrap; }
+    .act-head .range { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>KAEN SUSHI</h1>
+    <div class="sub">Intro Film · Storyboard v1</div>
+  </div>
+  <div class="meta">
+    <b>Yönetmen / DP:</b> İnti<br>
+    <b>Mekan:</b> Kaen Sushi, Koşuyolu — İstanbul<br>
+    <b>Şef:</b> Hasan Karabazar<br>
+    <b>Format:</b> 2.39:1 anamorphic · 24fps<br>
+    <b>Toplam süre:</b> ~78 saniye · 20 shot<br>
+    <b>Referans estetik:</b> Netflix Chef's Table intro
+  </div>
+</header>
+
+<section class="intro">
+  <h2>Kurgu Mantığı</h2>
+  <p>Üç perdelik klasik intro yapısı. <b>I. Perde — Mekan & Karakter</b> izleyiciyi Koşuyolu'na, restoranın ruhuna ve şefin huzuruna sokar. <b>II. Perde — Zanaat</b> sıfırdan başlayıp bıçak, balık, pirinç, ateş üzerinden tüm üretim ritüelini izletir. <b>III. Perde — Sunum & Deneyim</b> imza ürünlerin sunumunda doruğa çıkar ve müşterinin ilk ısırığıyla kapanır.</p>
+  <p>Tüm sahneler <b>2.39:1 anamorphic</b> çerçevede, derin siyahlar + tek sıcak tungsten ışık üzerine kurgulanmıştır. Müzik: yavaş, melankolik tek bir tema — yaylılar + ney veya kanun (Japon-Türk füzyon). Diyalog yok; sadece doğal mutfak sesleri ve müzik.</p>
+</section>
+
+<!-- ========================================================= -->
+<!-- ACT 1 — MEKAN & KARAKTER -->
+<!-- ========================================================= -->
+<section class="act">
+  <div class="act-head">
+    <span class="num">Perde I</span>
+    <h2>Mekan & Karakter</h2>
+    <span class="range">00:00 — 00:20</span>
+  </div>
+
+  <div class="grid">
+
+    <article class="shot">
+      <div class="frame">
+        <img src="shots/S01_dis_cephe_kosuyolu.png" alt="">
+        <div class="num">SHOT 01</div>
+        <div class="tc">00:00 → 00:04</div>
+      </div>
+      <div class="meta-body">
+        <h3>Dış Cephe — Blue Hour</h3>
+        <div class="action">Sokak sessiz. Restoranın camlarından sıcak ışık yağmurlu kaldırıma vuruyor.</div>
+        <div class="meta-row"><span class="k">Kamera</span><span class="v">L-Cron Slider — yavaş yatay kayış (sol→sağ)</span></div>
+        <div class="meta-row"><span class="k">Lens</span><span class="v">24-35mm geniş açı</span></div>
+        <div class="meta-row"><span class="k">Hareket</span><span class="v">Slider 4 sn, mekan ortaya çıkıyor</span></div>
+        <div class="meta-row"><span class="k">Işık</span><span class="v">Mevcut sokak + içerideki amber sızıntı</span></div>
+        <div class="audio"><b>Ses</b>Uzaktan trafik, hafif yağmur. Müzik henüz girmedi.</div>
+      </div>
+    </article>
+
+    <article class="shot">
+      <div class="frame">
+        <img src="shots/S09_bahce_gece_atmosfer.png" alt="">
+        <div class="num">SHOT 02</div>
+        <div class="tc">00:04 → 00:08</div>
+      </div>
+      <div class="meta-body">
+        <h3>Bahçe — Akşam Yansıması</h3>
+        <div class="action">Fenerlerin altında masalar, sake bardakları, ortamın nefesi.</div>
+        <div class="meta-row"><span class="k">Kamera</span><span class="v">L-Cron Slider — sağa yavaş</span></div>
+        <div class="meta-row"><span class="k">Lens</span><span class="v">35mm</span></div>
+        <div class="meta-row"><span class="k">Hareket</span><span class="v">Foreground masadan arka plana parallax</span></div>
+        <div class="meta-row"><span class="k">Işık</span><span class="v">Fenerler + mum bokeh</span></div>
+        <div class="audio"><b>Ses</b>Uzak sohbet fısıltıları, mum çıtırtısı. Müzik ilk notayı çalıyor.</div>
+      </div>
+    </article>
+
+    <article class="shot">
+      <div class="frame">
+        <img src="shots_chef/S01_bicak_silme_ritueli.png" alt="">
+        <div class="num">SHOT 03</div>
+        <div class="tc">00:08 → 00:12</div>
+      </div>
+      <div class="meta-body">
+        <h3>Bıçak Ritüeli — Açılış</h3>
+        <div class="action">Şefin elleri yanagiba'yı sessizce beyaz keten bezle siliyor. Ritüel başlıyor.</div>
+        <div class="meta-row"><span class="k">Kamera</span><span class="v">Sabit tripod</span></div>
+        <div class="meta-row"><span class="k">Lens</span><span class="v">Makro 100mm</span></div>
+        <div class="meta-row"><span class="k">Hareket</span><span class="v">Kamera sabit, bıçağın hareketi</span></div>
+        <div class="meta-row"><span class="k">Işık</span><span class="v">Tek sıcak tungsten, üst sol</span></div>
+        <div class="audio"><b>Ses</b>Bez-metal sürtünmesi. Müzik tema giriş yapıyor.</div>
+      </div>
+    </article>
+
+    <article class="shot">
+      <div class="frame">
+        <img src="shots/S02_sef_hasan_portre.png" alt="">
+        <div class="num">SHOT 04</div>
+        <div class="tc">00:12 → 00:16</div>
+      </div>
+      <div class="meta-body">
+        <h3>Şef Hasan — Portre</h3>
+        <div class="action">Şef bara hakim, gözleri aşağıda, konsantre. Karakter kuruldu.</div>
+        <div class="meta-row"><span class="k">Kamera</span><span class="v">Sabit tripod</span></div>
+        <div class="meta-row"><span class="k">Lens</span><span class="v">85mm prime f/1.8</span></div>
+        <div class="meta-row"><span class="k">Hareket</span><span class="v">Yok — durağan plan</span></div>
+        <div class="meta-row"><span class="k">Işık</span><span class="v">Rembrandt — tek tungsten sağ ön</span></div>
+        <div class="audio"><b>Ses</b>Tamamen sessiz, sadece müzik teması.</div>
+      </div>
+    </article>
+
+    <article class="shot">
+      <div class="frame">
+        <img src="shots/S03_pirinc_buhar_hangiri.png" alt="">
+        <div class="num">SHOT 05</div>
+        <div class="tc">00:16 → 00:20</div>
+      </div>
+      <div class="meta-body">
+        <h3>Pirinç — Buhar Açılışı</h3>
+        <div class="action">Hangiri kapağı kalkıyor, buhar dolu kareyi kaplıyor. Geçiş anı.</div>
+        <div class="meta-row"><span class="k">Kamera</span><span class="v">L-Cron Slider + Time-Lapse opsiyon</span></div>
+        <div class="meta-row"><span class="k">Lens</span><span class="v">50mm makro</span></div>
+        <div class="meta-row"><span class="k">Hareket</span><span class="v">Hafif yukarı tilt (Head Plus)</span></div>
+        <div class="meta-row"><span class="k">Işık</span><span class="v">Rim light arkadan, buhar parlasın</span></div>
+        <div class="audio"><b>Ses</b>Tahta sürtmesi, buhar tıslaması. Müzik yoğunlaşıyor.</div>
+      </div>
+    </article>
+
+  </div>
+</section>
+
+<!-- ========================================================= -->
+<!-- ACT 2 — ZANAAT -->
+<!-- ========================================================= -->
+<section class="act">
+  <div class="act-head">
+    <span class="num">Perde II</span>
+    <h2>Zanaat</h2>
+    <span class="range">00:20 — 00:52</span>
+  </div>
+
+  <div class="grid">
+
+    <article class="shot">
+      <div class="frame">
+        <img src="shots_chef/S02_butun_balik_fileto.png" alt="">
+        <div class="num">SHOT 06</div>
+        <div class="tc">00:20 → 00:24</div>
+      </div>
+      <div class="meta-body">
+        <h3>Bütün Balık — Fileto</h3>
+        <div class="action">Deba bıçak omurga boyunca tek hamlede ilerliyor. Cerrahi hassasiyet.</div>
+        <div class="meta-row"><span class="k">Kamera</span><span class="v">Head Plus — bıçak boyunca yatay takip</span></div>
+        <div class="meta-row"><span class="k">Lens</span><span class="v">50mm</span></div>
+        <div class="meta-row"><span class="k">Hareket</span><span class="v">Sol→sağ, bıçağı takip</span></div>
+        <div class="meta-row"><span class="k">Işık</span><span class="v">Üstten tek spot, balık parlasın</span></div>
+        <div class="audio"><b>Ses</b>Bıçak-et sesi, ince bir keskinlik.</div>
+      </div>
+    </article>
+
+    <article class="shot">
+      <div class="frame">
+        <img src="shots_chef/S03_sashimi_tek_dilim.png" alt="">
+        <div class="num">SHOT 07</div>
+        <div class="tc">00:24 → 00:28</div>
+      </div>
+      <div class="meta-body">
+        <h3>Sashimi — Tek Akışlı Kesim</h3>
+        <div class="action">Yanagiba ton balığını tek hamlede dilimliyor. Suşinin imza hareketi.</div>
+        <div class="meta-row"><span class="k">Kamera</span><span class="v">Sabit + makro</span></div>
+        <div class="meta-row"><span class="k">Lens</span><span class="v">Makro 100mm</span></div>
+        <div class="meta-row"><span class="k">Hareket</span><span class="v">Yüksek hız (slow-mo) — bıçak hareketi</span></div>
+        <div class="meta-row"><span class="k">Işık</span><span class="v">Yan tungsten, bıçağa yansıma</span></div>
+        <div class="audio"><b>Ses</b>İnce bir "shhh" — bıçağın sessiz akışı.</div>
+      </div>
+    </article>
+
+    <article class="shot">
+      <div class="frame">
+        <img src="shots_chef/S05_wasabi_rendeleme.png" alt="">
+        <div class="num">SHOT 08</div>
+        <div class="tc">00:28 → 00:32</div>
+      </div>
+      <div class="meta-body">
+        <h3>Wasabi — Oroshi</h3>
+        <div class="action">Köpekbalığı derisi üzerinde taze wasabi dönüyor, parlak yeşil birikiyor.</div>
+        <div class="meta-row"><span class="k">Kamera</span><span class="v">L-Cron Slider + Time-Lapse</span></div>
+        <div class="meta-row"><span class="k">Lens</span><span class="v">Makro 100mm</span></div>
+        <div class="meta-row"><span class="k">Hareket</span><span class="v">Yavaş üstten yaklaşım (Head Plus tilt)</span></div>
+        <div class="meta-row"><span class="k">Işık</span><span class="v">Soft warm sağdan</span></div>
+        <div class="audio"><b>Ses</b>Sürtme — bitkisel, organik bir doku sesi.</div>
+      </div>
+    </article>
+
+    <article class="shot">
+      <div class="frame">
+        <img src="shots_chef/S04_pirinc_serpme_shamoji.png" alt="">
+        <div class="num">SHOT 09</div>
+        <div class="tc">00:32 → 00:36</div>
+      </div>
+      <div class="meta-body">
+        <h3>Shari — Pirinç & Sirke</h3>
+        <div class="action">Shamoji pirinci katlıyor, uchiwa yelliyor. Tane tane buhar yükseliyor.</div>
+        <div class="meta-row"><span class="k">Kamera</span><span class="v">Sabit + makro</span></div>
+        <div class="meta-row"><span class="k">Lens</span><span class="v">50mm makro</span></div>
+        <div class="meta-row"><span class="k">Hareket</span><span class="v">El hareketi taşıyor, kamera durur</span></div>
+        <div class="meta-row"><span class="k">Işık</span><span class="v">Arkadan rim, buhar parlasın</span></div>
+        <div class="audio"><b>Ses</b>Tahta-pirinç sürtmesi, hafif fan sesi.</div>
+      </div>
+    </article>
+
+    <article class="shot">
+      <div class="frame">
+        <img src="shots_chef/S06_nori_acma_pirinc_serme.png" alt="">
+        <div class="num">SHOT 10</div>
+        <div class="tc">00:36 → 00:40</div>
+      </div>
+      <div class="meta-body">
+        <h3>Nori — Açma & Yayma</h3>
+        <div class="action">Makisu üzerinde nori sereniyor, parmaklar pirinci dağıtıyor.</div>
+        <div class="meta-row"><span class="k">Kamera</span><span class="v">Head Plus — üstten hafif dönüş</span></div>
+        <div class="meta-row"><span class="k">Lens</span><span class="v">35mm + makro</span></div>
+        <div class="meta-row"><span class="k">Hareket</span><span class="v">Yavaş döner üst plan</span></div>
+        <div class="meta-row"><span class="k">Işık</span><span class="v">Yan ışık, nori dokusu okunsun</span></div>
+        <div class="audio"><b>Ses</b>Nori çıtırtısı, ıslak parmaklar.</div>
+      </div>
+    </article>
+
+    <article class="shot">
+      <div class="frame">
+        <img src="shots_chef/S07_maki_rulo_sikistirma.png" alt="">
+        <div class="num">SHOT 11</div>
+        <div class="tc">00:40 → 00:44</div>
+      </div>
+      <div class="meta-body">
+        <h3>Maki — Rulo Sıkıştırma</h3>
+        <div class="action">Bambu makisu rulonun etrafına kapanıyor. Parmaklar gergin, başparmaklar içeri girer.</div>
+        <div class="meta-row"><span class="k">Kamera</span><span class="v">Sabit, yandan</span></div>
+        <div class="meta-row"><span class="k">Lens</span><span class="v">50mm makro</span></div>
+        <div class="meta-row"><span class="k">Hareket</span><span class="v">Şefin sıkıştırma hareketi taşıyor</span></div>
+        <div class="meta-row"><span class="k">Işık</span><span class="v">Yan rim, bambu dokusu okunsun</span></div>
+        <div class="audio"><b>Ses</b>Bambu-pirinç sıkışması, hafif bir hışırtı.</div>
+      </div>
+    </article>
+
+    <article class="shot">
+      <div class="frame">
+        <img src="shots_chef/S08_nigiri_form_iki_el.png" alt="">
+        <div class="num">SHOT 12</div>
+        <div class="tc">00:44 → 00:48</div>
+      </div>
+      <div class="meta-body">
+        <h3>Nigiri — İki Parmak</h3>
+        <div class="action">Sol el balığı, sağ el pirinci. İki parmak baskı — suşi formunun özü.</div>
+        <div class="meta-row"><span class="k">Kamera</span><span class="v">Sabit + makro</span></div>
+        <div class="meta-row"><span class="k">Lens</span><span class="v">Makro 100mm</span></div>
+        <div class="meta-row"><span class="k">Hareket</span><span class="v">Sığ derinlik, tek hareket</span></div>
+        <div class="meta-row"><span class="k">Işık</span><span class="v">Üst sol tungsten</span></div>
+        <div class="audio"><b>Ses</b>Sessizlik. Şefin nefesi belki duyulur.</div>
+      </div>
+    </article>
+
+    <article class="shot">
+      <div class="frame">
+        <img src="shots_chef/S09_aburi_torch_alev.png" alt="">
+        <div class="num">SHOT 13</div>
+        <div class="tc">00:48 → 00:52</div>
+      </div>
+      <div class="meta-body">
+        <h3>Aburi — Torch Alev</h3>
+        <div class="action">Mavi-turuncu alev nigiri'nin yüzeyini karamelize ediyor. Doruk noktası.</div>
+        <div class="meta-row"><span class="k">Kamera</span><span class="v">Sabit, alev ana ışık</span></div>
+        <div class="meta-row"><span class="k">Lens</span><span class="v">Makro 100mm</span></div>
+        <div class="meta-row"><span class="k">Hareket</span><span class="v">Yüksek hız (slow-mo)</span></div>
+        <div class="meta-row"><span class="k">Işık</span><span class="v">Alev kendi içinden ışıyor</span></div>
+        <div class="audio"><b>Ses</b>Torch tıslaması, müzik tepe yapıyor.</div>
+      </div>
+    </article>
+
+  </div>
+</section>
+
+<!-- ========================================================= -->
+<!-- ACT 3 — SUNUM & DENEYİM -->
+<!-- ========================================================= -->
+<section class="act">
+  <div class="act-head">
+    <span class="num">Perde III</span>
+    <h2>Sunum &amp; Deneyim</h2>
+    <span class="range">00:52 — 01:18</span>
+  </div>
+
+  <div class="grid">
+
+    <article class="shot">
+      <div class="frame">
+        <img src="shots_chef/S10_nikiri_firca_plating.png" alt="">
+        <div class="num">SHOT 14</div>
+        <div class="tc">00:52 → 00:56</div>
+      </div>
+      <div class="meta-body">
+        <h3>Nikiri — Final Fırça</h3>
+        <div class="action">Fırça nikiri sosunu nigiri'nin üstüne tek darbede sürüyor. Son ritüel.</div>
+        <div class="meta-row"><span class="k">Kamera</span><span class="v">Sabit, üstten</span></div>
+        <div class="meta-row"><span class="k">Lens</span><span class="v">Makro 100mm</span></div>
+        <div class="meta-row"><span class="k">Hareket</span><span class="v">Sığ derinlik, fırça hareketi</span></div>
+        <div class="meta-row"><span class="k">Işık</span><span class="v">Tek spot, sos parlasın</span></div>
+        <div class="audio"><b>Ses</b>Sessizce. Hafif fırça sürtmesi.</div>
+      </div>
+    </article>
+
+    <article class="shot">
+      <div class="frame">
+        <img src="shots/S04_katana_roll_bicak_kesim.png" alt="">
+        <div class="num">SHOT 15</div>
+        <div class="tc">00:56 → 01:00</div>
+      </div>
+      <div class="meta-body">
+        <h3>Katana Roll — Kesim</h3>
+        <div class="action">Yanagiba imza ruloyu dilimlere ayırıyor. Renkler ortaya çıkar.</div>
+        <div class="meta-row"><span class="k">Kamera</span><span class="v">Head Plus — bıçak takibi</span></div>
+        <div class="meta-row"><span class="k">Lens</span><span class="v">Makro 100mm</span></div>
+        <div class="meta-row"><span class="k">Hareket</span><span class="v">Yatay takip + yüksek hız</span></div>
+        <div class="meta-row"><span class="k">Işık</span><span class="v">Üstten tek ışık</span></div>
+        <div class="audio"><b>Ses</b>Temiz bir kesim sesi.</div>
+      </div>
+    </article>
+
+    <article class="shot">
+      <div class="frame">
+        <img src="shots/S05_crunchy_roll_tempura_yag.png" alt="">
+        <div class="num">SHOT 16</div>
+        <div class="tc">01:00 → 01:04</div>
+      </div>
+      <div class="meta-body">
+        <h3>Crunchy Roll — Tempura</h3>
+        <div class="action">Sıcak yağda altın rengi kabarcıklar yükseliyor. Hareket, enerji.</div>
+        <div class="meta-row"><span class="k">Kamera</span><span class="v">Sabit + makro</span></div>
+        <div class="meta-row"><span class="k">Lens</span><span class="v">Makro 100mm</span></div>
+        <div class="meta-row"><span class="k">Hareket</span><span class="v">Yüksek hız (slow-mo)</span></div>
+        <div class="meta-row"><span class="k">Işık</span><span class="v">Yan sıcak, yağ parlasın</span></div>
+        <div class="audio"><b>Ses</b>Yağ cızırtısı, hareketli.</div>
+      </div>
+    </article>
+
+    <article class="shot">
+      <div class="frame">
+        <img src="shots/S08_mongolian_chicken_wok_ates.png" alt="">
+        <div class="num">SHOT 17</div>
+        <div class="tc">01:04 → 01:08</div>
+      </div>
+      <div class="meta-body">
+        <h3>Mongolian Chicken — Wok</h3>
+        <div class="action">Wok'tan alev fışkırıyor, tavuk havada. Aksiyon zirvede.</div>
+        <div class="meta-row"><span class="k">Kamera</span><span class="v">Sabit, hafif geri kaçış</span></div>
+        <div class="meta-row"><span class="k">Lens</span><span class="v">35-50mm</span></div>
+        <div class="meta-row"><span class="k">Hareket</span><span class="v">Yüksek hız, alev donmuş</span></div>
+        <div class="meta-row"><span class="k">Işık</span><span class="v">Alev + üstten spot</span></div>
+        <div class="audio"><b>Ses</b>Wok patlaması, son aksiyon vuruşu.</div>
+      </div>
+    </article>
+
+    <article class="shot">
+      <div class="frame">
+        <img src="shots/S06_pink_jonetsu_plating.png" alt="">
+        <div class="num">SHOT 18</div>
+        <div class="tc">01:08 → 01:12</div>
+      </div>
+      <div class="meta-body">
+        <h3>Pink Jonetsu — Sunum</h3>
+        <div class="action">Üstten dönen tabak, sekiz parça simetrik dizilim. Estetik doruğu.</div>
+        <div class="meta-row"><span class="k">Kamera</span><span class="v">Head Plus — üstten rotasyon</span></div>
+        <div class="meta-row"><span class="k">Lens</span><span class="v">50mm</span></div>
+        <div class="meta-row"><span class="k">Hareket</span><span class="v">Yavaş döner üst plan</span></div>
+        <div class="meta-row"><span class="k">Işık</span><span class="v">Tek tepe ışığı</span></div>
+        <div class="audio"><b>Ses</b>Sessizlik. Müzik geri çekiliyor.</div>
+      </div>
+    </article>
+
+    <article class="shot">
+      <div class="frame">
+        <img src="shots/S07_maguro_nigiri_eller.png" alt="">
+        <div class="num">SHOT 19</div>
+        <div class="tc">01:12 → 01:14</div>
+      </div>
+      <div class="meta-body">
+        <h3>Maguro Nigiri — Son Detay</h3>
+        <div class="action">Şefin elleri toro nigiri'yi son haline getiriyor. Yakın plan, sevgi.</div>
+        <div class="meta-row"><span class="k">Kamera</span><span class="v">Sabit + makro</span></div>
+        <div class="meta-row"><span class="k">Lens</span><span class="v">Makro 100mm</span></div>
+        <div class="meta-row"><span class="k">Hareket</span><span class="v">Yok — durağan</span></div>
+        <div class="meta-row"><span class="k">Işık</span><span class="v">Üst sol tungsten</span></div>
+        <div class="audio"><b>Ses</b>Tamamen sessiz.</div>
+      </div>
+    </article>
+
+    <article class="shot">
+      <div class="frame">
+        <img src="shots/S10_son_isirik_cubuk.png" alt="">
+        <div class="num">SHOT 20</div>
+        <div class="tc">01:14 → 01:18</div>
+      </div>
+      <div class="meta-body">
+        <h3>Final — Çubuk &amp; Nigiri</h3>
+        <div class="action">Müşterinin çubuğu nigiri'yi havaya kaldırıyor. Sos damlar. Kapanış.</div>
+        <div class="meta-row"><span class="k">Kamera</span><span class="v">Head Plus — hafif takip</span></div>
+        <div class="meta-row"><span class="k">Lens</span><span class="v">Makro 100mm</span></div>
+        <div class="meta-row"><span class="k">Hareket</span><span class="v">Yüksek hız, sos damlasına odak</span></div>
+        <div class="meta-row"><span class="k">Işık</span><span class="v">Tek sıcak key + bokeh fenerler</span></div>
+        <div class="audio"><b>Ses</b>Müziğin son notası. Karaya geçiş: "KAEN — Rolling with Passion."</div>
+      </div>
+    </article>
+
+  </div>
+</section>
+
+<footer>
+  <div class="row">
+    <div>
+      <h2>Müzik</h2>
+      Yavaş tempo. Yaylılar (çello + viyola) tabanı + tek bir nefes enstrümanı: ney veya kanun (Türk-Japon füzyon hissi). Diyalog yok. Müzik 00:04'te giriyor, 00:48'de tepe yapıyor, 01:14'te geri çekilip son tek notayla bitiyor.
+    </div>
+    <div>
+      <h2>Ekipman</h2>
+      L-Cron Slider (time-lapse desteği) · Head Plus (motorize döner kafa) · Tripod · Lens seti: 24-35mm, 50mm prime, 85mm prime, 100mm makro · Yüksek hız çekim için sensör desteği · Pratik mutfak ışıkları + tek tungsten key.
+    </div>
+    <div>
+      <h2>Çekim Notları</h2>
+      Tüm sahnelerde aynı sıcak amber + derin siyah paleti koru. Pratik ışıkları (mutfak floresanı, üst mekan ışığı) kapat — yalnızca yönlü tungsten key. Şefin yüzü 1-2 sahnede net görünsün, gerisi eller. Buhar / sis için profesyonel sis makinesi yerine mutfak buharına güven, doğal olsun.
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
