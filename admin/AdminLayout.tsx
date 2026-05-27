@@ -42,7 +42,9 @@ import {
   HardDrive,
   Share2,
   ClipboardList,
+  KanbanSquare,
   Map,
+  BookMarked,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermission } from '@/shared/hooks/usePermission';
@@ -129,9 +131,21 @@ const navItems: NavItem[] = [
   },
   {
     label: 'Görevlerim',
-    path: '/admin/tasks',
+    path: '/admin/now',
     icon: ClipboardList,
     hiddenForRoles: ['client'],
+  },
+  {
+    label: 'Planla',
+    path: '/admin/tasks',
+    icon: KanbanSquare,
+    hiddenForRoles: ['client'],
+  },
+  {
+    label: 'İş Kalıpları',
+    path: '/admin/sops',
+    icon: BookMarked,
+    hiddenForRoles: ['client', 'freelancer'],
   },
   {
     label: 'Strateji Haritası',

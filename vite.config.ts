@@ -44,16 +44,23 @@ export default defineConfig(({ mode }) => {
       server: {
         proxy: {
           '/api': {
-            target: 'http://localhost:3000',
+            target: 'http://127.0.0.1:3000',
             changeOrigin: true,
           },
         },
       },
-      optimizeDeps: {
-        include: ['three', '@react-three/fiber', '@react-three/drei', 'firebase/app', 'firebase/auth', 'firebase/firestore'],
-      },
       plugins: [
         react(),
       ],
+      optimizeDeps: {
+        include: ['three', '@react-three/fiber', '@react-three/drei', 'firebase/app', 'firebase/auth', 'firebase/firestore'],
+      },
+      // @ts-ignore — vitest config
+      test: {
+        environment: 'happy-dom',
+        globals: true,
+        include: ['**/*.test.{ts,tsx}', 'tests/**/*.test.{ts,tsx}'],
+        exclude: ['node_modules', 'dist', '.claude/worktrees'],
+      },
     };
 });

@@ -11,8 +11,8 @@ export interface GroundedResponse {
 }
 
 const MODEL_IDS: Record<ModelTier, string> = {
-  flash: 'gemini-3.1-flash-lite-preview',
-  pro: 'gemini-3.1-pro-preview',
+  flash: 'gemini-2.5-flash-lite',
+  pro: 'gemini-2.5-pro',
 };
 
 let _client: GoogleGenAI | null = null;

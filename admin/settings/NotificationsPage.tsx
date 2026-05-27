@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Bell, Mail, Smartphone, Clock, ChevronLeft, Check, Loader2 } from 'lucide-react';
+import { Bell, Mail, Smartphone, Clock, ChevronLeft, Check, Loader2, Sunrise } from 'lucide-react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface NotificationSetting {
-  key: 'email' | 'push' | 'approvalReminders';
+  key: 'email' | 'push' | 'approvalReminders' | 'dailyDigest';
   label: string;
   description: string;
   icon: React.ReactNode;
@@ -18,6 +18,12 @@ const settings: NotificationSetting[] = [
     label: 'E-posta Bildirimleri',
     description: 'Önemli güncellemeler e-posta olarak gelsin.',
     icon: <Mail className="w-5 h-5 text-blue-500" />,
+  },
+  {
+    key: 'dailyDigest',
+    label: 'Günlük Görev Özeti',
+    description: 'Her sabah 08:00\'de o günün yapılacaklarını e-posta olarak al.',
+    icon: <Sunrise className="w-5 h-5 text-amber-500" />,
   },
   {
     key: 'push',
@@ -38,6 +44,7 @@ const NotificationsPage: React.FC = () => {
 
   const [prefs, setPrefs] = useState({
     email: user?.settings?.notifications?.email ?? true,
+    dailyDigest: user?.settings?.notifications?.dailyDigest ?? true,
     push: user?.settings?.notifications?.push ?? true,
     approvalReminders: user?.settings?.notifications?.approvalReminders ?? true,
   });
@@ -57,6 +64,7 @@ const NotificationsPage: React.FC = () => {
     try {
       await updateDoc(doc(db, 'users', user.uid), {
         'settings.notifications.email': updated.email,
+        'settings.notifications.dailyDigest': updated.dailyDigest,
         'settings.notifications.push': updated.push,
         'settings.notifications.approvalReminders': updated.approvalReminders,
       });

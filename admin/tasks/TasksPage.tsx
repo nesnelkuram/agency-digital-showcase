@@ -16,13 +16,28 @@ import {
   LayoutGrid,
   Sparkles,
 } from 'lucide-react';
+import {
+  DndContext,
+  DragEndEvent,
+  DragStartEvent,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  useDraggable,
+  useDroppable,
+  closestCorners,
+} from '@dnd-kit/core';
+import { CSS } from '@dnd-kit/utilities';
 import { useUnifiedTasks } from '@/shared/hooks/useUnifiedTasks';
 import { useActiveProjects } from '@/shared/hooks/useActiveProjects';
+import { useTenantId } from '@/shared/hooks/useTenant';
+import { updateTask } from '@/shared/services/taskService';
 import UnifiedTaskCard from './components/UnifiedTaskCard';
 import QuickAddTaskModal from './QuickAddTaskModal';
 import TaskDetailPanel from './TaskDetailPanel';
 import TelegramLinkModal from './TelegramLinkModal';
-import type { UnifiedTaskItem, TaskCategory } from '@/shared/types/task';
+import type { UnifiedTaskItem, TaskCategory, TaskStatus } from '@/shared/types/task';
 
 // ─── Kanban column config ─────────────────────────────────────────────────────
 const KANBAN_COLUMNS: Array<{
@@ -37,6 +52,58 @@ const KANBAN_COLUMNS: Array<{
   { id: 'blocked',     title: 'Engellendi',    statuses: ['blocked'],                                       color: 'border-red-300' },
 ];
 
+// Drop target column → new TaskStatus for standalone tasks
+const COLUMN_TARGET_STATUS: Record<string, TaskStatus> = {
+  todo:        'open',
+  in_progress: 'in_progress',
+  ai_review:   'awaiting_review',
+  blocked:     'blocked',
+};
+
+// ─── Drag wrapper for a single card (standalone tasks only) ──────────────────
+const DraggableCard: React.FC<{
+  item: UnifiedTaskItem;
+  onClick?: (item: UnifiedTaskItem) => void;
+}> = ({ item, onClick }) => {
+  const isDraggable = item.source === 'standalone';
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: item.id,
+    disabled: !isDraggable,
+  });
+
+  const style: React.CSSProperties = {
+    transform: transform ? CSS.Translate.toString(transform) : undefined,
+    opacity: isDragging ? 0.4 : 1,
+    cursor: isDraggable ? (isDragging ? 'grabbing' : 'grab') : undefined,
+    touchAction: isDraggable ? 'none' : undefined,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <UnifiedTaskCard item={item} onClick={onClick} />
+    </div>
+  );
+};
+
+// ─── Drop target wrapper for a Kanban column ─────────────────────────────────
+const DroppableColumn: React.FC<{
+  id: string;
+  color: string;
+  children: React.ReactNode;
+}> = ({ id, color, children }) => {
+  const { setNodeRef, isOver } = useDroppable({ id });
+  return (
+    <div
+      ref={setNodeRef}
+      className={`rounded-xl border-t-2 ${color} bg-neutral-50 p-3 transition-shadow ${
+        isOver ? 'ring-2 ring-indigo-400 ring-offset-1 bg-indigo-50/40' : ''
+      }`}
+    >
+      {children}
+    </div>
+  );
+};
+
 // ─── Category tab config ──────────────────────────────────────────────────────
 type CategoryTab = 'all' | TaskCategory;
 
@@ -48,6 +115,7 @@ const CATEGORY_TABS: Array<{ id: CategoryTab; label: string; icon: React.Compone
 ];
 
 const TasksPage: React.FC = () => {
+  const tenantId = useTenantId();
   const { items, loading, error, refresh } = useUnifiedTasks({ mode: 'all' });
   const { projects } = useActiveProjects();
   const [intakeOpen, setIntakeOpen] = useState(false);
@@ -57,6 +125,63 @@ const TasksPage: React.FC = () => {
   const [activeBrandId, setActiveBrandId] = useState<string | 'all' | 'unassigned'>('all');
   const [backfilling, setBackfilling] = useState(false);
   const [backfillMsg, setBackfillMsg] = useState<string | null>(null);
+
+  // Drag-and-drop state
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [optimisticStatus, setOptimisticStatus] = useState<Record<string, string>>({});
+  const [dragError, setDragError] = useState<string | null>(null);
+
+  // 5px movement before drag starts → clicks still pass through to open detail panel
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setDraggingId(String(event.active.id));
+    setDragError(null);
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    setDraggingId(null);
+    const { active, over } = event;
+    if (!over) return;
+
+    const itemId = String(active.id);
+    const targetCol = String(over.id);
+    const newStatus = COLUMN_TARGET_STATUS[targetCol];
+    if (!newStatus) return;
+
+    const item = items.find((i) => i.id === itemId);
+    if (!item || item.source !== 'standalone' || !item.task) return;
+
+    // No-op: dropped on the same column it came from
+    const currentCol = KANBAN_COLUMNS.find((c) => c.statuses.includes(item.status));
+    if (currentCol?.id === targetCol) return;
+
+    // Optimistic: render the card in its new column immediately
+    setOptimisticStatus((prev) => ({ ...prev, [itemId]: newStatus }));
+
+    try {
+      await updateTask(tenantId, item.task.id, { status: newStatus });
+      // Firestore real-time listener picks up the change → clear optimistic flag
+      setTimeout(() => {
+        setOptimisticStatus((prev) => {
+          const next = { ...prev };
+          delete next[itemId];
+          return next;
+        });
+      }, 600);
+    } catch (e: any) {
+      console.error('Task status drag update failed:', e);
+      setDragError(e?.message || 'Durum güncellenemedi');
+      // Revert optimistic so card snaps back to original column
+      setOptimisticStatus((prev) => {
+        const next = { ...prev };
+        delete next[itemId];
+        return next;
+      });
+    }
+  };
 
   // Tasks missing category — backfill candidates
   const uncategorizedCount = useMemo(
@@ -130,18 +255,28 @@ const TasksPage: React.FC = () => {
     return c;
   }, [items]);
 
-  // Filtered items based on active tab + brand chip
+  // Filtered items based on active tab + brand chip — with optimistic status overlay applied
   const filteredItems = useMemo(() => {
-    return items.filter((item) => {
-      const cat = item.category ?? (item.source === 'workflow_step' ? 'brand' : undefined);
-      if (activeCategory !== 'all' && cat !== activeCategory) return false;
-      if (activeCategory === 'brand') {
-        if (activeBrandId === 'unassigned') return !item.projectId;
-        if (activeBrandId !== 'all' && item.projectId !== activeBrandId) return false;
-      }
-      return true;
-    });
-  }, [items, activeCategory, activeBrandId]);
+    return items
+      .filter((item) => {
+        const cat = item.category ?? (item.source === 'workflow_step' ? 'brand' : undefined);
+        if (activeCategory !== 'all' && cat !== activeCategory) return false;
+        if (activeCategory === 'brand') {
+          if (activeBrandId === 'unassigned') return !item.projectId;
+          if (activeBrandId !== 'all' && item.projectId !== activeBrandId) return false;
+        }
+        return true;
+      })
+      .map((item) =>
+        optimisticStatus[item.id] ? { ...item, status: optimisticStatus[item.id] } : item
+      );
+  }, [items, activeCategory, activeBrandId, optimisticStatus]);
+
+  // Item currently being dragged (for DragOverlay preview)
+  const draggingItem = useMemo(
+    () => (draggingId ? filteredItems.find((i) => i.id === draggingId) ?? null : null),
+    [draggingId, filteredItems]
+  );
 
   const stats = {
     total: filteredItems.length,
@@ -334,43 +469,73 @@ const TasksPage: React.FC = () => {
         </div>
       )}
 
+      {/* Drag error toast */}
+      {dragError && (
+        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl">
+          <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+          <p className="font-commons text-xs text-red-700 flex-1">{dragError}</p>
+          <button
+            onClick={() => setDragError(null)}
+            className="font-commons text-xs text-red-600 hover:text-red-800 font-medium"
+          >
+            Kapat
+          </button>
+        </div>
+      )}
+
       {/* Kanban */}
       {!loading && !error && filteredItems.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-          {KANBAN_COLUMNS.map((col) => {
-            const columnItems = filteredItems.filter((i) => col.statuses.includes(i.status));
-            return (
-              <div
-                key={col.id}
-                className={`rounded-xl border-t-2 ${col.color} bg-neutral-50 p-3`}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-commons text-sm font-semibold text-neutral-700">
-                    {col.title}
-                  </h3>
-                  <span className="font-commons text-xs text-neutral-500 bg-white border border-neutral-200 px-2 py-0.5 rounded-full">
-                    {columnItems.length}
-                  </span>
-                </div>
-                {columnItems.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="font-commons text-xs text-neutral-400">Görev yok</p>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCorners}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          onDragCancel={() => setDraggingId(null)}
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            {KANBAN_COLUMNS.map((col) => {
+              const columnItems = filteredItems.filter((i) => col.statuses.includes(i.status));
+              return (
+                <DroppableColumn key={col.id} id={col.id} color={col.color}>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-commons text-sm font-semibold text-neutral-700">
+                      {col.title}
+                    </h3>
+                    <span className="font-commons text-xs text-neutral-500 bg-white border border-neutral-200 px-2 py-0.5 rounded-full">
+                      {columnItems.length}
+                    </span>
                   </div>
-                ) : (
-                  <div className="space-y-2">
-                    {columnItems.map((item) => (
-                      <UnifiedTaskCard
-                        key={item.id}
-                        item={item}
-                        onClick={item.source === 'standalone' ? setSelectedItem : undefined}
-                      />
-                    ))}
-                  </div>
-                )}
+                  {columnItems.length === 0 ? (
+                    <div className="text-center py-8">
+                      <p className="font-commons text-xs text-neutral-400">
+                        Görevi buraya bırak
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {columnItems.map((item) => (
+                        <DraggableCard
+                          key={item.id}
+                          item={item}
+                          onClick={item.source === 'standalone' ? setSelectedItem : undefined}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </DroppableColumn>
+              );
+            })}
+          </div>
+
+          {/* Floating preview while dragging */}
+          <DragOverlay dropAnimation={{ duration: 180, easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)' }}>
+            {draggingItem ? (
+              <div className="rotate-2 scale-105 shadow-2xl ring-2 ring-indigo-300 rounded-xl">
+                <UnifiedTaskCard item={draggingItem} />
               </div>
-            );
-          })}
-        </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
       )}
 
       {/* Backfill banner — shown when there are tasks without category */}

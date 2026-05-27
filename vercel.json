@@ -10,7 +10,10 @@
     "api/agents/generate-agent.ts": { "maxDuration": 60 },
     "api/service-catalog/design-chat.ts": { "maxDuration": 60 },
     "api/social-media/generate-caption.ts": { "maxDuration": 30 },
+    "api/social-media/iterate-caption.ts": { "maxDuration": 30 },
+    "api/social-media/client-review-post.ts": { "maxDuration": 15 },
     "api/tasks/analyze-task.ts": { "maxDuration": 30 },
+    "api/tasks/breakdown-task.ts": { "maxDuration": 30 },
     "api/tasks/intake-chat.ts": { "maxDuration": 60 },
     "api/workflow/design-chat.ts": { "maxDuration": 60 },
     "api/workflow/builder-chat.ts": { "maxDuration": 60 },
@@ -66,7 +69,7 @@
     },
     {
       "path": "/api/cron/task-digest",
-      "schedule": "0 5 * * 1-5"
+      "schedule": "0 5 * * *"
     },
     {
       "path": "/api/cron/task-reminders",

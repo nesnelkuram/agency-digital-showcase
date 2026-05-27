@@ -5,6 +5,7 @@ import AuthGuard from './auth/AuthGuard';
 import PermissionGuard from './auth/PermissionGuard';
 import DashboardPage from './dashboard/DashboardPage';
 import { PERMISSIONS } from '@/lib/rbac/permissions';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Lazy load other pages
 const LeadsPage = React.lazy(() => import('./leads/LeadsPage'));
@@ -100,6 +101,7 @@ const TenantManagementPage = React.lazy(() => import('./settings/TenantManagemen
 // Settings Sub-pages
 const ProfilePage = React.lazy(() => import('./settings/ProfilePage'));
 const UserManagementPage = React.lazy(() => import('./settings/UserManagementPage'));
+const ClientAccessTestPage = React.lazy(() => import('./settings/ClientAccessTestPage'));
 const NotificationsPage = React.lazy(() => import('./settings/NotificationsPage'));
 const IntegrationsPage = React.lazy(() => import('./settings/IntegrationsPage'));
 const NotificationsListPage = React.lazy(() => import('./notifications/NotificationsListPage'));
@@ -114,6 +116,13 @@ const AgentFormPage = React.lazy(() => import('./agents/AgentFormPage'));
 
 // Task Pages
 const TasksPage = React.lazy(() => import('./tasks/TasksPage'));
+
+// SOP — İş kalıpları yönetimi
+const SopListPage = React.lazy(() => import('./sops/SopListPage'));
+const SopFormPage = React.lazy(() => import('./sops/SopFormPage'));
+
+// ŞİMDİ View — full-screen, sidebar-free task focus view
+const NowPage = React.lazy(() => import('./now/NowPage'));
 
 // Workflow Pages
 const WorkflowListPage = React.lazy(() => import('./workflows/WorkflowListPage'));
@@ -133,10 +142,33 @@ const CreateFilingPage = React.lazy(() => import('./filing/CreateFilingPage'));
 const FilingTemplatesPage = React.lazy(() => import('./filing/FilingTemplatesPage'));
 const FilingDetailPage = React.lazy(() => import('./filing/FilingDetailPage'));
 
+/**
+ * AdminApp — yalnızca iç ekip ve dış yüklenici rolleri için.
+ * Müşteri (client) rolü admin paneline erişemez; otomatik olarak portala yönlendirilir.
+ */
+const AdminAppRoleGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (user?.role === 'client') {
+    return <Navigate to="/portal" replace />;
+  }
+  return <>{children}</>;
+};
+
 const AdminApp: React.FC = () => {
   return (
     <AuthGuard>
+      <AdminAppRoleGate>
       <Routes>
+        {/* ŞİMDİ — full-screen, no sidebar (must come BEFORE AdminLayout route) */}
+        <Route
+          path="now"
+          element={
+            <React.Suspense fallback={<PageLoader />}>
+              <NowPage />
+            </React.Suspense>
+          }
+        />
         <Route element={<AdminLayout />}>
           <Route index element={<DashboardPage />} />
           <Route
@@ -929,6 +961,31 @@ const AdminApp: React.FC = () => {
               </React.Suspense>
             }
           />
+          {/* SOP — İş kalıpları */}
+          <Route
+            path="sops"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <SopListPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="sops/new"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <SopFormPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="sops/:sopId"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <SopFormPage />
+              </React.Suspense>
+            }
+          />
           {/* Workflow Routes */}
           <Route
             path="workflows"
@@ -1049,6 +1106,14 @@ const AdminApp: React.FC = () => {
             element={<Navigate to="/admin/team" replace />}
           />
           <Route
+            path="settings/client-access-test"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <ClientAccessTestPage />
+              </React.Suspense>
+            }
+          />
+          <Route
             path="notifications"
             element={
               <React.Suspense fallback={<PageLoader />}>
@@ -1092,6 +1157,7 @@ const AdminApp: React.FC = () => {
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Route>
       </Routes>
+      </AdminAppRoleGate>
     </AuthGuard>
   );
 };

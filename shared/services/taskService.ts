@@ -11,6 +11,7 @@ import {
   orderBy,
   onSnapshot,
   Timestamp,
+  writeBatch,
   QueryConstraint,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
@@ -99,6 +100,85 @@ export async function deleteTask(tenantId: string, taskId: string): Promise<void
   await deleteDoc(docRef);
 }
 
+// ─── SOP breakdown — atomic write of children + parent counter ───────────────
+export interface BreakdownChildInput {
+  title: string;
+  estimatedMinutes: number;
+  alreadyDone?: boolean;                // başlangıçta status='completed' yaz
+  trainingResourceId?: string;          // checkpoint videosu
+}
+
+export async function saveBreakdown(
+  tenantId: string,
+  parentTaskId: string,
+  steps: BreakdownChildInput[],
+  meta: {
+    createdBy: string;
+    createdByName: string;
+    inheritedProjectId?: string;
+    inheritedProjectName?: string;
+    inheritedCategory?: Task['category'];
+    parentPriorityScore: number;
+    sopId?: string;                  // mevcut SOP'tan türetildiyse
+    sopName?: string;
+  }
+): Promise<string[]> {
+  if (!db) throw new Error('Firebase not initialized');
+  if (steps.length === 0) return [];
+
+  const batch = writeBatch(db);
+  const now = Timestamp.now();
+  const childIds: string[] = [];
+
+  steps.forEach((step, index) => {
+    const childRef = doc(collection(db!, COLLECTION));
+    childIds.push(childRef.id);
+
+    const isAlreadyDone = Boolean(step.alreadyDone);
+
+    const child: Record<string, any> = {
+      id: childRef.id,
+      tenantId,
+      title: step.title,
+      status: isAlreadyDone ? 'completed' : 'open',
+      priority: 'medium',
+      aiPriorityScore: meta.parentPriorityScore,
+      aiRiskLevel: 'none',
+      aiAnalyzed: true,
+      parentTaskId,
+      sortOrder: index,
+      estimatedMinutes: step.estimatedMinutes,
+      createdBy: meta.createdBy,
+      createdByName: meta.createdByName,
+      createdAt: now,
+      updatedAt: now,
+      categorySource: 'ai',
+      ...(isAlreadyDone ? { completedAt: now } : {}),
+    };
+
+    if (meta.inheritedProjectId) child.projectId = meta.inheritedProjectId;
+    if (meta.inheritedProjectName) child.projectName = meta.inheritedProjectName;
+    if (meta.inheritedCategory) child.category = meta.inheritedCategory;
+    if (meta.sopId) child.derivedFromSopId = meta.sopId;
+    if (meta.sopName) child.derivedFromSopName = meta.sopName;
+    if (step.trainingResourceId) child.linkedTrainingResourceId = step.trainingResourceId;
+
+    batch.set(childRef, child);
+  });
+
+  const parentRef = doc(db, COLLECTION, parentTaskId);
+  const parentPatch: Record<string, any> = {
+    subTaskCount: steps.length,
+    updatedAt: now,
+  };
+  if (meta.sopId) parentPatch.derivedFromSopId = meta.sopId;
+  if (meta.sopName) parentPatch.derivedFromSopName = meta.sopName;
+  batch.update(parentRef, parentPatch);
+
+  await batch.commit();
+  return childIds;
+}
+
 // ─── Real-time ────────────────────────────────────────────────────────────────
 
 // All tasks for a tenant (manager/admin view)
@@ -115,7 +195,7 @@ export function subscribeToAllTasks(
   const q = query(
     collection(db, COLLECTION),
     where('tenantId', '==', tenantId),
-    where('status', 'in', ['open', 'in_progress', 'awaiting_review', 'blocked']),
+    where('status', 'in', ['open', 'in_progress', 'paused', 'awaiting_review', 'blocked']),
     orderBy('aiPriorityScore', 'desc')
   );
 
@@ -147,7 +227,7 @@ export function subscribeToTasks(
     collection(db, COLLECTION),
     where('tenantId', '==', tenantId),
     where('assigneeId', '==', userId),
-    where('status', 'in', ['open', 'in_progress', 'awaiting_review', 'blocked']),
+    where('status', 'in', ['open', 'in_progress', 'paused', 'awaiting_review', 'blocked']),
     orderBy('aiPriorityScore', 'desc')
   );
 

@@ -47,8 +47,14 @@ ${projectListBlock}
 - aiRiskLevel: high (≥80) | medium (≥60) | low (≥40) | none (<40)
 - aiRiskFlags: Kısa risk açıklamaları dizisi. Max 3 madde.
 - tags: Kısa etiketler dizisi. Max 5 madde.
-- aiScoreRationale: 1 cümle Türkçe açıklama.
+- aiScoreRationale: 1 cümle Türkçe açıklama. Örnek: "Yarın deadline ve müşteri işi — bugünün önceliği."
 - categoryConfidence: 0.0–1.0 arası, kategori atamasının güvenirliği.
+- eisenhowerQuadrant: Eisenhower matrisi atama. Önemli = ajansın gelirine/müşteri ilişkisine/stratejik hedeflerine katkı. Acil = 1-3 gün içinde yapılmazsa kayıp/risk.
+  * q1 = Önemli + Acil (müşteri teslimi yarın, kritik bug)
+  * q2 = Önemli + Acil değil (uzun vadeli strateji, eğitim, prosedür yazımı)
+  * q3 = Acil + Önemsiz (telefonlara cevap, küçük rica, başkasının deadline'ı)
+  * q4 = İkisi de değil (büro temizliği, "bakılması gereken" arşiv)
+  Şüphedeysen q2 ver — en güvenli default.
 
 SADECE geçerli JSON döndür, başka hiçbir şey yazma:
 {
@@ -63,7 +69,8 @@ SADECE geçerli JSON döndür, başka hiçbir şey yazma:
   "aiRiskLevel": "none" | "low" | "medium" | "high",
   "aiRiskFlags": string[],
   "tags": string[],
-  "aiScoreRationale": string
+  "aiScoreRationale": string,
+  "eisenhowerQuadrant": "q1" | "q2" | "q3" | "q4"
 }`;
 
 interface AnalysisResult {
@@ -79,6 +86,7 @@ interface AnalysisResult {
   aiRiskFlags: string[];
   tags: string[];
   aiScoreRationale: string;
+  eisenhowerQuadrant?: 'q1' | 'q2' | 'q3' | 'q4';
 }
 
 export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) => {
@@ -96,7 +104,13 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
 
     const db = getAdminDb();
     const taskRef = db.collection('tasks').doc(taskId);
-    const taskDoc = await taskRef.get();
+
+    // Frontend just wrote the doc — Admin SDK may need a beat to see it
+    let taskDoc = await taskRef.get();
+    for (let i = 0; i < 2 && !taskDoc.exists; i++) {
+      await new Promise((r) => setTimeout(r, 250));
+      taskDoc = await taskRef.get();
+    }
 
     if (!taskDoc.exists) {
       return res.status(404).json({ error: 'Task not found' });
@@ -116,9 +130,34 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
     const projects = await getActiveProjects(req.tenantId);
     const projectBlock = formatProjectsForPrompt(projects);
 
+    // Son 10 kullanıcı tercih sinyali — AI'ya "bu ajansta bu tip işler nasıl önceliklenir" sezgisi
+    let signalsBlock = '';
+    try {
+      const sigSnap = await db
+        .collection('priority_signals')
+        .where('tenantId', '==', req.tenantId)
+        .orderBy('createdAt', 'desc')
+        .limit(10)
+        .get();
+      if (!sigSnap.empty) {
+        const examples = sigSnap.docs
+          .map((d) => d.data())
+          .filter((s: any) => s.toColumn && s.taskTitle)
+          .map((s: any) => {
+            const moved = s.fromColumn === s.toColumn ? 'sıraladı' : `${s.fromColumn}→${s.toColumn}`;
+            const flagged = s.wasFlagged ? ' [BAYRAKLI]' : '';
+            const ctx = s.projectName ? ` (${s.projectName})` : '';
+            return `- "${s.taskTitle}"${ctx}${flagged} → kullanıcı manuel ${moved}`;
+          });
+        if (examples.length > 0) {
+          signalsBlock = `\n## Kullanıcının Son Manuel Öncelikleri (örnek olarak öğren)\n${examples.join('\n')}\n`;
+        }
+      }
+    } catch {/* index yok ya da boş — sessiz geç */}
+
     const result = await generateJSON<AnalysisResult>(
       'flash',
-      PROMPT_TEMPLATE(title, description, projectBlock),
+      PROMPT_TEMPLATE(title, description, projectBlock) + signalsBlock,
       'task-analyze',
       { maxOutputTokens: 1024, temperature: 0.3 }
     );
@@ -157,6 +196,11 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
       }
     }
 
+    const validQuadrants = ['q1', 'q2', 'q3', 'q4'] as const;
+    const quadrant = validQuadrants.includes(result.eisenhowerQuadrant as any)
+      ? (result.eisenhowerQuadrant as 'q1' | 'q2' | 'q3' | 'q4')
+      : 'q2';
+
     const updates: Record<string, any> = {
       priority: result.priority || 'medium',
       aiPriorityScore: result.aiPriorityScore ?? 50,
@@ -165,6 +209,7 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
       tags: result.tags || [],
       aiScoreRationale: result.aiScoreRationale || '',
       suggestedAssigneeRole: result.suggestedAssigneeRole || '',
+      eisenhowerQuadrant: quadrant,
       aiAnalyzed: true,
       updatedAt: new Date(),
     };

@@ -4,6 +4,7 @@ import type { Timestamp } from 'firebase/firestore';
 export type TaskStatus =
   | 'open'
   | 'in_progress'
+  | 'paused'
   | 'awaiting_review'
   | 'blocked'
   | 'completed'
@@ -34,10 +35,23 @@ export interface Task {
   aiRiskLevel: TaskRiskLevel;
   aiRiskFlags?: string[];
 
+  // Kullanıcı işaretleri
+  flagged?: boolean;             // 🚩 kırmızı bayrak (kullanıcı manuel önemli işaretledi)
+  manualOrder?: number;          // sütun içinde drag-reorder pozisyonu (boş = AI skoru kullan)
+
+  // Eisenhower quadrant (UI'da gösterilmez — frog seçim mantığında kullanılır)
+  // q1=acil+önemli, q2=önemli/acil değil, q3=acil/önemsiz, q4=hiçbiri
+  eisenhowerQuadrant?: 'q1' | 'q2' | 'q3' | 'q4';
+
   // Assignment
   assigneeId?: string;
   assigneeName?: string;
   assigneeRole?: string;
+
+  // Birden fazla kişi çalışıyorsa (görsel avatar stack için)
+  collaboratorIds?: string[];
+  // Denormalized cache — Firestore round-trip atlamak için
+  collaborators?: Array<{ id: string; name: string; avatarUrl?: string }>;
 
   // Suggested delegation (AI)
   suggestedAssigneeId?: string;
@@ -88,6 +102,33 @@ export interface Task {
 
   // Source channel
   source?: 'web' | 'telegram' | 'intake' | 'workflow';
+
+  // ŞİMDİ system (Phase 1) — execution telemetry
+  startedAt?: Timestamp;             // en son DEVAM ettirildiği an (resume noktası)
+  startedBy?: string;                // user.uid
+  startedByName?: string;            // user.displayName/email
+  pausedAt?: Timestamp;              // duraklatıldığı an (varsa = şu an paused)
+  accumulatedSeconds?: number;       // önceki çalışma segmentlerinden biriken toplam
+  completedAt?: Timestamp;           // when user pressed BİTTİ
+  completedBy?: string;
+  completedByName?: string;
+  actualMinutesSpent?: number;       // computed total (yuvarlanmış dakika)
+  actualSecondsSpent?: number;       // hassas saniye log
+  skipCount?: number;                // how many times ATLA was pressed
+  lastSkipReason?: 'blocked' | 'wrong_time' | 'not_mine' | 'dont_want';
+  lastSkippedAt?: Timestamp;
+
+  // Sub-task / SOP breakdown (Phase 2)
+  parentTaskId?: string;             // bu görev başka bir görevin alt-adımıysa parent'ı
+  sortOrder?: number;                // kardeşler arasında sıra (0, 1, 2…)
+  subTaskCount?: number;             // bu görev parent ise alt-görev sayısı; 0/undef = leaf
+  estimatedMinutes?: number;         // AI'nın tahmini süre (SOP adımları için)
+  derivedFromSopId?: string;         // hangi SOP kalıbından türetildi
+  derivedFromSopName?: string;       // chip'te göstermek için
+  linkedTrainingResourceId?: string; // bu adım için eğitim videosu (training_resources/id)
+
+  // Snooze — sürekli atlanan görevler için "sonra" kararı
+  snoozedUntil?: Timestamp;
 }
 
 // ─── UnifiedTaskItem — client-only, aggregated view ──────────────────────────
@@ -141,6 +182,7 @@ export interface TaskIntakeSession {
 export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
   open: 'Açık',
   in_progress: 'Devam Ediyor',
+  paused: 'Duraklatıldı',
   awaiting_review: 'İnceleme Bekliyor',
   blocked: 'Engellendi',
   completed: 'Tamamlandı',
