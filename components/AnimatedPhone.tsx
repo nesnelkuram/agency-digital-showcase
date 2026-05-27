@@ -21,6 +21,8 @@ interface AnimatedPhoneProps {
   mobileScale?: number;  // Mobil için özel scale
   isMobile?: boolean;  // Mobil cihaz mı
   phoneIndex?: number;  // Phone index for staggered video loading
+  /** Controlled by usePlaybackOrchestrator — when false, video is paused to save decoder slots */
+  playbackAllowed?: boolean;
 }
 
 const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
@@ -38,7 +40,8 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
   mobileRotation,
   mobileScale = 1,
   isMobile = false,
-  phoneIndex = 0
+  phoneIndex = 0,
+  playbackAllowed = true
 }) => {
   // Loading state for full video
   const [isLoadingFullVideo, setIsLoadingFullVideo] = useState(false);
@@ -282,6 +285,7 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
               isSelected={isSelected}
               enableSound={isSelected}  // Only enable sound when selected
               loadDelay={phoneIndex * 300}  // Staggered loading: 0ms, 300ms, 600ms, etc.
+              playbackAllowed={playbackAllowed || isSelected}  // Selected phone always plays
             />
           )}
         </Suspense>

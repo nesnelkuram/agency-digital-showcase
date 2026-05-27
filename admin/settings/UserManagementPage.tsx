@@ -18,10 +18,20 @@ import {
   Search,
   Copy,
   CheckCheck,
+  FileUp,
 } from 'lucide-react';
+import { getAuth } from 'firebase/auth';
 import { useUserManagement } from '@/shared/hooks/useUserManagement';
 import { usePermission } from '@/shared/hooks/usePermission';
 import { UserRole } from '@/shared/types/user';
+import { useAuth } from '@/contexts/AuthContext';
+import InviteUserWizard, {
+  InvitePayload,
+} from './components/invite/InviteUserWizard';
+import BulkImportModal from './components/invite/BulkImportModal';
+import EditUserModal from './components/invite/EditUserModal';
+import { Pencil } from 'lucide-react';
+import type { User as UserT } from '@/shared/types/user';
 
 const roleLabels: Record<UserRole, string> = {
   super_admin: 'Süper Admin',
@@ -43,8 +53,8 @@ const roleColors: Record<UserRole, string> = {
   freelancer: 'bg-amber-100 text-amber-700',
 };
 
-// Roles available for invitation (super_admin assigned server-side only)
-const inviteRoles: UserRole[] = ['admin', 'account_manager', 'editor', 'staff', 'client', 'freelancer'];
+// Roles assignable via role change dropdown (super_admin atanmaz, wizard UI üzerinden)
+const roleChangeRoles: UserRole[] = ['admin', 'account_manager', 'editor', 'staff', 'client', 'freelancer'];
 
 function formatLastLogin(lastLoginAt: unknown): string {
   if (!lastLoginAt) return 'Hiç giriş yapmadı';
@@ -63,6 +73,7 @@ function formatLastLogin(lastLoginAt: unknown): string {
 
 const UserManagementPage: React.FC = () => {
   const { isAdmin } = usePermission();
+  const { user: authedUser } = useAuth();
   const {
     users,
     invitations,
@@ -76,14 +87,9 @@ const UserManagementPage: React.FC = () => {
     refetch,
   } = useUserManagement();
 
-  const [showInviteModal, setShowInviteModal] = useState(false);
-  const [inviteForm, setInviteForm] = useState({
-    email: '',
-    displayName: '',
-    role: 'staff' as UserRole,
-  });
-  const [inviteLoading, setInviteLoading] = useState(false);
-  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [showInviteWizard, setShowInviteWizard] = useState(false);
+  const [showBulkImport, setShowBulkImport] = useState(false);
+  const [editingUser, setEditingUser] = useState<UserT | null>(null);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<UserRole | 'all'>('all');
@@ -100,19 +106,37 @@ const UserManagementPage: React.FC = () => {
     });
   }, [users, search, roleFilter]);
 
-  const handleInvite = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setInviteLoading(true);
-    setInviteError(null);
-    try {
-      await inviteUser(inviteForm.email, inviteForm.displayName, inviteForm.role);
-      setShowInviteModal(false);
-      setInviteForm({ email: '', displayName: '', role: 'staff' });
-    } catch (err: unknown) {
-      setInviteError((err as Error).message || 'Davetiye gönderilemedi');
-    } finally {
-      setInviteLoading(false);
+  const handleWizardSubmit = async (payload: InvitePayload) => {
+    const result = await inviteUser(payload.email, payload.displayName, payload.role, {
+      extraFields: payload.extraFields,
+      forceTwoFactor: payload.forceTwoFactor,
+      expiresInDays: payload.expiresInDays,
+      useTemporaryPassword: payload.useTemporaryPassword,
+    });
+    if (result.temporaryPassword) {
+      return { temporaryPassword: result.temporaryPassword };
     }
+  };
+
+  const handleBulkSubmit = async (payloads: InvitePayload[]) => {
+    const token = await getAuth().currentUser?.getIdToken();
+    const res = await fetch('/api/invitations/bulk', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ invitations: payloads }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(body?.error || 'Toplu davet gönderilemedi');
+    }
+    await refetch();
+    return {
+      successes: body.successes || 0,
+      failures: body.failures || [],
+    };
   };
 
   const handleRoleChange = async (uid: string, role: UserRole) => {
@@ -216,8 +240,15 @@ const UserManagementPage: React.FC = () => {
             <RefreshCw className="w-4 h-4" />
             Yenile
           </button>
+          <button
+            onClick={() => setShowBulkImport(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 border border-neutral-200 text-neutral-700 rounded-full font-grotesk text-sm hover:bg-neutral-50 transition-colors"
+          >
+            <FileUp className="w-4 h-4" />
+            Toplu İçe Aktar
+          </button>
           <motion.button
-            onClick={() => setShowInviteModal(true)}
+            onClick={() => setShowInviteWizard(true)}
             className="inline-flex items-center gap-2 px-4 py-2 bg-[#171717] text-white rounded-full font-grotesk text-sm hover:bg-neutral-800 transition-colors"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -354,7 +385,7 @@ const UserManagementPage: React.FC = () => {
             </p>
             {!search && roleFilter === 'all' && (
               <button
-                onClick={() => setShowInviteModal(true)}
+                onClick={() => setShowInviteWizard(true)}
                 className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#171717] text-white rounded-full font-grotesk text-sm"
               >
                 <UserPlus className="w-4 h-4" />
@@ -431,16 +462,24 @@ const UserManagementPage: React.FC = () => {
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.95 }}
-                            className="absolute right-0 top-full mt-1 w-52 bg-white rounded-lg shadow-lg border border-neutral-200 py-1 z-10"
+                            className="absolute right-0 top-full mt-1 w-56 bg-white rounded-lg shadow-lg border border-neutral-200 py-1 z-10"
                           >
+                            <button
+                              onClick={() => {
+                                setEditingUser(user);
+                                setActiveDropdown(null);
+                              }}
+                              className="w-full px-3 py-2 text-left font-grotesk text-sm hover:bg-neutral-50 flex items-center gap-2 text-neutral-700 border-b border-neutral-100"
+                            >
+                              <Pencil className="w-4 h-4" />
+                              Profili Düzenle
+                            </button>
                             <div className="px-3 py-2 border-b border-neutral-100">
                               <p className="font-grotesk text-xs text-neutral-500 uppercase tracking-wide">
                                 Rol Değiştir
                               </p>
                             </div>
-                            {(Object.keys(roleLabels) as UserRole[])
-                              .filter((r) => r !== 'super_admin')
-                              .map((role) => (
+                            {roleChangeRoles.map((role) => (
                                 <button
                                   key={role}
                                   onClick={() => handleRoleChange(user.uid, role)}
@@ -477,127 +516,32 @@ const UserManagementPage: React.FC = () => {
         )}
       </div>
 
-      {/* Invite Modal */}
-      <AnimatePresence>
-        {showInviteModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-            onClick={() => setShowInviteModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl w-full max-w-md p-6"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="font-grotesk text-xl font-bold text-[#171717]">
-                  Kullanıcı Davet Et
-                </h3>
-                <button
-                  onClick={() => setShowInviteModal(false)}
-                  className="p-2 hover:bg-neutral-100 rounded-lg transition-colors"
-                >
-                  <X className="w-5 h-5 text-neutral-500" />
-                </button>
-              </div>
+      {/* Invite Wizard (role-aware) */}
+      <InviteUserWizard
+        open={showInviteWizard}
+        onClose={() => setShowInviteWizard(false)}
+        onSubmit={handleWizardSubmit}
+        tenantUsers={users}
+        currentUserRole={authedUser?.role}
+      />
 
-              <form onSubmit={handleInvite} className="space-y-4">
-                <div>
-                  <label className="block font-grotesk text-sm text-neutral-700 mb-1">
-                    Ad Soyad
-                  </label>
-                  <input
-                    type="text"
-                    value={inviteForm.displayName}
-                    onChange={(e) =>
-                      setInviteForm({ ...inviteForm, displayName: e.target.value })
-                    }
-                    placeholder="Örnek: Ahmet Yılmaz"
-                    className="w-full px-4 py-3 border-2 border-neutral-200 rounded-lg font-grotesk bg-[#fffceb] focus:border-[#171717] focus:outline-none transition-colors"
-                    required
-                  />
-                </div>
+      {/* Bulk Import Modal */}
+      <BulkImportModal
+        open={showBulkImport}
+        onClose={() => setShowBulkImport(false)}
+        onSubmit={handleBulkSubmit}
+      />
 
-                <div>
-                  <label className="block font-grotesk text-sm text-neutral-700 mb-1">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    value={inviteForm.email}
-                    onChange={(e) =>
-                      setInviteForm({ ...inviteForm, email: e.target.value })
-                    }
-                    placeholder="ornek@email.com"
-                    className="w-full px-4 py-3 border-2 border-neutral-200 rounded-lg font-grotesk bg-[#fffceb] focus:border-[#171717] focus:outline-none transition-colors"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-grotesk text-sm text-neutral-700 mb-1">
-                    Rol
-                  </label>
-                  <select
-                    value={inviteForm.role}
-                    onChange={(e) =>
-                      setInviteForm({
-                        ...inviteForm,
-                        role: e.target.value as UserRole,
-                      })
-                    }
-                    className="w-full px-4 py-3 border-2 border-neutral-200 rounded-lg font-grotesk bg-[#fffceb] focus:border-[#171717] focus:outline-none transition-colors"
-                  >
-                    {inviteRoles.map((role) => (
-                      <option key={role} value={role}>
-                        {roleLabels[role]}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {inviteError && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                    <p className="font-grotesk text-sm text-red-600">{inviteError}</p>
-                  </div>
-                )}
-
-                <div className="flex gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowInviteModal(false)}
-                    className="flex-1 px-4 py-3 border-2 border-neutral-200 rounded-full font-grotesk font-medium hover:bg-neutral-50 transition-colors"
-                  >
-                    İptal
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={inviteLoading}
-                    className="flex-1 px-4 py-3 bg-[#171717] text-white rounded-full font-grotesk font-medium hover:bg-neutral-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    {inviteLoading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Gönderiliyor...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="w-4 h-4" />
-                        Davet Gönder
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Edit User Modal */}
+      <EditUserModal
+        open={!!editingUser}
+        onClose={() => setEditingUser(null)}
+        user={editingUser}
+        tenantUsers={users}
+        onSaved={() => {
+          refetch();
+        }}
+      />
     </div>
   );
 };

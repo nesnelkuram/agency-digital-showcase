@@ -17,6 +17,8 @@ import UserCard from './components/UserCard';
 import InvitationCard from './components/InvitationCard';
 import RoleInfoCard from './components/RoleInfoCard';
 import InviteModal from './components/InviteModal';
+import EditUserModal from '@/admin/settings/components/invite/EditUserModal';
+import type { User } from '@/shared/types/user';
 
 const roleLabels: Record<UserRole, string> = {
   super_admin: 'Super Admin',
@@ -57,6 +59,7 @@ const TeamPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<UserRole | 'all'>('all');
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
 
   const filteredUsers = useMemo(() => {
     return users.filter((u) => {
@@ -264,6 +267,7 @@ const TeamPage: React.FC = () => {
                   user={user}
                   onRoleChange={handleRoleChange}
                   onStatusToggle={handleStatusToggle}
+                  onEdit={setEditingUser}
                 />
               ))}
             </div>
@@ -313,6 +317,17 @@ const TeamPage: React.FC = () => {
         open={showInviteModal}
         onClose={() => setShowInviteModal(false)}
         onInvite={inviteUser}
+      />
+
+      {/* Edit User Modal — rol-spesifik alanları düzenleme */}
+      <EditUserModal
+        open={!!editingUser}
+        onClose={() => setEditingUser(null)}
+        user={editingUser}
+        tenantUsers={users}
+        onSaved={() => {
+          refetch();
+        }}
       />
     </div>
   );

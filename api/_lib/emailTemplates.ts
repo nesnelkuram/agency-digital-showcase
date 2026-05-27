@@ -64,20 +64,26 @@ export function contentPlanSubmittedEmail(params: {
   planTitle: string;
   shareUrl: string;
   weekRange?: string;
+  brandName?: string;
+  postCount?: number;
 }): { subject: string; html: string } {
-  const subject = `${params.senderName} içerik planınızı onayınıza sundu`;
+  const dateLabel = params.weekRange ? params.weekRange : 'yaklaşan dönem';
+  const subject = `${params.brandName || params.planTitle} — ${dateLabel} sosyal medya planınız onayınıza sunuldu`;
   const html = wrapHtml(subject, `
     <span class="badge badge-amber">Onay Bekleniyor</span>
     <p>Merhaba <strong>${params.recipientName}</strong>,</p>
-    <p><strong>${params.senderName}</strong> aşağıdaki içerik planını sizin onayınıza sundu:</p>
+    <p><strong>${params.brandName || params.planTitle}</strong> markası için <strong>${dateLabel}</strong> tarihlerine ait sosyal medya paylaşım planı onayınıza sunulmuştur.</p>
     <div class="metadata">
       <p><strong>Plan Adı:</strong> ${params.planTitle}</p>
-      ${params.weekRange ? `<p><strong>Dönem:</strong> ${params.weekRange}</p>` : ''}
+      ${params.weekRange ? `<p><strong>Yayın Dönemi:</strong> ${params.weekRange}</p>` : ''}
+      ${typeof params.postCount === 'number' ? `<p><strong>Toplam Gönderi:</strong> ${params.postCount} adet</p>` : ''}
+      <p><strong>Hazırlayan:</strong> ${params.senderName}</p>
     </div>
-    <p>Planı incelemek ve onaylamak için aşağıdaki butona tıklayın:</p>
+    <p>Aşağıdaki butondan plana giriş yapabilir, her gönderiyi tek tek inceleyip <strong>onaylayabilir</strong> veya <strong>revizyon isteyebilirsiniz</strong>.</p>
     <div style="text-align:center;">
       <a href="${params.shareUrl}" class="cta">Planı İncele ve Onayla</a>
     </div>
+    <p style="color:#737373;font-size:13px;margin-top:16px;">Geri bildiriminiz doğrudan ekibimize ulaşır. Link size özeldir ve başkalarıyla paylaşılmamalıdır.</p>
     <div class="link-box">
       Link çalışmıyorsa bu adresi tarayıcınıza kopyalayın:<br>${params.shareUrl}
     </div>

@@ -6,6 +6,8 @@ import { ALL_MEDIA_CONTENT } from '../constants';
 import { useBreakpoint } from '../hooks/useMediaQuery';
 import { getVideosByCategory } from '../videoUtils';
 import WebGLFallback from './WebGLFallback';
+import { useDeviceCapability } from '../hooks/useDeviceCapability';
+import { usePlaybackOrchestrator } from '../hooks/usePlaybackOrchestrator';
 
 // WebGL availability probe — cached at module level
 let _webglSupported: boolean | null = null;
@@ -226,6 +228,10 @@ const Header3D: React.FC<Header3DProps> = ({
 
   const { isMobile, isTablet } = useBreakpoint();
 
+  // Device capability detection + playback orchestrator
+  const deviceCapability = useDeviceCapability();
+  const { register: registerPhone, unregister: unregisterPhone, isActive: isPhoneActive } = usePlaybackOrchestrator(deviceCapability, parallaxOffset);
+
   // How many viewport-heights to scroll before parallax ends
   const PARALLAX_DURATION_VIEWPORTS = isMobile ? 3.5 : 5; // Mobilde daha kısa, daha erken aşağı in
 
@@ -369,6 +375,49 @@ const Header3D: React.FC<Header3DProps> = ({
       }
     });
   }, [isMobile, isTablet, selectedCategory]);
+
+  // Pre-compute grid positions for orchestrator registration
+  const phoneGridPositions = useMemo(() => {
+    const columns = 3;
+    const phonesPerColumn = isMobile
+      ? [4, 4, 3]
+      : isTablet
+        ? [3, 2, 2]
+        : [4, 3, 3];
+    const spacingY = 2.0;
+
+    const positions: { key: string; worldY: number; column: number }[] = [];
+    let idx = 0;
+    for (let col = 0; col < columns; col++) {
+      const phoneCount = phonesPerColumn[col];
+      for (let row = 0; row < phoneCount; row++) {
+        if (idx < phoneConfigs.length) {
+          const centerOffset = (phoneCount - 1) / 2;
+          let baseY = (row - centerOffset) * spacingY;
+          if (isMobile) {
+            if (col === 0 || col === 1) baseY += spacingY;
+          } else if (col === 1) {
+            baseY += spacingY;
+          }
+          positions.push({ key: phoneConfigs[idx].key, worldY: baseY, column: col });
+          idx++;
+        }
+      }
+    }
+    return positions;
+  }, [phoneConfigs, isMobile, isTablet]);
+
+  // Register phones with orchestrator
+  useEffect(() => {
+    for (const pos of phoneGridPositions) {
+      registerPhone(pos.key, pos.worldY, pos.column);
+    }
+    return () => {
+      for (const pos of phoneGridPositions) {
+        unregisterPhone(pos.key);
+      }
+    };
+  }, [phoneGridPositions, registerPhone, unregisterPhone]);
 
   // Touch handlers for mobile carousel
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
@@ -703,6 +752,7 @@ const Header3D: React.FC<Header3DProps> = ({
                               onClick={() => handlePhoneClick(cfg.key, isSelected)}
                               isMobile={isMobile}
                               phoneIndex={index}
+                              playbackAllowed={isPhoneActive(cfg.key)}
                             />
                           );
                   });

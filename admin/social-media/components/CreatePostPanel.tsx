@@ -390,7 +390,7 @@ const CreatePostPanel: React.FC<CreatePostPanelProps> = ({
                   ) : (
                     <MediaDropZone
                       onFilesSelected={handleFilesSelected}
-                      maxFiles={postType === 'carousel' ? 10 : 1}
+                      maxFiles={10}
                       existingMedia={media}
                       onRemoveMedia={handleRemoveMedia}
                       onReorderMedia={handleReorderMedia}

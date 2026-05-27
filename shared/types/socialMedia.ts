@@ -88,6 +88,12 @@ export interface ContentPlan {
   // Atanmis musteri
   assignedClientId?: string;
   assignedClientName?: string;
+  assignedClientEmail?: string;
+
+  // Müşteriye gönderilme zamanı (onay için)
+  sentToClientAt?: Timestamp;
+  sentToClientBy?: string;
+  sentToClientByName?: string;
 }
 
 export interface CreateContentPlanData {
@@ -212,6 +218,14 @@ export const POST_STATUS_COLORS: Record<PostStatus, string> = {
 // ANA POST ENTITY
 // ============================================
 
+export interface CaptionChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: number;
+  suggestedCaption?: string;
+  suggestedHashtags?: string[];
+}
+
 export interface SocialMediaPost {
   id: string;
   projectId: string;
@@ -224,6 +238,9 @@ export interface SocialMediaPost {
   media?: MediaItem[];
   aiGeneratedCaption?: string;
 
+  // AI caption iterasyon sohbeti
+  captionChatHistory?: CaptionChatMessage[];
+
   // Siniflandirma
   postType: PostType;
   platforms: SocialPlatform[];
@@ -231,6 +248,9 @@ export interface SocialMediaPost {
 
   // Plan
   contentPlanId?: string;
+
+  // Instagram grid sıralaması (opsiyonel, yoksa scheduledAt)
+  gridPosition?: number;
 
   // Zamanlama
   scheduledAt?: Timestamp;
@@ -286,11 +306,13 @@ export interface UpdateSocialPostData {
   mediaUrls?: string[];
   media?: MediaItem[];
   aiGeneratedCaption?: string;
+  captionChatHistory?: CaptionChatMessage[];
   postType?: PostType;
   platforms?: SocialPlatform[];
   contentPlanId?: string;
   status?: PostStatus;
   scheduledAt?: Timestamp;
+  gridPosition?: number;
   tags?: string[];
 }
 

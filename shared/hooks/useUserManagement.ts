@@ -13,16 +13,32 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { getAuth } from 'firebase/auth';
-import { User, UserRole, Invitation, InvitationStatus } from '@/shared/types/user';
+import { User, UserRole, Invitation, InvitationStatus, InvitationExtraFields } from '@/shared/types/user';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTenantId } from '@/shared/hooks/useTenant';
+
+export interface InviteUserOptions {
+  extraFields?: InvitationExtraFields;
+  forceTwoFactor?: boolean;
+  expiresInDays?: number;
+  useTemporaryPassword?: boolean;
+}
+
+export interface InviteUserResult {
+  temporaryPassword?: string;
+}
 
 interface UseUserManagementReturn {
   users: User[];
   invitations: Invitation[];
   loading: boolean;
   error: string | null;
-  inviteUser: (email: string, displayName: string, role: UserRole) => Promise<void>;
+  inviteUser: (
+    email: string,
+    displayName: string,
+    role: UserRole,
+    options?: InviteUserOptions
+  ) => Promise<InviteUserResult>;
   updateUserRole: (uid: string, role: UserRole) => Promise<void>;
   updateUserStatus: (uid: string, status: 'active' | 'suspended') => Promise<void>;
   cancelInvitation: (invitationId: string) => Promise<void>;
@@ -92,6 +108,7 @@ export function useUserManagement(): UseUserManagementReturn {
         const data = doc.data();
         invitationsList.push({
           id: doc.id,
+          tenantId: data.tenantId || '',
           email: data.email || '',
           displayName: data.displayName || '',
           role: data.role || 'staff',
@@ -101,6 +118,9 @@ export function useUserManagement(): UseUserManagementReturn {
           createdAt: data.createdAt?.toDate?.() || new Date(),
           expiresAt: data.expiresAt?.toDate?.() || new Date(),
           acceptedAt: data.acceptedAt?.toDate?.(),
+          extraFields: data.extraFields,
+          forceTwoFactor: data.forceTwoFactor,
+          expiresInDays: data.expiresInDays,
         });
       });
 
@@ -119,7 +139,12 @@ export function useUserManagement(): UseUserManagementReturn {
   }, [fetchData]);
 
   const inviteUser = useCallback(
-    async (email: string, displayName: string, role: UserRole) => {
+    async (
+      email: string,
+      displayName: string,
+      role: UserRole,
+      options?: InviteUserOptions
+    ): Promise<InviteUserResult> => {
       if (!db || !currentUser) {
         throw new Error('Baglanti hatasi');
       }
@@ -140,12 +165,20 @@ export function useUserManagement(): UseUserManagementReturn {
         throw new Error('Bu email adresine zaten davetiye gonderilmis');
       }
 
+      const expiresInDays = options?.expiresInDays ?? 7;
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + expiresInDays);
+
+      // Strip undefined values from extraFields (Firestore rejects undefined)
+      const cleanExtraFields = options?.extraFields
+        ? Object.fromEntries(
+            Object.entries(options.extraFields).filter(([, v]) => v !== undefined && v !== '')
+          )
+        : undefined;
+
       // Create invitation
       const invitationRef = doc(collection(db, 'invitations'));
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7); // 7 gun gecerli
-
-      await setDoc(invitationRef, {
+      const invitationDoc: Record<string, any> = {
         tenantId,
         email: email.toLowerCase(),
         displayName,
@@ -155,9 +188,17 @@ export function useUserManagement(): UseUserManagementReturn {
         invitedByName: currentUser.displayName || currentUser.email,
         createdAt: serverTimestamp(),
         expiresAt: Timestamp.fromDate(expiresAt),
-      });
+        expiresInDays,
+      };
+      if (cleanExtraFields && Object.keys(cleanExtraFields).length > 0) {
+        invitationDoc.extraFields = cleanExtraFields;
+      }
+      if (options?.forceTwoFactor) invitationDoc.forceTwoFactor = true;
 
-      // Send invitation email via API
+      await setDoc(invitationRef, invitationDoc);
+
+      // Send invitation email (or create temporary password) via API
+      let temporaryPassword: string | undefined;
       try {
         const token = await getAuth().currentUser?.getIdToken();
         const emailRes = await fetch('/api/invite-user', {
@@ -172,11 +213,16 @@ export function useUserManagement(): UseUserManagementReturn {
             displayName,
             role,
             invitedByName: currentUser.displayName || currentUser.email,
+            expiresInDays,
+            useTemporaryPassword: options?.useTemporaryPassword === true,
           }),
         });
         if (!emailRes.ok) {
           const errBody = await emailRes.json().catch(() => ({}));
           console.error('[UserManagement] Email API error:', emailRes.status, errBody);
+        } else {
+          const body = await emailRes.json().catch(() => ({}));
+          if (body?.temporaryPassword) temporaryPassword = body.temporaryPassword;
         }
       } catch (emailErr) {
         // Email failure should not block invitation creation
@@ -185,8 +231,9 @@ export function useUserManagement(): UseUserManagementReturn {
 
       // Refetch to update the list
       await fetchData();
+      return { temporaryPassword };
     },
-    [db, currentUser, users, invitations, fetchData]
+    [db, currentUser, users, invitations, fetchData, tenantId]
   );
 
   const updateUserRole = useCallback(

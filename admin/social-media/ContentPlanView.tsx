@@ -30,8 +30,19 @@ import {
   getContentPlan,
   submitForApproval,
   updateApprovalConfig,
+  assignAndSubmitToClient,
 } from '@/shared/services/contentPlanService';
 import { getSocialPostsForPlan } from '@/shared/services/socialMediaService';
+import { getProject } from '@/shared/services/projectService';
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+} from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
+import type { User } from '@/shared/types/user';
+import type { Project } from '@/shared/types/project';
 import ProjectBreadcrumb from '@/admin/projects/components/ProjectBreadcrumb';
 import PlatformPreviewContainer from './components/previews/PlatformPreviewContainer';
 import { authenticatedFetch } from '@/lib/firebase/apiClient';
@@ -40,6 +51,9 @@ import PostApprovalBadge from './components/PostApprovalBadge';
 import PostApprovalActions from './components/PostApprovalActions';
 import ApprovalAuditTrail from './components/ApprovalAuditTrail';
 import ApprovalConfigSection from './components/ApprovalConfigSection';
+import ViewSwitcher, { SocialMediaViewMode } from './components/ViewSwitcher';
+import CalendarView from './components/calendar/CalendarView';
+import InstagramProfileView from './components/grid/InstagramProfileView';
 
 const STATUS_CONFIG: Record<ContentPlanStatus, { label: string; icon: React.ReactNode; color: string }> = {
   draft: { label: 'Taslak', icon: <FileText className="w-4 h-4" />, color: 'bg-gray-100 text-gray-700' },
@@ -62,13 +76,20 @@ const ContentPlanView: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [submittingForApproval, setSubmittingForApproval] = useState(false);
 
-  // Email modal state
+  // Email modal state — "Müşteriye Gönder"
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [clientEmail, setClientEmail] = useState('');
+  const [clientName, setClientName] = useState('');
+  const [selectedClientUid, setSelectedClientUid] = useState<string>('');
   const [sendingEmail, setSendingEmail] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [transitioning, setTransitioning] = useState(false);
+
+  // Projeye bağlı müşteri kullanıcıları + proje verisi
+  const [projectClients, setProjectClients] = useState<User[]>([]);
+  const [projectInfo, setProjectInfo] = useState<Project | null>(null);
+  const [viewMode, setViewMode] = useState<SocialMediaViewMode>('list');
 
   const loadData = useCallback(async () => {
     if (!planId) return;
@@ -77,7 +98,7 @@ const ContentPlanView: React.FC = () => {
       const planData = await getContentPlan(tenantId, planId);
       if (planData) {
         setPlan(planData);
-        const planPosts = await getSocialPostsForPlan(tenantId, planId);
+        const planPosts = await getSocialPostsForPlan(tenantId, planId, planData.postIds || []);
         setPosts(planPosts);
       }
     } catch (err) {
@@ -90,6 +111,41 @@ const ContentPlanView: React.FC = () => {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Projeye bağlı client-role kullanıcılarını yükle
+  useEffect(() => {
+    if (!plan?.projectId || !db) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const project = await getProject(tenantId, plan.projectId);
+        if (!cancelled) setProjectInfo(project);
+
+        // Müşteri kullanıcıları: users.role='client' + profile.assignedProjectIds içerir
+        const snap = await getDocs(
+          query(
+            collection(db, 'users'),
+            where('tenantId', '==', tenantId),
+            where('role', '==', 'client')
+          )
+        );
+        const list: User[] = [];
+        snap.forEach((d) => {
+          const u = { uid: d.id, ...d.data() } as User;
+          const assigned = (u.profile as any)?.assignedProjectIds || [];
+          if (Array.isArray(assigned) && assigned.includes(plan.projectId)) {
+            list.push(u);
+          }
+        });
+        if (!cancelled) setProjectClients(list);
+      } catch (e) {
+        console.warn('[ContentPlanView] Project clients load failed:', e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [plan?.projectId, tenantId]);
 
   const shareUrl = plan
     ? `${window.location.origin}/icerik-plani/${plan.shareToken}`
@@ -116,22 +172,41 @@ const ContentPlanView: React.FC = () => {
   };
 
   const handleSendEmail = async () => {
-    if (!clientEmail.trim() || !plan) return;
+    if (!clientEmail.trim() || !clientName.trim() || !plan || !user) return;
     setSendingEmail(true);
     setEmailError(null);
     try {
       const weekRange = [
-        plan.weekStartDate?.toDate().toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }),
-        plan.weekEndDate?.toDate().toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }),
-      ].filter(Boolean).join(' - ');
+        plan.weekStartDate
+          ?.toDate()
+          .toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }),
+        plan.weekEndDate
+          ?.toDate()
+          .toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }),
+      ]
+        .filter(Boolean)
+        .join(' – ');
 
+      // 1. Plan'ı müşteriye ata + status'ü pending_approval'a çevir
+      await assignAndSubmitToClient(plan.id, {
+        clientId: selectedClientUid || undefined,
+        clientName: clientName.trim(),
+        clientEmail: clientEmail.trim().toLowerCase(),
+        sentByUid: user.uid,
+        sentByName: user.displayName || user.email || 'Ekip',
+      });
+
+      // 2. E-posta gönder
       const res = await authenticatedFetch('/api/send-content-plan-notification', {
         method: 'POST',
         body: JSON.stringify({
           type: 'submitted',
           recipientEmail: clientEmail.trim(),
-          senderName: user?.displayName || 'intiba ekibi',
+          recipientName: clientName.trim(),
+          senderName: user.displayName || 'intiba ekibi',
           planTitle: plan.title,
+          brandName: projectInfo?.name,
+          postCount: posts.length,
           shareUrl,
           weekRange,
         }),
@@ -140,11 +215,26 @@ const ContentPlanView: React.FC = () => {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || 'E-posta gönderilemedi');
       }
+
+      // 3. Local state güncelle
+      setPlan((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: 'pending_approval',
+              assignedClientName: clientName.trim(),
+              assignedClientEmail: clientEmail.trim().toLowerCase(),
+              assignedClientId: selectedClientUid || undefined,
+            }
+          : prev
+      );
       setEmailSent(true);
       setTimeout(() => {
         setShowEmailModal(false);
         setEmailSent(false);
         setClientEmail('');
+        setClientName('');
+        setSelectedClientUid('');
       }, 2000);
     } catch (err: any) {
       setEmailError(err.message || 'E-posta gönderilemedi');
@@ -152,6 +242,14 @@ const ContentPlanView: React.FC = () => {
       setSendingEmail(false);
     }
   };
+
+  // Modal açıldığında varsa mevcut atanmış kişi ile prefill et
+  useEffect(() => {
+    if (!showEmailModal || !plan) return;
+    if (plan.assignedClientEmail && !clientEmail) setClientEmail(plan.assignedClientEmail);
+    if (plan.assignedClientName && !clientName) setClientName(plan.assignedClientName);
+    if (plan.assignedClientId && !selectedClientUid) setSelectedClientUid(plan.assignedClientId);
+  }, [showEmailModal, plan]);
 
   const handleApprovalAction = async (action: ApprovalAction, comment?: string) => {
     if (!plan) return;
@@ -275,10 +373,10 @@ const ContentPlanView: React.FC = () => {
           {(plan.status === 'draft' || plan.status === 'pending_approval' || plan.status === 'internal_review') && (
             <button
               onClick={() => setShowEmailModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 border border-neutral-300 text-neutral-700 rounded-full font-grotesk text-sm font-medium hover:bg-neutral-50 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#171717] text-white rounded-full font-grotesk text-sm font-medium hover:bg-neutral-800 transition-colors"
             >
               <Mail className="w-4 h-4" />
-              E-posta Gonder
+              {plan.assignedClientEmail ? 'Yeniden Gönder' : 'Müşteriye Gönder'}
             </button>
           )}
         </div>
@@ -315,13 +413,34 @@ const ContentPlanView: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Main Preview */}
         <div className="lg:col-span-3">
-          <div className="bg-white rounded-xl border border-neutral-100 p-6">
-            <PlatformPreviewContainer
-              platform={plan.platform}
-              posts={posts}
-              brandName="Brand"
-            />
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-grotesk text-sm font-semibold text-neutral-700">
+              Plan Görünümü
+            </h3>
+            <ViewSwitcher value={viewMode} onChange={setViewMode} />
           </div>
+          {viewMode === 'list' && (
+            <div className="bg-white rounded-xl border border-neutral-100 p-6">
+              <PlatformPreviewContainer
+                platform={plan.platform}
+                posts={posts}
+                brandName="Brand"
+              />
+            </div>
+          )}
+          {viewMode === 'calendar' && (
+            <CalendarView
+              posts={posts}
+              onPostsChange={setPosts}
+            />
+          )}
+          {viewMode === 'grid' && (
+            <InstagramProfileView
+              posts={posts}
+              brandName={plan.title || 'Marka'}
+              readOnly
+            />
+          )}
         </div>
 
         {/* Sidebar */}
@@ -496,7 +615,7 @@ const ContentPlanView: React.FC = () => {
             >
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-grotesk text-lg font-bold text-[#171717]">
-                  Müşteriye E-posta Gönder
+                  Müşteriye Onaya Gönder
                 </h3>
                 <button
                   onClick={() => setShowEmailModal(false)}
@@ -507,26 +626,87 @@ const ContentPlanView: React.FC = () => {
               </div>
 
               <p className="font-grotesk text-sm text-neutral-500 mb-4">
-                <strong>{plan.title}</strong> planının inceleme linkini müşteriye e-posta ile iletebilirsiniz.
+                <strong>{plan.title}</strong> planı müşterinin onayına gönderilecek ve belirttiğiniz kişiye e-posta iletilecek.
               </p>
 
-              <div className="bg-neutral-50 rounded-xl px-4 py-3 mb-4">
-                <p className="font-grotesk text-xs text-neutral-500 mb-1">Gönderilecek link:</p>
-                <p className="font-grotesk text-xs text-neutral-700 break-all">{shareUrl}</p>
+              {/* Proje müşterilerinden hızlı seçim */}
+              {projectClients.length > 0 && (
+                <div className="mb-4">
+                  <label className="block font-grotesk text-xs font-medium text-neutral-500 uppercase tracking-wider mb-1.5">
+                    Projeye bağlı kişiler
+                  </label>
+                  <div className="space-y-1.5">
+                    {projectClients.map((u) => (
+                      <button
+                        key={u.uid}
+                        type="button"
+                        onClick={() => {
+                          setSelectedClientUid(u.uid);
+                          setClientName(u.displayName || u.email);
+                          setClientEmail(u.email);
+                        }}
+                        className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border transition-colors text-left ${
+                          selectedClientUid === u.uid
+                            ? 'border-[#171717] bg-neutral-50'
+                            : 'border-neutral-200 hover:bg-neutral-50'
+                        }`}
+                      >
+                        <div className="min-w-0">
+                          <p className="font-grotesk text-sm font-medium text-[#171717] truncate">
+                            {u.displayName || u.email}
+                          </p>
+                          <p className="font-grotesk text-xs text-neutral-500 truncate">
+                            {u.email}
+                            {u.profile?.clientCompany ? ` · ${u.profile.clientCompany}` : ''}
+                          </p>
+                        </div>
+                        {selectedClientUid === u.uid && <Check className="w-4 h-4 text-[#171717]" />}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="font-grotesk text-[11px] text-neutral-400 mt-2">
+                    Ya da aşağıda farklı bir e-posta girin.
+                  </p>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 gap-3 mb-4">
+                <div>
+                  <label className="block font-grotesk text-xs font-medium text-neutral-500 uppercase tracking-wider mb-1">
+                    Alıcı adı
+                  </label>
+                  <input
+                    type="text"
+                    value={clientName}
+                    onChange={(e) => {
+                      setClientName(e.target.value);
+                      if (selectedClientUid) setSelectedClientUid('');
+                    }}
+                    placeholder="Ayşe Yılmaz"
+                    className="w-full px-3 py-2 rounded-lg border border-neutral-200 font-grotesk text-sm focus:outline-none focus:border-neutral-400"
+                  />
+                </div>
+                <div>
+                  <label className="block font-grotesk text-xs font-medium text-neutral-500 uppercase tracking-wider mb-1">
+                    E-posta
+                  </label>
+                  <input
+                    type="email"
+                    value={clientEmail}
+                    onChange={(e) => {
+                      setClientEmail(e.target.value);
+                      if (selectedClientUid) setSelectedClientUid('');
+                    }}
+                    placeholder="musteri@ornek.com"
+                    onKeyDown={(e) => e.key === 'Enter' && handleSendEmail()}
+                    className="w-full px-3 py-2 rounded-lg border border-neutral-200 font-grotesk text-sm focus:outline-none focus:border-neutral-400"
+                  />
+                </div>
               </div>
 
-              <div className="mb-4">
-                <label className="block font-grotesk text-sm font-medium text-[#171717] mb-1.5">
-                  Müşteri E-posta Adresi
-                </label>
-                <input
-                  type="email"
-                  value={clientEmail}
-                  onChange={(e) => setClientEmail(e.target.value)}
-                  placeholder="musteri@ornek.com"
-                  onKeyDown={(e) => e.key === 'Enter' && handleSendEmail()}
-                  className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 font-grotesk text-sm focus:outline-none focus:ring-2 focus:ring-[#171717]/10 focus:border-[#171717] transition-all"
-                />
+              <div className="bg-neutral-50 rounded-xl px-3 py-2 mb-4">
+                <p className="font-grotesk text-[11px] text-neutral-500 mb-1">E-postadaki link:</p>
+                <p className="font-grotesk text-[11px] text-neutral-700 break-all">{shareUrl}</p>
               </div>
 
               {emailError && (
@@ -535,13 +715,13 @@ const ContentPlanView: React.FC = () => {
 
               <button
                 onClick={handleSendEmail}
-                disabled={sendingEmail || !clientEmail.trim() || emailSent}
+                disabled={sendingEmail || !clientEmail.trim() || !clientName.trim() || emailSent}
                 className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-[#171717] text-white rounded-xl font-grotesk text-sm font-medium hover:bg-neutral-800 transition-colors disabled:opacity-50"
               >
                 {emailSent ? (
                   <>
                     <Check className="w-4 h-4 text-emerald-400" />
-                    E-posta Gönderildi!
+                    Gönderildi — müşteri bilgilendirildi
                   </>
                 ) : sendingEmail ? (
                   <>
@@ -551,7 +731,7 @@ const ContentPlanView: React.FC = () => {
                 ) : (
                   <>
                     <Mail className="w-4 h-4" />
-                    E-posta Gönder
+                    Onaya Gönder ve E-posta At
                   </>
                 )}
               </button>

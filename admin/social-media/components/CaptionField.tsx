@@ -79,7 +79,10 @@ const CaptionField: React.FC<CaptionFieldProps> = ({
       method: 'POST',
       body: JSON.stringify(body),
     });
-    if (!res.ok) throw new Error('AI caption olusturulamadi');
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      throw new Error(errBody?.error || `AI servisi ${res.status} döndü`);
+    }
     return res.json();
   };
 

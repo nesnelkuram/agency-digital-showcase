@@ -944,29 +944,28 @@ ${maturity.level === 'mature' ? '- MATURE ise: buyume stratejisi, topluluk olust
       }),
     ]);
 
-    // Merge valueMaximizer outputs
+    // Merge valueMaximizer outputs (consultantIntro + revenueImpact removed from report)
     if (valueMaxResult) {
-      if (valueMaxResult.consultantIntro) {
-        synthesisResult.consultantIntro = valueMaxResult.consultantIntro;
-      }
-      if (valueMaxResult.diagnosisSummary) {
-        synthesisResult.diagnosisSummary = valueMaxResult.diagnosisSummary;
+      if (valueMaxResult.diagnosisSummary?.blindSpots?.length) {
+        if (synthesisResult.diagnosisSummary) {
+          synthesisResult.diagnosisSummary.blindSpots = valueMaxResult.diagnosisSummary.blindSpots;
+        } else {
+          synthesisResult.diagnosisSummary = {
+            perceptionVsReality: [],
+            blindSpots: valueMaxResult.diagnosisSummary.blindSpots,
+            criticalMisalignment: '',
+          };
+        }
       }
       if (valueMaxResult.emotionalNarrative) {
         synthesisResult.emotionalNarrative = valueMaxResult.emotionalNarrative;
       }
-      if (valueMaxResult.revenueImpact) {
-        synthesisResult.revenueImpact = valueMaxResult.revenueImpact;
-      }
     }
 
-    // Merge deliverableEnricher outputs
+    // Merge deliverableEnricher outputs (customerJourney removed from report)
     if (deliverableResult) {
       if (deliverableResult.messagingArchitecture) {
         synthesisResult.messagingArchitecture = deliverableResult.messagingArchitecture;
-      }
-      if (deliverableResult.customerJourney?.length > 0) {
-        synthesisResult.customerJourney = deliverableResult.customerJourney;
       }
       if (deliverableResult.socialMediaTemplates?.length > 0) {
         synthesisResult.socialMediaTemplates = deliverableResult.socialMediaTemplates;

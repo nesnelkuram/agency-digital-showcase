@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MoreVertical, Check, Ban } from 'lucide-react';
+import { MoreVertical, Check, Ban, Pencil } from 'lucide-react';
 import { User, UserRole } from '@/shared/types/user';
 
 const roleLabels: Record<UserRole, string> = {
@@ -54,9 +54,10 @@ interface UserCardProps {
   user: User;
   onRoleChange: (uid: string, role: UserRole) => Promise<void>;
   onStatusToggle: (uid: string, currentStatus: string) => Promise<void>;
+  onEdit?: (user: User) => void;
 }
 
-const UserCard: React.FC<UserCardProps> = ({ user, onRoleChange, onStatusToggle }) => {
+const UserCard: React.FC<UserCardProps> = ({ user, onRoleChange, onStatusToggle, onEdit }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const initials = (user.displayName || user.email).charAt(0).toUpperCase();
 
@@ -109,8 +110,20 @@ const UserCard: React.FC<UserCardProps> = ({ user, onRoleChange, onStatusToggle 
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-neutral-200 py-1 z-20"
+                  className="absolute right-0 top-full mt-1 w-52 bg-white rounded-lg shadow-lg border border-neutral-200 py-1 z-20"
                 >
+                  {onEdit && (
+                    <button
+                      onClick={() => {
+                        onEdit(user);
+                        setDropdownOpen(false);
+                      }}
+                      className="w-full px-3 py-1.5 text-left font-grotesk text-sm hover:bg-neutral-50 flex items-center gap-2 text-neutral-700 border-b border-neutral-100"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                      Profili Düzenle
+                    </button>
+                  )}
                   <div className="px-3 py-1.5 border-b border-neutral-100">
                     <p className="font-grotesk text-[10px] text-neutral-400 uppercase tracking-wider">
                       Rol Degistir

@@ -36,6 +36,9 @@ import {
   notifyContentPlanApproved,
   notifyContentPlanRevisionRequested,
 } from '@/shared/services/notificationService';
+import ViewSwitcher, { SocialMediaViewMode } from '@/admin/social-media/components/ViewSwitcher';
+import CalendarView from '@/admin/social-media/components/calendar/CalendarView';
+import InstagramProfileView from '@/admin/social-media/components/grid/InstagramProfileView';
 
 const ContentPlanSharePage: React.FC = () => {
   const { shareToken } = useParams<{ shareToken: string }>();
@@ -43,6 +46,8 @@ const ContentPlanSharePage: React.FC = () => {
   const [posts, setPosts] = useState<SocialMediaPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+
+  const [viewMode, setViewMode] = useState<SocialMediaViewMode>('list');
 
   // Comment state
   const [commentText, setCommentText] = useState('');
@@ -67,7 +72,7 @@ const ContentPlanSharePage: React.FC = () => {
         setPlan(planData);
 
         // Load posts - use tenantId from plan context (public access)
-        const planPosts = await getSocialPostsForPlan('', planData.id);
+        const planPosts = await getSocialPostsForPlan('', planData.id, planData.postIds || []);
         setPosts(planPosts);
       } catch (err) {
         console.error('[ContentPlanSharePage] Error loading:', err);
@@ -227,8 +232,49 @@ const ContentPlanSharePage: React.FC = () => {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-        {/* Post Navigation */}
+        {/* View Switcher */}
         {posts.length > 0 && (
+          <div className="flex items-center justify-between">
+            <span className="font-grotesk text-xs text-neutral-500">
+              Planı farklı görünümlerde inceleyin
+            </span>
+            <ViewSwitcher value={viewMode} onChange={setViewMode} />
+          </div>
+        )}
+
+        {/* Calendar / Grid views (read-only) */}
+        {viewMode === 'calendar' && (
+          <CalendarView posts={posts} readOnly />
+        )}
+        {viewMode === 'grid' && plan && (
+          <InstagramProfileView
+            posts={posts}
+            brandName={plan.title || 'Marka'}
+            onApprove={async (postId) => {
+              await addClientComment(
+                plan.id,
+                '✓ Onaylandı',
+                postId,
+                'anonymous-client',
+                clientName.trim() || 'Müşteri',
+                true
+              );
+            }}
+            onRequestRevision={async (postId, comment) => {
+              await addClientComment(
+                plan.id,
+                comment,
+                postId,
+                'anonymous-client',
+                clientName.trim() || 'Müşteri',
+                true
+              );
+            }}
+          />
+        )}
+
+        {/* Post Navigation (list view) */}
+        {viewMode === 'list' && posts.length > 0 && (
           <div className="flex items-center gap-2 overflow-x-auto pb-2">
             {posts.map((post, idx) => {
               const statusColor = POST_STATUS_COLORS[post.status] || 'bg-gray-100 text-gray-700';
@@ -255,18 +301,43 @@ const ContentPlanSharePage: React.FC = () => {
         )}
 
         {/* Current Post Preview */}
-        {currentPost && (
+        {viewMode === 'list' && currentPost && (
           <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
-            {/* Post Media */}
-            {getPostMedia(currentPost) && (
-              <div className="aspect-square bg-neutral-100 max-h-[500px]">
-                <img
-                  src={currentPost.media?.[0]?.url || currentPost.mediaUrls?.[0] || ''}
-                  alt=""
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            )}
+            {/* Post Media — gerçek en-boy oranıyla */}
+            {getPostMedia(currentPost) && (() => {
+              const m = currentPost.media?.[0];
+              const aspect =
+                m?.width && m?.height
+                  ? `${m.width} / ${m.height}`
+                  : currentPost.postType === 'story'
+                  ? '9 / 16'
+                  : currentPost.postType === 'reels' || m?.type === 'video'
+                  ? '9 / 16'
+                  : '1 / 1';
+              return (
+                <div
+                  className="bg-neutral-100 max-h-[600px] mx-auto"
+                  style={{ aspectRatio: aspect }}
+                >
+                  {m?.type === 'video' ? (
+                    <video
+                      src={m.url}
+                      poster={m.thumbnailUrl}
+                      controls
+                      preload="metadata"
+                      playsInline
+                      className="w-full h-full object-contain bg-black"
+                    />
+                  ) : (
+                    <img
+                      src={m?.url || currentPost.mediaUrls?.[0] || ''}
+                      alt=""
+                      className="w-full h-full object-contain"
+                    />
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Post Content */}
             <div className="p-5 space-y-3">

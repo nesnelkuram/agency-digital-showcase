@@ -5,7 +5,6 @@ import {
   Calendar,
   Mail,
   User,
-  DollarSign,
   Clock,
   Edit3,
   Send,
@@ -110,16 +109,6 @@ const ProjectDetailPage: React.FC = () => {
   const handleViewDetail = useCallback((instanceId: string) => {
     navigate(`/admin/projects/${id}/workflow/${instanceId}`);
   }, [navigate, id]);
-
-  const formatCurrency = (amount: number | undefined) => {
-    if (!amount) return '-';
-    return new Intl.NumberFormat('tr-TR', {
-      style: 'currency',
-      currency: 'TRY',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
 
   const formatDate = (timestamp: Timestamp | undefined) => {
     if (!timestamp) return '-';
@@ -306,28 +295,6 @@ const ProjectDetailPage: React.FC = () => {
               )}
               {!project.clientEmail && !project.clientPhone && (
                 <p className="font-grotesk text-xs text-neutral-400">Belirtilmemis</p>
-              )}
-            </div>
-          </div>
-
-          {/* Budget */}
-          <div className="flex items-start gap-3 p-4 rounded-xl bg-neutral-50">
-            <div className="p-2 rounded-lg bg-white">
-              <DollarSign className="w-4 h-4 text-neutral-600" />
-            </div>
-            <div className="min-w-0">
-              <p className="font-grotesk text-xs text-neutral-500">Butce</p>
-              {project.totalBudget ? (
-                <p className="font-grotesk text-sm font-medium text-[#171717]">
-                  {formatCurrency(project.totalBudget)}
-                </p>
-              ) : (
-                <p className="font-grotesk text-xs text-neutral-400">Belirtilmemis</p>
-              )}
-              {project.monthlyFee && (
-                <p className="font-grotesk text-xs text-neutral-500">
-                  {formatCurrency(project.monthlyFee)}/ay
-                </p>
               )}
             </div>
           </div>

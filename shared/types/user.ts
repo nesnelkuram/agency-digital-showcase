@@ -11,11 +11,35 @@ export interface UserMetadata {
   invitedBy?: string;
 }
 
+export type HourlyCurrency = 'TRY' | 'USD' | 'EUR';
+
 export interface UserProfile {
   phone?: string;
   title?: string;
   department?: string;
   timezone?: string;
+  // Davet wizard ek alanlari
+  skills?: string[];                     // editor + freelancer
+  hourlyRate?: number;                   // freelancer
+  hourlyCurrency?: HourlyCurrency;       // freelancer
+  clientCompany?: string;                // client
+  billingEmail?: string;                 // client (fatura e-postasi ayri ise)
+  assignedProjectIds?: string[];         // client, freelancer, editor
+  managerId?: string;                    // ic roller icin
+}
+
+export interface InvitationExtraFields {
+  phone?: string;
+  title?: string;
+  department?: string;
+  skills?: string[];
+  hourlyRate?: number;
+  hourlyCurrency?: HourlyCurrency;
+  clientCompany?: string;
+  billingEmail?: string;
+  assignedProjectIds?: string[];
+  managerId?: string;
+  tenantIds?: string[]; // super_admin icin coklu tenant
 }
 
 export interface UserSettings {
@@ -47,6 +71,7 @@ export interface CreateUserData {
   role: UserRole;
   tenantId: string;
   organizationId?: string;
+  extraFields?: InvitationExtraFields;
 }
 
 export interface Invitation {
@@ -61,4 +86,7 @@ export interface Invitation {
   createdAt: Date;
   expiresAt: Date;
   acceptedAt?: Date;
+  extraFields?: InvitationExtraFields;
+  forceTwoFactor?: boolean;
+  expiresInDays?: number;
 }

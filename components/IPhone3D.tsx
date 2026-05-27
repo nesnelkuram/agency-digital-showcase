@@ -16,6 +16,9 @@ interface IPhone3DProps {
   enableSound?: boolean;
   isLoading?: boolean;
   loadDelay?: number;  // Delay in ms before starting video load (for staggered loading)
+  /** When false, video is paused and a static poster texture is shown instead.
+   *  Controlled by usePlaybackOrchestrator to limit concurrent decoder count. */
+  playbackAllowed?: boolean;
 }
 
 const IPhone3D: React.FC<IPhone3DProps> = ({
@@ -28,7 +31,8 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
   isSelected = false,
   enableSound = false,
   isLoading = false,
-  loadDelay = 0
+  loadDelay = 0,
+  playbackAllowed = true
 }) => {
   // Check if we should autoplay videos
   const [canAutoplay] = useState(() => shouldAutoplayVideos());
@@ -354,22 +358,30 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
     });
   }, [clonedScene, videoSrc, enableSound, isLoading, shouldLoadVideo]);
 
-  // Control video playback based on viewport visibility AND selection state
+  // Control video playback based on orchestrator allowance, viewport visibility, and selection state
   useEffect(() => {
     if (!clonedScene) return;
-    
+
     let screenMesh: any = null;
     clonedScene.traverse((child: any) => {
       if (child.isMesh && child.__video) {
         screenMesh = child;
       }
     });
-    
+
     if (screenMesh && screenMesh.__video) {
       const video = screenMesh.__video;
-      
+
       // Small delay to ensure video element is ready
       setTimeout(() => {
+        // Orchestrator override: if playback is not allowed, always pause
+        if (!playbackAllowed && !isSelected) {
+          if (!video.paused) {
+            video.pause();
+          }
+          return;
+        }
+
         // Autoplay logic for desktop
         if (canAutoplay && !isSelected) {
           // For preview videos on desktop - play if near camera
@@ -383,7 +395,7 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
               video.pause();
             }
           }
-        } 
+        }
         // Manual play logic (for selected videos or mobile)
         else if (isNearCamera && isSelected) {
           // Play selected video
@@ -398,14 +410,14 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
         }
       }, 100);
     }
-    
+
     return () => {
       // Cleanup on unmount
       if (screenMesh && screenMesh.__video) {
         screenMesh.__video.pause();
       }
     };
-  }, [clonedScene, isNearCamera, isSelected, enableSound, canAutoplay]);
+  }, [clonedScene, isNearCamera, isSelected, enableSound, canAutoplay, playbackAllowed]);
   
   // Control sound based on selection state - immediate mute when deselected
   useEffect(() => {

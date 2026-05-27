@@ -1,5 +1,6 @@
 import type { VercelResponse } from '@vercel/node';
 import { withAuth, AuthenticatedRequest } from './_lib/withAuth.js';
+import { getAdminDb, getFieldValue, getFirebaseAuth } from './_lib/firebaseAdmin.js';
 
 const ROLE_DISPLAY_NAMES: Record<string, string> = {
   admin: 'Yonetici',
@@ -9,6 +10,22 @@ const ROLE_DISPLAY_NAMES: Record<string, string> = {
   client: 'Musteri',
   freelancer: 'Freelancer',
 };
+
+// Generates a readable but strong temp password: 12 chars with mixed case + digits
+function generateTemporaryPassword(): string {
+  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const lower = 'abcdefghijkmnopqrstuvwxyz';
+  const digits = '23456789';
+  const all = upper + lower + digits;
+  const pick = (set: string) => set[Math.floor(Math.random() * set.length)];
+  let out = pick(upper) + pick(lower) + pick(digits);
+  for (let i = 0; i < 9; i++) out += pick(all);
+  // Shuffle
+  return out
+    .split('')
+    .sort(() => Math.random() - 0.5)
+    .join('');
+}
 
 export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) => {
   if (req.method !== 'POST') {
@@ -21,12 +38,63 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
   }
 
   try {
-    const { invitationId, email, displayName, role, invitedByName } = req.body;
+    const {
+      invitationId,
+      email,
+      displayName,
+      role,
+      invitedByName,
+      expiresInDays,
+      useTemporaryPassword,
+    } = req.body as {
+      invitationId?: string;
+      email?: string;
+      displayName?: string;
+      role?: string;
+      invitedByName?: string;
+      expiresInDays?: number;
+      useTemporaryPassword?: boolean;
+    };
 
     if (!invitationId || !email || !role) {
       return res.status(400).json({ error: 'Eksik alanlar: invitationId, email, role zorunlu' });
     }
 
+    // Temporary password path: Firebase Admin ile kullanici olustur
+    if (useTemporaryPassword) {
+      const tempPassword = generateTemporaryPassword();
+      try {
+        const auth = getFirebaseAuth();
+        const adminDb = getAdminDb();
+        const FieldValue = getFieldValue();
+
+        const user = await auth.createUser({
+          email,
+          emailVerified: false,
+          password: tempPassword,
+          displayName: displayName || email,
+          disabled: false,
+        });
+
+        await adminDb.collection('invitations').doc(invitationId).update({
+          status: 'accepted',
+          acceptedAt: FieldValue.serverTimestamp(),
+          acceptedByUid: user.uid,
+          temporaryPasswordIssued: true,
+        });
+
+        return res.status(200).json({
+          success: true,
+          uid: user.uid,
+          temporaryPassword: tempPassword,
+        });
+      } catch (err: any) {
+        console.error('[invite-user] temp password creation error:', err?.message || err);
+        return res.status(500).json({ error: err?.message || 'Geçici şifre oluşturulamadi' });
+      }
+    }
+
+    // Email invitation path
     const apiKey = process.env.RESEND_API_KEY;
     if (!apiKey) {
       console.error('[invite-user] RESEND_API_KEY is not set');
@@ -46,6 +114,7 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
     const roleLabel = ROLE_DISPLAY_NAMES[role] || role;
     const recipientName = displayName || email;
     const senderName = invitedByName || 'intiba ekibi';
+    const validityDays = typeof expiresInDays === 'number' && expiresInDays > 0 ? expiresInDays : 7;
 
     const { data, error } = await resend.emails.send({
       from: 'intiba <info@intiba.co.uk>',
@@ -82,7 +151,7 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
               <div style="text-align:center;">
                 <a href="${inviteLink}" class="cta">Daveti Kabul Et</a>
               </div>
-              <p class="expiry">Bu davet linki <strong>7 gun</strong> icerisinde gecerliliğini yitirir.</p>
+              <p class="expiry">Bu davet linki <strong>${validityDays} gun</strong> icerisinde gecerliliğini yitirir.</p>
               <div class="link-box">
                 Link calismıyorsa bu adresi tarayicinize kopyalayin:<br>
                 ${inviteLink}

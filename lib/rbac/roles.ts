@@ -282,6 +282,10 @@ export const ROLES: Record<string, RoleConfig> = {
       PERMISSIONS.FEEDBACK_CREATE,
       PERMISSIONS.FEEDBACK_COMMENT,
 
+      // Social Media — atanan projelerin planlarını görüp onay/revizyon verir
+      PERMISSIONS.SOCIAL_MEDIA_VIEW,
+      PERMISSIONS.SOCIAL_MEDIA_APPROVE,
+
       // Workflows (view own projects only)
       PERMISSIONS.WORKFLOW_INSTANCES_VIEW_OWN,
     ],

@@ -102,6 +102,9 @@ export const LIMITS = {
 
   /** Telegram webhook: 60 req / minute per chat */
   TELEGRAM_WEBHOOK: { limit: 60, windowMs: 60_000 },
+
+  /** Bulk user invite: 10 req / minute per tenant */
+  INVITE_BULK: { limit: 10, windowMs: 60_000 },
 } as const;
 
 /**

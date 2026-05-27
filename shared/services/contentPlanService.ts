@@ -70,6 +70,23 @@ export async function createContentPlan(
   };
 
   const docRef = await addDoc(collection(db, COLLECTION_NAME), planData);
+
+  // Her post'un contentPlanId'sini güncelle (geriye bağlantı)
+  if (data.postIds.length > 0) {
+    try {
+      const batch = writeBatch(db);
+      for (const postId of data.postIds) {
+        batch.update(doc(db, 'social_media_posts', postId), {
+          contentPlanId: docRef.id,
+          updatedAt: now,
+        });
+      }
+      await batch.commit();
+    } catch (err) {
+      console.warn('[createContentPlan] Post contentPlanId update failed:', err);
+    }
+  }
+
   return docRef.id;
 }
 
@@ -154,6 +171,67 @@ export async function submitForApproval(tenantId: string, id: string): Promise<v
     status: 'pending_approval',
     updatedAt: serverTimestamp(),
   });
+}
+
+/**
+ * Plan'ı belirli bir müşteri temsilcisine atar ve onay için gönderir.
+ * Bu işlem status'ü pending_approval'a çevirir ve müşteri bilgilerini işaretler.
+ * E-posta normalize edilir (trim + lowercase). clientId varsa atanır.
+ */
+export async function assignAndSubmitToClient(
+  id: string,
+  payload: {
+    clientId?: string;
+    clientName: string;
+    clientEmail: string;
+    sentByUid: string;
+    sentByName: string;
+  }
+): Promise<{ assignedClientId?: string; assignedClientEmail: string }> {
+  if (!db) throw new Error('Firebase not initialized');
+  const normalizedEmail = (payload.clientEmail || '').trim().toLowerCase();
+  if (!normalizedEmail) throw new Error('assignAndSubmitToClient: clientEmail zorunlu');
+
+  const patch: Record<string, any> = {
+    status: 'pending_approval',
+    assignedClientName: (payload.clientName || '').trim(),
+    assignedClientEmail: normalizedEmail,
+    sentToClientAt: serverTimestamp(),
+    sentToClientBy: payload.sentByUid,
+    sentToClientByName: payload.sentByName,
+    updatedAt: serverTimestamp(),
+  };
+  if (payload.clientId) patch.assignedClientId = payload.clientId;
+  await updateDoc(doc(db, COLLECTION_NAME, id), patch);
+  return { assignedClientId: payload.clientId, assignedClientEmail: normalizedEmail };
+}
+
+/**
+ * E-postadan tenant içinde kayıtlı kullanıcı bulur (lookup).
+ * Manuel e-posta girildiğinde uid bulmak için kullanılır.
+ */
+export async function findTenantUserByEmail(
+  tenantId: string,
+  email: string
+): Promise<{ uid: string; displayName: string; role: string } | null> {
+  if (!db) return null;
+  const normalized = (email || '').trim().toLowerCase();
+  if (!normalized) return null;
+  const snap = await getDocs(
+    query(
+      collection(db, 'users'),
+      where('tenantId', '==', tenantId),
+      where('email', '==', normalized)
+    )
+  );
+  if (snap.empty) return null;
+  const d = snap.docs[0];
+  const data = d.data();
+  return {
+    uid: d.id,
+    displayName: data.displayName || data.email,
+    role: data.role,
+  };
 }
 
 export async function approveContentPlan(

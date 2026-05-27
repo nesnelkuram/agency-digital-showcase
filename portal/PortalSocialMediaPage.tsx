@@ -12,6 +12,7 @@ import {
 import { db } from '@/lib/firebase/config';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTenantId } from '@/shared/hooks/useTenant';
+import { matchPlanForClient } from '@/shared/services/contentPlanAccess';
 
 type PlanStatus = 'draft' | 'pending_approval' | 'approved' | 'revision_requested' | 'published';
 
@@ -84,8 +85,26 @@ const PortalSocialMediaPage: React.FC = () => {
           )
         );
         const items: ContentPlanItem[] = [];
+        const assignedProjectIds: string[] = (user?.profile as any)?.assignedProjectIds || [];
+        const clientContext = {
+          uid: user.uid,
+          email: user.email || '',
+          assignedProjectIds,
+        };
         snap.forEach((doc) => {
           const d = doc.data();
+          // Pure helper ile görünürlük kontrolü (single source of truth)
+          const match = matchPlanForClient(
+            {
+              status: d.status,
+              assignedClientId: d.assignedClientId,
+              assignedClientEmail: d.assignedClientEmail,
+              projectId: d.projectId,
+            },
+            clientContext
+          );
+          if (!match.visible) return;
+
           items.push({
             id: doc.id,
             title: d.title || 'İçerik Planı',
@@ -104,7 +123,7 @@ const PortalSocialMediaPage: React.FC = () => {
       }
     };
     load();
-  }, [user?.uid, tenantId]);
+  }, [user?.uid, tenantId, user?.profile]);
 
   const filtered = filter === 'all' ? plans : plans.filter((p) => p.status === filter);
 
@@ -170,7 +189,7 @@ const PortalSocialMediaPage: React.FC = () => {
                 transition={{ duration: 0.25, delay: i * 0.04 }}
               >
                 <Link
-                  to={plan.shareToken ? `/icerik-plani/${plan.shareToken}` : `/portal/social-media/${plan.id}`}
+                  to={`/portal/social-media/${plan.id}/review`}
                   className="flex items-center gap-4 bg-white rounded-xl border border-neutral-100 p-4 hover:border-neutral-200 hover:shadow-sm transition-all"
                 >
                   <div className="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center flex-shrink-0">

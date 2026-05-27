@@ -34,6 +34,8 @@ const PortalLayout: React.FC = () => {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
+  const isClient = user?.role === 'client';
+
   const handleSignOut = async () => {
     await signOut();
     navigate('/admin/login');
@@ -55,41 +57,45 @@ const PortalLayout: React.FC = () => {
             <span className="font-grotesk text-xs text-neutral-400 hidden sm:block">Müşteri Portalı</span>
           </Link>
 
-          {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const active = isActive(item.path);
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg font-grotesk text-sm transition-colors ${
-                    active
-                      ? 'bg-[#171717] text-white'
-                      : 'text-neutral-600 hover:bg-neutral-100'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
+          {/* Desktop Nav — client rolü için gizli */}
+          {!isClient && (
+            <nav className="hidden md:flex items-center gap-1">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const active = isActive(item.path);
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg font-grotesk text-sm transition-colors ${
+                      active
+                        ? 'bg-[#171717] text-white'
+                        : 'text-neutral-600 hover:bg-neutral-100'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
+          )}
 
           {/* Right — User Menu */}
           <div className="flex items-center gap-2">
-            {/* Mobile nav toggle */}
-            <button
-              className="md:hidden p-2 hover:bg-neutral-100 rounded-lg transition-colors"
-              onClick={() => setMobileNavOpen(!mobileNavOpen)}
-            >
-              {mobileNavOpen ? (
-                <X className="w-5 h-5 text-neutral-600" />
-              ) : (
-                <Menu className="w-5 h-5 text-neutral-600" />
-              )}
-            </button>
+            {/* Mobile nav toggle — client rolü için gizli */}
+            {!isClient && (
+              <button
+                className="md:hidden p-2 hover:bg-neutral-100 rounded-lg transition-colors"
+                onClick={() => setMobileNavOpen(!mobileNavOpen)}
+              >
+                {mobileNavOpen ? (
+                  <X className="w-5 h-5 text-neutral-600" />
+                ) : (
+                  <Menu className="w-5 h-5 text-neutral-600" />
+                )}
+              </button>
+            )}
 
             {/* User dropdown */}
             <div className="relative">
@@ -149,9 +155,9 @@ const PortalLayout: React.FC = () => {
           </div>
         </div>
 
-        {/* Mobile Nav */}
+        {/* Mobile Nav — client için gizli */}
         <AnimatePresence>
-          {mobileNavOpen && (
+          {mobileNavOpen && !isClient && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}

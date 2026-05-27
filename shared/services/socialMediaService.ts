@@ -11,6 +11,7 @@ import {
   orderBy,
   limit,
   startAfter,
+  writeBatch,
   Timestamp,
   DocumentSnapshot,
   QueryConstraint,
@@ -117,6 +118,39 @@ export async function updateSocialPost(
 export async function deleteSocialPost(tenantId: string, id: string): Promise<void> {
   if (!db) throw new Error('Firebase not initialized');
   await deleteDoc(doc(db, COLLECTION_NAME, id));
+}
+
+/**
+ * Post'un planlama saatini günceller (calendar drag-drop için).
+ */
+export async function updatePostSchedule(
+  id: string,
+  scheduledAt: Date
+): Promise<void> {
+  if (!db) throw new Error('Firebase not initialized');
+  await updateDoc(doc(db, COLLECTION_NAME, id), {
+    scheduledAt: Timestamp.fromDate(scheduledAt),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/**
+ * Instagram grid sıralaması için çoklu post pozisyon güncellemesi (batch).
+ * Yalnızca değişen post'ları gönderin.
+ */
+export async function updateGridPositions(
+  updates: Array<{ id: string; gridPosition: number }>
+): Promise<void> {
+  if (!db) throw new Error('Firebase not initialized');
+  if (updates.length === 0) return;
+  const batch = writeBatch(db);
+  for (const u of updates) {
+    batch.update(doc(db, COLLECTION_NAME, u.id), {
+      gridPosition: u.gridPosition,
+      updatedAt: serverTimestamp(),
+    });
+  }
+  await batch.commit();
 }
 
 export async function createMultiplePosts(
@@ -289,23 +323,44 @@ export async function getSocialPostsByPlatformAndWeek(
 
 export async function getSocialPostsForPlan(
   tenantId: string,
-  contentPlanId: string
+  contentPlanId: string,
+  postIds?: string[]
 ): Promise<SocialMediaPost[]> {
   if (!db) throw new Error('Firebase not initialized');
 
+  // Yaklaşım 1: plan.postIds üzerinden doğrudan getir (her dokümanda
+  // contentPlanId geriye bağlı olmasa bile çalışır — eski veriler için fallback).
+  if (postIds && postIds.length > 0) {
+    const docs = await Promise.all(
+      postIds.map((id) => getDoc(doc(db!, COLLECTION_NAME, id)))
+    );
+    const posts = docs
+      .filter((d) => d.exists())
+      .map((d) => ({ id: d.id, ...d.data() } as SocialMediaPost));
+    return posts.sort((a, b) => {
+      const at = (a.scheduledAt as any)?.toDate?.()?.getTime?.() || Number.MAX_SAFE_INTEGER;
+      const bt = (b.scheduledAt as any)?.toDate?.()?.getTime?.() || Number.MAX_SAFE_INTEGER;
+      return at - bt;
+    });
+  }
+
+  // Yaklaşım 2 (fallback): contentPlanId üzerinden query (yeni postlar için)
   const q = query(
     collection(db, COLLECTION_NAME),
     where('tenantId', '==', tenantId),
-    where('contentPlanId', '==', contentPlanId),
-    orderBy('scheduledAt', 'asc')
+    where('contentPlanId', '==', contentPlanId)
   );
-
   const snapshot = await getDocs(q);
-
-  return snapshot.docs.map((d) => ({
+  const posts = snapshot.docs.map((d) => ({
     id: d.id,
     ...d.data(),
   })) as SocialMediaPost[];
+
+  return posts.sort((a, b) => {
+    const at = (a.scheduledAt as any)?.toDate?.()?.getTime?.() || Number.MAX_SAFE_INTEGER;
+    const bt = (b.scheduledAt as any)?.toDate?.()?.getTime?.() || Number.MAX_SAFE_INTEGER;
+    return at - bt;
+  });
 }
 
 // ============================================

@@ -20,18 +20,11 @@ export async function runDeliverableEnricher(
   const strategicDepth = synthesis.strategicDepth;
   const kpi = synthesis.kpiFramework;
 
-  // Determine journey stages based on maturity
-  const journeyStages = (!maturityLevel || maturityLevel === 'pre_brand')
-    ? `3 aşama: farkindalik, ilgi, satin_alma`
-    : `5 aşama: farkindalik, ilgi, degerlendirme, satin_alma, sadakat`;
-
-  const stageCount = (!maturityLevel || maturityLevel === 'pre_brand') ? 3 : 5;
-
   // Max 4 pillars, 2 templates per pillar
   const templatePillars = pillars.slice(0, 4);
   const templateCount = templatePillars.length * 2;
 
-  const prompt = `Sen bir marka iletisim ve icerik stratejisi uzmanisisn. Asagidaki marka analizi verilerini kullanarak 3 yeni cikti uret.
+  const prompt = `Sen bir marka iletisim ve icerik stratejisi uzmanisin. Asagidaki marka analizi verilerini kullanarak 2 yeni cikti uret.
 
 ## Marka Bilgisi
 - Isletme: ${businessName}
@@ -62,20 +55,7 @@ Musteriler en cok "ne yazacagim?" sorusunu sorar. Tek bir elevator pitch yeterli
   - subheadline: Alt baslik (fayda odakli)
   - proof: Kanit noktasi (neden inanmali)
 
-## Cikti 2: Musteri Yolculugu Haritasi (customerJourney)
-KOBİ "butcemi nereye harcamaliyim?" sorusuna yanit.
-${journeyStages} kullan.
-
-Her asama icin:
-- stage: Enum deger (farkindalik/ilgi/degerlendirme/satin_alma/sadakat)
-- stageLabel: Turkce etiket
-- customerAction: Musteri bu asamada ne yapiyor (1-2 cumle)
-- touchpoints: 2-4 temas noktasi (Instagram, Google, magaza, arkadas onerisi, vb.)
-- emotion: Musterinin bu asamadaki duygusal durumu (1 cumle)
-- brandOpportunity: Marka burada ne yapabilir (1-2 cumle)
-- contentType: Uretilmesi gereken icerik turu (orn: "Tanitim Reels", "SSS blog yazisi", "Referans videosu")
-
-## Cikti 3: Sosyal Medya Icerik Sablonlari (socialMediaTemplates)
+## Cikti 2: Sosyal Medya Icerik Sablonlari (socialMediaTemplates)
 "Stratejiyi anladim ama yarin ne paylasacagimi bilmiyorum" sorununu cozer.
 Her icerik sutunu icin 2 sablon, toplam ${templateCount} sablon.
 
@@ -112,17 +92,6 @@ JSON yapisi:
       { "segment": "...", "headline": "...", "subheadline": "...", "proof": "..." }
     ]
   },
-  "customerJourney": [
-    {
-      "stage": "farkindalik",
-      "stageLabel": "Farkindalik",
-      "customerAction": "...",
-      "touchpoints": ["..."],
-      "emotion": "...",
-      "brandOpportunity": "...",
-      "contentType": "..."
-    }
-  ],
   "socialMediaTemplates": [
     {
       "pillar": "...",
@@ -138,7 +107,7 @@ JSON yapisi:
 
   const parsed = await generateJSON<DeliverableEnricherOutput>('flash', prompt, 'DeliverableEnricher', {
     temperature: 0.7,
-    maxOutputTokens: 8192,
+    maxOutputTokens: 6144,
   });
 
   // Validate and return with safe defaults
@@ -157,9 +126,7 @@ JSON yapisi:
         ? parsed.messagingArchitecture.audienceMessages
         : [],
     },
-    customerJourney: Array.isArray(parsed.customerJourney)
-      ? parsed.customerJourney.slice(0, stageCount)
-      : [],
+    customerJourney: [], // No longer generated — removed from report
     socialMediaTemplates: Array.isArray(parsed.socialMediaTemplates)
       ? parsed.socialMediaTemplates.slice(0, templateCount)
       : [],

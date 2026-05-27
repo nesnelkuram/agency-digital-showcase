@@ -4,6 +4,7 @@ import { generateJSON } from '../_lib/gemini-bundle.mjs';
 import { getAdminDb } from '../_lib/firebaseAdmin.js';
 import { withAuth, AuthenticatedRequest } from '../_lib/withAuth.js';
 import { applyRateLimit, LIMITS } from '../_lib/rateLimit.js';
+import { buildBrandCharacterPure } from '../../shared/services/brandAICharacterBuilder.js';
 
 export const config = {
   maxDuration: 30,
@@ -79,21 +80,32 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
       return res.status(400).json({ error: 'Missing required fields: projectId, platform' });
     }
 
-    // Load project info for brand context
+    // Load project info + brand AI character (if leadId available)
     let brandContext = '';
+    let brandSystemPrompt = '';
     try {
-      const db = getAdminDb();
-      const projectDoc = await db.collection('projects').doc(projectId).get();
+      const adminDb = getAdminDb();
+      const projectDoc = await adminDb.collection('projects').doc(projectId).get();
       if (projectDoc.exists) {
-        const data = projectDoc.data();
+        const projectData = projectDoc.data();
         brandContext = [
-          data?.name ? `Marka: ${data.name}` : '',
-          data?.sector ? `Sektor: ${data.sector}` : '',
-          data?.description ? `Aciklama: ${data.description}` : '',
+          projectData?.name ? `Marka: ${projectData.name}` : '',
+          projectData?.sector ? `Sektor: ${projectData.sector}` : '',
+          projectData?.description ? `Aciklama: ${projectData.description}` : '',
         ].filter(Boolean).join('\n');
+
+        if (projectData?.leadId) {
+          const leadDoc = await adminDb.collection('brand_leads').doc(projectData.leadId).get();
+          if (leadDoc.exists) {
+            const character = buildBrandCharacterPure(leadDoc.data(), leadDoc.id, projectId);
+            if (character.hasAnalysis) {
+              brandSystemPrompt = character.systemPrompt;
+            }
+          }
+        }
       }
     } catch (err) {
-      console.warn('[generate-caption] Could not load project data:', err);
+      console.warn('[generate-caption] Could not load project/brand data:', err);
     }
 
     const toneGuide = PLATFORM_TONE_GUIDE[platform] || 'Profesyonel ve etkileyici.';
@@ -107,7 +119,7 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
 
       const isHashtagOnly = instruction === 'hashtag_oner';
 
-      const promptText = `Sen bir sosyal medya icerik uzmanisin.
+      const promptText = `${brandSystemPrompt || 'Sen bir sosyal medya icerik uzmanisin.'}
 
 ## Gorev
 ${refinementPrompt}
@@ -156,7 +168,9 @@ Lutfen su JSON formatinda yanit ver:
 
     const hasImages = imageParts.length > 0;
 
-    const promptText = `Sen bir sosyal medya icerik uzmanisin. ${hasImages ? 'Eklenen gorselleri dikkatlice analiz et — renkleri, nesne/sahne icerigi, markaya iliskin ipuclarini ve hissi degerlendirerek' : 'Asagidaki bilgilere dayanarak'} ${platform} platformu icin bir post caption'i ve hashtag'ler olustur.
+    const promptText = `${brandSystemPrompt || 'Sen bir sosyal medya icerik uzmanisin.'}
+
+${hasImages ? 'Eklenen gorselleri dikkatlice analiz et — renkleri, nesne/sahne icerigi, markaya iliskin ipuclarini ve hissi degerlendir' : 'Asagidaki bilgilere dayanarak'} ${platform} platformu icin bir post caption'i ve hashtag'ler olustur.
 
 ${brandContext ? `## Marka Bilgisi\n${brandContext}\n` : ''}
 ## Platform

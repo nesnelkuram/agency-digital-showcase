@@ -46,6 +46,8 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
       comment,
       approvedCount,
       totalCount,
+      brandName,
+      postCount,
     } = req.body || {};
 
     if (!type || !recipientEmail || !planTitle) {
@@ -67,6 +69,8 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
           planTitle,
           shareUrl,
           weekRange,
+          brandName,
+          postCount,
         });
         break;
       }

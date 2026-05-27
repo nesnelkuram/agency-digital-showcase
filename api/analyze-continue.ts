@@ -499,15 +499,14 @@ export default withAuthOptional(async (req: OptionalAuthRequest, res: VercelResp
     // frictionAnalyzer removed — its logic is distilled into strategySynthesizer prompt
     let challengerOutput = (hasCheckpoint && cp?.challengerOutput) || null;
     let blogAdvisorOutput = (hasCheckpoint && cp?.blogAdvisorOutput) || null;
-    let consumerTestResult = (hasCheckpoint && cp?.consumerTest) || null;
+    let consumerTestResult = null; // Consumer test removed — simulated personas not shown in report
 
     if (challengerOutput) { console.log('analyze-continue: Using checkpointed challengerOutput'); agentsRun.push('brandChallenger'); }
     if (blogAdvisorOutput) { console.log('analyze-continue: Using checkpointed blogAdvisorOutput'); agentsRun.push('blogStrategyAdvisor'); }
-    if (consumerTestResult) { console.log('analyze-continue: Using checkpointed consumerTest'); agentsRun.push('consumerTest'); }
 
     const needsChallenger = !challengerOutput;
     const needsBlog = !blogAdvisorOutput;
-    const needsConsumerTest = !consumerTestResult;
+    const needsConsumerTest = false; // Consumer test skipped — not used in report
 
     if ((needsChallenger || needsBlog || needsConsumerTest) && remaining() > 30_000) {
       const parallelStart = Date.now();

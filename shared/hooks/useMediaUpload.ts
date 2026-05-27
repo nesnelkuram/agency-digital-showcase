@@ -18,34 +18,82 @@ const IMAGE_MAX_SIZE = 10 * 1024 * 1024; // 10MB
 const VIDEO_MAX_SIZE = 100 * 1024 * 1024; // 100MB
 const MAX_FILES = 10;
 
-function generateThumbnail(file: File): Promise<string | undefined> {
+function generateImageThumbnail(file: File): Promise<string | undefined> {
   return new Promise((resolve) => {
-    if (!file.type.startsWith('image/')) {
-      resolve(undefined);
-      return;
-    }
-
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
 
     img.onload = () => {
-      const maxDim = 200;
-      const ratio = Math.min(maxDim / img.width, maxDim / img.height);
+      const maxDim = 480;
+      const ratio = Math.min(maxDim / img.width, maxDim / img.height, 1);
       canvas.width = img.width * ratio;
       canvas.height = img.height * ratio;
       ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
-      resolve(canvas.toDataURL('image/jpeg', 0.7));
-      URL.revokeObjectURL(img.src);
+      resolve(canvas.toDataURL('image/jpeg', 0.82));
+      URL.revokeObjectURL(objectUrl);
     };
-
     img.onerror = () => {
       resolve(undefined);
-      URL.revokeObjectURL(img.src);
+      URL.revokeObjectURL(objectUrl);
     };
-
-    img.src = URL.createObjectURL(file);
+    img.src = objectUrl;
   });
+}
+
+function generateVideoThumbnail(file: File): Promise<string | undefined> {
+  return new Promise((resolve) => {
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.muted = true;
+    video.playsInline = true;
+    video.crossOrigin = 'anonymous';
+    const objectUrl = URL.createObjectURL(file);
+
+    const cleanup = () => URL.revokeObjectURL(objectUrl);
+    const timeout = setTimeout(() => {
+      cleanup();
+      resolve(undefined);
+    }, 8000);
+
+    video.onloadedmetadata = () => {
+      // İlk kareye git (0.1s — bazı codec'ler 0'da siyah döner)
+      video.currentTime = Math.min(0.1, (video.duration || 1) / 2);
+    };
+    video.onseeked = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        const maxDim = 720;
+        const ratio = Math.min(maxDim / video.videoWidth, maxDim / video.videoHeight, 1);
+        canvas.width = video.videoWidth * ratio;
+        canvas.height = video.videoHeight * ratio;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+        clearTimeout(timeout);
+        cleanup();
+        resolve(dataUrl);
+      } catch (err) {
+        console.warn('[useMediaUpload] Video thumbnail failed:', err);
+        clearTimeout(timeout);
+        cleanup();
+        resolve(undefined);
+      }
+    };
+    video.onerror = () => {
+      clearTimeout(timeout);
+      cleanup();
+      resolve(undefined);
+    };
+    video.src = objectUrl;
+  });
+}
+
+function generateThumbnail(file: File): Promise<string | undefined> {
+  if (file.type.startsWith('image/')) return generateImageThumbnail(file);
+  if (file.type.startsWith('video/')) return generateVideoThumbnail(file);
+  return Promise.resolve(undefined);
 }
 
 function getMediaDimensions(file: File): Promise<{ width?: number; height?: number; duration?: number }> {

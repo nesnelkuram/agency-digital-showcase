@@ -8,6 +8,8 @@ import {
   setDoc,
   updateDoc,
   serverTimestamp,
+  arrayUnion,
+  writeBatch,
 } from 'firebase/firestore';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase/config';
@@ -132,7 +134,28 @@ const JoinPage: React.FC = () => {
       const roleConfig = ROLES[invitation.role];
       const permissions = roleConfig?.permissions || [];
 
-      // 4. Create Firestore user document
+      // 4. Build profile from invitation extraFields
+      const extras = invitation.extraFields || {};
+      const profile: Record<string, any> = {};
+      if (extras.phone) profile.phone = extras.phone;
+      if (extras.title) profile.title = extras.title;
+      if (extras.department) profile.department = extras.department;
+      if (extras.skills && Array.isArray(extras.skills) && extras.skills.length > 0)
+        profile.skills = extras.skills;
+      if (typeof extras.hourlyRate === 'number') profile.hourlyRate = extras.hourlyRate;
+      if (extras.hourlyCurrency) profile.hourlyCurrency = extras.hourlyCurrency;
+      if (extras.clientCompany) profile.clientCompany = extras.clientCompany;
+      if (extras.billingEmail) profile.billingEmail = extras.billingEmail;
+      if (extras.managerId) profile.managerId = extras.managerId;
+      if (
+        extras.assignedProjectIds &&
+        Array.isArray(extras.assignedProjectIds) &&
+        extras.assignedProjectIds.length > 0
+      ) {
+        profile.assignedProjectIds = extras.assignedProjectIds;
+      }
+
+      // 5. Create Firestore user document
       await setDoc(doc(db, 'users', firebaseUser.uid), {
         email: invitation.email,
         displayName: displayName.trim(),
@@ -145,24 +168,46 @@ const JoinPage: React.FC = () => {
           updatedAt: serverTimestamp(),
           invitedBy: invitation.invitedBy,
         },
-        profile: {},
+        profile,
         settings: {
           notifications: { email: true, push: true, approvalReminders: true },
         },
       });
 
-      // 5. Mark invitation as accepted
+      // 6. Mark invitation as accepted
       await updateDoc(doc(db, 'invitations', invitation.id), {
         status: 'accepted',
         acceptedAt: serverTimestamp(),
         acceptedByUid: firebaseUser.uid,
       });
 
+      // 7. assignedProjectIds varsa projelere teamMember ekle
+      if (profile.assignedProjectIds && profile.assignedProjectIds.length > 0) {
+        try {
+          const batch = writeBatch(db);
+          const member = {
+            uid: firebaseUser.uid,
+            name: displayName.trim(),
+            role: invitation.role,
+          };
+          for (const projectId of profile.assignedProjectIds as string[]) {
+            batch.update(doc(db, 'projects', projectId), {
+              teamMembers: arrayUnion(member),
+              updatedAt: serverTimestamp(),
+            });
+          }
+          await batch.commit();
+        } catch (projErr) {
+          console.warn('[JoinPage] Failed to attach user to projects:', projErr);
+        }
+      }
+
       setStep('success');
 
-      // Redirect to admin after brief success message
+      // Rol'e göre yönlendir: client → /portal, diğerleri → /admin
+      const redirectTo = invitation.role === 'client' ? '/portal' : '/admin';
       setTimeout(() => {
-        navigate('/admin');
+        navigate(redirectTo);
       }, 2000);
     } catch (err: any) {
       console.error('[JoinPage] Error creating account:', err);
