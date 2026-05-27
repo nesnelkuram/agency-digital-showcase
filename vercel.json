@@ -14,6 +14,7 @@
     "api/social-media/client-review-post.ts": { "maxDuration": 15 },
     "api/tasks/analyze-task.ts": { "maxDuration": 30 },
     "api/tasks/breakdown-task.ts": { "maxDuration": 30 },
+    "api/tasks/send-test-digest.ts": { "maxDuration": 30 },
     "api/tasks/intake-chat.ts": { "maxDuration": 60 },
     "api/workflow/design-chat.ts": { "maxDuration": 60 },
     "api/workflow/builder-chat.ts": { "maxDuration": 60 },

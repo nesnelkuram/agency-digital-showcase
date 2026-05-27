@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Bell, Mail, Smartphone, Clock, ChevronLeft, Check, Loader2, Sunrise } from 'lucide-react';
+import { Bell, Mail, Smartphone, Clock, ChevronLeft, Check, Loader2, Sunrise, Send } from 'lucide-react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { useAuth } from '@/contexts/AuthContext';
@@ -51,6 +51,36 @@ const NotificationsPage: React.FC = () => {
 
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [testSending, setTestSending] = useState(false);
+  const [testResult, setTestResult] = useState<string | null>(null);
+
+  const sendTestDigest = async () => {
+    setTestSending(true);
+    setTestResult(null);
+    try {
+      const { getAuth } = await import('firebase/auth');
+      const u = getAuth().currentUser;
+      if (!u) throw new Error('Oturum bulunamadı');
+      const token = await u.getIdToken();
+      const res = await fetch('/api/tasks/send-test-digest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gönderilemedi');
+      if (data.success) {
+        setTestResult(`✓ ${data.sentTo} adresine ${data.taskCount} görevle gönderildi`);
+      } else {
+        setTestResult(data.message || 'Aktif görev yok');
+      }
+      setTimeout(() => setTestResult(null), 6000);
+    } catch (err: any) {
+      setTestResult(`Hata: ${err.message}`);
+      setTimeout(() => setTestResult(null), 6000);
+    } finally {
+      setTestSending(false);
+    }
+  };
 
   const toggle = async (key: keyof typeof prefs) => {
     const updated = { ...prefs, [key]: !prefs[key] };
@@ -141,6 +171,47 @@ const NotificationsPage: React.FC = () => {
               </motion.button>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Deneme mail */}
+      <div className="bg-white rounded-xl border border-neutral-100 p-5">
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
+            <Send className="w-4 h-4 text-emerald-600" />
+          </div>
+          <div className="flex-1">
+            <p className="font-grotesk font-medium text-[#171717] text-sm">Deneme Mail Gönder</p>
+            <p className="font-grotesk text-xs text-neutral-500 mt-0.5">
+              Günlük özetin nasıl göründüğünü kendine bir deneme olarak gönder.
+            </p>
+            {testResult && (
+              <p
+                className={`font-grotesk text-xs mt-2 ${
+                  testResult.startsWith('Hata')
+                    ? 'text-rose-600'
+                    : testResult.startsWith('✓')
+                    ? 'text-emerald-600'
+                    : 'text-neutral-500'
+                }`}
+              >
+                {testResult}
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={sendTestDigest}
+            disabled={testSending}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#171717] text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors font-grotesk text-xs font-medium"
+          >
+            {testSending ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Send className="w-3.5 h-3.5" />
+            )}
+            {testSending ? 'Gönderiliyor…' : 'Gönder'}
+          </button>
         </div>
       </div>
 
