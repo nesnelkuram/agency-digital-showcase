@@ -89,17 +89,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const db = getAdminDb();
 
+  let sentCount = 0;
+  let emailSentCount = 0;
+  let emailFailedCount = 0;
+
   try {
-    // Get all active Telegram links
-    const linksSnap = await db.collection('telegram_user_links')
-      .where('isActive', '==', true)
-      .get();
-
-    if (linksSnap.empty) {
-      return res.status(200).json({ message: 'No active Telegram links' });
-    }
-
-    let sentCount = 0;
+    // ─── Telegram digest (best-effort, email'i bloklamasın) ──────────────
+    try {
+      const linksSnap = await db.collection('telegram_user_links')
+        .where('isActive', '==', true)
+        .get();
 
     for (const linkDoc of linksSnap.docs) {
       const link = linkDoc.data();
@@ -198,13 +197,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       await sendTelegramMessage(telegramChatId, sections.join('\n'));
       sentCount++;
     }
+    } catch (telegramErr: any) {
+      console.error('[cron/task-digest] Telegram bölümü başarısız:', telegramErr?.message);
+    }
 
     // ─── Email digest ────────────────────────────────────────────────────
     // Aktif tüm tenant user'larına günlük email gönder. Admin → tenant'ın tümünü,
     // diğerleri → sadece kendine atanmış görevleri görür.
-    let emailSentCount = 0;
-    let emailFailedCount = 0;
-
     if (process.env.RESEND_API_KEY) {
       // Tüm aktif user'lar (tüm tenant'larda)
       const usersSnap = await db

@@ -48,3 +48,7 @@ api/**/*.mjs
 api/_bundles/
 api/_lib/gemini-bundle.mjs
 .vercel
+
+# Local video compression artifacts (real files live on Vercel Blob)
+videos/full-optimized/
+videos/full-optimized2/

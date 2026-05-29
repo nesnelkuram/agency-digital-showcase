@@ -93,7 +93,34 @@ export function useNowTask(options: UseNowTaskOptions = {}): UseNowTaskReturn {
     });
 
     // Pin (kullanıcı Kanban'dan tıkladı) > in_progress > paused > en yüksek skor
-    const pinned = pinnedId ? sorted.find((it) => it.id === pinnedId) : null;
+    // Eğer pin parent'sa (children'ı varsa) ilk tamamlanmamış child'a düş
+    let pinned: UnifiedTaskItem | null = null;
+    if (pinnedId) {
+      pinned = sorted.find((it) => it.id === pinnedId) ?? null;
+      if (!pinned) {
+        // Bu id'nin altında child var mı? Varsa parent kabul et.
+        const children = items
+          .filter(
+            (it) =>
+              it.source === 'standalone' &&
+              it.task?.parentTaskId === pinnedId
+          )
+          .sort((a, b) => {
+            const oA = a.task?.sortOrder ?? Number.MAX_SAFE_INTEGER;
+            const oB = b.task?.sortOrder ?? Number.MAX_SAFE_INTEGER;
+            return oA - oB;
+          });
+        const firstOpenChild = children.find(
+          (it) => it.status !== 'completed' && it.status !== 'cancelled'
+        );
+        if (firstOpenChild) {
+          pinned = firstOpenChild;
+        } else if (children.length > 0) {
+          // Hepsi tamam — son child'ı göster (parent görüntüsü için)
+          pinned = children[children.length - 1];
+        }
+      }
+    }
     const inProgress = sorted.find((it) => it.status === 'in_progress');
     const paused = sorted.find((it) => it.status === 'paused');
     const now = pinned ?? inProgress ?? paused ?? sorted[0] ?? null;

@@ -20,6 +20,7 @@ import NowQuickAdd from './components/NowQuickAdd';
 import NowSkipDecisionBar from './components/NowSkipDecisionBar';
 import TrainingVideoModal from './components/TrainingVideoModal';
 import NowAllTasksPanel from './components/NowAllTasksPanel';
+import NowTaskSettings from './components/NowTaskSettings';
 
 const TURKISH_DAYS = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
 
@@ -194,9 +195,29 @@ const NowPage: React.FC = () => {
 
   // ─── Render ──────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen admin-bg flex flex-col">
+    <div
+      className={`min-h-screen flex flex-col transition-colors duration-700 ${
+        isRunning ? 'now-focus' : 'admin-bg'
+      }`}
+    >
+      {/* Focus rozeti */}
+      {isRunning && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-white/80 backdrop-blur-sm border border-white/10">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="font-commons text-[10px] uppercase tracking-[0.22em] font-medium">
+              Focus
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Minimal top bar: time + theme on left, panel link on right */}
-      <header className="flex items-center justify-between px-6 py-5">
+      <header
+        className={`relative z-10 flex items-center justify-between px-6 py-5 transition-opacity duration-500 ${
+          isRunning ? 'opacity-25 hover:opacity-100' : 'opacity-100'
+        }`}
+      >
         <div className="font-commons text-xs text-neutral-500">
           <span className="text-neutral-700 font-medium">{timeLabel}</span>
           <span className="mx-2 text-neutral-300">·</span>
@@ -248,7 +269,7 @@ const NowPage: React.FC = () => {
       {/* SOP parent başlığı — sayfanın üstünde sticky, slider'ı dikey
           ortada özgür bırakır */}
       {parentFlow && allFlowSteps.length >= 1 && (
-        <div className="px-6 pt-2 pb-1 text-center">
+        <div className="now-sop-header relative z-10 px-6 pt-2 pb-1 text-center">
           <p className="font-commons text-[10px] uppercase tracking-[0.22em] text-neutral-400 mb-0.5">
             {parentFlow.projectName || 'Görev Akışı'}
           </p>
@@ -283,7 +304,7 @@ const NowPage: React.FC = () => {
       )}
 
       {/* Main centered content */}
-      <main className="flex-1 flex flex-col items-center justify-center px-4">
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4">
         {loading ? (
           <div className="w-8 h-8 border-2 border-[#171717] border-t-transparent rounded-full animate-spin" />
         ) : error ? (
@@ -320,6 +341,8 @@ const NowPage: React.FC = () => {
               onDone={handleDone}
               onSkip={handleSkipRequest}
             />
+
+            <NowTaskSettings tenantId={tenantId} item={currentTask} />
 
             {actionError && (
               <p className="mt-4 font-commons text-xs text-rose-600">{actionError}</p>

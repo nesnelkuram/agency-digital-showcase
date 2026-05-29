@@ -1,6 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef, Suspense, useCallback, Component, ErrorInfo, ReactNode } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
-import { Environment } from '@react-three/drei';
 import AnimatedPhone from './AnimatedPhone';
 import { ALL_MEDIA_CONTENT } from '../constants';
 import { useBreakpoint } from '../hooks/useMediaQuery';
@@ -8,6 +7,7 @@ import { getVideosByCategory } from '../videoUtils';
 import WebGLFallback from './WebGLFallback';
 import { useDeviceCapability } from '../hooks/useDeviceCapability';
 import { usePlaybackOrchestrator } from '../hooks/usePlaybackOrchestrator';
+import { MediaContent } from '../types';
 
 // WebGL availability probe — cached at module level
 let _webglSupported: boolean | null = null;
@@ -48,6 +48,10 @@ interface Header3DProps {
   revealed?: boolean;    // True when loading screen has finished transitioning
   heroContent?: HeroContent;  // Optional custom hero content for landing pages
   defaultCategory?: 'all' | 'fashion' | 'commercial' | 'gastronomy' | 'interview';
+  /** Pre-resolved 'all' category videos. When provided, replaces Header3D's own
+   *  random sampling so the parent (HomePage) can preload the exact URLs that
+   *  will appear on screen. Only used while selectedCategory === 'all'. */
+  initialVideos?: MediaContent[];
 }
 
 // Default hero content - Harry Dry style copywriting
@@ -64,7 +68,8 @@ const Header3D: React.FC<Header3DProps> = ({
   onReady,
   revealed = false,
   heroContent = defaultHeroContent,
-  defaultCategory = 'all'
+  defaultCategory = 'all',
+  initialVideos
 }) => {
   const [parallaxOffset, setParallaxOffset] = useState(0);
   const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
@@ -230,7 +235,7 @@ const Header3D: React.FC<Header3DProps> = ({
 
   // Device capability detection + playback orchestrator
   const deviceCapability = useDeviceCapability();
-  const { register: registerPhone, unregister: unregisterPhone, isActive: isPhoneActive } = usePlaybackOrchestrator(deviceCapability, parallaxOffset);
+  const { register: registerPhone, unregister: unregisterPhone, isActive: isPhoneActive, recompute: recomputeOrchestrator } = usePlaybackOrchestrator(deviceCapability, parallaxOffset);
 
   // How many viewport-heights to scroll before parallax ends
   const PARALLAX_DURATION_VIEWPORTS = isMobile ? 3.5 : 5; // Mobilde daha kısa, daha erken aşağı in
@@ -245,27 +250,26 @@ const Header3D: React.FC<Header3DProps> = ({
     let filteredVideos;
     
     if (selectedCategory === 'all') {
-      // Tüm kategorilerden karışık video seç
-      const allVideos = getVideosByCategory('all');
-      
-      // Her kategoriden en az bir video olacak şekilde karışık seç
-      const categories = ['Fashion', 'Commercial', 'Gastronomy', 'Interview'];
-      const selectedVideos: any[] = [];
-      
-      // Her kategoriden en az 2 video al
-      categories.forEach(cat => {
-        const catVideos = allVideos.filter(v => v.category === cat);
-        if (catVideos.length > 0) {
-          // Her kategoriden 2-3 rastgele video seç
-          const shuffled = [...catVideos].sort(() => Math.random() - 0.5);
-          selectedVideos.push(...shuffled.slice(0, Math.min(3, catVideos.length)));
-        }
-      });
-      
-      // Karıştır ve 11 video seç (mobil için 4+4+3=11)
-      const mixedVideos = [...selectedVideos].sort(() => Math.random() - 0.5).slice(0, 11);
-      
-      filteredVideos = mixedVideos.map(video => ({
+      // Prefer pre-resolved selection from parent (so preload URLs match render URLs).
+      // Falls back to local random sampling only if no initialVideos prop was passed
+      // (e.g. landing pages that don't go through HomePage).
+      const source = initialVideos && initialVideos.length > 0
+        ? initialVideos
+        : (() => {
+            const allVideos = getVideosByCategory('all');
+            const cats = ['Fashion', 'Commercial', 'Gastronomy', 'Interview'];
+            const picked: any[] = [];
+            cats.forEach(cat => {
+              const catVideos = allVideos.filter(v => v.category === cat);
+              if (catVideos.length > 0) {
+                const shuffled = [...catVideos].sort(() => Math.random() - 0.5);
+                picked.push(...shuffled.slice(0, Math.min(3, catVideos.length)));
+              }
+            });
+            return [...picked].sort(() => Math.random() - 0.5).slice(0, 11);
+          })();
+
+      filteredVideos = source.map(video => ({
         id: video.id,
         src: video.preview || video.fullVideo || '',
         alt: video.alt || video.title || '',
@@ -374,7 +378,7 @@ const Header3D: React.FC<Header3DProps> = ({
         };
       }
     });
-  }, [isMobile, isTablet, selectedCategory]);
+  }, [isMobile, isTablet, selectedCategory, initialVideos]);
 
   // Pre-compute grid positions for orchestrator registration
   const phoneGridPositions = useMemo(() => {
@@ -407,17 +411,20 @@ const Header3D: React.FC<Header3DProps> = ({
     return positions;
   }, [phoneConfigs, isMobile, isTablet]);
 
-  // Register phones with orchestrator
+  // Register phones with orchestrator, then explicitly recompute so the active
+  // set is populated *before* the next paint — otherwise nothing plays until
+  // the first scroll event.
   useEffect(() => {
     for (const pos of phoneGridPositions) {
       registerPhone(pos.key, pos.worldY, pos.column);
     }
+    recomputeOrchestrator();
     return () => {
       for (const pos of phoneGridPositions) {
         unregisterPhone(pos.key);
       }
     };
-  }, [phoneGridPositions, registerPhone, unregisterPhone]);
+  }, [phoneGridPositions, registerPhone, unregisterPhone, recomputeOrchestrator]);
 
   // Touch handlers for mobile carousel
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
@@ -621,12 +628,15 @@ const Header3D: React.FC<Header3DProps> = ({
               lookAt={[0, 0, 0]}
               rotation={isMobile ? [0.60, 0.55, 0.4] : [0.5, 0.7, 0.4]}  // Desktop ile aynı açı
             />
-            <ambientLight intensity={0.6} />
-            <directionalLight position={[10, 40, 5]} intensity={1.2} />
+            {/* Removed <Environment preset="city" /> — was pulling a 1MB HDRI
+                from a remote CDN on every page load (huge mobile penalty).
+                Compensating with slightly stronger directional/ambient lights. */}
+            <ambientLight intensity={0.9} />
+            <directionalLight position={[10, 40, 5]} intensity={1.6} />
+            <directionalLight position={[-15, 10, 10]} intensity={0.5} />
             <pointLight position={[-10, -10, -5]} intensity={0.4} />
 
             <Suspense fallback={null}>
-              <Environment preset="city" />
               <group rotation={[0, 0, 0]} scale={isMobile ? 2.5 : isTablet ? 1.3 : 1.1} position={isMobile ? [0, 0, 0] : [0, 0, 0]}>
                 {(() => {
                   // Telefon sayısını ayarla: Sütun bazlı düzenleme
@@ -1119,7 +1129,7 @@ const Header3D: React.FC<Header3DProps> = ({
 };
 
 // Camera Controller Component
-function CameraController({ 
+function CameraController({
   lookAt,
   rotation = [0, 0, 0] 
 }: { 
@@ -1127,7 +1137,7 @@ function CameraController({
   rotation?: [number, number, number]; // [x, y, z] Euler angles in radians
 }) {
   const { camera } = useThree();
-  
+
   useEffect(() => {
     if (lookAt) {
       camera.lookAt(...lookAt);

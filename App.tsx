@@ -1,11 +1,14 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import SimpleLoadingScreen from './components/SimpleLoadingScreen';
 import SimpleQuoteLightbox from './components/SimpleQuoteLightbox';
 import UrgencyBar from './components/UrgencyBar';
 import { videoCache } from './utils/videoCache';
 import { useBreakpoint } from './hooks/useMediaQuery';
-import { getVideosByCategory } from './videoUtils';
+import { useDeviceCapability } from './hooks/useDeviceCapability';
+import { selectInitialVideos } from './utils/selectInitialVideos';
+import { getActiveHomepageVideosAsMedia } from './shared/services/homepageVideoService';
+import { MediaContent } from './types';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { TenantProvider } from '@/contexts/TenantContext';
 
@@ -39,144 +42,108 @@ const HomePage: React.FC = () => {
   const [is3DReady, setIs3DReady] = useState(false);
   const [videosReady, setVideosReady] = useState(false);
   const { isMobile, isTablet } = useBreakpoint();
-  
+  const capability = useDeviceCapability();
+
+  // Admin-managed videos (from the public homepage_videos collection). Loaded
+  // once on mount; resolves fast (and to [] on any error), so it merges into
+  // the grid during the loading screen without a post-reveal flash. Static
+  // catalogue keeps working regardless.
+  const [dynamicVideos, setDynamicVideos] = useState<MediaContent[]>([]);
   useEffect(() => {
-    // Critical assets for initial view
-    const criticalAssets = [
-      '/images/intibalogo.svg',
-      '/images/cursor.svg'
-    ];
-    
-    // VERY CONSERVATIVE: Only load absolutely necessary videos
-    const visiblePhones = isMobile ? 1 : isTablet ? 2 : 3; // Even more conservative for smooth loading
-    
-    // Get videos from 'all' category (matching Header3D initial state)
-    const allVideos = getVideosByCategory('all');
-    
-    // Get unique preview URLs for only visible phones
-    const uniqueVideoUrls = new Set<string>();
-    
-    // Only preload videos for initially visible phones
-    allVideos.slice(0, visiblePhones).forEach(video => {
-      if (video.preview) {
-        uniqueVideoUrls.add(video.preview);
-      }
+    let alive = true;
+    getActiveHomepageVideosAsMedia().then(vids => {
+      if (alive && vids.length > 0) setDynamicVideos(vids);
     });
-    
-    // Category videos loaded lazily after reveal — not blocking initial load
-    
-    const requiredVideos = Array.from(uniqueVideoUrls);
-    
-    console.log(`[App] Preloading ${visiblePhones} visible phones = ${requiredVideos.length} unique videos`);
-    
+    return () => { alive = false; };
+  }, []);
+
+  // Single source of truth for the videos shown on the phone grid.
+  // Same list is consumed by the preloader below AND by <Header3D> via the
+  // initialVideos prop, so what we wait to preload is exactly what renders.
+  const initialVideos = useMemo(() => {
+    const totalPhones = isMobile ? 11 : isTablet ? 7 : 10;
+    return selectInitialVideos(totalPhones, dynamicVideos);
+  }, [isMobile, isTablet, dynamicVideos]);
+
+  useEffect(() => {
+    const criticalAssets = ['/images/intibalogo.svg', '/images/cursor.svg'];
+
+    // Only the N videos that orchestrator will activate on first paint must be
+    // ready before reveal. The rest preload in the background after reveal so
+    // scroll/orchestrator activations feel instant.
+    const preloadCount = Math.max(1, Math.min(capability.maxConcurrentVideos || 1, initialVideos.length));
+    const criticalVideos = initialVideos
+      .slice(0, preloadCount)
+      .map(v => v.preview)
+      .filter((u): u is string => !!u);
+    const backgroundVideos = initialVideos
+      .slice(preloadCount)
+      .map(v => v.preview)
+      .filter((u): u is string => !!u);
+
+    console.log(`[App] Tier=${capability.tier}, preloading ${criticalVideos.length} critical / ${backgroundVideos.length} background videos`);
+
     let loadedImages = 0;
     let lastVideoProgress = 0;
-    let minimumTimeElapsed = false;
-    
-    // Set minimum loading time to ensure videos are truly ready
-    setTimeout(() => {
-      minimumTimeElapsed = true;
-    }, 300); // Quick minimum time
-    
+
     const updateProgress = () => {
-      // Basic readiness is sufficient — strict mode adds latency
-      const videoProgress = videoCache.getProgress(requiredVideos, false);
-      
-      // Calculate total progress: 10% images + 90% videos
+      const videoProgress = videoCache.getProgress(criticalVideos, false);
       const imageProgress = (loadedImages / criticalAssets.length) * 10;
-      const videoProgressPercent = (videoProgress.loaded / videoProgress.total) * 90;
-      let totalProgress = Math.round(imageProgress + videoProgressPercent);
-      
-      // Don't jump to 100% unless minimum time has elapsed AND videos are ready
-      if ((!minimumTimeElapsed || videoProgress.loaded < videoProgress.total) && totalProgress >= 100) {
-        totalProgress = 95; // Stay at 95% until really ready
-      }
-      
+      const videoProgressPercent = criticalVideos.length > 0
+        ? (videoProgress.loaded / videoProgress.total) * 90
+        : 90;
+      // Cap at 99 — only the preloadBatch resolution flips us to 100.
+      const totalProgress = Math.min(99, Math.round(imageProgress + videoProgressPercent));
       setLoadingProgress(totalProgress);
-      
-      // More detailed logging
-      if (Math.abs(videoProgress.percentage - lastVideoProgress) >= 5) {
-        console.log(`[App] Video progress: ${videoProgress.loaded}/${videoProgress.total} (${videoProgress.percentage}%)`)
-        if (videoProgress.details) {
-          console.log('[App] Video details:', videoProgress.details);
-        }
+
+      if (Math.abs(videoProgress.percentage - lastVideoProgress) >= 10) {
+        console.log(`[App] Video progress: ${videoProgress.loaded}/${videoProgress.total} (${videoProgress.percentage}%)`);
         lastVideoProgress = videoProgress.percentage;
       }
     };
-    
-    // Preload critical images first
+
     criticalAssets.forEach(src => {
       const img = new Image();
-      img.onload = () => {
-        loadedImages++;
-        updateProgress();
-      };
-      img.onerror = () => {
-        console.error(`[App] Failed to load image: ${src}`);
-        loadedImages++;
-        updateProgress();
-      };
+      img.onload = () => { loadedImages++; updateProgress(); };
+      img.onerror = () => { loadedImages++; updateProgress(); };
       img.src = src;
     });
-    
-    // Load ALL initial videos before showing site
-    const allUniqueVideos = Array.from(uniqueVideoUrls);
-    const initialVideos = allUniqueVideos.slice(0, visiblePhones); // Only visible phones
-    const categoryVideos = allUniqueVideos.slice(visiblePhones);
-    
-    console.log(`[App] Loading ${initialVideos.length} initial videos before showing site`);
-    
-    // Load initial videos — proceed as soon as batch resolves
-    videoCache.preloadBatch(initialVideos).then(() => {
-      console.log('[App] Initial videos loaded');
-      if (minimumTimeElapsed) {
-        setLoadingProgress(100);
-        setVideosReady(true);
-      } else {
-        // Wait for minimum time to pass
-        const wait = setInterval(() => {
-          if (minimumTimeElapsed) {
-            clearInterval(wait);
-            setLoadingProgress(100);
-            setVideosReady(true);
-          }
-        }, 50);
-        setTimeout(() => clearInterval(wait), 2000);
-      }
 
-      // Load category videos in background AFTER site is shown
-      if (categoryVideos.length > 0) {
-        setTimeout(() => {
-          videoCache.preloadBatch(categoryVideos).then(() => {
-            console.log('[App] Category preview videos preloaded');
-          });
-        }, 3000);
-      }
+    const preloadPromise = criticalVideos.length > 0
+      ? videoCache.preloadBatch(criticalVideos)
+      : Promise.resolve(new Map());
 
-      // Preload FULL videos in background for instant playback when clicked
-      setTimeout(() => {
-        const fullVideoUrls = initialVideos.map(url =>
-          url.replace('/preview/', '/full/')
-        );
-        videoCache.preloadBatch(fullVideoUrls).catch(() => {});
-      }, 5000);
-    });
-    
-    // Progress polling for smooth updates
-    const progressInterval = setInterval(updateProgress, 50);
-    
-    // Maximum loading time — force proceed after 2.5s
-    const timeout = setTimeout(() => {
-      console.log('[App] Maximum loading time reached, proceeding');
+    preloadPromise.then(() => {
+      console.log('[App] ✅ Critical videos loaded — revealing page');
       setLoadingProgress(100);
       setVideosReady(true);
-    }, 2500);
-    
+
+      // Background-preload remaining grid videos so scroll/orchestrator
+      // activations land into a warm browser cache instead of a fresh fetch.
+      if (backgroundVideos.length > 0) {
+        setTimeout(() => {
+          videoCache.preloadBatch(backgroundVideos).then(() => {
+            console.log('[App] Background videos preloaded');
+          });
+        }, 1500);
+      }
+    });
+
+    const progressInterval = setInterval(updateProgress, 100);
+
+    // Fail-safe — if Vercel Blob 503s never recover and retries exhaust,
+    // reveal the page anyway after 20s so the user isn't stuck forever.
+    const failSafe = setTimeout(() => {
+      console.warn('[App] ⚠️ Fail-safe (20s) — videos not ready, revealing anyway');
+      setLoadingProgress(100);
+      setVideosReady(true);
+    }, 20_000);
+
     return () => {
       clearInterval(progressInterval);
-      clearTimeout(timeout);
+      clearTimeout(failSafe);
     };
-  }, [isMobile, isTablet]);
+  }, [initialVideos, capability.tier, capability.maxConcurrentVideos]);
   
   // When videos are ready, allow loading to complete
   useEffect(() => {
@@ -218,6 +185,7 @@ const HomePage: React.FC = () => {
           onOpenQuote={() => setIsQuoteLightboxOpen(true)}
           onReady={handle3DReady}
           revealed={isRevealed}
+          initialVideos={initialVideos}
         />
       </Suspense>
 

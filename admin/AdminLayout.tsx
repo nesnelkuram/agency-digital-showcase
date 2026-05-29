@@ -113,6 +113,12 @@ const navItems: NavItem[] = [
     permission: PERMISSIONS.ASSETS_VIEW,
   },
   {
+    label: 'Anasayfa Videoları',
+    path: '/admin/homepage-videos',
+    icon: Video,
+    hiddenForRoles: ['client', 'freelancer'],
+  },
+  {
     label: 'Egitim',
     path: '/admin/training',
     icon: GraduationCap,
@@ -537,6 +543,23 @@ const AdminLayout: React.FC = () => {
 
             {/* Right side - intiba logo */}
             <div className="flex items-center gap-4">
+              {/* Görevlerim quick access */}
+              {user?.role !== 'client' && (
+                <Link
+                  to="/admin/now"
+                  className={`
+                    hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl font-commons text-sm font-medium transition-all
+                    ${location.pathname.startsWith('/admin/now')
+                      ? 'bg-[#171717] text-white shadow-sm'
+                      : 'bg-white/40 text-[#171717] hover:bg-white/60'
+                    }
+                  `}
+                >
+                  <ClipboardList className="w-4 h-4" />
+                  Görevlerim
+                </Link>
+              )}
+
               {/* Tenant Switcher (super_admin only) */}
               <TenantSwitcher />
 

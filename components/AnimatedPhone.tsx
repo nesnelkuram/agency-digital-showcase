@@ -1,4 +1,4 @@
-import React, { Suspense, useMemo, useState, useEffect, memo, useRef } from 'react';
+import React, { Suspense, useMemo, useEffect, memo, useRef } from 'react';
 import { animated, useSpring } from '@react-spring/three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Text } from '@react-three/drei';
@@ -20,7 +20,6 @@ interface AnimatedPhoneProps {
   mobileRotation?: [number, number, number];  // Mobil için özel rotasyon
   mobileScale?: number;  // Mobil için özel scale
   isMobile?: boolean;  // Mobil cihaz mı
-  phoneIndex?: number;  // Phone index for staggered video loading
   /** Controlled by usePlaybackOrchestrator — when false, video is paused to save decoder slots */
   playbackAllowed?: boolean;
 }
@@ -40,63 +39,8 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
   mobileRotation,
   mobileScale = 1,
   isMobile = false,
-  phoneIndex = 0,
   playbackAllowed = true
 }) => {
-  // Loading state for full video
-  const [isLoadingFullVideo, setIsLoadingFullVideo] = useState(false);
-  
-  // When selected, manage loading state for full video
-  useEffect(() => {
-    if (isSelected && fullVideoSrc) {
-      // Show loading while video starts streaming
-      setIsLoadingFullVideo(true);
-
-      // Create a video element to check loading state
-      const testVideo = document.createElement('video');
-      testVideo.src = fullVideoSrc;
-      testVideo.preload = 'metadata';
-
-      // Cleanup function to release video memory
-      const cleanup = () => {
-        testVideo.src = '';
-        testVideo.load();
-      };
-
-      // Hide loading when video can start playing
-      const handleCanPlay = () => {
-        setIsLoadingFullVideo(false);
-        cleanup();
-      };
-
-      // Also handle errors
-      const handleError = () => {
-        console.error('Failed to load full video:', fullVideoSrc);
-        setIsLoadingFullVideo(false);
-        cleanup();
-      };
-
-      testVideo.addEventListener('canplay', handleCanPlay);
-      testVideo.addEventListener('error', handleError);
-
-      // Fallback timer in case events don't fire
-      const fallbackTimer = setTimeout(() => {
-        setIsLoadingFullVideo(false);
-        cleanup();
-      }, 3000); // 3 second fallback
-
-      return () => {
-        clearTimeout(fallbackTimer);
-        testVideo.removeEventListener('canplay', handleCanPlay);
-        testVideo.removeEventListener('error', handleError);
-        cleanup();
-        setIsLoadingFullVideo(false);
-      };
-    } else {
-      setIsLoadingFullVideo(false);
-    }
-  }, [isSelected, fullVideoSrc]);
-  
   // Generate random delays and rotation direction (only calculated once)
   const rotationStartDelay = useMemo(() => Math.random() * 2000 + 200, []); // 200-2200ms random delay
   const rotationDirection = useMemo(() => Math.random() > 0.5 ? 1 : -1, []); // Random rotation direction
@@ -276,15 +220,14 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
           ) : (
             // Normal mode: Show IPhone3D
             <IPhone3D
-              key={`${isSelected ? 'full' : 'preview'}-${videoSrc}`}  // Force re-render when video changes
-              videoSrc={isSelected ? (fullVideoSrc || videoSrc) : videoSrc}  // Use full video only when selected
+              key={videoSrc}  // Stable — selection swaps the texture in-place, no remount
+              videoSrc={videoSrc}  // Always the preview: instant, already cached
+              fullVideoSrc={fullVideoSrc}  // Streams in on select, then swaps seamlessly
               rotation={[0, 0, 0]}
-              isLoading={isSelected && isLoadingFullVideo}
               onClick={onClick}
               isNearCamera={isNearCamera}
               isSelected={isSelected}
               enableSound={isSelected}  // Only enable sound when selected
-              loadDelay={phoneIndex * 300}  // Staggered loading: 0ms, 300ms, 600ms, etc.
               playbackAllowed={playbackAllowed || isSelected}  // Selected phone always plays
             />
           )}

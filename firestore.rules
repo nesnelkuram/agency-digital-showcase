@@ -53,6 +53,16 @@ service cloud.firestore {
     }
 
     // =============================================
+    // Homepage showcase videos — PUBLIC read (shown on the public homepage),
+    // admin/AM/editor write. Not tenant-scoped (the public site has no tenant).
+    // =============================================
+    match /homepage_videos/{videoId} {
+      allow read: if true;
+      allow create, update, delete: if isAuthenticated()
+        && getUserRole() in ['admin', 'super_admin', 'account_manager', 'editor'];
+    }
+
+    // =============================================
     // Tenant collection
     // =============================================
     match /tenants/{tenantId} {

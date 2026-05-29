@@ -186,6 +186,52 @@ body {
       radial-gradient(ellipse at 60% 100%, rgba(195, 185, 220, 0.3) 0%, transparent 50%);
   }
 
+  /* Focus mode — task in_progress için koyu tema. Modallara ve panel'e sızmaması
+     için scoping `>` ile sadece direkt çocuklara (header, main, .now-sop-header) */
+  .now-focus {
+    background-color: #0c0c10 !important;
+    background-image:
+      radial-gradient(ellipse at 0% 0%, rgba(60, 50, 90, 0.22) 0%, transparent 55%),
+      radial-gradient(ellipse at 100% 100%, rgba(40, 70, 100, 0.22) 0%, transparent 55%);
+    color: #fafafa;
+  }
+  /* Text inversions */
+  .now-focus > main h1,
+  .now-focus > .now-sop-header h2 {
+    color: #fafafa !important;
+  }
+  .now-focus > main .text-neutral-700,
+  .now-focus > .now-sop-header .text-neutral-600 { color: #e5e5e5 !important; }
+  .now-focus > main .text-neutral-600,
+  .now-focus > main .text-neutral-500 { color: #a3a3a3 !important; }
+  .now-focus > main .text-neutral-400,
+  .now-focus > .now-sop-header .text-neutral-400 { color: #737373 !important; }
+  .now-focus > main .text-neutral-300 { color: #525252 !important; }
+  .now-focus > main .text-\[\#171717\] { color: #fafafa !important; }
+  /* Surfaces */
+  .now-focus > main .bg-white { background-color: rgba(255, 255, 255, 0.06) !important; }
+  .now-focus > main .bg-white\/40,
+  .now-focus > main .bg-white\/60 { background-color: rgba(255, 255, 255, 0.08) !important; }
+  .now-focus > main .bg-neutral-100 { background-color: rgba(255, 255, 255, 0.06) !important; }
+  /* Borders */
+  .now-focus > main .border-neutral-100 { border-color: rgba(255, 255, 255, 0.08) !important; }
+  .now-focus > main .border-neutral-200 { border-color: rgba(255, 255, 255, 0.12) !important; }
+  .now-focus > main .border-neutral-300 { border-color: rgba(255, 255, 255, 0.18) !important; }
+  /* SOP progress bar arka plan */
+  .now-focus > .now-sop-header .bg-neutral-100 { background-color: rgba(255, 255, 255, 0.08) !important; }
+  /* Native inputs/select dark uyumu */
+  .now-focus > main input,
+  .now-focus > main select {
+    color-scheme: dark;
+    color: #fafafa !important;
+    background-color: rgba(255, 255, 255, 0.05) !important;
+  }
+  /* Inline editor (NowTaskSettings) — beyaz panel'i koyulaştır */
+  .now-focus > main .bg-white.rounded-xl {
+    background-color: rgba(255, 255, 255, 0.04) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+  }
+
   /* Primary glass card */
   .admin-card {
     @apply rounded-2xl p-6;

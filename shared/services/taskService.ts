@@ -100,6 +100,26 @@ export async function deleteTask(tenantId: string, taskId: string): Promise<void
   await deleteDoc(docRef);
 }
 
+/**
+ * Bir parent task + tüm child'larını tek batch'te siler.
+ * Standalone task'larda da güvenli — child yoksa sadece parent silinir.
+ */
+export async function deleteTaskCascade(tenantId: string, taskId: string): Promise<number> {
+  if (!db) throw new Error('Firebase not initialized');
+  const childrenSnap = await getDocs(
+    query(
+      collection(db, COLLECTION),
+      where('tenantId', '==', tenantId),
+      where('parentTaskId', '==', taskId)
+    )
+  );
+  const batch = writeBatch(db);
+  childrenSnap.docs.forEach((d) => batch.delete(d.ref));
+  batch.delete(doc(db, COLLECTION, taskId));
+  await batch.commit();
+  return childrenSnap.size;
+}
+
 // ─── SOP breakdown — atomic write of children + parent counter ───────────────
 export interface BreakdownChildInput {
   title: string;

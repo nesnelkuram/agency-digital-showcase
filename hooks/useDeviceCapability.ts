@@ -16,9 +16,12 @@ export interface DeviceCapability {
  *
  * Tiers:
  * - high:    desktop with ≥8 cores, ≥8 GB RAM → 6 videos
- * - mid:     desktop or good mobile              → 4 videos
- * - low:     old mobile / low RAM / slow net      → 2 videos
+ * - mid:     desktop or good mobile              → 3 videos
+ * - low:     old mobile / low RAM / slow net      → 1 video
  * - minimal: prefers-reduced-motion or very weak  → 0 videos (poster only)
+ *
+ * Limits are intentionally conservative — concurrent video decode is the dominant
+ * memory + GPU cost in this scene; the remaining phones render a cheap canvas placeholder.
  */
 export function useDeviceCapability(): DeviceCapability {
   const [capability, setCapability] = useState<DeviceCapability>(() => detect());
@@ -59,16 +62,16 @@ function detect(): DeviceCapability {
 
   // Classify
   if (slowConnection || (memory !== undefined && memory < 4) || cores <= 2) {
-    return { maxConcurrentVideos: 2, reducedMotion: false, lowEnd: true, tier: 'low' };
+    return { maxConcurrentVideos: 1, reducedMotion: false, lowEnd: true, tier: 'low' };
   }
 
   if (isMobileUA || viewportSmall || cores <= 4) {
-    return { maxConcurrentVideos: 4, reducedMotion: false, lowEnd: false, tier: 'mid' };
+    return { maxConcurrentVideos: 3, reducedMotion: false, lowEnd: false, tier: 'mid' };
   }
 
   if (cores >= 8 && (memory === undefined || memory >= 8)) {
     return { maxConcurrentVideos: 6, reducedMotion: false, lowEnd: false, tier: 'high' };
   }
 
-  return { maxConcurrentVideos: 4, reducedMotion: false, lowEnd: false, tier: 'mid' };
+  return { maxConcurrentVideos: 3, reducedMotion: false, lowEnd: false, tier: 'mid' };
 }

@@ -12,6 +12,7 @@ const LeadsPage = React.lazy(() => import('./leads/LeadsPage'));
 const LeadDetailPage = React.lazy(() => import('./leads/LeadDetailPage'));
 const ApprovalsPage = React.lazy(() => import('./approvals/ApprovalsPage'));
 const AssetsPage = React.lazy(() => import('./assets/AssetLibraryPage'));
+const HomepageVideosPage = React.lazy(() => import('./videos/HomepageVideosPage'));
 const TrainingPage = React.lazy(() => import('./training/TrainingPage'));
 const SettingsPage = React.lazy(() => import('./settings/SettingsPage'));
 const CostEnginePage = React.lazy(() => import('./pricing/CostEngine'));
@@ -511,6 +512,14 @@ const AdminApp: React.FC = () => {
             element={
               <React.Suspense fallback={<PageLoader />}>
                 <AssetsPage />
+              </React.Suspense>
+            }
+          />
+          <Route
+            path="homepage-videos"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <HomepageVideosPage />
               </React.Suspense>
             }
           />

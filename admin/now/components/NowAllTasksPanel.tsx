@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Pause, Play, CircleDashed, Sparkles, Clock, Plus, Check, CheckCircle2, Layers, ChevronDown, ChevronRight, Flag } from 'lucide-react';
+import { X, Pause, Play, CircleDashed, Sparkles, Clock, Plus, Check, CheckCircle2, Layers, ChevronDown, ChevronRight, Flag, RotateCcw, Trash2 } from 'lucide-react';
 import {
   DndContext,
   DragEndEvent,
@@ -30,7 +30,8 @@ import {
 import { db } from '@/lib/firebase/config';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUnifiedTasks } from '@/shared/hooks/useUnifiedTasks';
-import { updateTask } from '@/shared/services/taskService';
+import { updateTask, deleteTaskCascade } from '@/shared/services/taskService';
+import { restoreTask } from '@/shared/services/nowService';
 import { useTenantId } from '@/shared/hooks/useTenant';
 import type { TaskStatus, UnifiedTaskItem } from '@/shared/types/task';
 
@@ -112,6 +113,8 @@ interface CardProps {
   currentTaskId?: string;              // hangi child aktif onu vurgu için
   onClick: () => void;
   onChildClick?: (child: UnifiedTaskItem) => void;
+  onRestore?: (item: UnifiedTaskItem) => void;
+  onDelete?: (item: UnifiedTaskItem, childCount: number) => void;
 }
 
 const TaskCard: React.FC<CardProps> = ({
@@ -122,6 +125,8 @@ const TaskCard: React.FC<CardProps> = ({
   currentTaskId,
   onClick,
   onChildClick,
+  onRestore,
+  onDelete,
 }) => {
   const tenantId = useTenantId();
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -161,6 +166,7 @@ const TaskCard: React.FC<CardProps> = ({
   const task = item.task;
   const isPaused = item.status === 'paused';
   const isRunning = item.status === 'in_progress';
+  const isDone = item.status === 'completed' || item.status === 'cancelled';
   const isParent = (nestedChildren?.length ?? 0) > 0;
   const isFlagged = Boolean(task?.flagged);
   const [childrenOpen, setChildrenOpen] = useState(true);
@@ -276,6 +282,8 @@ const TaskCard: React.FC<CardProps> = ({
               </span>
             ) : isPaused ? (
               <Pause className="w-3.5 h-3.5 text-amber-500" />
+            ) : isDone ? (
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
             ) : (
               <span className="block w-3.5 h-3.5 rounded-full border border-neutral-300" />
             )}
@@ -300,7 +308,11 @@ const TaskCard: React.FC<CardProps> = ({
           <div className="flex-1 min-w-0">
             <p
               className={`font-commons text-sm leading-snug ${
-                isCurrent ? 'text-[#171717] font-semibold' : 'text-neutral-700'
+                isDone
+                  ? 'text-neutral-400 line-through'
+                  : isCurrent
+                  ? 'text-[#171717] font-semibold'
+                  : 'text-neutral-700'
               }`}
             >
               {item.title}
@@ -323,10 +335,36 @@ const TaskCard: React.FC<CardProps> = ({
           </div>
 
           <div
-            className="flex-shrink-0 flex items-center"
+            className="flex-shrink-0 flex items-center gap-1"
             onClick={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
           >
+            {isDone && onRestore && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRestore(item);
+                }}
+                title="Geri al — görevi 'Sırada' kolonuna döndür"
+                className="p-1 rounded-md text-neutral-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
+            )}
+            {onDelete && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(item, nestedChildren?.length ?? 0);
+                }}
+                title="Görevi tamamen sil"
+                className="p-1 rounded-md text-neutral-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
             <div className="flex -space-x-1.5">
               {visible.map((m) => (
                 <button
@@ -463,8 +501,17 @@ const TaskCard: React.FC<CardProps> = ({
 
       {pickerOpen && (
         <>
-          <div className="fixed inset-0 z-30" onClick={() => setPickerOpen(false)} />
-          <div className="absolute z-40 right-0 mt-1 w-56 bg-white rounded-xl border border-neutral-200 shadow-xl overflow-hidden">
+          <div
+            className="fixed inset-0 z-30"
+            onClick={(e) => {
+              e.stopPropagation();
+              setPickerOpen(false);
+            }}
+          />
+          <div
+            className="absolute z-40 right-0 mt-1 w-56 bg-white rounded-xl border border-neutral-200 shadow-xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="px-3 py-2 border-b border-neutral-100">
               <p className="font-commons text-[10px] uppercase tracking-wider text-neutral-500">
                 Üye ekle
@@ -748,6 +795,42 @@ const NowAllTasksPanel: React.FC<NowAllTasksPanelProps> = ({
     }
   };
 
+  // Parent kart'a tıklandığında ilk açık child'a yönlendir
+  const resolveClickTarget = (item: UnifiedTaskItem): UnifiedTaskItem => {
+    const children = childrenByParent.get(item.id);
+    if (!children || children.length === 0) return item;
+    const sorted = [...children].sort(
+      (a, b) => (a.task?.sortOrder ?? 0) - (b.task?.sortOrder ?? 0)
+    );
+    const firstOpen = sorted.find(
+      (c) => c.status !== 'completed' && c.status !== 'cancelled'
+    );
+    return firstOpen ?? sorted[sorted.length - 1] ?? item;
+  };
+
+  const handleRestore = async (item: UnifiedTaskItem) => {
+    if (!tenantId) return;
+    try {
+      await restoreTask(tenantId, item.id);
+    } catch (err) {
+      console.error('[NowAllTasksPanel] restore failed:', err);
+    }
+  };
+
+  const handleDelete = async (item: UnifiedTaskItem, childCount: number) => {
+    if (!tenantId) return;
+    const msg = childCount > 0
+      ? `"${item.title}" görevini ve ${childCount} alt-adımını tamamen silmek istediğine emin misin?\n\nBu işlem geri alınamaz.`
+      : `"${item.title}" görevini tamamen silmek istediğine emin misin?\n\nBu işlem geri alınamaz.`;
+    if (!window.confirm(msg)) return;
+    try {
+      await deleteTaskCascade(tenantId, item.id);
+    } catch (err) {
+      console.error('[NowAllTasksPanel] delete failed:', err);
+      window.alert('Silme başarısız: ' + (err as any)?.message);
+    }
+  };
+
   const draggingItem = draggingId ? visibleItems.find((i) => i.id === draggingId) : null;
 
   return (
@@ -823,18 +906,33 @@ const NowAllTasksPanel: React.FC<NowAllTasksPanelProps> = ({
                               Buraya sürükle…
                             </p>
                           ) : (
-                            list.map((item) => (
-                              <TaskCard
-                                key={item.id}
-                                item={item}
-                                isCurrent={item.id === currentTaskId}
-                                users={users}
-                                children={childrenByParent.get(item.id)}
-                                currentTaskId={currentTaskId}
-                                onClick={() => onSelectTask?.(item)}
-                                onChildClick={(c) => onSelectTask?.(c)}
-                              />
-                            ))
+                            list
+                              .map((item, idx) => {
+                                // Tamamlananlar kolonu: pozisyona göre fade
+                                // İlk 3 tam, 4-12 arası lineer azalma, 12+ gizli
+                                let opacity = 1;
+                                if (col.key === 'completed') {
+                                  if (idx < 3) opacity = 1;
+                                  else if (idx >= 12) opacity = 0;
+                                  else opacity = 1 - ((idx - 3) / 9) * 0.75;
+                                }
+                                if (opacity === 0) return null;
+                                return (
+                                  <div key={item.id} style={{ opacity }} className="transition-opacity">
+                                    <TaskCard
+                                      item={item}
+                                      isCurrent={item.id === currentTaskId}
+                                      users={users}
+                                      children={childrenByParent.get(item.id)}
+                                      currentTaskId={currentTaskId}
+                                      onClick={() => onSelectTask?.(resolveClickTarget(item))}
+                                      onChildClick={(c) => onSelectTask?.(c)}
+                                      onRestore={handleRestore}
+                                      onDelete={handleDelete}
+                                    />
+                                  </div>
+                                );
+                              })
                           )}
                         </DroppableColumn>
                       );

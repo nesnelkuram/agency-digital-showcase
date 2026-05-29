@@ -189,223 +189,146 @@ class VideoCache {
     }
   }
   
-  // Hybrid loading: stream first, cache in background
+  // Progressive playback: resolve as soon as the browser says it can start
+  // playing (canplay = readyState ≥ 3 = a few seconds of buffer). The rest
+  // of the video downloads in the background while it's already on screen —
+  // same model YouTube/Vimeo use. No need to wait for full download or % buffer.
   private async setupHybridLoading(url: string): Promise<boolean> {
     const entry = this.getEntry(url);
     entry.hybridMode = true;
-    
-    try {
-      // Step 1: Setup streaming immediately
+    entry.status = 'loading';
+    this.notify(url);
+
+    return new Promise((resolve) => {
       const video = document.createElement('video');
-      video.src = url;
-      video.preload = 'auto'; // More aggressive preloading for previews
+      video.preload = 'auto';
       video.muted = true;
       video.playsInline = true;
+      video.setAttribute('playsinline', 'true');
+      video.setAttribute('webkit-playsinline', 'true');
+      video.autoplay = true; // iOS Safari needs this for canplay/loadeddata to fire
       video.crossOrigin = 'anonymous';
-      
       entry.videoElement = video;
-      entry.status = 'loading';
-      this.notify(url);
-      
-      // Wait for video to be actually playable
-      return new Promise((resolve) => {
-        let resolved = false;
-        
-        const handleCanPlay = () => {
-          if (!resolved) {
-            resolved = true;
-            entry.status = 'hybrid-streaming';
-            this.notify(url);
-            console.log(`⚡ Video can play: ${url.substring(url.lastIndexOf('/') + 1)}`);
-            
-            // Step 2: Download as blob in background
-            setTimeout(async () => {
-              try {
-                const response = await fetch(url, {
-                  mode: 'cors',
-                  credentials: 'omit'
-                });
-                
-                if (response.ok) {
-                  const blob = await response.blob();
-                  entry.blob = blob;
-                  entry.status = 'hybrid-cached';
-                  this.notify(url);
-                  console.log(`💾 Background cached: ${url.substring(url.lastIndexOf('/') + 1)}`);
-                }
-              } catch (err) {
-                // Silent fail for background caching
-                console.log(`Background cache failed for ${url.substring(url.lastIndexOf('/') + 1)}, continuing with streaming`);
-              }
-            }, 500); // Delay background download
-            
-            resolve(true);
-          }
-        };
-        
-        const handleError = () => {
-          if (!resolved) {
-            resolved = true;
-            entry.status = 'error';
-            entry.error = 'Failed to load video';
-            this.notify(url);
-            console.error(`❌ Failed to load: ${url.substring(url.lastIndexOf('/') + 1)}`);
-            resolve(false);
-          }
-        };
-        
-        // Use canplaythrough for better guarantee AND check buffer
-        const checkVideoReady = () => {
-          // Check if we have enough buffer (at least 30% of video)
-          if (video.buffered.length > 0 && video.duration > 0) {
-            const bufferedEnd = video.buffered.end(video.buffered.length - 1);
-            const bufferPercent = bufferedEnd / video.duration;
-            
-            // Require readyState 4 AND sufficient buffer
-            if (video.readyState === 4 && bufferPercent >= 0.3) {
-              console.log(`✅ Video ready: ${url.substring(url.lastIndexOf('/') + 1)} - Buffer: ${Math.round(bufferPercent * 100)}%, ReadyState: ${video.readyState}`);
-              handleCanPlay();
-              return true;
-            }
-          }
-          return false;
-        };
-        
-        // Check multiple events for better reliability
-        video.addEventListener('canplaythrough', () => {
-          if (!resolved && checkVideoReady()) {
-            // Already handled in checkVideoReady
-          }
-        }, { once: true });
-        
-        video.addEventListener('progress', () => {
-          if (!resolved && checkVideoReady()) {
-            // Already handled in checkVideoReady  
-          }
-        });
-        
-        video.addEventListener('error', handleError, { once: true });
-        
-        // Start loading
-        video.load();
-        
-        // Timeout fallback
-        setTimeout(() => {
-          if (!resolved) {
-            resolved = true;
-            // Check if we at least have some data
-            if (video.readyState >= 2) {
-              entry.status = 'hybrid-streaming';
-              this.notify(url);
-              resolve(true);
-            } else {
-              entry.status = 'error';
-              this.notify(url);
-              resolve(false);
-            }
-          }
-        }, 8000);
-      });
-    } catch (error) {
-      entry.status = 'error';
-      entry.error = error instanceof Error ? error.message : 'Unknown error';
-      this.notify(url);
-      return false;
-    }
+
+      let resolved = false;
+      let retryCount = 0;
+      const MAX_RETRIES = 3;
+      const fileName = url.substring(url.lastIndexOf('/') + 1);
+
+      const success = (via: string) => {
+        if (resolved) return;
+        resolved = true;
+        entry.status = 'hybrid-streaming';
+        this.notify(url);
+        console.log(`⚡ Playable: ${fileName} (via=${via}, readyState=${video.readyState})`);
+        resolve(true);
+      };
+
+      const onError = () => {
+        if (resolved) return;
+        if (retryCount < MAX_RETRIES) {
+          retryCount++;
+          const delay = 1500 * retryCount;
+          console.warn(`⚠️ [VideoCache] Retry ${retryCount}/${MAX_RETRIES} for ${fileName} in ${delay}ms`);
+          setTimeout(() => { if (!resolved) video.load(); }, delay);
+          return;
+        }
+        resolved = true;
+        entry.status = 'error';
+        entry.error = 'Failed to load video';
+        this.notify(url);
+        console.error(`❌ Failed after ${MAX_RETRIES} retries: ${fileName}`);
+        resolve(false);
+      };
+
+      // loadeddata = readyState 2 = first frame decoded; fires earlier than canplay
+      // on iOS Safari where autoplay restrictions delay canplay. Whichever fires
+      // first wins (`success` is idempotent via the `resolved` guard).
+      video.addEventListener('loadeddata', () => success('loadeddata'), { once: true });
+      video.addEventListener('canplay', () => success('canplay'), { once: true });
+      video.addEventListener('error', onError);
+
+      // Fail-safe: if events never fire, accept any first-frame data (readyState 2)
+      // after 8s, otherwise treat as error. Retries above handle real failures first.
+      setTimeout(() => {
+        if (resolved) return;
+        if (video.readyState >= 2) {
+          success('timeout-with-data');
+        } else {
+          onError();
+        }
+      }, 8000);
+
+      video.src = url;
+      video.load();
+    });
   }
-  
+
   // Setup streaming for full videos
   private async setupStreaming(url: string): Promise<boolean> {
     const entry = this.getEntry(url);
     
-    try {
-      // Create a video element for preloading
+    entry.status = 'loading';
+    this.notify(url);
+
+    return new Promise((resolve) => {
       const video = document.createElement('video');
-      video.src = url;
-      video.preload = 'auto'; // Changed to auto for better loading
+      video.preload = 'auto';
       video.muted = true;
       video.playsInline = true;
+      video.setAttribute('playsinline', 'true');
+      video.setAttribute('webkit-playsinline', 'true');
+      video.autoplay = true;
       video.crossOrigin = 'anonymous';
-      
-      // Store video element for reuse
       entry.videoElement = video;
-      entry.status = 'loading';
-      this.notify(url);
-      
-      return new Promise((resolve) => {
-        let resolved = false;
-        
-        const handleCanPlay = () => {
-          if (!resolved) {
-            resolved = true;
-            entry.status = 'streaming';
-            this.notify(url);
-            console.log(`✓ Full video can play: ${url.substring(url.lastIndexOf('/') + 1)}`);
-            resolve(true);
-          }
-        };
-        
-        const handleError = () => {
-          if (!resolved) {
-            resolved = true;
-            entry.status = 'error';
-            entry.error = 'Failed to load video';
-            this.notify(url);
-            console.error(`✗ Failed to setup streaming: ${url.substring(url.lastIndexOf('/') + 1)}`);
-            resolve(false);
-          }
-        };
-        
-        // Use canplaythrough for full videos too for consistency
-        const checkVideoReady = () => {
-          // For full videos, check readyState 3 or 4 (can play)
-          if (video.readyState >= 3) {
-            console.log(`✅ Full video ready: ${url.substring(url.lastIndexOf('/') + 1)} - ReadyState: ${video.readyState}`);
-            handleCanPlay();
-            return true;
-          }
-          return false;
-        };
-        
-        video.addEventListener('canplaythrough', () => {
-          if (!resolved && checkVideoReady()) {
-            // Already handled
-          }
-        }, { once: true });
-        
-        video.addEventListener('canplay', () => {
-          if (!resolved && checkVideoReady()) {
-            // Already handled
-          }
-        }, { once: true });
-        
-        video.addEventListener('error', handleError, { once: true });
-        
-        // Start loading
-        video.load();
-        
-        // Timeout fallback
-        setTimeout(() => {
-          if (!resolved) {
-            resolved = true;
-            if (video.readyState >= 2) {
-              entry.status = 'streaming';
-              this.notify(url);
-              resolve(true);
-            } else {
-              entry.status = 'error';
-              this.notify(url);
-              resolve(false);
-            }
-          }
-        }, 10000); // Longer timeout for full videos
-      });
-    } catch (error) {
-      entry.status = 'error';
-      entry.error = error instanceof Error ? error.message : 'Unknown error';
-      this.notify(url);
-      return false;
-    }
+
+      let resolved = false;
+      let retryCount = 0;
+      const MAX_RETRIES = 3;
+      const fileName = url.substring(url.lastIndexOf('/') + 1);
+
+      const success = (via: string) => {
+        if (resolved) return;
+        resolved = true;
+        entry.status = 'streaming';
+        this.notify(url);
+        console.log(`⚡ Full playable: ${fileName} (via=${via}, readyState=${video.readyState})`);
+        resolve(true);
+      };
+
+      const onError = () => {
+        if (resolved) return;
+        if (retryCount < MAX_RETRIES) {
+          retryCount++;
+          const delay = 2000 * retryCount;
+          console.warn(`⚠️ [VideoCache] Retry ${retryCount}/${MAX_RETRIES} (full) for ${fileName} in ${delay}ms`);
+          setTimeout(() => { if (!resolved) video.load(); }, delay);
+          return;
+        }
+        resolved = true;
+        entry.status = 'error';
+        entry.error = 'Failed to load video';
+        this.notify(url);
+        console.error(`❌ Full failed after ${MAX_RETRIES} retries: ${fileName}`);
+        resolve(false);
+      };
+
+      video.addEventListener('loadeddata', () => success('loadeddata'), { once: true });
+      video.addEventListener('canplay', () => success('canplay'), { once: true });
+      video.addEventListener('error', onError);
+
+      setTimeout(() => {
+        if (resolved) return;
+        if (video.readyState >= 2) {
+          success('timeout-with-data');
+        } else {
+          onError();
+        }
+      }, 12000);
+
+      video.src = url;
+      video.load();
+    });
   }
 
   // Preload multiple videos in batches with dynamic sizing

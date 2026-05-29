@@ -128,6 +128,18 @@ export async function completeTask(
   }
 }
 
+export async function restoreTask(
+  tenantId: string,
+  taskId: string
+): Promise<void> {
+  await updateTask(tenantId, taskId, {
+    status: 'open',
+    completedAt: undefined,
+    completedBy: undefined,
+    completedByName: undefined,
+  });
+}
+
 export async function skipTask(
   tenantId: string,
   taskId: string,
