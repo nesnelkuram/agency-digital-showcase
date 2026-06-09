@@ -247,7 +247,7 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
           type: 'workflow_step',
           title: 'Yeni Görev Önerisi',
           message: `"${title}" görevi için delegasyon önerisi var.`,
-          link: `/admin/tasks?task=${taskId}`,
+          link: `/admin/now?task=${taskId}`,
           read: false,
           createdAt: new Date(),
         });

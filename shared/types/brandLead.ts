@@ -94,10 +94,22 @@ export interface BusinessContext {
   competitors?: string;           // Bilinen rakipler
   geoScope?: string;              // Coğrafi kapsam
   digitalPresence?: string[];     // Aktif dijital platformlar
+  websiteUrl?: string;            // Web sitesi adresi (koşullu)
+  instagramHandle?: string;       // Instagram kullanıcı adı (koşullu)
   instagramFollowers?: string;    // Instagram takipçi aralığı
   monthlyBudget?: string;         // Aylık bütçe aralığı
   businessStage?: string;         // İşletme aşaması
   triggerReason?: string;         // Başvuru tetikleyicisi
+  // Stratejik derinlik soruları (Golden Circle, Keller, Aaker, JTBD, StoryBrand, Cultural Branding)
+  brandWhy?: string;              // Golden Circle WHY
+  customerPerception?: string;    // Keller Salience + Kapferer Reflection
+  existingBrandAssets?: string;   // Aaker Symbol + Sharp Distinctive Assets
+  futureVision?: string;          // Stratejik vizyon
+  customerJob?: string;           // JTBD
+  customerStruggle?: string;      // StoryBrand
+  brandEnemy?: string;            // Cultural Branding
+  alternativeToUs?: string;       // JTBD gerçek rakip
+  cep?: string;                   // Category Entry Points — Ehrenberg-Bass mental availability
 }
 
 export interface WizardData {

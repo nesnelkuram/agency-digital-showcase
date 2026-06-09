@@ -153,6 +153,7 @@ export const businessContextConfig: BusinessContextConfig = {
       script: "Para kazanmanın ve başarılı olmanın ötesinde, bu işin sizin için anlamı nedir?",
       text: "Neden Bu İşi Yapıyorsunuz?",
       required: false,
+      important: true,
       placeholder: "Örn: İnsanların evlerinde kahve ritüelini yeniden keşfetmelerini istiyorum. Sabah kahvesi bir rutin değil, bir an olmalı.",
     },
 
@@ -163,6 +164,7 @@ export const businessContextConfig: BusinessContextConfig = {
       script: "Müşterileriniz sizi en çok neyle tanımlıyor? Bir Google yorumu veya geri bildirim paylaşabilirsiniz.",
       text: "Müşteri Gözünden Siz",
       required: false,
+      important: true,
       placeholder: "Örn: 'Her gittiğimde aynı kalitede kahve içiyorum, barista isimlerimizi biliyor.' veya 'Fiyatları biraz yüksek ama ortam harika.'",
     },
 
@@ -197,6 +199,7 @@ export const businessContextConfig: BusinessContextConfig = {
       script: "Müşterileriniz aslında sizden ne iş yapmanızı bekliyor? Ürün ya da hizmetin ötesinde düşünün.",
       text: "Müşteriniz Sizi Ne İçin 'Kiralıyor'?",
       required: false,
+      important: true,
       placeholder: "Örn: Sabah enerjisini toplamak için, iş arkadaşlarıyla kaliteli vakit geçirmek için, evde kafe deneyimi yaşamak için.",
     },
 
@@ -207,6 +210,7 @@ export const businessContextConfig: BusinessContextConfig = {
       script: "Müşterileriniz size gelmeden önce ne ile mücadele ediyor? Hangi sorunu çözmeye çalışıyor?",
       text: "Müşterinizin Mücadelesi",
       required: false,
+      important: true,
       placeholder: "Örn: Güvenilir kalitede kahve bulmak zor, her yerde aynı zincir markalar var, kişiye özel ilgi gösterilmiyor.",
     },
 
@@ -228,6 +232,17 @@ export const businessContextConfig: BusinessContextConfig = {
       text: "Siz Olmasaydınız?",
       required: false,
       placeholder: "Örn: Evde kendi kahvelerini yaparlardı, ya da en yakın Starbucks'a giderlerdi. Belki de kahve içmezlerdi.",
+    },
+
+    // 17. Satın Alma Anları — Category Entry Points (Ehrenberg-Bass / Romaniuk)
+    // Markanın zihinsel erişilebilirliği: müşteri hangi durum/ihtiyaç/anında markayı hatırlamalı?
+    {
+      type: 'text_area',
+      key: 'cep',
+      script: "Müşterileriniz hangi an, durum veya ihtiyaç anında ilk sizi hatırlamalı? Aklınıza gelen tüm satın alma anlarını yazın.",
+      text: "Sizi Ne Zaman Hatırlamalılar?",
+      required: false,
+      placeholder: "Örn: Sabah işe giderken hızlı bir şeyler için, hafta sonu arkadaşlarla buluşmak için, evde misafir ağırlarken, kendine ödül vermek isteyince, hediye ararken.",
     },
   ],
 };

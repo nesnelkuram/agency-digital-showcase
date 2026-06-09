@@ -48,7 +48,7 @@ const MENU_ITEMS = [
   { path: '/admin/training', label: 'Egitim', icon: GraduationCap },
   { path: '/admin/persona-chat', label: 'Danisman AI', icon: Bot },
   { path: '/admin/workflows', label: 'Workflows', icon: GitBranch },
-  { path: '/admin/tasks', label: 'Gorevlerim', icon: ClipboardList },
+  { path: '/admin/now', label: 'Gorevlerim', icon: ClipboardList },
   { path: '/admin/agents', label: 'AI Ajanlar', icon: Bot },
   { path: '/admin/marketing', label: 'Pazarlama', icon: Megaphone },
   { path: '/admin/social-media', label: 'Sosyal Medya', icon: Share2 },

@@ -164,7 +164,7 @@ const NowFlowCard: React.FC<NowFlowCardProps> = ({
                       >
                         <Timer className="w-3.5 h-3.5" />
                         <span className="font-mono text-sm tabular-nums font-medium">
-                          {elapsed.mmss}
+                          {elapsed.seconds >= 3600 ? elapsed.hhmmss : elapsed.mmss}
                         </span>
                         {isPaused && (
                           <span className="font-commons text-[10px] font-medium">duraklatıldı</span>

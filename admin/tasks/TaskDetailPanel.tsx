@@ -16,6 +16,8 @@ import { useTenantId } from '@/shared/hooks/useTenant';
 import AIPriorityBadge from './components/AIPriorityBadge';
 import DelegationApprovalBar from './components/DelegationApprovalBar';
 import CategorySelector from './components/CategorySelector';
+import TaskRecurrenceSection from './components/TaskRecurrenceSection';
+import TaskSubtasksSection from './components/TaskSubtasksSection';
 
 interface TaskDetailPanelProps {
   task: Task;
@@ -155,6 +157,12 @@ const TaskDetailPanel: React.FC<TaskDetailPanelProps> = ({ task, onClose, onUpda
                 ))}
               </div>
             </div>
+
+            {/* Tekrar / Periyodik */}
+            <TaskRecurrenceSection task={task} onUpdated={onUpdated} />
+
+            {/* Alt görevler — sadece kök görevlerde (alt görevin alt görevi olmaz) */}
+            {!task.parentTaskId && <TaskSubtasksSection task={task} />}
 
             {/* AI Analysis */}
             <div className="rounded-xl bg-neutral-50 border border-neutral-100 p-4 space-y-3">

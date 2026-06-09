@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 
-// MyTasksPage has been merged into the unified TasksPage at /admin/tasks
-const MyTasksPage: React.FC = () => <Navigate to="/admin/tasks" replace />;
+// MyTasksPage tek 'Görevlerim' sayfasına (/admin/now) taşındı
+const MyTasksPage: React.FC = () => <Navigate to="/admin/now" replace />;
 
 export default MyTasksPage;

@@ -146,7 +146,8 @@ ${maturity.level === 'mature' ? '- MATURE: Buyume ve sadakat odakli strateji. Pr
 ${bc.customerJob ? `- Müşterinin Kiraladığı İş (JTBD): ${bc.customerJob}` : ''}
 ${bc.customerStruggle ? `- Müşterinin Mücadelesi: ${bc.customerStruggle}` : ''}
 ${bc.brandEnemy ? `- Sektördeki Düşman/Karşı Olunan: ${bc.brandEnemy}` : ''}
-${bc.alternativeToUs ? `- Biz Olmasaydık Müşteri Ne Yapardı: ${bc.alternativeToUs}` : ''}` : '';
+${bc.alternativeToUs ? `- Biz Olmasaydık Müşteri Ne Yapardı: ${bc.alternativeToUs}` : ''}
+${bc.cep ? `- Satın Alma Anları (CEP — zihinsel erişilebilirlik): ${bc.cep}` : ''}` : '';
 
   // Sector-specific framework config (perceptual map axes, priority frameworks)
   const sectorConfig = getSectorFrameworkConfig(normalizedData.sector);
@@ -331,7 +332,8 @@ KRITIK KURALLAR:
 12a. ARKETIP TURETME: "archetype" alanini SERBEST secme. Aaker 5 boyut puanlarini (aakerPersonality) ONCE belirle, en yuksek 2 boyutun kesisimine gore arketipi TURET. Puanlarla tutarsiz arketip = BASARISIZ rapor.
 12b. SEGMENT GEREKCE: "segmentSelectionRationale" alaninda neden BU segmentin secildigini, hangi alternatiflerin neden elendigini SOMUT olarak acikla.${budgetInstruction}${stageInstruction}${maturityInstruction}
 ${bc?.brandWhy ? `\n15. VAROLUS AMACI: "${bc.brandWhy}" — Bu WHY, markanin tum stratejisinin TEMELI. Arketip, ton, dusmanN, inanislar bu amaca UYUMLU olmali.` : ''}
-${bc?.customerPerception ? `\n16. MUSTERI ALGISI: "${bc.customerPerception}" — GERCEK veri. Stratejiyi buna dayandirmak en akilli hamle.` : ''}`;
+${bc?.customerPerception ? `\n16. MUSTERI ALGISI: "${bc.customerPerception}" — GERCEK veri. Stratejiyi buna dayandirmak en akilli hamle.` : ''}
+17. ZIHINSEL ERISILEBILIRLIK (Ehrenberg-Bass / Category Entry Points): Marka sadece "anlamca farkli" olmamali, DOGRU SATIN ALMA ANLARINDA akla GELMELI. ${bc?.cep ? `Musterinin belirttigi satin alma anlari: "${bc.cep}". Konumlandirma ve onerilen mesajlar bu anlara baglanmali — her bir an icin marka nasil ilk akla gelen secenek olur?` : 'Musteri satin alma anlarini (CEP) belirtmemis. Bu sektorde musterinin urunu/hizmeti hatirlamasi gereken 3-5 tipik durum/ihtiyac anini SEN cikar ve konumlandirmayi bu anlara bagla. Sadece "rakipten farkli olma"ya degil, "dogru anda hatirlanma"ya da odaklan.'}`;
 
   const parsed = await generateJSON<StrategistOutput>('pro', prompt, 'BrandStrategist', {
     temperature: 0.7,

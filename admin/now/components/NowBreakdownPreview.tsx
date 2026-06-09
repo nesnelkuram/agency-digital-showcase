@@ -18,6 +18,7 @@ export interface BreakdownAcceptPayload {
   steps: BreakdownStepDraft[];
   saveAsNewSop: boolean;          // sadece yeni desen ise
   newSopName?: string;
+  asDraft?: boolean;             // true → adımlar taslak (draft) olarak kaydedilir
 }
 
 interface NowBreakdownPreviewProps {
@@ -31,6 +32,8 @@ interface NowBreakdownPreviewProps {
   error: string | null;
   onCancel: () => void;
   onAccept: (payload: BreakdownAcceptPayload) => void;
+  cancelLabel?: string;                  // "Vazgeç" yerine özel etiket (örn. "Alt adımsız devam et")
+  acceptLabel?: string;                  // "Kabul et, başla" yerine özel etiket
 }
 
 const NowBreakdownPreview: React.FC<NowBreakdownPreviewProps> = ({
@@ -44,15 +47,19 @@ const NowBreakdownPreview: React.FC<NowBreakdownPreviewProps> = ({
   error,
   onCancel,
   onAccept,
+  cancelLabel,
+  acceptLabel,
 }) => {
   const [steps, setSteps] = useState<BreakdownStepDraft[]>(initialSteps);
   const [saveAsSop, setSaveAsSop] = useState(false);
   const [newSopName, setNewSopName] = useState('');
+  const [asDraft, setAsDraft] = useState(false);
 
   useEffect(() => {
     if (open) {
       setSteps(initialSteps);
       setSaveAsSop(false);
+      setAsDraft(false);
       setNewSopName(suggestSopName(taskTitle));
     }
   }, [open, initialSteps, taskTitle]);
@@ -79,6 +86,7 @@ const NowBreakdownPreview: React.FC<NowBreakdownPreviewProps> = ({
       steps: validSteps,
       saveAsNewSop: saveAsSop && newSopName.trim().length > 0,
       newSopName: newSopName.trim() || undefined,
+      asDraft,
     });
   };
 
@@ -250,6 +258,22 @@ const NowBreakdownPreview: React.FC<NowBreakdownPreviewProps> = ({
               {error && (
                 <p className="font-commons text-xs text-rose-600 mb-2">{error}</p>
               )}
+
+              {/* Taslak toggle — adımları aktifleştirmeden plana kaydet */}
+              <label className="flex items-center gap-2 mb-2.5 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={asDraft}
+                  onChange={(e) => setAsDraft(e.target.checked)}
+                  disabled={saving}
+                  className="accent-amber-600"
+                />
+                <span className="font-commons text-[11px] text-neutral-600">
+                  Taslak olarak kaydet
+                  <span className="text-neutral-400"> — şimdilik akışta çıkmasın, sonra aktifleştiririm</span>
+                </span>
+              </label>
+
               <div className="flex items-center justify-between gap-3">
                 <span className="font-commons text-[11px] text-neutral-500">
                   {validSteps.length} adım · ~{Math.round(totalMinutes / 60 * 10) / 10} saat
@@ -264,7 +288,7 @@ const NowBreakdownPreview: React.FC<NowBreakdownPreviewProps> = ({
                     disabled={saving}
                     className="px-3.5 py-1.5 rounded-lg font-commons text-xs text-neutral-600 hover:bg-neutral-100 transition-colors disabled:opacity-50"
                   >
-                    Vazgeç
+                    {cancelLabel || 'Vazgeç'}
                   </button>
                   <button
                     type="button"
@@ -277,7 +301,11 @@ const NowBreakdownPreview: React.FC<NowBreakdownPreviewProps> = ({
                     ) : (
                       <Sparkles className="w-3.5 h-3.5" />
                     )}
-                    {saving ? 'Kaydediliyor…' : 'Kabul et, başla'}
+                    {saving
+                      ? 'Kaydediliyor…'
+                      : asDraft
+                      ? 'Taslak kaydet'
+                      : acceptLabel || 'Kabul et, başla'}
                   </button>
                 </div>
               </div>

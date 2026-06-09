@@ -39,6 +39,7 @@ export async function runDataNormalizer(input: PipelineInput): Promise<Normalize
 - Müşterinin Kiraladığı İş (JTBD): ${bc.customerJob || 'Belirtilmedi'}
 - Müşterinin Mücadelesi: ${bc.customerStruggle || 'Belirtilmedi'}
 - Karşı Olunan (Düşman): ${bc.brandEnemy || 'Belirtilmedi'}
+- Satın Alma Anları (CEP — müşteri hangi an/ihtiyaçta markayı hatırlamalı): ${bc.cep || 'Belirtilmedi'}
 `
     : '';
 

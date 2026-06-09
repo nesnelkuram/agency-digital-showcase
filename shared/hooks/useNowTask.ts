@@ -118,6 +118,11 @@ export function useNowTask(options: UseNowTaskOptions = {}): UseNowTaskReturn {
         } else if (children.length > 0) {
           // Hepsi tamam — son child'ı göster (parent görüntüsü için)
           pinned = children[children.length - 1];
+        } else {
+          // Görünür child yok (subTaskCount>0 ama alt görevlerin hepsi taslak/silinmiş,
+          // ya da parent eligible'dan filtrelendi) → kullanıcı bunu tıkladı, görevin
+          // kendisini göster. eligible dışında olduğu için items'tan çekiyoruz.
+          pinned = items.find((it) => it.id === pinnedId && it.source === 'standalone') ?? null;
         }
       }
     }

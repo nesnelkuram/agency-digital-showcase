@@ -54,6 +54,9 @@ const CreateProjectPage = React.lazy(() => import('./projects/CreateProjectPage'
 // Project Service Detail Page
 const ProjectServiceDetailPage = React.lazy(() => import('./projects/ServiceDetailPage'));
 
+// Operational / Production Brief
+const OperationalBriefPage = React.lazy(() => import('./operations/OperationalBriefPage'));
+
 // Marketing Pages
 const MarketingDashboard = React.lazy(() => import('./marketing/MarketingDashboard'));
 const CampaignsPage = React.lazy(() => import('./marketing/CampaignsPage'));
@@ -116,7 +119,7 @@ const AgentRegistryPage = React.lazy(() => import('./agents/AgentRegistryPage'))
 const AgentFormPage = React.lazy(() => import('./agents/AgentFormPage'));
 
 // Task Pages
-const TasksPage = React.lazy(() => import('./tasks/TasksPage'));
+const RecurringTasksPage = React.lazy(() => import('./tasks/RecurringTasksPage'));
 
 // SOP — İş kalıpları yönetimi
 const SopListPage = React.lazy(() => import('./sops/SopListPage'));
@@ -136,6 +139,7 @@ const AIServiceDesigner = React.lazy(() => import('./pricing/catalog/AIServiceDe
 
 // Strategy Map Page
 const StrategyMapPage = React.lazy(() => import('./strategy/StrategyMapPage'));
+const SystemMapPage = React.lazy(() => import('./system/SystemMapPage'));
 
 // Filing Pages
 const FilingDashboardPage = React.lazy(() => import('./filing/FilingDashboardPage'));
@@ -193,6 +197,15 @@ const AdminApp: React.FC = () => {
             element={
               <React.Suspense fallback={<PageLoader />}>
                 <LeadDetailPage />
+              </React.Suspense>
+            }
+          />
+          {/* Operasyonel Brief — strateji + sözleşme sonrası operasyonel veri */}
+          <Route
+            path="leads/:leadId/operational-brief"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <OperationalBriefPage />
               </React.Suspense>
             }
           />
@@ -936,6 +949,15 @@ const AdminApp: React.FC = () => {
               </React.Suspense>
             }
           />
+          {/* System Map */}
+          <Route
+            path="system-map"
+            element={
+              <React.Suspense fallback={<PageLoader />}>
+                <SystemMapPage />
+              </React.Suspense>
+            }
+          />
           {/* Agent Registry Routes */}
           <Route
             path="agents"
@@ -962,11 +984,13 @@ const AdminApp: React.FC = () => {
             }
           />
           {/* Task Routes */}
+          {/* 'Planla' kaldırıldı — tek 'Görevlerim' = /admin/now. Eski linkler yönlenir. */}
+          <Route path="tasks" element={<Navigate to="/admin/now" replace />} />
           <Route
-            path="tasks"
+            path="tasks/recurring"
             element={
               <React.Suspense fallback={<PageLoader />}>
-                <TasksPage />
+                <RecurringTasksPage />
               </React.Suspense>
             }
           />

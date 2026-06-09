@@ -338,7 +338,7 @@ Sadece geçerli JSON döndür:
             type: 'workflow_step',
             title: 'Yeni Görev Önerisi',
             message: `"${taskData.title}" görevi için delegasyon önerisi var.`,
-            link: `/admin/tasks?task=${taskRef.id}`,
+            link: `/admin/now?task=${taskRef.id}`,
             read: false,
             createdAt: new Date(),
           });

@@ -26,7 +26,7 @@ const DashboardTaskWidget: React.FC = () => {
     if (item.source === 'workflow_step' && item.instanceId && item.nodeId) {
       return `/admin/workflows/instance/${item.instanceId}/step/${encodeURIComponent(item.nodeId)}`;
     }
-    return `/admin/tasks?task=${item.id}`;
+    return `/admin/now?task=${item.id}`;
   };
 
   const formatDueDate = (date: Date): string => {
@@ -70,7 +70,7 @@ const DashboardTaskWidget: React.FC = () => {
               Yeni
             </button>
             <Link
-              to="/admin/tasks"
+              to="/admin/now"
               className="font-commons text-xs text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-0.5"
             >
               Tümünü Gör
@@ -173,7 +173,7 @@ const DashboardTaskWidget: React.FC = () => {
         {!loading && items.length > 5 && (
           <div className="px-5 py-3 border-t border-neutral-100">
             <Link
-              to="/admin/tasks"
+              to="/admin/now"
               className="font-commons text-xs text-neutral-500 hover:text-indigo-600 transition-colors"
             >
               +{items.length - 5} görev daha →

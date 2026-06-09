@@ -129,6 +129,8 @@ export interface BusinessContextQuestion {
   script: string;
   text: string;
   required: boolean;
+  /** Yarı-zorunlu: atlanabilir ama atlamadan önce kullanıcıya stratejik değer uyarısı gösterilir */
+  important?: boolean;
   options?: SelectionOption[];
   placeholder?: string;
   /** Show this question only when condition is met (checked against businessContext) */

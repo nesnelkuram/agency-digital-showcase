@@ -39,10 +39,10 @@ const NowEmptyState: React.FC<NowEmptyStateProps> = ({ onAdd }) => (
         </button>
       )}
       <Link
-        to="/admin/tasks"
+        to="/admin/tasks/recurring"
         className="font-commons text-xs text-neutral-500 hover:text-neutral-700 underline decoration-dotted underline-offset-4"
       >
-        Backlog'a git
+        Periyodik görevler
       </Link>
       <p className="font-commons text-xs text-neutral-400">
         Telegram'dan da yeni iş yakalayabilirsin: <span className="font-mono">/gorev</span>

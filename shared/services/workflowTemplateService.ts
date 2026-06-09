@@ -14,7 +14,12 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
-import type { WorkflowTemplate } from '@/shared/types/workflow/template';
+import type {
+  WorkflowTemplate,
+  WorkflowNodeTemplate,
+  WorkflowEdgeTemplate,
+} from '@/shared/types/workflow/template';
+import type { ServiceCategory } from '@/shared/types/pricing/services';
 
 const COLLECTION_NAME = 'workflow_templates';
 
@@ -256,4 +261,116 @@ export async function findLatestTemplate(
     id: firstDoc.id,
     ...firstDoc.data(),
   } as WorkflowTemplate;
+}
+
+// ============================================
+// BUILD FROM SUBTASKS — alt görev listesi → düz Workflow Template
+// ============================================
+
+export interface SubtaskStepInput {
+  title: string;
+  estimatedMinutes?: number;
+  assigneeRole?: string;
+}
+
+/**
+ * Bir görevin alt görevlerini (düz, sıralı liste) geçerli bir Workflow
+ * Template'ine çevirip kaydeder: start → task → task → … → end.
+ *
+ * Alt görevler doğrusal olduğu için her adım basit bir `task` düğümü olur,
+ * ardışık `default` oklarla bağlanır. Sonradan builder'da dallanma/onay/AI
+ * eklenebilir. Taslak (`draft`) statüsüyle kaydedilir; Workflows menüsünde
+ * hemen görünür.
+ *
+ * @returns oluşturulan template'in id'si
+ */
+export async function createTemplateFromSubtasks(
+  tenantId: string,
+  params: {
+    name: string;
+    description?: string;
+    serviceCategory?: ServiceCategory;
+    steps: SubtaskStepInput[];
+    createdBy: string;
+    createdByName: string;
+  }
+): Promise<string> {
+  if (!db) throw new Error('Firebase not initialized');
+  const steps = params.steps.filter((s) => s.title.trim().length > 0);
+  if (steps.length === 0) throw new Error('En az bir adım gerekli');
+
+  const COL_X = 300;
+  const Y_GAP = 120;
+  let y = 50;
+
+  const nodes: WorkflowNodeTemplate[] = [];
+  const edges: WorkflowEdgeTemplate[] = [];
+
+  // start
+  nodes.push({
+    id: 'node_start',
+    type: 'start',
+    label: 'Başla',
+    position: { x: COL_X, y },
+    sopResources: [],
+  });
+  y += Y_GAP;
+
+  let totalMinutes = 0;
+  let prevId = 'node_start';
+  steps.forEach((step, i) => {
+    const id = `node_${i + 1}`;
+    const minutes = step.estimatedMinutes && step.estimatedMinutes > 0 ? step.estimatedMinutes : 30;
+    totalMinutes += minutes;
+    nodes.push({
+      id,
+      type: 'task',
+      label: step.title.trim(),
+      position: { x: COL_X, y },
+      estimatedDurationHours: Math.round((minutes / 60) * 100) / 100,
+      sopResources: [],
+      ...(step.assigneeRole ? { assigneeRole: step.assigneeRole } : {}),
+    });
+    edges.push({
+      id: `edge_${i}`,
+      source: prevId,
+      target: id,
+      type: 'default',
+    });
+    prevId = id;
+    y += Y_GAP;
+  });
+
+  // end
+  nodes.push({
+    id: 'node_end',
+    type: 'end',
+    label: 'Bitti',
+    position: { x: COL_X, y },
+    sopResources: [],
+  });
+  edges.push({
+    id: `edge_${steps.length}`,
+    source: prevId,
+    target: 'node_end',
+    type: 'default',
+  });
+
+  // Toplam süre → gün (8 saatlik iş günü), en az 1 gün
+  const estimatedDays = Math.max(1, Math.ceil(totalMinutes / 60 / 8));
+
+  return createWorkflowTemplate(tenantId, {
+    name: params.name,
+    description: params.description || `"${params.name}" görevinden iş akışı olarak kaydedildi`,
+    serviceCategory: params.serviceCategory || 'video_production',
+    nodes,
+    edges,
+    phases: [],
+    defaultEstimatedDays: estimatedDays,
+    status: 'draft',
+    depth: 0,
+    workflowType: 'on_demand',
+    createdBy: params.createdBy,
+    createdByName: params.createdByName,
+  });
 }

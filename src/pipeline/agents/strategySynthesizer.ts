@@ -236,6 +236,7 @@ ${bc.brandWhy ? `- Varoluş Amacı (WHY): ${bc.brandWhy}` : ''}
 ${bc.customerPerception ? `- Müşteri Algısı: ${bc.customerPerception}` : ''}
 ${bc.existingBrandAssets ? `- Mevcut Marka Varlıkları: ${bc.existingBrandAssets}` : ''}
 ${bc.futureVision ? `- 3 Yıllık Vizyon: ${bc.futureVision}` : ''}
+${bc.cep ? `- Satın Alma Anları (CEP — zihinsel erişilebilirlik): ${bc.cep}` : ''}
 `
     : '';
 

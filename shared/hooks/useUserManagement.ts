@@ -61,13 +61,22 @@ export function useUserManagement(): UseUserManagementReturn {
       return;
     }
 
+    // tenantId henüz çözülmedi (auth/tenant context yükleniyor) — bekle.
+    // Aksi halde where('tenantId','==', undefined) çalışır ve veri hiç gelmez.
+    if (!tenantId) {
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
 
       // Fetch users and invitations in parallel
       const [usersSnapshot, invitationsSnapshot] = await Promise.all([
-        getDocs(query(collection(db, 'users'), where('tenantId', '==', tenantId), orderBy('metadata.createdAt', 'desc'))),
+        // orderBy server-side YOK: 'users' için tenantId+metadata.createdAt composite
+        // index'i tanımlı değil; bu sorgu "requires an index" ile düşerdi.
+        // Liste küçük olduğu için sıralamayı istemci tarafında yapıyoruz (aşağıda).
+        getDocs(query(collection(db, 'users'), where('tenantId', '==', tenantId))),
         getDocs(
           query(
             collection(db, 'invitations'),
@@ -124,6 +133,16 @@ export function useUserManagement(): UseUserManagementReturn {
         });
       });
 
+      // İstemci-taraflı sıralama: en yeni kullanıcı en üstte (createdAt desc).
+      const toMillis = (v: any): number => {
+        if (!v) return 0;
+        if (typeof v.toMillis === 'function') return v.toMillis();
+        if (typeof v.toDate === 'function') return v.toDate().getTime();
+        const t = new Date(v).getTime();
+        return Number.isNaN(t) ? 0 : t;
+      };
+      usersList.sort((a, b) => toMillis(b.metadata?.createdAt) - toMillis(a.metadata?.createdAt));
+
       setUsers(usersList);
       setInvitations(invitationsList);
     } catch (err) {
@@ -132,7 +151,7 @@ export function useUserManagement(): UseUserManagementReturn {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [tenantId]);
 
   useEffect(() => {
     fetchData();

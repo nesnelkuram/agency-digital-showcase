@@ -1,0 +1,1050 @@
+{
+  "generatedFrom": "scripts/enrich-system-map.mjs",
+  "model": "gemini-2.0-flash",
+  "domains": [
+    {
+      "id": "marketing-social",
+      "name": "Pazarlama & Sosyal Medya",
+      "purpose": "Reklam kampanyalarını ve sosyal medya içeriklerini planlar, üretir ve yönetir.",
+      "color": "#f43f5e",
+      "featureIds": [
+        "feature:marketing",
+        "feature:social-media"
+      ],
+      "walkthrough": [
+        {
+          "title": "Yeni Bir Pazarlama Kampanyası Oluşturma",
+          "steps": [
+            "Öncelikle 'marketing' modülüne gidilir ve 'campaign_proposals' üzerinden yeni bir kampanya önerisi oluşturulur. Bu öneride kampanya hedefi, bütçesi ve hedef kitle gibi bilgiler belirtilir.",
+            "Kampanya önerisi oluşturulduktan sonra, 'ab_tests' kullanılarak farklı reklam varyasyonları (A/B testleri) hazırlanır. Bu testler, hangi reklamın daha iyi performans gösterdiğini anlamak için yapılır.",
+            "Kampanya başlatıldığında, 'marketing_campaigns' verisi güncellenir ve kampanya aktif hale getirilir. 'platform_accounts' üzerinden hangi platformlarda (örneğin, Facebook, Google Ads) yayınlanacağı belirlenir.",
+            "Kampanya süresince 'performance_snapshots' ile kampanya performansı düzenli olarak takip edilir. 'optimization_suggestions' ile performansı artırmak için öneriler alınır ve uygulanır.",
+            "Kampanya sonunda, 'campaign_breakdowns' ile detaylı bir analiz raporu oluşturulur. Bu rapor, kampanyanın başarısını ölçmek ve gelecekteki kampanyalar için öğrenilen dersleri belirlemek için kullanılır."
+          ]
+        },
+        {
+          "title": "Sosyal Medya İçerik Planı Oluşturma ve Müşteri Onayı Alma",
+          "steps": [
+            "'social-media' modülünde, 'content_plans' üzerinden yeni bir içerik planı oluşturulur. Bu planda, hangi platformlarda (örneğin, Instagram, Facebook) hangi tarihlerde hangi içeriklerin yayınlanacağı belirlenir.",
+            "İçerik planı oluşturulurken, her bir gönderi için 'social_media_posts' verisi kullanılarak metin, görsel ve video gibi içerikler hazırlanır. Gerekirse, yapay zeka destekli 'generate-caption' özelliği ile başlık önerileri alınır.",
+            "İçerik planı tamamlandıktan sonra, müşteri onayına sunulur. Bu amaçla, 'content_plans' için oluşturulan özel bir paylaşım bağlantısı (shareToken) müşteriye gönderilir.",
+            "Müşteri, bu bağlantı üzerinden içerik planını inceler ve onaylar veya revize edilmesini ister. Onay veya revize talebi, 'approval_events' üzerinden takip edilir.",
+            "Müşteri onayı alındıktan sonra, içerikler planlanan tarihlerde otomatik olarak yayınlanır. Yayınlanan içeriklerin performansı 'performance_snapshots' ile takip edilir."
+          ]
+        },
+        {
+          "title": "Sosyal Medya İçeriği Yayınlama ve Takip Etme",
+          "steps": [
+            "'social-media' modülünde, 'social_media_posts' üzerinden yeni bir sosyal medya gönderisi oluşturulur. Gönderi için metin, görsel veya video gibi içerikler eklenir.",
+            "Gönderi oluşturulurken, 'PLATFORM_POST_TYPES' haritası kullanılarak hangi platformda (örneğin, Instagram, Twitter) hangi türde (örneğin, gönderi, hikaye) yayınlanacağı belirlenir.",
+            "Gönderi planlandıktan sonra, 'content_plans' içerisine eklenir ve yayın tarihi belirlenir. Yayın tarihi geldiğinde, gönderi otomatik olarak ilgili platformda yayınlanır.",
+            "Yayınlanan gönderinin performansı (beğeni, yorum, paylaşım sayısı gibi) 'performance_snapshots' ile takip edilir. Gerekirse, 'optimization_suggestions' ile gönderi içeriği veya yayın zamanı optimize edilir."
+          ]
+        },
+        {
+          "title": "Pazarlama Kampanyası Performansını İzleme ve Optimizasyon",
+          "steps": [
+            "'marketing' modülünde, 'marketing_campaigns' üzerinden aktif olan bir pazarlama kampanyası seçilir.",
+            "'performance_snapshots' verisi kullanılarak kampanyanın performansı (tıklama sayısı, dönüşüm oranı, maliyet gibi) düzenli olarak takip edilir.",
+            "Eğer kampanya performansı beklenenden düşükse, 'optimization_suggestions' ile iyileştirme önerileri alınır. Bu öneriler, hedef kitle, reklam metni veya bütçe gibi farklı alanlarda olabilir.",
+            "Alınan öneriler doğrultusunda, 'ab_tests' kullanılarak yeni reklam varyasyonları oluşturulur ve test edilir. En iyi performansı gösteren varyasyonlar kampanyada kullanılır.",
+            "Kampanya performansı düzenli olarak izlenir ve optimizasyon çalışmaları devam ettirilir. Kampanya sonunda, 'campaign_breakdowns' ile detaylı bir analiz raporu oluşturulur."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sales",
+      "name": "Satış & Teklif",
+      "purpose": "Müşteri adaylarını, teklifleri ve fiyatlandırmayı yönetir.",
+      "color": "#f59e0b",
+      "featureIds": [
+        "feature:leads",
+        "feature:pricing"
+      ],
+      "walkthrough": [
+        {
+          "title": "Yeni Bir Müşteri Adayı (Lead) Oluşturma ve Takip Etme",
+          "steps": [
+            "Satış ekibi, potansiyel bir müşteriyle (lead) karşılaştığında, bu kişiyi 'leads' modülüne kaydeder. Bu kayıt sırasında müşterinin iletişim bilgileri, markası ('brand_leads' verisi) ve ilgilendiği konular gibi bilgiler girilir.",
+            "'leads' modülünde, 'analyze-start' API'si kullanılarak müşteri adayının markası hakkında temel bir analiz başlatılır. Bu analiz, müşterinin ihtiyaçlarını daha iyi anlamaya yardımcı olur.",
+            "Müşteri adayıyla ilgili analiz sonuçları ('analyze-continue', 'analyze-brand-multi' API'leri ile devam eden analizler) ve strateji önerileri ('approve-strategy' API'si ile onaylanan stratejiler) 'leads' modülünde saklanır. Bu bilgiler, müşteriye özel bir teklif oluşturmak için kullanılır.",
+            "Müşteri adayıyla ilk temas kurulduktan sonra, 'send-wizard-invitation' API'si ile müşteriye özel bir davet gönderilir. Bu davet, müşterinin sisteme giriş yapıp kendi bilgilerini güncelleyebileceği ve sürece dahil olabileceği bir bağlantı içerir."
+          ]
+        },
+        {
+          "title": "Fiyat Teklifi Oluşturma ve Müşteriye Gönderme",
+          "steps": [
+            "Satış ekibi, 'pricing' modülünü kullanarak müşterinin ihtiyaçlarına ve analiz sonuçlarına göre bir fiyat teklifi oluşturur. Bu teklif, 'quotes', 'pricing', 'proposals' ve 'rental_catalog' verilerini içerir.",
+            "Oluşturulan fiyat teklifi, 'send-proposal' API'si aracılığıyla müşteriye gönderilir. Bu teklif, müşterinin inceleyebileceği ve onaylayabileceği bir bağlantı içerir.",
+            "Müşteri, kendisine gönderilen fiyat teklifini inceler ve onaylar veya revize edilmesini talep eder. Bu süreç, 'pricing' modülü üzerinden takip edilir."
+          ]
+        },
+        {
+          "title": "Müşteri Adayının Durumunu Kontrol Etme",
+          "steps": [
+            "Satış ekibi, 'leads' modülünde yer alan 'check-dr-status' API'si ile müşteri adayının durumunu (örneğin, teklifin kabul edilip edilmediği, görüşme yapılıp yapılmadığı) düzenli olarak kontrol eder.",
+            "Müşteri adayının durumu değiştiğinde (örneğin, teklif kabul edildiğinde), sistem otomatik olarak ilgili kişilere (örneğin, proje yöneticisi, finans departmanı) bildirim gönderir. Bu bildirimler, 'shared/hooks/useNotifications.ts' ve 'admin/components/NotificationDropdown.tsx' kullanılarak gerçek zamanlı olarak iletilir.",
+            "Müşteri adayının durumu, 'leads' modülünde güncellenir ve bu bilgi, diğer ilgili modüllerle (örneğin, 'pricing', 'projects') paylaşılır."
+          ]
+        },
+        {
+          "title": "Müşteri Onayı Sonrası Proje Oluşturma",
+          "steps": [
+            "Müşteri fiyat teklifini onayladığında, satış ekibi 'projects' modülünde yeni bir proje oluşturur. Bu proje, müşterinin bilgileri, teklif detayları ve proje takvimi gibi bilgileri içerir.",
+            "Proje oluşturulduktan sonra, ilgili ekip üyelerine (örneğin, tasarımcı, içerik üreticisi) görevler atanır. Bu görevler, 'Project Memory'deki 'Task Timer + Recurring' modülü kullanılarak takip edilir.",
+            "Müşteri, 'Client Portal' üzerinden projenin ilerleyişini takip edebilir, onay süreçlerine katılabilir ve geri bildirimde bulunabilir. 'portal/PortalProjectsPage' ve 'portal/PortalApprovalsPage' sayfaları bu amaçla kullanılır."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "work",
+      "name": "Proje & İş Akışı",
+      "purpose": "Projeleri, görevleri ve iş akışlarını planlar, atar ve takip eder.",
+      "color": "#6366f1",
+      "featureIds": [
+        "feature:now",
+        "feature:tasks",
+        "feature:workflows",
+        "feature:projects",
+        "feature:approvals"
+      ],
+      "walkthrough": [
+        {
+          "title": "Yeni Bir Görev Oluşturma ve Atama",
+          "steps": [
+            "Bir proje yöneticisi, 'tasks' modülünü kullanarak yeni bir görev oluşturur. Görevin adı, açıklaması ve bitiş tarihi gibi detaylar girilir.",
+            "Proje yöneticisi, 'tasks' modülünde görevi uygun bir kullanıcıya atar. Bu kullanıcı, 'users' verisinden seçilir.",
+            "Görev atandıktan sonra, atanan kullanıcı 'now' modülünde güncel görevler listesinde bu görevi görür.",
+            "Görevin önceliği 'priority_signals' verisi kullanılarak belirlenir. Yüksek öncelikli görevler 'now' modülünde daha belirgin şekilde gösterilir.",
+            "Görevle ilgili bir değişiklik olduğunda (örneğin, bitiş tarihi güncellendiğinde), ilgili kullanıcıya 'telegram' API'si üzerinden bildirim gönderilir."
+          ]
+        },
+        {
+          "title": "İş Akışı Onayı Süreci",
+          "steps": [
+            "Bir iş akışı ('workflows' modülü) tamamlandığında, onay gerektiren bir adıma gelindiğinde 'approvals' modülü devreye girer.",
+            "Onay mekanizması 'workflow_instances' verisi üzerinden yönetilir. Onaylayıcı kişi belirlenir.",
+            "Onaylayıcı kişiye, onay bekleyen iş akışı hakkında bildirim gönderilir. Bu bildirim, 'now' modülünde ve e-posta yoluyla görülebilir.",
+            "Onaylayıcı kişi, 'approvals' modülünde iş akışını inceler ve onaylar veya reddeder. Reddedilirse, iş akışı ilgili kişiye geri gönderilir.",
+            "Onay süreci tamamlandığında, iş akışı otomatik olarak bir sonraki adıma geçer."
+          ]
+        },
+        {
+          "title": "Müşteri İçerik Planı Onayı",
+          "steps": [
+            "Reklam ajansı, 'Social Media Module' kullanarak bir içerik planı oluşturur ve 'content_plans' koleksiyonuna kaydeder.",
+            "İçerik planı oluşturulduktan sonra, sistem otomatik olarak benzersiz bir paylaşım bağlantısı ('share token') oluşturur.",
+            "Ajans, bu bağlantıyı müşteriye gönderir. Müşteri, bağlantıya tıklayarak içerik planını görüntüleyebilir.",
+            "Müşteri, içerik planını inceledikten sonra onaylar veya revizyon talep eder. Bu işlem, 'content_plans' koleksiyonundaki durumu günceller.",
+            "Müşterinin onayı veya revizyon talebi, ajansa 'E-posta Gönder' özelliği ile bildirilir. Bildirim türü 'submitted', 'approved' veya 'revision_requested' olabilir."
+          ]
+        },
+        {
+          "title": "Periyodik Görev Oluşturma ve Takip",
+          "steps": [
+            "Proje yöneticisi, 'tasks' modülünde 'recurring_tasks' verisini kullanarak periyodik bir görev oluşturur. Örneğin, her hafta Pazartesi günü tekrarlayan bir raporlama görevi.",
+            "Görev, belirlenen periyotta otomatik olarak 'tasks' modülünde oluşturulur ve ilgili kullanıcıya atanır.",
+            "Atanan kullanıcı, 'now' modülünde bu görevi güncel görevler listesinde görür.",
+            "Görev tamamlandığında, kullanıcı görevi tamamlandı olarak işaretler. Bir sonraki periyotta görev tekrar oluşturulur.",
+            "Periyodik görevlerin takibi, 'project_task_timer_recurring.md' belgesinde belirtilen sayaç ve gün dökümü mekanizmaları ile yapılır."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "clients",
+      "name": "Müşteri Portalı",
+      "purpose": "Müşterilerin projelerini görmesini, içerikleri onaylamasını ve geri bildirim vermesini sağlar.",
+      "color": "#0ea5e9",
+      "featureIds": [
+        "feature:portal",
+        "feature:feedback"
+      ],
+      "walkthrough": [
+        {
+          "title": "Müşteri, Sosyal Medya İçeriğini Nasıl Onaylar?",
+          "steps": [
+            "Müşteri, e-posta ile bir içerik planı bağlantısı alır. Bu bağlantı, `/icerik-plani/:shareToken` adresine yönlendirir.",
+            "Müşteri, bu bağlantıya tıkladığında, 'portal' modülü sayesinde sosyal medya içeriklerini ve projelerini görebileceği bir sayfaya yönlendirilir. Veriler `content_plans` koleksiyonundan gelir.",
+            "Müşteri, içeriği inceler ve 'Onayla' veya 'Revizyon İste' butonlarına tıklayarak geri bildirimde bulunur. Bu eylem, `approval_events` verisine kaydedilir.",
+            "Eğer müşteri 'Revizyon İste' butonuna tıklarsa, 'feedback' modülü devreye girer ve müşteri yorumlarını `feedback_comments` olarak sisteme girer. Bu geri bildirim, ajans tarafına iletilir.",
+            "Ajans, müşterinin geri bildirimini dikkate alarak içeriği günceller ve tekrar onay için müşteriye gönderir."
+          ]
+        },
+        {
+          "title": "Müşteri, Projelerini Nasıl Görüntüler?",
+          "steps": [
+            "Müşteri, sisteme 'client' rolüyle giriş yapar. Giriş yaptıktan sonra, otomatik olarak `/portal` adresine yönlendirilir.",
+            "'portal' modülü, müşterinin projelerini `projects` verisinden çeker ve müşteriye gösterir. Bu projeler, müşterinin `tenantId` ve `clientId` bilgileriyle filtrelenir.",
+            "Müşteri, 'PortalProjectsPage' üzerinden projelerinin detaylarını, içeriklerini ve ilerleme durumunu görebilir.",
+            "Proje detay sayfasında, sosyal medya içerikleri de 'portal' modülü aracılığıyla `social_media_posts` verisinden çekilerek gösterilir."
+          ]
+        },
+        {
+          "title": "Ajans, Müşteriye İçerik Planı Onayı İçin Nasıl Bildirim Gönderir?",
+          "steps": [
+            "Ajans, sosyal medya içeriğini oluşturduktan sonra, 'portal' modülü üzerinden bir içerik planı oluşturur. Bu plan, `content_plans` koleksiyonuna kaydedilir.",
+            "Ajans, içerik planını müşteriye göndermek için 'E-posta Gönder' butonuna tıklar. Bu işlem, `/api/send-content-plan-notification` API'sini tetikler.",
+            "Bu API, müşteriye bir e-posta gönderir. E-postada, müşterinin içerik planını görüntüleyebileceği ve onaylayabileceği bir bağlantı bulunur.",
+            "Aynı zamanda, 'shared/hooks/useNotifications.ts' kullanılarak bir bildirim oluşturulur ve müşterinin 'NotificationsPage.tsx' sayfasında görüntülenir."
+          ]
+        },
+        {
+          "title": "Müşteri, Bildirim Ayarlarını Nasıl Yönetir?",
+          "steps": [
+            "Müşteri, 'portal' üzerinden 'Ayarlar' sayfasına gider. Bu sayfada, 'NotificationsPage.tsx' bileşeni görüntülenir.",
+            "Müşteri, e-posta, push bildirimi ve onay hatırlatıcıları gibi farklı bildirim türleri için ayarları açıp kapatabilir.",
+            "Bu ayarlar, Firestore'da müşterinin profiline kaydedilir. Böylece, müşteri hangi bildirimleri almak istediğini kontrol edebilir."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "content",
+      "name": "İçerik & Dosya",
+      "purpose": "İçerik varlıklarını ve proje dosyalarını düzenler, saklar ve erişimi yönetir.",
+      "color": "#14b8a6",
+      "featureIds": [
+        "feature:filing",
+        "feature:assets"
+      ],
+      "walkthrough": [
+        {
+          "title": "Bir Proje İçin Dosya Yükleme ve Düzenleme",
+          "steps": [
+            "Öncelikle, 'filing' modülüne gidin. Bu modül, dosyalarınızı düzenlemenize ve saklamanıza yardımcı olur.",
+            "'filing_projects' alanında, ilgili projeyi bulun veya yeni bir proje oluşturun.",
+            "Proje içindeyken, 'Dosya Yükle' seçeneğini kullanarak bilgisayarınızdan dosyaları seçin ve yükleyin. Yüklenen dosyalar 'filing_projects' altında saklanır.",
+            "Dosyaları düzenlemek için, dosya adına tıklayın. Açılan ekranda dosya adını değiştirebilir, etiketler ekleyebilir veya dosyayı silebilirsiniz.",
+            "Ek olarak, 'filing_templates' alanında proje şablonları oluşturabilir ve bunları projelerinize uygulayabilirsiniz."
+          ]
+        },
+        {
+          "title": "Dijital Varlıkları (Logolar, Görseller) Yönetme",
+          "steps": [
+            "'assets' modülüne gidin. Bu modül, logolar, görseller gibi dijital varlıklarınızı yönetmenizi sağlar.",
+            "'assetFolders' alanında, varlıklarınızı düzenli tutmak için klasörler oluşturun. Örneğin, 'Logo'lar', 'Kampanya Görselleri' gibi.",
+            "Yeni bir varlık yüklemek için, ilgili klasörü seçin ve 'Varlık Yükle' seçeneğini kullanın. Varlığa bir ad verin ve etiketler ekleyin.",
+            "Varlıklara erişimi yönetmek için, her varlık veya klasör için izinler ayarlayabilirsiniz. Örneğin, belirli kullanıcıların sadece görüntülemesine izin verebilirsiniz."
+          ]
+        },
+        {
+          "title": "Sosyal Medya İçeriği Oluşturma ve Onaya Gönderme",
+          "steps": [
+            "Sosyal Medya modülünde, 6 adımlı sihirbazı kullanarak içeriğinizi oluşturun: Platform Seçimi, Gönderi Türü, Medya Yükleme, Açıklama Yazma, Zamanlama ve Önizleme.",
+            "Medya adımında, 'useMediaUpload' kancasını kullanarak görsellerinizi veya videolarınızı yükleyin. Firebase Storage'a en fazla 3 dosya aynı anda yüklenebilir.",
+            "Açıklama adımında, 'AI caption' özelliğini kullanarak otomatik olarak bir açıklama oluşturun veya mevcut bir açıklamayı düzenleyin. 'Daha Kısa', 'Emoji Ekle' gibi araçları kullanabilirsiniz.",
+            "İçeriği oluşturduktan sonra, 'content_plans' koleksiyonuna kaydedilir. Müşteriye onaya göndermek için bir paylaşım bağlantısı (share token) oluşturulur.",
+            "Müşteri, 'icerik-plani/:shareToken' bağlantısı üzerinden içeriği görüntüleyebilir ve onaylayabilir veya revizyon isteyebilir. Onay veya revizyon isteği durumunda, ilgili kişilere e-posta gönderilir ('/api/send-content-plan-notification')."
+          ]
+        },
+        {
+          "title": "Proje Dosyalarına Erişim İzni Verme",
+          "steps": [
+            "'filing' modülünde, 'filing_projects' alanına gidin ve ilgili projeyi bulun.",
+            "Proje içindeki dosyalara erişim izni vermek istediğiniz kullanıcıları seçin. Bu kullanıcılar 'account_manager', 'editor' veya 'client' olabilir.",
+            "Her kullanıcı için farklı izin seviyeleri belirleyebilirsiniz. Örneğin, 'account_manager' dosyaları düzenleyebilirken, 'client' sadece görüntüleyebilir.",
+            "İzinler kaydedildikten sonra, ilgili kullanıcılar projeye ve dosyalara kendi rolleri doğrultusunda erişebilirler."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai-tools",
+      "name": "AI Araçları",
+      "purpose": "AI danışman, AI ajan yönetimi ve strateji haritası — yapay zeka destekli araçlar.",
+      "color": "#a855f7",
+      "featureIds": [
+        "feature:agents",
+        "feature:persona",
+        "feature:strategy"
+      ],
+      "walkthrough": [
+        {
+          "title": "AI Destekli Strateji Oluşturma",
+          "steps": [
+            "Öncelikle 'strategy' modülüne gidilir. Bu modül, reklam stratejileri oluşturmanıza yardımcı olur.",
+            "Burada, reklam kampanyanız için hedeflerinizi ve hedef kitlenizi belirtirsiniz. Bu bilgiler, yapay zeka danışmanına girdi olarak verilir.",
+            "Yapay zeka danışmanı, girdiğiniz bilgilere göre size özel bir strateji önerisi sunar. Bu öneri, hangi platformlarda reklam vereceğinizden, hangi mesajları kullanacağınıza kadar birçok detayı içerir.",
+            "Strateji önerisini inceleyip onayladıktan sonra, 'agents' modülünü kullanarak bu stratejiyi uygulayacak AI ajanlarını atayabilirsiniz."
+          ]
+        },
+        {
+          "title": "AI Ajanı ile Reklam Metni Oluşturma",
+          "steps": [
+            "'agents' modülüne giderek yeni bir AI ajanı oluşturulur. Bu ajana, reklam metni yazma görevi verilir.",
+            "Ajanın kullanacağı 'persona' (hedef kitle kişiliği) seçilir. Bu, ajanın reklam metnini kime yönelik yazacağını belirler.",
+            "Ajana, reklamı yapılacak ürün veya hizmet hakkında bilgi verilir. Ne tür bir mesaj verilmesi gerektiği de belirtilir.",
+            "AI ajanı, verilen bilgilere göre birkaç farklı reklam metni seçeneği sunar. Bu metinler incelenir ve en uygun olanı seçilir.",
+            "Seçilen reklam metni, sosyal medya veya diğer reklam platformlarında kullanılmak üzere hazır hale getirilir."
+          ]
+        },
+        {
+          "title": "Müşteri Onayı için İçerik Planı Paylaşma",
+          "steps": [
+            "Sosyal medya modülünde, reklam içeriği oluşturulduktan sonra, 'İçerik Planı' oluşturulur.",
+            "Oluşturulan içerik planı, müşteriyle paylaşmak için bir 'paylaşım bağlantısı' (share token) oluşturulur.",
+            "Müşteri, bu bağlantıya tıklayarak içerik planını inceler ve onaylar veya revize edilmesini ister.",
+            "Müşteri onayladığında, içerik planı otomatik olarak yayınlanmak üzere planlanır. Müşteri revize isterse, içerik düzenlenir ve tekrar onaya sunulur."
+          ]
+        },
+        {
+          "title": "Bildirim Sistemi ile Süreç Takibi",
+          "steps": [
+            "Bir AI ajanı bir görevi tamamladığında veya bir içerik planı müşteriye gönderildiğinde, ilgili kullanıcılara bildirim gönderilir.",
+            "Bu bildirimler, 'shared/hooks/useNotifications.ts' kullanılarak gerçek zamanlı olarak Firestore'dan alınır ve 'admin/components/NotificationDropdown.tsx' içinde gösterilir.",
+            "Kullanıcılar, 'Settings' bölümündeki 'NotificationsPage.tsx' üzerinden hangi tür bildirimleri (e-posta, anlık bildirim vb.) almak istediklerini ayarlayabilirler.",
+            "Örneğin, bir müşteri bir içerik planını onayladığında, ajans çalışanına anında bildirim gider. Bu sayede süreç hızlı bir şekilde takip edilebilir."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "team",
+      "name": "Ekip & Eğitim",
+      "purpose": "Ekip üyelerini, iş kalıplarını (SOP) ve eğitim kaynaklarını yönetir.",
+      "color": "#22c55e",
+      "featureIds": [
+        "feature:sops",
+        "feature:team",
+        "feature:training"
+      ],
+      "walkthrough": [
+        {
+          "title": "Yeni Bir Ekip Üyesi Nasıl Eklenir?",
+          "steps": [
+            "Öncelikle 'Ekip' modülüne gidin. Burası, tüm ekip üyelerinin listelendiği yerdir.",
+            "'Üye Davet Et' butonuna tıklayın. Bu, yeni bir ekip üyesi ekleme sürecini başlatır.",
+            "Açılan formda, davet etmek istediğiniz kişinin adını, soyadını ve e-posta adresini girin. Ayrıca, bu kişiye hangi rolü vereceğinizi seçin (örneğin, 'account_manager' veya 'editor').",
+            "'Davet Gönder' butonuna tıklayın. Sistem, bu kişiye özel bir davet bağlantısı içeren bir e-posta gönderecektir. Bu davet, 'invitations' verisinde saklanır.",
+            "Davet edilen kişi, e-postadaki bağlantıya tıklayarak sisteme kaydolabilir ve ekibe katılabilir. Kayıt olduktan sonra, bu kişi 'users' verisinde ekip üyesi olarak görünecektir."
+          ]
+        },
+        {
+          "title": "Standart Operasyon Prosedürü (SOP) Nasıl Oluşturulur ve Paylaşılır?",
+          "steps": [
+            "'sops' modülüne gidin. Bu modül, tüm standart operasyon prosedürlerinin (SOP) listelendiği yerdir.",
+            "'Yeni SOP Oluştur' butonuna tıklayın. Bu, yeni bir SOP oluşturma sürecini başlatır.",
+            "Açılan formda, SOP'nin başlığını, açıklamasını ve içeriğini girin. İçerik, adım adım talimatlar veya yönergeler içerebilir.",
+            "SOP'yi kaydettikten sonra, 'training_resources' verisinde saklanır. Bu SOP'yi ekip üyeleriyle paylaşmak için, 'Eğitim' modülüne gidin.",
+            "'Eğitim Kaynağı Ekle' butonuna tıklayın ve oluşturduğunuz SOP'yi seçin. Artık ekip üyeleri bu SOP'ye 'Eğitim' modülünden erişebilirler."
+          ]
+        },
+        {
+          "title": "Eğitim Kaynağı Nasıl Eklenir ve Ekip Üyelerine Atanır?",
+          "steps": [
+            "'Eğitim' modülüne gidin. Bu modül, tüm eğitim kaynaklarının (videolar, dokümanlar, SOP'ler vb.) listelendiği yerdir.",
+            "'Eğitim Kaynağı Ekle' butonuna tıklayın. Bu, yeni bir eğitim kaynağı ekleme sürecini başlatır.",
+            "Açılan formda, eğitim kaynağının adını, açıklamasını ve türünü (örneğin, 'video', 'doküman', 'SOP') seçin. Eğer bir dosya yükleyecekseniz, ilgili dosyayı seçin.",
+            "Eğitim kaynağını kaydettikten sonra, 'training_resources' verisinde saklanır. Bu eğitim kaynağını ekip üyelerine atamak için, 'Ekip' modülüne gidin.",
+            "İlgili ekip üyesini seçin ve 'Eğitim Ata' butonuna tıklayın. Açılan listeden, atamak istediğiniz eğitim kaynağını seçin. Artık ekip üyesi, profilinde bu eğitim kaynağını görebilir ve tamamlayabilir."
+          ]
+        },
+        {
+          "title": "Yeni Bir Ekip Üyesi Davet Edildiğinde Ne Olur?",
+          "steps": [
+            "Bir yönetici, 'Ekip' modülünden yeni bir ekip üyesi davet ettiğinde, sistem otomatik olarak bir davet kaydı oluşturur ve bu kayıt 'invitations' verisinde saklanır.",
+            "Davet edilen kişiye, özel bir davet bağlantısı içeren bir e-posta gönderilir. Bu e-posta, Resend servisi aracılığıyla gönderilir.",
+            "Davet edilen kişi, e-postadaki bağlantıya tıkladığında, 'admin/auth/JoinPage.tsx' adresine yönlendirilir. Burada, sisteme kaydolabilir ve bir şifre oluşturabilir.",
+            "Kaydolduktan sonra, davet edilen kişi 'users' verisinde ekip üyesi olarak eklenir ve kendisine atanan rollere göre sisteme erişebilir. Örneğin, 'editor' rolüne sahip bir kullanıcı, finansal verilere erişemez."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "infra",
+      "name": "Altyapı & Ayarlar",
+      "purpose": "Sistem ayarları, kimlik doğrulama, bildirimler ve ortak bileşenler.",
+      "color": "#64748b",
+      "featureIds": [
+        "feature:settings",
+        "feature:dashboard",
+        "feature:components",
+        "feature:contexts",
+        "feature:notifications",
+        "feature:auth"
+      ],
+      "walkthrough": [
+        {
+          "title": "Yeni Bir Kullanıcı Davet Etme ve Rol Atama",
+          "steps": [
+            "Bir yönetici, 'settings' modülüne gider ve 'users' veri kümesinden 'Kullanıcı Davet Et' butonuna tıklar.",
+            "Açılan formda kullanıcının e-posta adresini girer ve 'role_configs' veri kümesinden uygun rolü (örneğin, 'account_manager') seçer.",
+            "Sistem, 'api/invite-user.ts' API'sini kullanarak kullanıcıya özel bir davet bağlantısı içeren bir e-posta gönderir.",
+            "Kullanıcı, e-postadaki bağlantıya tıklayarak 'admin/auth/JoinPage.tsx' adresine yönlendirilir ve burada hesabını oluşturur. Rolü otomatik olarak atanır.",
+            "Yönetici, 'settings' modülündeki 'users' veri kümesinde yeni kullanıcının listelendiğini ve atanan rolü görebilir."
+          ]
+        },
+        {
+          "title": "Bir Proje Oluşturma ve Durumunu İzleme",
+          "steps": [
+            "Bir proje yöneticisi, reklam ajansı yazılımında yeni bir proje oluşturur. Proje bilgileri 'projects' veri kümesine kaydedilir.",
+            "Proje oluşturulduktan sonra, proje yöneticisi ve ekip üyeleri 'dashboard' modülünü kullanarak projenin durumunu takip edebilir.",
+            "'dashboard' modülü, 'projects', 'approvals', 'users', 'activityLog' ve 'tasks' veri kümelerinden bilgileri çeker ve projenin ilerlemesini görsel olarak sunar.",
+            "Projede bir değişiklik olduğunda (örneğin, bir görev tamamlandığında), 'activityLog' veri kümesine yeni bir girdi eklenir ve ilgili kullanıcılara 'notifications' modülü aracılığıyla bildirim gönderilir."
+          ]
+        },
+        {
+          "title": "Sosyal Medya İçeriği Oluşturma ve Müşteri Onayına Sunma",
+          "steps": [
+            "Bir sosyal medya uzmanı, sosyal medya modülünü kullanarak yeni bir içerik planı oluşturur. Platform, gönderi türü, medya ve başlık gibi bilgileri girer.",
+            "Uzman, 'api/social-media/generate-caption' API'sini kullanarak yapay zeka destekli bir başlık oluşturabilir ve düzenleyebilir.",
+            "İçerik planı tamamlandığında, 'content_plans' veri kümesine kaydedilir ve benzersiz bir paylaşım bağlantısı oluşturulur.",
+            "Uzman, bu bağlantıyı müşteriye göndererek içeriği onaylamasını ister. Müşteri, bağlantıya tıklayarak 'icerik-plani/:shareToken' adresindeki içeriği görüntüleyebilir ve onaylayabilir veya revizyon isteyebilir.",
+            "Müşteri onayladığında veya revizyon istediğinde, 'notifications' modülü aracılığıyla sosyal medya uzmanına bildirim gönderilir."
+          ]
+        },
+        {
+          "title": "Bildirim Ayarlarını Yönetme",
+          "steps": [
+            "Kullanıcı, 'settings' modülündeki 'NotificationsPage.tsx' sayfasına gider.",
+            "Bu sayfada, e-posta, push bildirimleri ve onay hatırlatıcıları gibi farklı bildirim türleri için ayarları görebilir ve değiştirebilir.",
+            "Kullanıcı, hangi bildirimleri almak istediğini seçerek ayarlarını kaydeder. Bu ayarlar, kullanıcının 'users' veri kümesindeki profilinde saklanır.",
+            "Sistem, 'notifications' modülünü kullanarak kullanıcının tercih ettiği kanallar üzerinden (e-posta, push vb.) bildirimleri gönderir."
+          ]
+        }
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "from": "sales",
+      "to": "work",
+      "label": "Onaylanan teklifler proje oluşturur",
+      "detail": "Satış ekibi bir teklifi onayladığında, bu teklif otomatik olarak bir projeye dönüştürülür. Bu, satış sürecinin tamamlanmasının ardından iş akışının başlatılmasını sağlar.",
+      "steps": [
+        "Satış ekibi bir teklifi 'onaylandı' olarak işaretler.",
+        "Sistem, bu onaylanan teklif için otomatik olarak yeni bir proje oluşturur.",
+        "Proje, 'Proje & İş Akışı' modülünde görünür ve yönetilebilir hale gelir."
+      ]
+    },
+    {
+      "from": "marketing-social",
+      "to": "clients",
+      "label": "Sosyal medya içerikleri müşteri portalında görüntülenir",
+      "detail": "Pazarlama ve sosyal medya ekibi tarafından oluşturulan sosyal medya içerikleri, müşterilerin görüntüleyebilmesi için müşteri portalına yüklenir. Bu, müşterilerin kampanyaları ve içerikleri takip etmelerini sağlar.",
+      "steps": [
+        "Pazarlama ekibi sosyal medya içeriğini oluşturur ve yayınlar.",
+        "Sistem, bu içeriği otomatik olarak müşteri portalına senkronize eder.",
+        "Müşteriler, portal üzerinden sosyal medya içeriklerini görüntüleyebilir ve geri bildirimde bulunabilir."
+      ]
+    },
+    {
+      "from": "work",
+      "to": "team",
+      "label": "Projelere ekip üyeleri atanır",
+      "detail": "Proje yöneticisi, belirli projelerde çalışacak ekip üyelerini atar. Bu, iş yükünün dağıtılmasını ve uzmanlık alanlarına göre görevlendirme yapılmasını sağlar.",
+      "steps": [
+        "Proje yöneticisi bir proje oluşturur veya mevcut bir projeyi açar.",
+        "Proje yöneticisi, projede görev alacak ekip üyelerini seçer ve atar.",
+        "Atanan ekip üyeleri, projeye erişebilir ve görevlerini tamamlayabilir."
+      ]
+    },
+    {
+      "from": "work",
+      "to": "content",
+      "label": "Projeler için dosyalar yüklenir",
+      "detail": "Proje ile ilgili tüm dosyalar (brief'ler, görseller, metinler vb.) projeye yüklenir ve saklanır. Bu, proje ekibinin tüm gerekli kaynaklara kolayca erişebilmesini sağlar.",
+      "steps": [
+        "Proje ekibi, proje ile ilgili dosyaları 'İçerik & Dosya' modülüne yükler.",
+        "Yüklenen dosyalar, ilgili projeye bağlanır.",
+        "Proje ekibi, proje içinden bu dosyalara erişebilir ve kullanabilir."
+      ]
+    },
+    {
+      "from": "marketing-social",
+      "to": "ai-tools",
+      "label": "Sosyal medya içerikleri için AI araçları kullanılır",
+      "detail": "Pazarlama ve sosyal medya ekibi, sosyal medya içeriklerini oluştururken yapay zeka araçlarından (öneri motorları, metin oluşturucular vb.) faydalanır. Bu, içerik oluşturma sürecini hızlandırır ve optimize eder.",
+      "steps": [
+        "Pazarlama ekibi, sosyal medya içeriği oluşturmaya başlar.",
+        "Sistem, yapay zeka araçlarını kullanarak içerik önerileri, başlıklar veya görseller sunar.",
+        "Pazarlama ekibi, yapay zeka önerilerini kullanarak içeriği tamamlar ve yayınlar."
+      ]
+    },
+    {
+      "from": "work",
+      "to": "infra",
+      "label": "Proje durumları dashboard'da izlenir",
+      "detail": "Projelerin ilerleme durumu, tamamlanma yüzdesi, gecikmeler gibi bilgiler, altyapı modülündeki dashboard'da görsel olarak izlenir. Bu, proje yöneticilerinin projeleri takip etmesini ve sorunları erken tespit etmesini sağlar.",
+      "steps": [
+        "Proje ekibi, projeler üzerinde çalışır ve görevleri tamamlar.",
+        "Sistem, proje durumunu otomatik olarak günceller.",
+        "Dashboard, güncellenen proje durumunu gerçek zamanlı olarak gösterir."
+      ]
+    },
+    {
+      "from": "sales",
+      "to": "marketing-social",
+      "label": "Lead'ler pazarlama kampanyalarına dahil edilir",
+      "detail": "Satış ekibi tarafından toplanan potansiyel müşteriler (lead'ler), pazarlama kampanyalarına dahil edilir. Bu, potansiyel müşterilerin ürün veya hizmetlerle ilgili bilgilendirilmesini ve satış hunisine dahil edilmesini sağlar.",
+      "steps": [
+        "Satış ekibi, potansiyel müşterilerin bilgilerini sisteme girer.",
+        "Sistem, bu lead'leri otomatik olarak pazarlama kampanyalarına ekler.",
+        "Pazarlama ekibi, lead'lere yönelik e-posta, sosyal medya veya diğer pazarlama aktivitelerini başlatır."
+      ]
+    },
+    {
+      "from": "work",
+      "to": "clients",
+      "label": "Müşteriler projeler hakkında geri bildirim verir",
+      "detail": "Müşteriler, projelerin ilerleyişi hakkında geri bildirimde bulunabilir, onay verebilir veya değişiklik talep edebilir. Bu, müşteri memnuniyetini artırır ve projenin müşteri beklentilerine uygun olmasını sağlar.",
+      "steps": [
+        "Proje ekibi, proje güncellemelerini veya taslakları müşteri portalına yükler.",
+        "Müşteriler, portal üzerinden projeyi inceler ve geri bildirimde bulunur.",
+        "Proje ekibi, müşteri geri bildirimlerini dikkate alarak projede gerekli değişiklikleri yapar."
+      ]
+    },
+    {
+      "from": "ai-tools",
+      "to": "work",
+      "label": "AI ajanları iş akışlarını otomatikleştirir",
+      "detail": "Yapay zeka ajanları, tekrarlayan görevleri otomatikleştirerek iş akışlarını optimize eder. Örneğin, belirli bir tetikleyiciye bağlı olarak otomatik e-posta gönderme veya dosya düzenleme gibi.",
+      "steps": [
+        "Yapay zeka ajanı, belirli bir tetikleyiciyi (örneğin, proje durumu değişikliği) algılar.",
+        "Ajan, önceden tanımlanmış bir görevi otomatik olarak gerçekleştirir (örneğin, ilgili kişilere e-posta gönderme).",
+        "İş akışı, insan müdahalesi olmadan otomatik olarak devam eder."
+      ]
+    },
+    {
+      "from": "content",
+      "to": "marketing-social",
+      "label": "Dosyalar sosyal medya içeriklerinde kullanılır",
+      "detail": "Dosya modülünde saklanan görseller, videolar veya metinler, sosyal medya içeriklerinde kullanılır. Bu, içerik oluşturma sürecinde kaynaklara kolay erişim sağlar.",
+      "steps": [
+        "Pazarlama ekibi, sosyal medya içeriği oluştururken 'İçerik & Dosya' modülüne erişir.",
+        "Ekip, uygun dosyaları seçer ve sosyal medya içeriğine ekler.",
+        "Sosyal medya içeriği, seçilen dosyalarla birlikte yayınlanır."
+      ]
+    },
+    {
+      "from": "infra",
+      "to": "team",
+      "label": "Ayarlar ekip üyelerinin erişimlerini kontrol eder",
+      "detail": "Altyapı ayarları, ekip üyelerinin hangi modüllere ve verilere erişebileceğini kontrol eder. Bu, veri güvenliğini sağlar ve yetkisiz erişimi engeller.",
+      "steps": [
+        "Yönetici, 'Altyapı & Ayarlar' modülünden ekip üyelerinin rollerini ve izinlerini yapılandırır.",
+        "Sistem, bu ayarlara göre ekip üyelerinin erişim haklarını uygular.",
+        "Ekip üyeleri, yalnızca kendilerine yetki verilen modüllere ve verilere erişebilir."
+      ]
+    }
+  ],
+  "featurePurposes": {
+    "feature:marketing": "Pazarlama kampanyalarını ve performansını yönetmeye yarar.",
+    "feature:now": "Güncel görevleri ve iş akışlarını takip etmeye yarar.",
+    "feature:settings": "Kullanıcı ayarlarını ve sistem yapılandırmalarını düzenlemeye yarar.",
+    "feature:social-media": "Sosyal medya içeriklerini planlamaya ve yayınlamaya yarar.",
+    "feature:tasks": "Görevleri oluşturmaya, atamaya ve takip etmeye yarar.",
+    "feature:workflows": "İş akışlarını tasarlamaya ve yönetmeye yarar.",
+    "feature:portal": "Müşterilerin sosyal medya içeriklerini ve projelerini görüntülemesine yarar.",
+    "feature:leads": "Potansiyel müşterileri yönetmeye ve takip etmeye yarar.",
+    "feature:feedback": "Müşteri geri bildirimlerini toplamaya ve değerlendirmeye yarar.",
+    "feature:projects": "Projeleri oluşturmaya ve yönetmeye yarar.",
+    "feature:pricing": "Fiyat teklifleri oluşturmaya ve yönetmeye yarar.",
+    "feature:dashboard": "Proje durumunu ve ekip aktivitelerini izlemeye yarar.",
+    "feature:filing": "Dosyaları düzenlemeye ve saklamaya yarar.",
+    "feature:assets": "Dijital varlıkları yönetmeye yarar.",
+    "feature:sops": "Standart operasyon prosedürlerini (SOP) yönetmeye yarar.",
+    "feature:team": "Ekip üyelerini yönetmeye ve davet etmeye yarar.",
+    "feature:components": "Sistem bileşenlerini yönetmeye yarar.",
+    "feature:training": "Eğitim kaynaklarını yönetmeye yarar.",
+    "feature:agents": "AI ajanlarını yönetmeye yarar.",
+    "feature:approvals": "İş akışı onaylarını yönetmeye yarar.",
+    "feature:contexts": "Bildirim bağlamlarını yönetmeye yarar.",
+    "feature:notifications": "Bildirimleri yönetmeye yarar.",
+    "feature:auth": "Kullanıcı kimlik doğrulamasını yönetmeye yarar.",
+    "feature:persona": "Kullanıcı kişiliklerini (persona) yönetmeye yarar.",
+    "feature:strategy": "Strateji geliştirmeye yarar."
+  },
+  "featureWalkthroughs": {
+    "feature:agents": [
+      {
+        "title": "AI Ajanı Oluşturma",
+        "steps": [
+          "Yeni bir AI ajanı oluşturmak için 'AI Ajanları' bölümüne gidin.",
+          "Ajanın adını, rolünü ve hedeflerini tanımlayın.",
+          "Ajanın kullanacağı araçları ve yetenekleri seçin.",
+          "Ajanı kaydedin ve çalışmaya başlayın."
+        ]
+      },
+      {
+        "title": "AI Ajanı Performansını İzleme",
+        "steps": [
+          "'AI Ajanları' bölümünden belirli bir ajanı seçin.",
+          "Ajanın tamamladığı görevleri ve harcadığı süreyi inceleyin.",
+          "Ajanın performansını iyileştirmek için ayarlarını düzenleyin."
+        ]
+      }
+    ],
+    "feature:persona": [
+      {
+        "title": "Hedef Kitle Personası Oluşturma",
+        "steps": [
+          "'Persona' API'sini kullanarak yeni bir persona oluşturun.",
+          "Personanın demografik bilgilerini, ilgi alanlarını ve davranışlarını tanımlayın.",
+          "Personayı kaydedin ve reklam kampanyalarınızda kullanın."
+        ]
+      },
+      {
+        "title": "Personaları Kampanyalarda Kullanma",
+        "steps": [
+          "Bir reklam kampanyası oluştururken, hedef kitlenizi tanımlamak için mevcut personaları seçin.",
+          "Kampanya mesajlarınızı ve görsellerinizi seçilen personaya göre uyarlayın.",
+          "Kampanyanın performansını personaya göre izleyin."
+        ]
+      }
+    ],
+    "feature:strategy": [
+      {
+        "title": "Reklam Stratejisi Geliştirme",
+        "steps": [
+          "'Strateji' bölümüne gidin ve yeni bir strateji oluşturun.",
+          "Hedeflerinizi, bütçenizi ve hedef kitlenizi tanımlayın.",
+          "Farklı reklam kanalları ve taktikleri arasından seçim yapın.",
+          "Stratejiyi kaydedin ve uygulamaya başlayın."
+        ]
+      },
+      {
+        "title": "Strateji Performansını İzleme",
+        "steps": [
+          "'Strateji' bölümünden belirli bir stratejiyi seçin.",
+          "Stratejinin performansını (örneğin, tıklama oranları, dönüşümler) izleyin.",
+          "Stratejiyi iyileştirmek için ayarlarını düzenleyin."
+        ]
+      }
+    ],
+    "feature:settings": [
+      {
+        "title": "Kullanıcı Profilini Güncelleme",
+        "steps": [
+          "Ayarlar bölümüne git.",
+          "Profil sayfasına tıkla.",
+          "Adını, e-posta adresini veya şifreni değiştir.",
+          "Kaydet düğmesine tıkla."
+        ]
+      },
+      {
+        "title": "Proje Şablonu Oluşturma",
+        "steps": [
+          "Ayarlar bölümüne git.",
+          "Projeler sayfasına tıkla.",
+          "Yeni proje şablonu oluştur.",
+          "Şablon adını ve varsayılan ayarlarını gir.",
+          "Kaydet düğmesine tıkla."
+        ]
+      }
+    ],
+    "feature:dashboard": [
+      {
+        "title": "Proje Durumunu İzleme",
+        "steps": [
+          "Dashboard'a git.",
+          "Proje durumu bölümünü incele.",
+          "Tamamlanan, devam eden ve gecikmiş projeleri gör.",
+          "Her projenin detaylarına tıklayarak daha fazla bilgi al."
+        ]
+      },
+      {
+        "title": "Ekip Aktivitelerini Görüntüleme",
+        "steps": [
+          "Dashboard'a git.",
+          "Ekip aktiviteleri bölümünü incele.",
+          "Son görev güncellemelerini ve onayları gör.",
+          "Ekip üyelerinin son aktivitelerini takip et."
+        ]
+      }
+    ],
+    "feature:components": [
+      {
+        "title": "Yeni Tenant Ekleme",
+        "steps": [
+          "Bileşenler bölümüne git.",
+          "Tenant'lar sayfasına tıkla.",
+          "Yeni tenant ekle düğmesine tıkla.",
+          "Tenant adını ve diğer gerekli bilgileri gir.",
+          "Kaydet düğmesine tıkla."
+        ]
+      },
+      {
+        "title": "Bildirim Ayarlarını Yapılandırma",
+        "steps": [
+          "Bileşenler bölümüne git.",
+          "Bildirimler sayfasına tıkla.",
+          "Yeni bildirim şablonu oluştur veya mevcut bir şablonu düzenle.",
+          "Bildirim içeriğini ve tetikleyicilerini yapılandır.",
+          "Kaydet düğmesine tıkla."
+        ]
+      }
+    ],
+    "feature:contexts": [
+      {
+        "title": "Yeni Bildirim Bağlamı Oluşturma",
+        "steps": [
+          "Bağlamlar bölümüne git.",
+          "Yeni bağlam oluştur düğmesine tıkla.",
+          "Bağlam adını ve ilgili bildirimleri seç.",
+          "Kaydet düğmesine tıkla."
+        ]
+      },
+      {
+        "title": "Mevcut Bildirim Bağlamını Düzenleme",
+        "steps": [
+          "Bağlamlar bölümüne git.",
+          "Düzenlemek istediğin bağlamı seç.",
+          "Bağlam adını veya ilgili bildirimleri değiştir.",
+          "Kaydet düğmesine tıkla."
+        ]
+      }
+    ],
+    "feature:notifications": [
+      {
+        "title": "Yeni Bildirim Oluşturma",
+        "steps": [
+          "Bildirimler bölümüne git.",
+          "Yeni bildirim oluştur düğmesine tıkla.",
+          "Bildirim başlığını, içeriğini ve alıcılarını belirle.",
+          "Gönder düğmesine tıkla."
+        ]
+      },
+      {
+        "title": "Bildirimleri Filtreleme ve Arama",
+        "steps": [
+          "Bildirimler bölümüne git.",
+          "Filtreleme seçeneklerini kullanarak bildirimleri filtrele (örneğin, okunmamış, önemli).",
+          "Arama çubuğunu kullanarak belirli bir bildirim ara.",
+          "Sonuçları incele."
+        ]
+      }
+    ],
+    "feature:auth": [
+      {
+        "title": "Kullanıcı Girişi Yapma",
+        "steps": [
+          "Giriş sayfasına git.",
+          "E-posta adresini ve şifreni gir.",
+          "Giriş yap düğmesine tıkla."
+        ]
+      },
+      {
+        "title": "Şifremi Unuttum",
+        "steps": [
+          "Giriş sayfasına git.",
+          "Şifremi unuttum bağlantısına tıkla.",
+          "E-posta adresini gir.",
+          "E-posta adresine gönderilen şifre sıfırlama bağlantısını takip et."
+        ]
+      }
+    ],
+    "feature:leads": [
+      {
+        "title": "Yeni bir potansiyel müşteri ekleme",
+        "steps": [
+          "\"Leads\" bölümüne gidin ve \"Yeni Lead Ekle\" butonuna tıklayın.",
+          "Potansiyel müşterinin iletişim bilgilerini (ad, e-posta, telefon) ve şirket bilgilerini girin.",
+          "Müşteriyle ilgili notlarınızı ekleyin ve \"Kaydet\" butonuna tıklayın."
+        ]
+      },
+      {
+        "title": "Potansiyel müşteri durumunu güncelleme",
+        "steps": [
+          "\"Leads\" listesinden ilgili potansiyel müşteriyi bulun.",
+          "\"Durum\" alanını tıklayarak (örneğin, \"İletişime Geçildi\", \"Teklif Gönderildi\", \"Kazanıldı\") güncelleyin.",
+          "Gerekirse, durum değişikliğiyle ilgili notlarınızı ekleyin ve kaydedin."
+        ]
+      }
+    ],
+    "feature:pricing": [
+      {
+        "title": "Yeni bir fiyat teklifi oluşturma",
+        "steps": [
+          "\"Pricing\" bölümüne gidin ve \"Yeni Teklif Oluştur\" butonuna tıklayın.",
+          "Müşteriyi seçin ve teklife dahil edilecek hizmetleri veya ürünleri ekleyin.",
+          "Her hizmet veya ürün için fiyat, miktar ve indirimleri belirleyin.",
+          "Teklifi kaydedin ve müşteriye göndermek için \"Teklifi Gönder\" butonuna tıklayın (api: send-proposal)."
+        ]
+      },
+      {
+        "title": "Fiyat teklifini düzenleme",
+        "steps": [
+          "\"Pricing\" bölümünde, düzenlemek istediğiniz teklifi bulun.",
+          "Teklif detaylarını açın ve gerekli değişiklikleri yapın (örneğin, fiyatları güncelleme, yeni hizmetler ekleme).",
+          "Değişiklikleri kaydedin."
+        ]
+      }
+    ],
+    "feature:sops": [
+      {
+        "title": "SOP Oluşturma",
+        "steps": [
+          "\"agency_sops\" veritabanına giderek yeni bir SOP oluşturun.",
+          "SOP'un adını, açıklamasını ve adımlarını girin.",
+          "\"training_resources\" veritabanında bu SOP'a bağlantı oluşturarak eğitim materyallerine ekleyin."
+        ]
+      },
+      {
+        "title": "SOP Güncelleme",
+        "steps": [
+          "\"agency_sops\" veritabanından güncellemek istediğiniz SOP'u bulun.",
+          "Gerekli değişiklikleri yapın ve kaydedin.",
+          "\"training_resources\" veritabanındaki bağlantıları güncelleyin, eğer varsa."
+        ]
+      }
+    ],
+    "feature:team": [
+      {
+        "title": "Ekip Üyesi Davet Etme",
+        "steps": [
+          "\"invitations\" veritabanına giderek yeni bir davet oluşturun.",
+          "Davet edilecek kişinin e-posta adresini ve rolünü belirtin.",
+          "Davet bağlantısını kopyalayıp ilgili kişiye gönderin."
+        ]
+      },
+      {
+        "title": "Ekip Üyesi Yönetimi",
+        "steps": [
+          "\"users\" veritabanına giderek mevcut ekip üyelerini görüntüleyin.",
+          "Bir ekip üyesinin rolünü değiştirebilir veya hesabını devre dışı bırakabilirsiniz.",
+          "Ekip üyesinin profil bilgilerini güncelleyebilirsiniz."
+        ]
+      }
+    ],
+    "feature:training": [
+      {
+        "title": "Eğitim Kaynağı Ekleme",
+        "steps": [
+          "\"training_resources\" veritabanına giderek yeni bir eğitim kaynağı ekleyin.",
+          "Kaynağın adını, açıklamasını ve bağlantısını (örneğin, bir SOP bağlantısı) girin.",
+          "Kaynağı ilgili ekip üyeleriyle paylaşın."
+        ]
+      },
+      {
+        "title": "Eğitim Kaynağı Güncelleme",
+        "steps": [
+          "\"training_resources\" veritabanından güncellemek istediğiniz eğitim kaynağını bulun.",
+          "Gerekli değişiklikleri yapın ve kaydedin.",
+          "Güncellenmiş kaynağı ilgili ekip üyeleriyle tekrar paylaşın."
+        ]
+      }
+    ],
+    "feature:filing": [
+      {
+        "title": "Proje Dosyalarını Düzenleme",
+        "steps": [
+          "\"filing_projects\" alanına gidin.",
+          "İlgili projeyi bulun ve seçin.",
+          "Proje ile ilgili dosyaları \"filing_projects\" içinde uygun klasörlere yükleyin veya taşıyın."
+        ]
+      },
+      {
+        "title": "Şablon Dosyalarını Kullanma",
+        "steps": [
+          "\"filing_templates\" alanına gidin.",
+          "İhtiyacınız olan şablonu bulun ve indirin.",
+          "İndirilen şablonu düzenleyin ve \"filing_projects\" içinde ilgili projeye yükleyin."
+        ]
+      }
+    ],
+    "feature:assets": [
+      {
+        "title": "Yeni Bir Dijital Varlık Yükleme",
+        "steps": [
+          "\"assets\" alanına gidin.",
+          "\"assetFolders\" içinden uygun klasörü seçin veya yeni bir klasör oluşturun.",
+          "Yeni dijital varlığı (resim, video vb.) seçilen klasöre yükleyin."
+        ]
+      },
+      {
+        "title": "Dijital Varlıkları Arama ve Kullanma",
+        "steps": [
+          "\"assets\" alanına gidin.",
+          "Arama çubuğunu kullanarak istediğiniz varlığı bulun.",
+          "Bulunan varlığı indirin veya doğrudan projelerinizde kullanın."
+        ]
+      }
+    ],
+    "feature:portal": [
+      {
+        "title": "Sosyal Medya İçeriklerini Görüntüleme",
+        "steps": [
+          "Portal'a giriş yapın.",
+          "Sol menüden 'Sosyal Medya' sayfasına tıklayın.",
+          "Burada, yayınlanmış ve planlanmış tüm sosyal medya gönderilerinizi görebilirsiniz. Gönderi detaylarını incelemek için üzerine tıklayın (social_media_posts).",
+          "İçerik planlarını görmek için 'İçerik Planları' sekmesine tıklayın (content_plans)."
+        ]
+      },
+      {
+        "title": "Projeleri İnceleme",
+        "steps": [
+          "Portal'a giriş yapın.",
+          "'Projeler' sayfasına gidin.",
+          "Devam eden ve tamamlanmış projelerinizi liste halinde görün (projects).",
+          "Proje detaylarını (brief, zaman çizelgesi, sorumlu kişiler) görüntülemek için bir projeye tıklayın."
+        ]
+      }
+    ],
+    "feature:feedback": [
+      {
+        "title": "Geri Bildirimleri İnceleme",
+        "steps": [
+          "Portal'a giriş yapın.",
+          "'Geri Bildirim' bölümüne gidin.",
+          "Müşterilerden gelen video geri bildirimlerini izleyin (feedback_videos).",
+          "Yazılı yorumları okuyun (feedback_comments) ve verilen tepkileri (feedback_reactions) inceleyin."
+        ]
+      },
+      {
+        "title": "Geri Bildirim Değerlendirme",
+        "steps": [
+          "Portal'a giriş yapın.",
+          "'Geri Bildirim' bölümüne gidin.",
+          "Her bir geri bildirimi okuyun veya izleyin.",
+          "Geri bildirimleri kategorize edin (örneğin, olumlu, olumsuz, iyileştirme önerisi).",
+          "Geri bildirimlere göre aksiyon planları oluşturun."
+        ]
+      }
+    ],
+    "feature:now": [
+      {
+        "title": "Güncel Görev Takibi",
+        "steps": [
+          "\"Now\" ekranına gidin.",
+          "Size atanmış veya sizin oluşturduğunuz güncel görevleri görüntüleyin.",
+          "Görevlerin öncelik sinyallerini (priority_signals) inceleyerek hangisine öncelik vereceğinize karar verin.",
+          "İş akışındaki (workflow_instances) ilerlemenizi takip edin."
+        ]
+      },
+      {
+        "title": "İş Akışı İzleme",
+        "steps": [
+          "\"Now\" ekranında, devam eden iş akışlarını (workflow_instances) bulun.",
+          "Her iş akışının hangi aşamada olduğunu ve sorumlu kişileri görün.",
+          "Görevin detaylarına erişmek için ilgili göreve tıklayın (tasks API)."
+        ]
+      }
+    ],
+    "feature:tasks": [
+      {
+        "title": "Yeni Görev Oluşturma",
+        "steps": [
+          "\"Tasks\" modülüne gidin.",
+          "\"Yeni Görev Oluştur\" butonuna tıklayın.",
+          "Görev adını, açıklamasını ve son teslim tarihini girin.",
+          "Görevi sorumlu kullanıcıya atayın (users).",
+          "Görevi ilgili projeye bağlayın (projects)."
+        ]
+      },
+      {
+        "title": "Görev Durumunu Güncelleme",
+        "steps": [
+          "\"Tasks\" modülünde ilgili görevi bulun.",
+          "Görev detaylarını açın.",
+          "Durumunu \"Devam Ediyor\", \"Tamamlandı\" veya \"Beklemede\" olarak güncelleyin.",
+          "Gerekirse, göreve yorum ekleyin veya dosyalar yükleyin."
+        ]
+      }
+    ],
+    "feature:workflows": [
+      {
+        "title": "Yeni İş Akışı Tasarlama",
+        "steps": [
+          "\"Workflows\" modülüne gidin.",
+          "\"Yeni İş Akışı Oluştur\" seçeneğini seçin.",
+          "İş akışı adımlarını sürükle-bırak arayüzü ile tasarlayın (workflow_builder_chat_sessions, workflow_design_sessions).",
+          "Her adım için sorumlu kişileri ve tamamlanma sürelerini belirleyin.",
+          "İş akışını şablon olarak kaydedin (workflow_templates)."
+        ]
+      },
+      {
+        "title": "İş Akışı Başlatma",
+        "steps": [
+          "\"Workflows\" modülünde, kullanmak istediğiniz iş akışı şablonunu bulun (workflow_templates).",
+          "\"İş Akışını Başlat\" butonuna tıklayın.",
+          "Gerekli parametreleri girin (örneğin, proje adı, müşteri).",
+          "İş akışını başlatın (workflow_instances)."
+        ]
+      }
+    ],
+    "feature:projects": [
+      {
+        "title": "Yeni Proje Oluşturma",
+        "steps": [
+          "\"Projects\" modülüne gidin.",
+          "\"Yeni Proje Oluştur\" butonuna tıklayın.",
+          "Proje adını, açıklamasını ve bütçesini girin.",
+          "Projeye ilgili iş akışı şablonlarını (workflow_templates) bağlayın.",
+          "Proje ekibini atayın."
+        ]
+      },
+      {
+        "title": "Proje Detaylarını Görüntüleme",
+        "steps": [
+          "\"Projects\" modülünde ilgili projeyi bulun.",
+          "Proje detaylarını açın.",
+          "Proje ilerlemesini, görevleri ve harcamaları görüntüleyin.",
+          "Proje ekibiyle iletişim kurun."
+        ]
+      }
+    ],
+    "feature:approvals": [
+      {
+        "title": "Onay Bekleyen İşleri Görüntüleme",
+        "steps": [
+          "\"Approvals\" modülüne gidin.",
+          "Onay bekleyen iş akışı örneklerini (workflow_instances) görüntüleyin.",
+          "Her bir iş akışının detaylarını inceleyin."
+        ]
+      },
+      {
+        "title": "İş Akışı Onaylama veya Reddetme",
+        "steps": [
+          "\"Approvals\" modülünde ilgili iş akışını bulun.",
+          "İş akışı detaylarını açın.",
+          "\"Onayla\" veya \"Reddet\" butonuna tıklayın.",
+          "Gerekirse, bir yorum ekleyin."
+        ]
+      }
+    ],
+    "feature:marketing": [
+      {
+        "title": "Yeni bir pazarlama kampanyası oluşturma",
+        "steps": [
+          "\"Pazarlama\" bölümüne gidin ve \"Yeni Kampanya\" butonuna tıklayın.",
+          "Kampanya adını, hedef kitlesini ve bütçesini belirtin.",
+          "Kampanya için kullanılacak \"marketing_campaigns\" verisinden uygun şablonu seçin veya yeni bir tane oluşturun.",
+          "Kampanyayı başlatmak için \"Yayınla\" butonuna tıklayın. API: marketing"
+        ]
+      },
+      {
+        "title": "Kampanya performansını izleme",
+        "steps": [
+          "\"Pazarlama\" bölümünde, izlemek istediğiniz kampanyayı seçin.",
+          "\"performance_snapshots\" verisinden kampanya performans metriklerini (gösterimler, tıklamalar, dönüşümler) inceleyin.",
+          "\"optimization_suggestions\" verisinden optimizasyon önerilerini değerlendirin ve uygulayın.",
+          "\"campaign_breakdowns\" verisinden kampanya detaylarını inceleyin."
+        ]
+      }
+    ],
+    "feature:social-media": [
+      {
+        "title": "Sosyal medya içeriği planlama",
+        "steps": [
+          "\"Sosyal Medya\" bölümüne gidin ve \"Yeni İçerik Planı\" oluşturun.",
+          "İçerik planı için bir proje seçin veya yeni bir proje oluşturun. Projeler \"projects\" verisinde tutulur.",
+          "\"content_plans\" verisinden yayınlanacak sosyal medya gönderilerini (metin, görsel, video) ekleyin ve zamanlayın.",
+          "Onay için ilgili kişilere gönderin. Onaylar \"approval_events\" verisinde tutulur."
+        ]
+      },
+      {
+        "title": "Sosyal medya içeriği yayınlama",
+        "steps": [
+          "\"Sosyal Medya\" bölümünde, yayınlanmaya hazır içeriği bulun.",
+          "\"social_media_posts\" verisinden içeriği seçin ve yayınlanacak platformları (Facebook, Instagram, Twitter vb.) belirleyin.",
+          "İçeriği yayınlamak için \"Yayınla\" butonuna tıklayın. API: social-media",
+          "Yayınlanan içeriğin performansını takip edin."
+        ]
+      }
+    ]
+  }
+}

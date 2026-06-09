@@ -617,6 +617,19 @@ const LeadDetailPage: React.FC = () => {
               Musteriye Donustur
             </motion.button>
           )}
+          {lead.status === 'won' && (
+            <motion.button
+              onClick={() => navigate(`/admin/leads/${lead.id}/operational-brief`, {
+                state: { businessName: lead.contact.businessName, sector: lead.sector },
+              })}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#171717] text-white rounded-full font-grotesk text-sm font-medium hover:opacity-90 transition-opacity"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Briefcase className="w-4 h-4" />
+              Operasyonel Brief
+            </motion.button>
+          )}
         </div>
       </div>
 

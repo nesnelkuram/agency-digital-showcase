@@ -1,0 +1,4014 @@
+{
+  "generatedFrom": "scripts/build-system-map.mjs",
+  "counts": {
+    "total": 192,
+    "feature": 25,
+    "api": 20,
+    "hook": 33,
+    "service": 40,
+    "collection": 74,
+    "edges": 349
+  },
+  "signals": {
+    "isolated": [
+      "feature:strategy",
+      "service:brandAICharacterService",
+      "service:calculationEngine",
+      "service:index",
+      "service:prepaymentCalculator",
+      "service:serviceCatalogEngine"
+    ],
+    "hotspots": [
+      {
+        "collection": "projects",
+        "touchedByFeatures": 7
+      },
+      {
+        "collection": "users",
+        "touchedByFeatures": 7
+      },
+      {
+        "collection": "workflow_instances",
+        "touchedByFeatures": 4
+      },
+      {
+        "collection": "notifications",
+        "touchedByFeatures": 3
+      },
+      {
+        "collection": "tasks",
+        "touchedByFeatures": 3
+      },
+      {
+        "collection": "content_plans",
+        "touchedByFeatures": 3
+      },
+      {
+        "collection": "invitations",
+        "touchedByFeatures": 3
+      }
+    ],
+    "overlaps": [
+      {
+        "a": "feature:social-media",
+        "b": "feature:portal",
+        "shared": [
+          "users",
+          "content_plans",
+          "social_media_posts",
+          "approval_events",
+          "projects"
+        ],
+        "similarity": 0.83
+      },
+      {
+        "a": "feature:settings",
+        "b": "feature:social-media",
+        "shared": [
+          "users",
+          "content_plans",
+          "projects",
+          "invitations"
+        ],
+        "similarity": 0.5
+      }
+    ]
+  },
+  "nodes": [
+    {
+      "id": "feature:marketing",
+      "files": 94,
+      "loc": 28393,
+      "kind": "feature",
+      "label": "marketing",
+      "layer": "admin",
+      "dir": "admin/marketing",
+      "degree": 36
+    },
+    {
+      "id": "feature:now",
+      "files": 14,
+      "loc": 3551,
+      "kind": "feature",
+      "label": "now",
+      "layer": "admin",
+      "dir": "admin/now",
+      "degree": 18
+    },
+    {
+      "id": "collection:users",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "users",
+      "layer": "data",
+      "degree": 17
+    },
+    {
+      "id": "feature:settings",
+      "files": 16,
+      "loc": 5263,
+      "kind": "feature",
+      "label": "settings",
+      "layer": "admin",
+      "dir": "admin/settings",
+      "degree": 16
+    },
+    {
+      "id": "api:cron",
+      "files": 7,
+      "loc": 1863,
+      "kind": "api",
+      "label": "cron",
+      "layer": "api",
+      "dir": "api/cron",
+      "degree": 15
+    },
+    {
+      "id": "api:marketing",
+      "files": 36,
+      "loc": 8843,
+      "kind": "api",
+      "label": "marketing",
+      "layer": "api",
+      "dir": "api/marketing",
+      "degree": 15
+    },
+    {
+      "id": "feature:social-media",
+      "files": 38,
+      "loc": 9510,
+      "kind": "feature",
+      "label": "social-media",
+      "layer": "admin",
+      "dir": "admin/social-media",
+      "degree": 14
+    },
+    {
+      "id": "feature:tasks",
+      "files": 11,
+      "loc": 2860,
+      "kind": "feature",
+      "label": "tasks",
+      "layer": "admin",
+      "dir": "admin/tasks",
+      "degree": 14
+    },
+    {
+      "id": "feature:workflows",
+      "files": 25,
+      "loc": 6673,
+      "kind": "feature",
+      "label": "workflows",
+      "layer": "admin",
+      "dir": "admin/workflows",
+      "degree": 14
+    },
+    {
+      "id": "hook:useTenant",
+      "files": 1,
+      "loc": 12,
+      "kind": "hook",
+      "label": "useTenant",
+      "layer": "hook",
+      "dir": "shared/hooks/useTenant.ts",
+      "degree": 14
+    },
+    {
+      "id": "collection:projects",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "projects",
+      "layer": "data",
+      "degree": 13
+    },
+    {
+      "id": "feature:portal",
+      "files": 8,
+      "loc": 1789,
+      "kind": "feature",
+      "label": "portal",
+      "layer": "portal",
+      "dir": "portal",
+      "degree": 11
+    },
+    {
+      "id": "feature:leads",
+      "files": 9,
+      "loc": 3491,
+      "kind": "feature",
+      "label": "leads",
+      "layer": "admin",
+      "dir": "admin/leads",
+      "degree": 10
+    },
+    {
+      "id": "collection:tasks",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "tasks",
+      "layer": "data",
+      "degree": 10
+    },
+    {
+      "id": "hook:usePermission",
+      "files": 1,
+      "loc": 23,
+      "kind": "hook",
+      "label": "usePermission",
+      "layer": "hook",
+      "dir": "shared/hooks/usePermission.ts",
+      "degree": 10
+    },
+    {
+      "id": "feature:feedback",
+      "files": 5,
+      "loc": 2242,
+      "kind": "feature",
+      "label": "feedback",
+      "layer": "admin",
+      "dir": "admin/feedback",
+      "degree": 9
+    },
+    {
+      "id": "feature:projects",
+      "files": 15,
+      "loc": 3558,
+      "kind": "feature",
+      "label": "projects",
+      "layer": "admin",
+      "dir": "admin/projects",
+      "degree": 9
+    },
+    {
+      "id": "api:tasks",
+      "files": 8,
+      "loc": 1477,
+      "kind": "api",
+      "label": "tasks",
+      "layer": "api",
+      "dir": "api/tasks",
+      "degree": 9
+    },
+    {
+      "id": "service:marketingService",
+      "files": 1,
+      "loc": 1408,
+      "kind": "service",
+      "label": "marketingService",
+      "layer": "service",
+      "dir": "shared/services/marketingService.ts",
+      "degree": 9
+    },
+    {
+      "id": "feature:pricing",
+      "files": 35,
+      "loc": 16638,
+      "kind": "feature",
+      "label": "pricing",
+      "layer": "admin",
+      "dir": "admin/pricing",
+      "degree": 8
+    },
+    {
+      "id": "collection:notifications",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "notifications",
+      "layer": "data",
+      "degree": 8
+    },
+    {
+      "id": "api:social-media",
+      "files": 3,
+      "loc": 521,
+      "kind": "api",
+      "label": "social-media",
+      "layer": "api",
+      "dir": "api/social-media",
+      "degree": 8
+    },
+    {
+      "id": "api:workflow",
+      "files": 8,
+      "loc": 1671,
+      "kind": "api",
+      "label": "workflow",
+      "layer": "api",
+      "dir": "api/workflow",
+      "degree": 8
+    },
+    {
+      "id": "service:projectService",
+      "files": 1,
+      "loc": 654,
+      "kind": "service",
+      "label": "projectService",
+      "layer": "service",
+      "dir": "shared/services/projectService.ts",
+      "degree": 8
+    },
+    {
+      "id": "collection:workflow_instances",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "workflow_instances",
+      "layer": "data",
+      "degree": 7
+    },
+    {
+      "id": "feature:dashboard",
+      "files": 1,
+      "loc": 270,
+      "kind": "feature",
+      "label": "dashboard",
+      "layer": "admin",
+      "dir": "admin/dashboard",
+      "degree": 6
+    },
+    {
+      "id": "feature:filing",
+      "files": 4,
+      "loc": 2634,
+      "kind": "feature",
+      "label": "filing",
+      "layer": "admin",
+      "dir": "admin/filing",
+      "degree": 6
+    },
+    {
+      "id": "collection:content_plans",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "content_plans",
+      "layer": "data",
+      "degree": 6
+    },
+    {
+      "id": "collection:social_media_posts",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "social_media_posts",
+      "layer": "data",
+      "degree": 6
+    },
+    {
+      "id": "hook:useDashboardStats",
+      "files": 1,
+      "loc": 259,
+      "kind": "hook",
+      "label": "useDashboardStats",
+      "layer": "hook",
+      "dir": "shared/hooks/useDashboardStats.ts",
+      "degree": 6
+    },
+    {
+      "id": "service:contentPlanService",
+      "files": 1,
+      "loc": 700,
+      "kind": "service",
+      "label": "contentPlanService",
+      "layer": "service",
+      "dir": "shared/services/contentPlanService.ts",
+      "degree": 6
+    },
+    {
+      "id": "feature:assets",
+      "files": 5,
+      "loc": 1307,
+      "kind": "feature",
+      "label": "assets",
+      "layer": "admin",
+      "dir": "admin/assets",
+      "degree": 5
+    },
+    {
+      "id": "collection:platform_accounts",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "platform_accounts",
+      "layer": "data",
+      "degree": 5
+    },
+    {
+      "id": "collection:workflow_templates",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "workflow_templates",
+      "layer": "data",
+      "degree": 5
+    },
+    {
+      "id": "api:drive",
+      "files": 6,
+      "loc": 616,
+      "kind": "api",
+      "label": "drive",
+      "layer": "api",
+      "dir": "api/drive",
+      "degree": 5
+    },
+    {
+      "id": "collection:invitations",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "invitations",
+      "layer": "data",
+      "degree": 5
+    },
+    {
+      "id": "api:telegram",
+      "files": 2,
+      "loc": 356,
+      "kind": "api",
+      "label": "telegram",
+      "layer": "api",
+      "dir": "api/telegram",
+      "degree": 5
+    },
+    {
+      "id": "hook:useUserManagement",
+      "files": 1,
+      "loc": 346,
+      "kind": "hook",
+      "label": "useUserManagement",
+      "layer": "hook",
+      "dir": "shared/hooks/useUserManagement.ts",
+      "degree": 5
+    },
+    {
+      "id": "service:feedbackService",
+      "files": 1,
+      "loc": 501,
+      "kind": "service",
+      "label": "feedbackService",
+      "layer": "service",
+      "dir": "shared/services/feedbackService.ts",
+      "degree": 5
+    },
+    {
+      "id": "service:filingService",
+      "files": 1,
+      "loc": 561,
+      "kind": "service",
+      "label": "filingService",
+      "layer": "service",
+      "dir": "shared/services/filingService.ts",
+      "degree": 5
+    },
+    {
+      "id": "service:taskService",
+      "files": 1,
+      "loc": 266,
+      "kind": "service",
+      "label": "taskService",
+      "layer": "service",
+      "dir": "shared/services/taskService.ts",
+      "degree": 5
+    },
+    {
+      "id": "service:workflowTemplateService",
+      "files": 1,
+      "loc": 260,
+      "kind": "service",
+      "label": "workflowTemplateService",
+      "layer": "service",
+      "dir": "shared/services/workflowTemplateService.ts",
+      "degree": 5
+    },
+    {
+      "id": "feature:sops",
+      "files": 3,
+      "loc": 779,
+      "kind": "feature",
+      "label": "sops",
+      "layer": "admin",
+      "dir": "admin/sops",
+      "degree": 4
+    },
+    {
+      "id": "feature:team",
+      "files": 6,
+      "loc": 983,
+      "kind": "feature",
+      "label": "team",
+      "layer": "admin",
+      "dir": "admin/team",
+      "degree": 4
+    },
+    {
+      "id": "collection:brand_leads",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "brand_leads",
+      "layer": "data",
+      "degree": 4
+    },
+    {
+      "id": "collection:approval_events",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "approval_events",
+      "layer": "data",
+      "degree": 4
+    },
+    {
+      "id": "collection:marketing_campaigns",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "marketing_campaigns",
+      "layer": "data",
+      "degree": 4
+    },
+    {
+      "id": "collection:performance_snapshots",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "performance_snapshots",
+      "layer": "data",
+      "degree": 4
+    },
+    {
+      "id": "api:persona",
+      "files": 3,
+      "loc": 226,
+      "kind": "api",
+      "label": "persona",
+      "layer": "api",
+      "dir": "api/persona",
+      "degree": 4
+    },
+    {
+      "id": "api:service-catalog",
+      "files": 2,
+      "loc": 341,
+      "kind": "api",
+      "label": "service-catalog",
+      "layer": "api",
+      "dir": "api/service-catalog",
+      "degree": 4
+    },
+    {
+      "id": "collection:agency_sops",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "agency_sops",
+      "layer": "data",
+      "degree": 4
+    },
+    {
+      "id": "collection:ai_agents",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "ai_agents",
+      "layer": "data",
+      "degree": 4
+    },
+    {
+      "id": "hook:useNotifications",
+      "files": 1,
+      "loc": 140,
+      "kind": "hook",
+      "label": "useNotifications",
+      "layer": "hook",
+      "dir": "shared/hooks/useNotifications.ts",
+      "degree": 4
+    },
+    {
+      "id": "hook:useProjectWorkflows",
+      "files": 1,
+      "loc": 141,
+      "kind": "hook",
+      "label": "useProjectWorkflows",
+      "layer": "hook",
+      "dir": "shared/hooks/useProjectWorkflows.ts",
+      "degree": 4
+    },
+    {
+      "id": "hook:useUnifiedTasks",
+      "files": 1,
+      "loc": 221,
+      "kind": "hook",
+      "label": "useUnifiedTasks",
+      "layer": "hook",
+      "dir": "shared/hooks/useUnifiedTasks.ts",
+      "degree": 4
+    },
+    {
+      "id": "service:workflowEngineService",
+      "files": 1,
+      "loc": 704,
+      "kind": "service",
+      "label": "workflowEngineService",
+      "layer": "service",
+      "dir": "shared/services/workflowEngineService.ts",
+      "degree": 4
+    },
+    {
+      "id": "feature:components",
+      "files": 2,
+      "loc": 350,
+      "kind": "feature",
+      "label": "components",
+      "layer": "admin",
+      "dir": "admin/components",
+      "degree": 3
+    },
+    {
+      "id": "collection:tenants",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "tenants",
+      "layer": "data",
+      "degree": 3
+    },
+    {
+      "id": "collection:pricing",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "pricing",
+      "layer": "data",
+      "degree": 3
+    },
+    {
+      "id": "feature:training",
+      "files": 1,
+      "loc": 631,
+      "kind": "feature",
+      "label": "training",
+      "layer": "admin",
+      "dir": "admin/training",
+      "degree": 3
+    },
+    {
+      "id": "api:content-approval",
+      "files": 2,
+      "loc": 652,
+      "kind": "api",
+      "label": "content-approval",
+      "layer": "api",
+      "dir": "api/content-approval",
+      "degree": 3
+    },
+    {
+      "id": "collection:marketing_alerts",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "marketing_alerts",
+      "layer": "data",
+      "degree": 3
+    },
+    {
+      "id": "collection:optimization_suggestions",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "optimization_suggestions",
+      "layer": "data",
+      "degree": 3
+    },
+    {
+      "id": "collection:recurring_tasks",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "recurring_tasks",
+      "layer": "data",
+      "degree": 3
+    },
+    {
+      "id": "collection:assets",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "assets",
+      "layer": "data",
+      "degree": 3
+    },
+    {
+      "id": "collection:assetFolders",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "assetFolders",
+      "layer": "data",
+      "degree": 3
+    },
+    {
+      "id": "api:invitations",
+      "files": 1,
+      "loc": 188,
+      "kind": "api",
+      "label": "invitations",
+      "layer": "api",
+      "dir": "api/invitations",
+      "degree": 3
+    },
+    {
+      "id": "collection:marketing_plans",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "marketing_plans",
+      "layer": "data",
+      "degree": 3
+    },
+    {
+      "id": "collection:marketing_reports",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "marketing_reports",
+      "layer": "data",
+      "degree": 3
+    },
+    {
+      "id": "collection:automation_rules",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "automation_rules",
+      "layer": "data",
+      "degree": 3
+    },
+    {
+      "id": "collection:rule_execution_logs",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "rule_execution_logs",
+      "layer": "data",
+      "degree": 3
+    },
+    {
+      "id": "collection:competitors",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "competitors",
+      "layer": "data",
+      "degree": 3
+    },
+    {
+      "id": "collection:competitor_analyses",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "competitor_analyses",
+      "layer": "data",
+      "degree": 3
+    },
+    {
+      "id": "collection:budget_forecasts",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "budget_forecasts",
+      "layer": "data",
+      "degree": 3
+    },
+    {
+      "id": "hook:useAgents",
+      "files": 1,
+      "loc": 168,
+      "kind": "hook",
+      "label": "useAgents",
+      "layer": "hook",
+      "dir": "shared/hooks/useAgents.ts",
+      "degree": 3
+    },
+    {
+      "id": "hook:useAssetManagement",
+      "files": 1,
+      "loc": 413,
+      "kind": "hook",
+      "label": "useAssetManagement",
+      "layer": "hook",
+      "dir": "shared/hooks/useAssetManagement.ts",
+      "degree": 3
+    },
+    {
+      "id": "hook:useServiceWorkflows",
+      "files": 1,
+      "loc": 143,
+      "kind": "hook",
+      "label": "useServiceWorkflows",
+      "layer": "hook",
+      "dir": "shared/hooks/useServiceWorkflows.ts",
+      "degree": 3
+    },
+    {
+      "id": "hook:useWorkflowInstances",
+      "files": 1,
+      "loc": 162,
+      "kind": "hook",
+      "label": "useWorkflowInstances",
+      "layer": "hook",
+      "dir": "shared/hooks/useWorkflowInstances.ts",
+      "degree": 3
+    },
+    {
+      "id": "hook:useWorkflowTemplates",
+      "files": 1,
+      "loc": 223,
+      "kind": "hook",
+      "label": "useWorkflowTemplates",
+      "layer": "hook",
+      "dir": "shared/hooks/useWorkflowTemplates.ts",
+      "degree": 3
+    },
+    {
+      "id": "service:automationRuleService",
+      "files": 1,
+      "loc": 301,
+      "kind": "service",
+      "label": "automationRuleService",
+      "layer": "service",
+      "dir": "shared/services/automationRuleService.ts",
+      "degree": 3
+    },
+    {
+      "id": "service:competitorService",
+      "files": 1,
+      "loc": 288,
+      "kind": "service",
+      "label": "competitorService",
+      "layer": "service",
+      "dir": "shared/services/competitorService.ts",
+      "degree": 3
+    },
+    {
+      "id": "service:recurringTaskService",
+      "files": 1,
+      "loc": 135,
+      "kind": "service",
+      "label": "recurringTaskService",
+      "layer": "service",
+      "dir": "shared/services/recurringTaskService.ts",
+      "degree": 3
+    },
+    {
+      "id": "service:roleConfigService",
+      "files": 1,
+      "loc": 49,
+      "kind": "service",
+      "label": "roleConfigService",
+      "layer": "service",
+      "dir": "shared/services/roleConfigService.ts",
+      "degree": 3
+    },
+    {
+      "id": "service:socialMediaService",
+      "files": 1,
+      "loc": 404,
+      "kind": "service",
+      "label": "socialMediaService",
+      "layer": "service",
+      "dir": "shared/services/socialMediaService.ts",
+      "degree": 3
+    },
+    {
+      "id": "service:sopService",
+      "files": 1,
+      "loc": 96,
+      "kind": "service",
+      "label": "sopService",
+      "layer": "service",
+      "dir": "shared/services/sopService.ts",
+      "degree": 3
+    },
+    {
+      "id": "service:tenantService",
+      "files": 1,
+      "loc": 223,
+      "kind": "service",
+      "label": "tenantService",
+      "layer": "service",
+      "dir": "shared/services/tenantService.ts",
+      "degree": 3
+    },
+    {
+      "id": "service:workflowInstanceService",
+      "files": 1,
+      "loc": 290,
+      "kind": "service",
+      "label": "workflowInstanceService",
+      "layer": "service",
+      "dir": "shared/services/workflowInstanceService.ts",
+      "degree": 3
+    },
+    {
+      "id": "feature:agents",
+      "files": 3,
+      "loc": 923,
+      "kind": "feature",
+      "label": "agents",
+      "layer": "admin",
+      "dir": "admin/agents",
+      "degree": 2
+    },
+    {
+      "id": "feature:approvals",
+      "files": 1,
+      "loc": 237,
+      "kind": "feature",
+      "label": "approvals",
+      "layer": "admin",
+      "dir": "admin/approvals",
+      "degree": 2
+    },
+    {
+      "id": "feature:contexts",
+      "files": 1,
+      "loc": 31,
+      "kind": "feature",
+      "label": "contexts",
+      "layer": "admin",
+      "dir": "admin/contexts",
+      "degree": 2
+    },
+    {
+      "id": "collection:marketing_agent_sessions",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "marketing_agent_sessions",
+      "layer": "data",
+      "degree": 2
+    },
+    {
+      "id": "feature:notifications",
+      "files": 1,
+      "loc": 217,
+      "kind": "feature",
+      "label": "notifications",
+      "layer": "admin",
+      "dir": "admin/notifications",
+      "degree": 2
+    },
+    {
+      "id": "collection:priority_signals",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "priority_signals",
+      "layer": "data",
+      "degree": 2
+    },
+    {
+      "id": "collection:training_resources",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "training_resources",
+      "layer": "data",
+      "degree": 2
+    },
+    {
+      "id": "collection:workflow_builder_chat_sessions",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "workflow_builder_chat_sessions",
+      "layer": "data",
+      "degree": 2
+    },
+    {
+      "id": "collection:workflow_design_sessions",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "workflow_design_sessions",
+      "layer": "data",
+      "degree": 2
+    },
+    {
+      "id": "collection:marketing_approval_tokens",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "marketing_approval_tokens",
+      "layer": "data",
+      "degree": 2
+    },
+    {
+      "id": "collection:audit_log",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "audit_log",
+      "layer": "data",
+      "degree": 2
+    },
+    {
+      "id": "collection:telegram_user_links",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "telegram_user_links",
+      "layer": "data",
+      "degree": 2
+    },
+    {
+      "id": "collection:agent_memories",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "agent_memories",
+      "layer": "data",
+      "degree": 2
+    },
+    {
+      "id": "collection:feedback_videos",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "feedback_videos",
+      "layer": "data",
+      "degree": 2
+    },
+    {
+      "id": "collection:rental_catalog",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "rental_catalog",
+      "layer": "data",
+      "degree": 2
+    },
+    {
+      "id": "hook:useActiveProjects",
+      "files": 1,
+      "loc": 61,
+      "kind": "hook",
+      "label": "useActiveProjects",
+      "layer": "hook",
+      "dir": "shared/hooks/useActiveProjects.ts",
+      "degree": 2
+    },
+    {
+      "id": "hook:useAgentSessions",
+      "files": 1,
+      "loc": 101,
+      "kind": "hook",
+      "label": "useAgentSessions",
+      "layer": "hook",
+      "dir": "shared/hooks/useAgentSessions.ts",
+      "degree": 2
+    },
+    {
+      "id": "collection:approvals",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "approvals",
+      "layer": "data",
+      "degree": 2
+    },
+    {
+      "id": "collection:activityLog",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "activityLog",
+      "layer": "data",
+      "degree": 2
+    },
+    {
+      "id": "hook:useFeedbackUpload",
+      "files": 1,
+      "loc": 374,
+      "kind": "hook",
+      "label": "useFeedbackUpload",
+      "layer": "hook",
+      "dir": "shared/hooks/useFeedbackUpload.ts",
+      "degree": 2
+    },
+    {
+      "id": "hook:useFlowSteps",
+      "files": 1,
+      "loc": 35,
+      "kind": "hook",
+      "label": "useFlowSteps",
+      "layer": "hook",
+      "dir": "shared/hooks/useFlowSteps.ts",
+      "degree": 2
+    },
+    {
+      "id": "hook:useRecurringTasks",
+      "files": 1,
+      "loc": 34,
+      "kind": "hook",
+      "label": "useRecurringTasks",
+      "layer": "hook",
+      "dir": "shared/hooks/useRecurringTasks.ts",
+      "degree": 2
+    },
+    {
+      "id": "hook:useRentalCatalog",
+      "files": 1,
+      "loc": 43,
+      "kind": "hook",
+      "label": "useRentalCatalog",
+      "layer": "hook",
+      "dir": "shared/hooks/useRentalCatalog.ts",
+      "degree": 2
+    },
+    {
+      "id": "hook:useRoleConfig",
+      "files": 1,
+      "loc": 63,
+      "kind": "hook",
+      "label": "useRoleConfig",
+      "layer": "hook",
+      "dir": "shared/hooks/useRoleConfig.ts",
+      "degree": 2
+    },
+    {
+      "id": "collection:ab_tests",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "ab_tests",
+      "layer": "data",
+      "degree": 2
+    },
+    {
+      "id": "service:abTestService",
+      "files": 1,
+      "loc": 183,
+      "kind": "service",
+      "label": "abTestService",
+      "layer": "service",
+      "dir": "shared/services/abTestService.ts",
+      "degree": 2
+    },
+    {
+      "id": "service:agentService",
+      "files": 1,
+      "loc": 130,
+      "kind": "service",
+      "label": "agentService",
+      "layer": "service",
+      "dir": "shared/services/agentService.ts",
+      "degree": 2
+    },
+    {
+      "id": "service:alertService",
+      "files": 1,
+      "loc": 341,
+      "kind": "service",
+      "label": "alertService",
+      "layer": "service",
+      "dir": "shared/services/alertService.ts",
+      "degree": 2
+    },
+    {
+      "id": "service:backgroundAgentService",
+      "files": 1,
+      "loc": 224,
+      "kind": "service",
+      "label": "backgroundAgentService",
+      "layer": "service",
+      "dir": "shared/services/backgroundAgentService.ts",
+      "degree": 2
+    },
+    {
+      "id": "service:brandLeadService",
+      "files": 1,
+      "loc": 541,
+      "kind": "service",
+      "label": "brandLeadService",
+      "layer": "service",
+      "dir": "shared/services/brandLeadService.ts",
+      "degree": 2
+    },
+    {
+      "id": "service:budgetForecastService",
+      "files": 1,
+      "loc": 222,
+      "kind": "service",
+      "label": "budgetForecastService",
+      "layer": "service",
+      "dir": "shared/services/budgetForecastService.ts",
+      "degree": 2
+    },
+    {
+      "id": "service:contentPlanAccess",
+      "files": 1,
+      "loc": 101,
+      "kind": "service",
+      "label": "contentPlanAccess",
+      "layer": "service",
+      "dir": "shared/services/contentPlanAccess.ts",
+      "degree": 2
+    },
+    {
+      "id": "collection:creatives",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "creatives",
+      "layer": "data",
+      "degree": 2
+    },
+    {
+      "id": "service:creativeService",
+      "files": 1,
+      "loc": 263,
+      "kind": "service",
+      "label": "creativeService",
+      "layer": "service",
+      "dir": "shared/services/creativeService.ts",
+      "degree": 2
+    },
+    {
+      "id": "collection:feedback_comments",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "feedback_comments",
+      "layer": "data",
+      "degree": 2
+    },
+    {
+      "id": "collection:feedback_reactions",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "feedback_reactions",
+      "layer": "data",
+      "degree": 2
+    },
+    {
+      "id": "collection:filing_projects",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "filing_projects",
+      "layer": "data",
+      "degree": 2
+    },
+    {
+      "id": "collection:filing_templates",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "filing_templates",
+      "layer": "data",
+      "degree": 2
+    },
+    {
+      "id": "collection:filing_counters",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "filing_counters",
+      "layer": "data",
+      "degree": 2
+    },
+    {
+      "id": "collection:filing_config",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "filing_config",
+      "layer": "data",
+      "degree": 2
+    },
+    {
+      "id": "collection:campaign_proposals",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "campaign_proposals",
+      "layer": "data",
+      "degree": 2
+    },
+    {
+      "id": "collection:campaign_breakdowns",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "campaign_breakdowns",
+      "layer": "data",
+      "degree": 2
+    },
+    {
+      "id": "collection:campaign_ai_analyses",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "campaign_ai_analyses",
+      "layer": "data",
+      "degree": 2
+    },
+    {
+      "id": "service:nowService",
+      "files": 1,
+      "loc": 186,
+      "kind": "service",
+      "label": "nowService",
+      "layer": "service",
+      "dir": "shared/services/nowService.ts",
+      "degree": 2
+    },
+    {
+      "id": "service:rentalCatalogService",
+      "files": 1,
+      "loc": 13,
+      "kind": "service",
+      "label": "rentalCatalogService",
+      "layer": "service",
+      "dir": "shared/services/rentalCatalogService.ts",
+      "degree": 2
+    },
+    {
+      "id": "service:reportService",
+      "files": 1,
+      "loc": 262,
+      "kind": "service",
+      "label": "reportService",
+      "layer": "service",
+      "dir": "shared/services/reportService.ts",
+      "degree": 2
+    },
+    {
+      "id": "collection:role_configs",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "role_configs",
+      "layer": "data",
+      "degree": 2
+    },
+    {
+      "id": "collection:campaign_templates",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "campaign_templates",
+      "layer": "data",
+      "degree": 2
+    },
+    {
+      "id": "service:templateService",
+      "files": 1,
+      "loc": 371,
+      "kind": "service",
+      "label": "templateService",
+      "layer": "service",
+      "dir": "shared/services/templateService.ts",
+      "degree": 2
+    },
+    {
+      "id": "collection:utm_links",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "utm_links",
+      "layer": "data",
+      "degree": 2
+    },
+    {
+      "id": "service:utmService",
+      "files": 1,
+      "loc": 196,
+      "kind": "service",
+      "label": "utmService",
+      "layer": "service",
+      "dir": "shared/services/utmService.ts",
+      "degree": 2
+    },
+    {
+      "id": "feature:auth",
+      "files": 4,
+      "loc": 809,
+      "kind": "feature",
+      "label": "auth",
+      "layer": "admin",
+      "dir": "admin/auth",
+      "degree": 1
+    },
+    {
+      "id": "feature:persona",
+      "files": 4,
+      "loc": 475,
+      "kind": "feature",
+      "label": "persona",
+      "layer": "admin",
+      "dir": "admin/persona",
+      "degree": 1
+    },
+    {
+      "id": "collection:quotes",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "quotes",
+      "layer": "data",
+      "degree": 1
+    },
+    {
+      "id": "collection:proposals",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "proposals",
+      "layer": "data",
+      "degree": 1
+    },
+    {
+      "id": "api:blob",
+      "files": 1,
+      "loc": 62,
+      "kind": "api",
+      "label": "blob",
+      "layer": "api",
+      "dir": "api/blob",
+      "degree": 1
+    },
+    {
+      "id": "collection:drive_upload_sessions",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "drive_upload_sessions",
+      "layer": "data",
+      "degree": 1
+    },
+    {
+      "id": "collection:marketing_action_log",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "marketing_action_log",
+      "layer": "data",
+      "degree": 1
+    },
+    {
+      "id": "collection:persona_sessions",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "persona_sessions",
+      "layer": "data",
+      "degree": 1
+    },
+    {
+      "id": "collection:persona_feedback",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "persona_feedback",
+      "layer": "data",
+      "degree": 1
+    },
+    {
+      "id": "collection:staff",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "staff",
+      "layer": "data",
+      "degree": 1
+    },
+    {
+      "id": "collection:equipment",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "equipment",
+      "layer": "data",
+      "degree": 1
+    },
+    {
+      "id": "collection:service_design_sessions",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "service_design_sessions",
+      "layer": "data",
+      "degree": 1
+    },
+    {
+      "id": "collection:task_intake_sessions",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "task_intake_sessions",
+      "layer": "data",
+      "degree": 1
+    },
+    {
+      "id": "collection:telegram_link_codes",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "telegram_link_codes",
+      "layer": "data",
+      "degree": 1
+    },
+    {
+      "id": "collection:ai_outputs",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "ai_outputs",
+      "layer": "data",
+      "degree": 1
+    },
+    {
+      "id": "hook:useBuilderChat",
+      "files": 1,
+      "loc": 114,
+      "kind": "hook",
+      "label": "useBuilderChat",
+      "layer": "hook",
+      "dir": "shared/hooks/useBuilderChat.ts",
+      "degree": 1
+    },
+    {
+      "id": "hook:useChronicallySkipped",
+      "files": 1,
+      "loc": 33,
+      "kind": "hook",
+      "label": "useChronicallySkipped",
+      "layer": "hook",
+      "dir": "shared/hooks/useChronicallySkipped.ts",
+      "degree": 1
+    },
+    {
+      "id": "hook:useDocumentPiP",
+      "files": 1,
+      "loc": 158,
+      "kind": "hook",
+      "label": "useDocumentPiP",
+      "layer": "hook",
+      "dir": "shared/hooks/useDocumentPiP.ts",
+      "degree": 1
+    },
+    {
+      "id": "hook:useDriveUpload",
+      "files": 1,
+      "loc": 280,
+      "kind": "hook",
+      "label": "useDriveUpload",
+      "layer": "hook",
+      "dir": "shared/hooks/useDriveUpload.ts",
+      "degree": 1
+    },
+    {
+      "id": "hook:useElapsed",
+      "files": 1,
+      "loc": 73,
+      "kind": "hook",
+      "label": "useElapsed",
+      "layer": "hook",
+      "dir": "shared/hooks/useElapsed.ts",
+      "degree": 1
+    },
+    {
+      "id": "hook:useFeedbackRecorder",
+      "files": 1,
+      "loc": 613,
+      "kind": "hook",
+      "label": "useFeedbackRecorder",
+      "layer": "hook",
+      "dir": "shared/hooks/useFeedbackRecorder.ts",
+      "degree": 1
+    },
+    {
+      "id": "hook:useGoogleDrive",
+      "files": 1,
+      "loc": 228,
+      "kind": "hook",
+      "label": "useGoogleDrive",
+      "layer": "hook",
+      "dir": "shared/hooks/useGoogleDrive.ts",
+      "degree": 1
+    },
+    {
+      "id": "hook:useIdleDetection",
+      "files": 1,
+      "loc": 84,
+      "kind": "hook",
+      "label": "useIdleDetection",
+      "layer": "hook",
+      "dir": "shared/hooks/useIdleDetection.ts",
+      "degree": 1
+    },
+    {
+      "id": "hook:useMediaUpload",
+      "files": 1,
+      "loc": 269,
+      "kind": "hook",
+      "label": "useMediaUpload",
+      "layer": "hook",
+      "dir": "shared/hooks/useMediaUpload.ts",
+      "degree": 1
+    },
+    {
+      "id": "hook:useNowKeyboard",
+      "files": 1,
+      "loc": 63,
+      "kind": "hook",
+      "label": "useNowKeyboard",
+      "layer": "hook",
+      "dir": "shared/hooks/useNowKeyboard.ts",
+      "degree": 1
+    },
+    {
+      "id": "hook:useNowTask",
+      "files": 1,
+      "loc": 157,
+      "kind": "hook",
+      "label": "useNowTask",
+      "layer": "hook",
+      "dir": "shared/hooks/useNowTask.ts",
+      "degree": 1
+    },
+    {
+      "id": "hook:useProjectScope",
+      "files": 1,
+      "loc": 21,
+      "kind": "hook",
+      "label": "useProjectScope",
+      "layer": "hook",
+      "dir": "shared/hooks/useProjectScope.ts",
+      "degree": 1
+    },
+    {
+      "id": "hook:useTaskIntake",
+      "files": 1,
+      "loc": 203,
+      "kind": "hook",
+      "label": "useTaskIntake",
+      "layer": "hook",
+      "dir": "shared/hooks/useTaskIntake.ts",
+      "degree": 1
+    },
+    {
+      "id": "hook:useTasks",
+      "files": 1,
+      "loc": 55,
+      "kind": "hook",
+      "label": "useTasks",
+      "layer": "hook",
+      "dir": "shared/hooks/useTasks.ts",
+      "degree": 1
+    },
+    {
+      "id": "service:agentMemoryService",
+      "files": 1,
+      "loc": 188,
+      "kind": "service",
+      "label": "agentMemoryService",
+      "layer": "service",
+      "dir": "shared/services/agentMemoryService.ts",
+      "degree": 1
+    },
+    {
+      "id": "collection:audit_trail",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "audit_trail",
+      "layer": "data",
+      "degree": 1
+    },
+    {
+      "id": "service:auditService",
+      "files": 1,
+      "loc": 306,
+      "kind": "service",
+      "label": "auditService",
+      "layer": "service",
+      "dir": "shared/services/auditService.ts",
+      "degree": 1
+    },
+    {
+      "id": "collection:background_agents",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "background_agents",
+      "layer": "data",
+      "degree": 1
+    },
+    {
+      "id": "collection:executions",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "executions",
+      "layer": "data",
+      "degree": 1
+    },
+    {
+      "id": "service:brandAICharacterBuilder",
+      "files": 1,
+      "loc": 124,
+      "kind": "service",
+      "label": "brandAICharacterBuilder",
+      "layer": "service",
+      "dir": "shared/services/brandAICharacterBuilder.ts",
+      "degree": 1
+    },
+    {
+      "id": "collection:homepage_videos",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "homepage_videos",
+      "layer": "data",
+      "degree": 1
+    },
+    {
+      "id": "service:homepageVideoService",
+      "files": 1,
+      "loc": 89,
+      "kind": "service",
+      "label": "homepageVideoService",
+      "layer": "service",
+      "dir": "shared/services/homepageVideoService.ts",
+      "degree": 1
+    },
+    {
+      "id": "service:notificationService",
+      "files": 1,
+      "loc": 251,
+      "kind": "service",
+      "label": "notificationService",
+      "layer": "service",
+      "dir": "shared/services/notificationService.ts",
+      "degree": 1
+    },
+    {
+      "id": "service:fixedCostCalculator",
+      "files": 1,
+      "loc": 292,
+      "kind": "service",
+      "label": "fixedCostCalculator",
+      "layer": "service",
+      "dir": "shared/services/pricing/fixedCostCalculator.ts",
+      "degree": 1
+    },
+    {
+      "id": "api:analyze-continue",
+      "files": 0,
+      "loc": 0,
+      "kind": "api",
+      "label": "analyze-continue",
+      "layer": "api",
+      "degree": 1
+    },
+    {
+      "id": "api:analyze-brand-multi",
+      "files": 0,
+      "loc": 0,
+      "kind": "api",
+      "label": "analyze-brand-multi",
+      "layer": "api",
+      "degree": 1
+    },
+    {
+      "id": "api:analyze-start",
+      "files": 0,
+      "loc": 0,
+      "kind": "api",
+      "label": "analyze-start",
+      "layer": "api",
+      "degree": 1
+    },
+    {
+      "id": "api:check-dr-status",
+      "files": 0,
+      "loc": 0,
+      "kind": "api",
+      "label": "check-dr-status",
+      "layer": "api",
+      "degree": 1
+    },
+    {
+      "id": "api:approve-strategy",
+      "files": 0,
+      "loc": 0,
+      "kind": "api",
+      "label": "approve-strategy",
+      "layer": "api",
+      "degree": 1
+    },
+    {
+      "id": "api:send-wizard-invitation",
+      "files": 0,
+      "loc": 0,
+      "kind": "api",
+      "label": "send-wizard-invitation",
+      "layer": "api",
+      "degree": 1
+    },
+    {
+      "id": "api:send-proposal",
+      "files": 0,
+      "loc": 0,
+      "kind": "api",
+      "label": "send-proposal",
+      "layer": "api",
+      "degree": 1
+    },
+    {
+      "id": "feature:strategy",
+      "files": 1,
+      "loc": 279,
+      "kind": "feature",
+      "label": "strategy",
+      "layer": "admin",
+      "dir": "admin/strategy",
+      "degree": 0
+    },
+    {
+      "id": "api:agents",
+      "files": 1,
+      "loc": 90,
+      "kind": "api",
+      "label": "agents",
+      "layer": "api",
+      "dir": "api/agents",
+      "degree": 0
+    },
+    {
+      "id": "collection:activity",
+      "files": 0,
+      "loc": 0,
+      "kind": "collection",
+      "label": "activity",
+      "layer": "data",
+      "degree": 0
+    },
+    {
+      "id": "service:brandAICharacterService",
+      "files": 1,
+      "loc": 25,
+      "kind": "service",
+      "label": "brandAICharacterService",
+      "layer": "service",
+      "dir": "shared/services/brandAICharacterService.ts",
+      "degree": 0
+    },
+    {
+      "id": "service:calculationEngine",
+      "files": 1,
+      "loc": 563,
+      "kind": "service",
+      "label": "calculationEngine",
+      "layer": "service",
+      "dir": "shared/services/pricing/calculationEngine.ts",
+      "degree": 0
+    },
+    {
+      "id": "service:index",
+      "files": 1,
+      "loc": 25,
+      "kind": "service",
+      "label": "index",
+      "layer": "service",
+      "dir": "shared/services/pricing/index.ts",
+      "degree": 0
+    },
+    {
+      "id": "service:prepaymentCalculator",
+      "files": 1,
+      "loc": 211,
+      "kind": "service",
+      "label": "prepaymentCalculator",
+      "layer": "service",
+      "dir": "shared/services/pricing/prepaymentCalculator.ts",
+      "degree": 0
+    },
+    {
+      "id": "service:serviceCatalogEngine",
+      "files": 1,
+      "loc": 645,
+      "kind": "service",
+      "label": "serviceCatalogEngine",
+      "layer": "service",
+      "dir": "shared/services/pricing/serviceCatalogEngine.ts",
+      "degree": 0
+    }
+  ],
+  "edges": [
+    {
+      "source": "api:blob",
+      "target": "collection:users",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:content-approval",
+      "target": "collection:content_plans",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:content-approval",
+      "target": "collection:social_media_posts",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:content-approval",
+      "target": "collection:approval_events",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:cron",
+      "target": "collection:users",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:cron",
+      "target": "collection:marketing_campaigns",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:cron",
+      "target": "collection:marketing_alerts",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:cron",
+      "target": "collection:optimization_suggestions",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:cron",
+      "target": "collection:marketing_approval_tokens",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:cron",
+      "target": "collection:performance_snapshots",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:cron",
+      "target": "collection:recurring_tasks",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:cron",
+      "target": "collection:tasks",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:cron",
+      "target": "collection:notifications",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:cron",
+      "target": "collection:workflow_templates",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:cron",
+      "target": "collection:workflow_instances",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:cron",
+      "target": "collection:audit_log",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:cron",
+      "target": "collection:projects",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:cron",
+      "target": "collection:platform_accounts",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:cron",
+      "target": "collection:telegram_user_links",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:drive",
+      "target": "collection:platform_accounts",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:drive",
+      "target": "collection:assets",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:drive",
+      "target": "collection:drive_upload_sessions",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:drive",
+      "target": "collection:assetFolders",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:invitations",
+      "target": "collection:users",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:invitations",
+      "target": "collection:invitations",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:marketing",
+      "target": "collection:agent_memories",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:marketing",
+      "target": "collection:marketing_campaigns",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:marketing",
+      "target": "collection:marketing_plans",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:marketing",
+      "target": "collection:platform_accounts",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:marketing",
+      "target": "collection:performance_snapshots",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:marketing",
+      "target": "collection:marketing_reports",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:marketing",
+      "target": "collection:automation_rules",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:marketing",
+      "target": "collection:rule_execution_logs",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:marketing",
+      "target": "collection:competitors",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:marketing",
+      "target": "collection:competitor_analyses",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:marketing",
+      "target": "collection:marketing_agent_sessions",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:marketing",
+      "target": "collection:marketing_approval_tokens",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:marketing",
+      "target": "collection:marketing_action_log",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:marketing",
+      "target": "collection:budget_forecasts",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:persona",
+      "target": "collection:persona_sessions",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:persona",
+      "target": "collection:persona_feedback",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:persona",
+      "target": "collection:brand_leads",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:service-catalog",
+      "target": "collection:pricing",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:service-catalog",
+      "target": "collection:staff",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:service-catalog",
+      "target": "collection:equipment",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:service-catalog",
+      "target": "collection:service_design_sessions",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:social-media",
+      "target": "collection:social_media_posts",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:social-media",
+      "target": "collection:users",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:social-media",
+      "target": "collection:content_plans",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:social-media",
+      "target": "collection:projects",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:social-media",
+      "target": "collection:brand_leads",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:tasks",
+      "target": "collection:tasks",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:tasks",
+      "target": "collection:priority_signals",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:tasks",
+      "target": "collection:users",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:tasks",
+      "target": "collection:notifications",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:tasks",
+      "target": "collection:agency_sops",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:tasks",
+      "target": "collection:task_intake_sessions",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:telegram",
+      "target": "collection:telegram_user_links",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:telegram",
+      "target": "collection:telegram_link_codes",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:telegram",
+      "target": "collection:users",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:telegram",
+      "target": "collection:tasks",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:workflow",
+      "target": "collection:workflow_builder_chat_sessions",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:workflow",
+      "target": "collection:workflow_instances",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:workflow",
+      "target": "collection:workflow_templates",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:workflow",
+      "target": "collection:audit_log",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:workflow",
+      "target": "collection:notifications",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:workflow",
+      "target": "collection:workflow_design_sessions",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:workflow",
+      "target": "collection:ai_agents",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:workflow",
+      "target": "collection:ai_outputs",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "hook:useActiveProjects",
+      "target": "collection:projects",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "hook:useAgents",
+      "target": "service:agentService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "hook:useAssetManagement",
+      "target": "collection:assets",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "hook:useAssetManagement",
+      "target": "collection:assetFolders",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "hook:useDashboardStats",
+      "target": "collection:projects",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "hook:useDashboardStats",
+      "target": "collection:approvals",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "hook:useDashboardStats",
+      "target": "collection:users",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "hook:useDashboardStats",
+      "target": "collection:activityLog",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "hook:useDashboardStats",
+      "target": "collection:tasks",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "hook:useFeedbackUpload",
+      "target": "service:feedbackService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "hook:useFlowSteps",
+      "target": "collection:tasks",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "hook:useNotifications",
+      "target": "collection:notifications",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "hook:useProjectWorkflows",
+      "target": "service:workflowTemplateService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "hook:useProjectWorkflows",
+      "target": "service:workflowEngineService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "hook:useProjectWorkflows",
+      "target": "service:projectService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "hook:useRecurringTasks",
+      "target": "service:recurringTaskService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "hook:useRentalCatalog",
+      "target": "service:rentalCatalogService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "hook:useRoleConfig",
+      "target": "service:roleConfigService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "hook:useServiceWorkflows",
+      "target": "service:workflowEngineService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "hook:useServiceWorkflows",
+      "target": "service:projectService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "hook:useTasks",
+      "target": "service:taskService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "hook:useUnifiedTasks",
+      "target": "service:taskService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "hook:useUnifiedTasks",
+      "target": "service:workflowInstanceService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "hook:useUserManagement",
+      "target": "collection:users",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "hook:useUserManagement",
+      "target": "collection:invitations",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "hook:useWorkflowInstances",
+      "target": "service:workflowInstanceService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "hook:useWorkflowTemplates",
+      "target": "service:workflowTemplateService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "service:abTestService",
+      "target": "collection:ab_tests",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:agentMemoryService",
+      "target": "collection:agent_memories",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:agentService",
+      "target": "collection:ai_agents",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:alertService",
+      "target": "collection:marketing_alerts",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:auditService",
+      "target": "collection:audit_trail",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:automationRuleService",
+      "target": "collection:automation_rules",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:automationRuleService",
+      "target": "collection:rule_execution_logs",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:backgroundAgentService",
+      "target": "collection:background_agents",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:backgroundAgentService",
+      "target": "collection:executions",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:brandLeadService",
+      "target": "collection:brand_leads",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:budgetForecastService",
+      "target": "collection:budget_forecasts",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:competitorService",
+      "target": "collection:competitors",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:competitorService",
+      "target": "collection:competitor_analyses",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:contentPlanService",
+      "target": "collection:content_plans",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:contentPlanService",
+      "target": "collection:social_media_posts",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:contentPlanService",
+      "target": "collection:approval_events",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:contentPlanService",
+      "target": "collection:users",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:creativeService",
+      "target": "collection:creatives",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:feedbackService",
+      "target": "collection:feedback_videos",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:feedbackService",
+      "target": "collection:feedback_comments",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:feedbackService",
+      "target": "collection:feedback_reactions",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:filingService",
+      "target": "collection:filing_projects",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:filingService",
+      "target": "collection:filing_templates",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:filingService",
+      "target": "collection:filing_counters",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:filingService",
+      "target": "collection:filing_config",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:homepageVideoService",
+      "target": "collection:homepage_videos",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:marketingService",
+      "target": "collection:marketing_campaigns",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:marketingService",
+      "target": "collection:campaign_proposals",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:marketingService",
+      "target": "collection:platform_accounts",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:marketingService",
+      "target": "collection:performance_snapshots",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:marketingService",
+      "target": "collection:optimization_suggestions",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:marketingService",
+      "target": "collection:campaign_breakdowns",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:marketingService",
+      "target": "collection:campaign_ai_analyses",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:marketingService",
+      "target": "collection:marketing_plans",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:notificationService",
+      "target": "collection:notifications",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:nowService",
+      "target": "collection:tasks",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:fixedCostCalculator",
+      "target": "collection:pricing",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:projectService",
+      "target": "collection:projects",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:recurringTaskService",
+      "target": "collection:recurring_tasks",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:rentalCatalogService",
+      "target": "collection:rental_catalog",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:reportService",
+      "target": "collection:marketing_reports",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:roleConfigService",
+      "target": "collection:role_configs",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:socialMediaService",
+      "target": "collection:social_media_posts",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:sopService",
+      "target": "collection:agency_sops",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:taskService",
+      "target": "collection:tasks",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:templateService",
+      "target": "collection:campaign_templates",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:tenantService",
+      "target": "collection:tenants",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:tenantService",
+      "target": "collection:users",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:tenantService",
+      "target": "collection:projects",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:utmService",
+      "target": "collection:utm_links",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:workflowInstanceService",
+      "target": "collection:workflow_instances",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "service:workflowTemplateService",
+      "target": "collection:workflow_templates",
+      "type": "persists",
+      "weight": 1
+    },
+    {
+      "source": "feature:agents",
+      "target": "hook:useAgents",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:agents",
+      "target": "collection:ai_agents",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:approvals",
+      "target": "hook:useWorkflowInstances",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:approvals",
+      "target": "collection:workflow_instances",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:assets",
+      "target": "hook:useAssetManagement",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:assets",
+      "target": "hook:useGoogleDrive",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:assets",
+      "target": "hook:useDriveUpload",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:assets",
+      "target": "collection:assets",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:assets",
+      "target": "collection:assetFolders",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:auth",
+      "target": "hook:usePermission",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:components",
+      "target": "hook:useNotifications",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:components",
+      "target": "collection:tenants",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:components",
+      "target": "collection:notifications",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:contexts",
+      "target": "hook:useNotifications",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:contexts",
+      "target": "collection:notifications",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:dashboard",
+      "target": "hook:useDashboardStats",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:dashboard",
+      "target": "collection:projects",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:dashboard",
+      "target": "collection:approvals",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:dashboard",
+      "target": "collection:users",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:dashboard",
+      "target": "collection:activityLog",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:dashboard",
+      "target": "collection:tasks",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:feedback",
+      "target": "service:feedbackService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:feedback",
+      "target": "hook:usePermission",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:feedback",
+      "target": "hook:useTenant",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:feedback",
+      "target": "hook:useFeedbackRecorder",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:feedback",
+      "target": "hook:useFeedbackUpload",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:feedback",
+      "target": "hook:useDocumentPiP",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:feedback",
+      "target": "collection:feedback_videos",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:feedback",
+      "target": "collection:feedback_comments",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:feedback",
+      "target": "collection:feedback_reactions",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:filing",
+      "target": "service:filingService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:filing",
+      "target": "hook:useTenant",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:filing",
+      "target": "collection:filing_projects",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:filing",
+      "target": "collection:filing_templates",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:filing",
+      "target": "collection:filing_counters",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:filing",
+      "target": "collection:filing_config",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:leads",
+      "target": "service:brandLeadService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:leads",
+      "target": "hook:usePermission",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:leads",
+      "target": "hook:useTenant",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:leads",
+      "target": "api:analyze-continue",
+      "type": "calls",
+      "weight": 1
+    },
+    {
+      "source": "feature:leads",
+      "target": "api:analyze-brand-multi",
+      "type": "calls",
+      "weight": 1
+    },
+    {
+      "source": "feature:leads",
+      "target": "api:analyze-start",
+      "type": "calls",
+      "weight": 1
+    },
+    {
+      "source": "feature:leads",
+      "target": "api:check-dr-status",
+      "type": "calls",
+      "weight": 1
+    },
+    {
+      "source": "feature:leads",
+      "target": "api:approve-strategy",
+      "type": "calls",
+      "weight": 1
+    },
+    {
+      "source": "feature:leads",
+      "target": "api:send-wizard-invitation",
+      "type": "calls",
+      "weight": 1
+    },
+    {
+      "source": "feature:leads",
+      "target": "collection:brand_leads",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:marketing",
+      "target": "service:abTestService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:marketing",
+      "target": "service:marketingService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:marketing",
+      "target": "service:creativeService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:marketing",
+      "target": "service:automationRuleService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:marketing",
+      "target": "service:competitorService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:marketing",
+      "target": "service:projectService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:marketing",
+      "target": "service:reportService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:marketing",
+      "target": "service:templateService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:marketing",
+      "target": "service:utmService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:marketing",
+      "target": "service:alertService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:marketing",
+      "target": "service:budgetForecastService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:marketing",
+      "target": "hook:useProjectScope",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:marketing",
+      "target": "hook:useTenant",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:marketing",
+      "target": "hook:useAgentSessions",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:marketing",
+      "target": "api:marketing",
+      "type": "calls",
+      "weight": 1
+    },
+    {
+      "source": "feature:marketing",
+      "target": "collection:marketing_agent_sessions",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:marketing",
+      "target": "collection:ab_tests",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:marketing",
+      "target": "collection:marketing_campaigns",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:marketing",
+      "target": "collection:campaign_proposals",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:marketing",
+      "target": "collection:platform_accounts",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:marketing",
+      "target": "collection:performance_snapshots",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:marketing",
+      "target": "collection:optimization_suggestions",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:marketing",
+      "target": "collection:campaign_breakdowns",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:marketing",
+      "target": "collection:campaign_ai_analyses",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:marketing",
+      "target": "collection:marketing_plans",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:marketing",
+      "target": "collection:creatives",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:marketing",
+      "target": "collection:automation_rules",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:marketing",
+      "target": "collection:rule_execution_logs",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:marketing",
+      "target": "collection:competitors",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:marketing",
+      "target": "collection:competitor_analyses",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:marketing",
+      "target": "collection:projects",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:marketing",
+      "target": "collection:marketing_reports",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:marketing",
+      "target": "collection:campaign_templates",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:marketing",
+      "target": "collection:utm_links",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:marketing",
+      "target": "collection:marketing_alerts",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:marketing",
+      "target": "collection:budget_forecasts",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:notifications",
+      "target": "hook:useNotifications",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:notifications",
+      "target": "collection:notifications",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:now",
+      "target": "service:nowService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:now",
+      "target": "service:taskService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:now",
+      "target": "service:sopService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:now",
+      "target": "hook:useNowTask",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:now",
+      "target": "hook:useNowKeyboard",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:now",
+      "target": "hook:useIdleDetection",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:now",
+      "target": "hook:useChronicallySkipped",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:now",
+      "target": "hook:useFlowSteps",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:now",
+      "target": "hook:usePermission",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:now",
+      "target": "hook:useTenant",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:now",
+      "target": "hook:useUnifiedTasks",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:now",
+      "target": "hook:useElapsed",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:now",
+      "target": "api:tasks",
+      "type": "calls",
+      "weight": 1
+    },
+    {
+      "source": "feature:now",
+      "target": "collection:tasks",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:now",
+      "target": "collection:users",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:now",
+      "target": "collection:priority_signals",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:now",
+      "target": "collection:agency_sops",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:now",
+      "target": "collection:workflow_instances",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:persona",
+      "target": "api:persona",
+      "type": "calls",
+      "weight": 1
+    },
+    {
+      "source": "feature:pricing",
+      "target": "hook:usePermission",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:pricing",
+      "target": "hook:useTenant",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:pricing",
+      "target": "hook:useRentalCatalog",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:pricing",
+      "target": "api:send-proposal",
+      "type": "calls",
+      "weight": 1
+    },
+    {
+      "source": "feature:pricing",
+      "target": "collection:quotes",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:pricing",
+      "target": "collection:pricing",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:pricing",
+      "target": "collection:proposals",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:pricing",
+      "target": "collection:rental_catalog",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:projects",
+      "target": "service:projectService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:projects",
+      "target": "service:workflowTemplateService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:projects",
+      "target": "service:workflowEngineService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:projects",
+      "target": "hook:useTenant",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:projects",
+      "target": "hook:useProjectWorkflows",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:projects",
+      "target": "hook:useServiceWorkflows",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:projects",
+      "target": "hook:useWorkflowTemplates",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:projects",
+      "target": "collection:projects",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:projects",
+      "target": "collection:workflow_templates",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:settings",
+      "target": "service:contentPlanAccess",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:settings",
+      "target": "service:roleConfigService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:settings",
+      "target": "service:projectService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:settings",
+      "target": "hook:useTenant",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:settings",
+      "target": "hook:useRoleConfig",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:settings",
+      "target": "hook:usePermission",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:settings",
+      "target": "hook:useUserManagement",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:settings",
+      "target": "api:drive",
+      "type": "calls",
+      "weight": 1
+    },
+    {
+      "source": "feature:settings",
+      "target": "api:tasks",
+      "type": "calls",
+      "weight": 1
+    },
+    {
+      "source": "feature:settings",
+      "target": "api:invitations",
+      "type": "calls",
+      "weight": 1
+    },
+    {
+      "source": "feature:settings",
+      "target": "collection:users",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:settings",
+      "target": "collection:content_plans",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:settings",
+      "target": "collection:tenants",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:settings",
+      "target": "collection:role_configs",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:settings",
+      "target": "collection:projects",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:settings",
+      "target": "collection:invitations",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:social-media",
+      "target": "service:contentPlanService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:social-media",
+      "target": "service:socialMediaService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:social-media",
+      "target": "service:projectService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:social-media",
+      "target": "hook:useTenant",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:social-media",
+      "target": "hook:useUserManagement",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:social-media",
+      "target": "hook:useMediaUpload",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:social-media",
+      "target": "hook:usePermission",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:social-media",
+      "target": "api:social-media",
+      "type": "calls",
+      "weight": 1
+    },
+    {
+      "source": "feature:social-media",
+      "target": "collection:users",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:social-media",
+      "target": "collection:content_plans",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:social-media",
+      "target": "collection:social_media_posts",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:social-media",
+      "target": "collection:approval_events",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:social-media",
+      "target": "collection:projects",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:social-media",
+      "target": "collection:invitations",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:sops",
+      "target": "service:sopService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:sops",
+      "target": "hook:useTenant",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:sops",
+      "target": "collection:training_resources",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:sops",
+      "target": "collection:agency_sops",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:tasks",
+      "target": "service:taskService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:tasks",
+      "target": "service:recurringTaskService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:tasks",
+      "target": "hook:useTenant",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:tasks",
+      "target": "hook:useActiveProjects",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:tasks",
+      "target": "hook:useRecurringTasks",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:tasks",
+      "target": "hook:useTaskIntake",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:tasks",
+      "target": "hook:useUnifiedTasks",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:tasks",
+      "target": "api:tasks",
+      "type": "calls",
+      "weight": 1
+    },
+    {
+      "source": "feature:tasks",
+      "target": "api:telegram",
+      "type": "calls",
+      "weight": 1
+    },
+    {
+      "source": "feature:tasks",
+      "target": "collection:users",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:tasks",
+      "target": "collection:tasks",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:tasks",
+      "target": "collection:recurring_tasks",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:tasks",
+      "target": "collection:projects",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:tasks",
+      "target": "collection:workflow_instances",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:team",
+      "target": "hook:useUserManagement",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:team",
+      "target": "hook:usePermission",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:team",
+      "target": "collection:users",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:team",
+      "target": "collection:invitations",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:training",
+      "target": "hook:useTenant",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:training",
+      "target": "hook:usePermission",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:training",
+      "target": "collection:training_resources",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:workflows",
+      "target": "service:workflowTemplateService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:workflows",
+      "target": "service:workflowEngineService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:workflows",
+      "target": "hook:useTenant",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:workflows",
+      "target": "hook:useWorkflowTemplates",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:workflows",
+      "target": "hook:useWorkflowInstances",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:workflows",
+      "target": "hook:usePermission",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:workflows",
+      "target": "hook:useBuilderChat",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:workflows",
+      "target": "hook:useAgentSessions",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:workflows",
+      "target": "hook:useAgents",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:workflows",
+      "target": "collection:workflow_builder_chat_sessions",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:workflows",
+      "target": "collection:workflow_design_sessions",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:workflows",
+      "target": "collection:workflow_templates",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:workflows",
+      "target": "collection:workflow_instances",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:workflows",
+      "target": "collection:ai_agents",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "api:social-media",
+      "target": "service:brandAICharacterBuilder",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:portal",
+      "target": "service:socialMediaService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:portal",
+      "target": "service:contentPlanAccess",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:portal",
+      "target": "service:contentPlanService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:portal",
+      "target": "service:projectService",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:portal",
+      "target": "hook:useTenant",
+      "type": "uses",
+      "weight": 1
+    },
+    {
+      "source": "feature:portal",
+      "target": "api:social-media",
+      "type": "calls",
+      "weight": 1
+    },
+    {
+      "source": "feature:portal",
+      "target": "collection:social_media_posts",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:portal",
+      "target": "collection:content_plans",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:portal",
+      "target": "collection:approval_events",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:portal",
+      "target": "collection:users",
+      "type": "accesses",
+      "weight": 1
+    },
+    {
+      "source": "feature:portal",
+      "target": "collection:projects",
+      "type": "accesses",
+      "weight": 1
+    }
+  ]
+}

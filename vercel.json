@@ -26,6 +26,7 @@
     "api/cron/marketing-daily-report.ts": { "maxDuration": 300 },
     "api/marketing/approve-action.ts": { "maxDuration": 30 },
     "api/cron/spawn-recurring-workflows.ts": { "maxDuration": 60 },
+    "api/cron/spawn-recurring-tasks.ts": { "maxDuration": 60 },
     "api/cron/sync-meta-campaigns.ts": { "maxDuration": 300 },
     "api/marketing/sync-campaigns.ts": { "maxDuration": 120 },
     "api/marketing/sync-performance.ts": { "maxDuration": 120 },
@@ -62,6 +63,10 @@
     },
     {
       "path": "/api/cron/spawn-recurring-workflows",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/spawn-recurring-tasks",
       "schedule": "0 * * * *"
     },
     {

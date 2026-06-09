@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
-import { Menu, Plus, FolderTree } from 'lucide-react';
+import { Menu, Plus, FolderTree, Repeat } from 'lucide-react';
 import { useNowTask } from '@/shared/hooks/useNowTask';
 import { useNowKeyboard } from '@/shared/hooks/useNowKeyboard';
+import { useIdleDetection } from '@/shared/hooks/useIdleDetection';
+import { ensureNotificationPermission, showDesktopNotification } from '@/shared/utils/desktopNotify';
 import { useChronicallySkipped } from '@/shared/hooks/useChronicallySkipped';
 import { useFlowSteps } from '@/shared/hooks/useFlowSteps';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,8 +23,12 @@ import NowSkipDecisionBar from './components/NowSkipDecisionBar';
 import TrainingVideoModal from './components/TrainingVideoModal';
 import NowAllTasksPanel from './components/NowAllTasksPanel';
 import NowTaskSettings from './components/NowTaskSettings';
+import NowResumeBar from './components/NowResumeBar';
 
 const TURKISH_DAYS = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
+
+// Bilgisayardan uzaklaşma eşiği — bu kadar hareketsizlikten sonra sayaç otomatik durur
+const IDLE_MS = 5 * 60 * 1000;
 
 function useNow(): Date {
   const [now, setNow] = useState(() => new Date());
@@ -52,6 +58,7 @@ const NowPage: React.FC = () => {
   const [pinnedTaskId, setPinnedTaskId] = useState<string | null>(null);
   const [trainingVideoId, setTrainingVideoId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [showResumePrompt, setShowResumePrompt] = useState(false);
 
   const {
     now: currentTask,
@@ -78,7 +85,10 @@ const NowPage: React.FC = () => {
   const handleStart = async () => {
     if (!currentTask || busy || isRunning) return;
     setActionError(null);
+    setShowResumePrompt(false);
     setBusy(true);
+    // İlk başlatmada masaüstü bildirim izni iste (sessizce, akışı bloklamaz)
+    void ensureNotificationPermission();
     try {
       // paused olsa da startTask resume davranışı yapıyor (accumulated korunur)
       await startTask(tenantId, currentTask.id, actor);
@@ -170,6 +180,48 @@ const NowPage: React.FC = () => {
     }
   };
 
+  // ─── Idle algılama: uzaklaşınca otomatik duraklat, dönünce devam sor ───────
+  const autoPaused = isPaused && Boolean(currentTask?.task?.autoPaused);
+  // in_progress veya paused iken izle — paused durumda da "geri döndü mü" yakalanmalı
+  const idleEnabled = Boolean(currentTask) && (isRunning || isPaused);
+
+  // Boşta kalındı → aktif görevi son aktivite anına kadar sayıp otomatik duraklat
+  const handleIdle = (lastActivityMs: number) => {
+    if (!currentTask || currentTask.status !== 'in_progress') return;
+    setShowResumePrompt(false);
+    pauseTask(tenantId, currentTask.id, { asOfMs: lastActivityMs, auto: true }).catch(
+      (err) => console.warn('[Now] auto-pause failed:', err)
+    );
+    showDesktopNotification('Sayaç duraklatıldı', {
+      body: `"${currentTask.title}" — uzaklaştın, süre durduruldu.`,
+      tag: 'now-idle',
+    });
+  };
+
+  // Kullanıcı geri döndü → sadece otomatik duraklatıldıysa devam öner
+  const handleActive = () => {
+    if (currentTask?.status === 'paused' && currentTask?.task?.autoPaused) {
+      setShowResumePrompt(true);
+      showDesktopNotification('Tekrar hoş geldin', {
+        body: 'Kaldığın göreve devam edelim mi?',
+        tag: 'now-resume',
+      });
+    }
+  };
+
+  useIdleDetection({
+    idleMs: IDLE_MS,
+    enabled: idleEnabled,
+    resetKey: currentTask?.id ?? null,
+    onIdle: handleIdle,
+    onActive: handleActive,
+  });
+
+  // Görev değişince / çalışmaya başlayınca devam bandını gizle
+  useEffect(() => {
+    if (!autoPaused) setShowResumePrompt(false);
+  }, [autoPaused, currentTask?.id]);
+
   // Keyboard — Space çalışıyorsa duraklat, değilse başla/devam
   useNowKeyboard({
     onStart: isRunning ? handlePause : handleStart,
@@ -200,6 +252,18 @@ const NowPage: React.FC = () => {
         isRunning ? 'now-focus' : 'admin-bg'
       }`}
     >
+      {/* Uzaklaşınca otomatik duraklatıldı → geri dönüş bandı */}
+      <AnimatePresence>
+        {showResumePrompt && autoPaused && currentTask && (
+          <NowResumeBar
+            taskTitle={currentTask.title}
+            busy={busy}
+            onResume={handleStart}
+            onDismiss={() => setShowResumePrompt(false)}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Focus rozeti */}
       {isRunning && (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
@@ -240,6 +304,15 @@ const NowPage: React.FC = () => {
             <FolderTree className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Tümü</span>
           </button>
+
+          <Link
+            to="/admin/tasks/recurring"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-white/40 transition-all font-commons text-xs"
+            title="Periyodik (tekrarlayan) görevler"
+          >
+            <Repeat className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Periyodik</span>
+          </Link>
 
           <button
             type="button"

@@ -31,7 +31,7 @@ import { db } from '@/lib/firebase/config';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUnifiedTasks } from '@/shared/hooks/useUnifiedTasks';
 import { updateTask, deleteTaskCascade } from '@/shared/services/taskService';
-import { restoreTask } from '@/shared/services/nowService';
+import { restoreTask, completeTask } from '@/shared/services/nowService';
 import { useTenantId } from '@/shared/hooks/useTenant';
 import type { TaskStatus, UnifiedTaskItem } from '@/shared/types/task';
 
@@ -129,6 +129,8 @@ const TaskCard: React.FC<CardProps> = ({
   onDelete,
 }) => {
   const tenantId = useTenantId();
+  const { user } = useAuth();
+  const myUid = user?.uid;
   const [pickerOpen, setPickerOpen] = useState(false);
   const draggable = item.source === 'standalone';
 
@@ -247,6 +249,37 @@ const TaskCard: React.FC<CardProps> = ({
     } catch (err) {
       console.error('[NowAllTasksPanel] removeCollab failed:', err);
     }
+  };
+
+  // Bir kişiyi görevin ASIL SORUMLUSU yap. Eski sorumlu collaborator'a düşer.
+  const setAssignee = async (userId: string) => {
+    const u = users.find((x) => x.uid === userId);
+    if (!u || !db || !tenantId || userId === task?.assigneeId) return;
+    try {
+      // collaboratorIds/collaborators dizilerini elle yeniden hesapla
+      let nextIds = (task?.collaboratorIds || []).filter((x) => x !== userId);
+      let nextEntries = (task?.collaborators || []).filter((c) => c.id !== userId);
+      if (task?.assigneeId && !nextIds.includes(task.assigneeId)) {
+        nextIds = [...nextIds, task.assigneeId];
+        nextEntries = [...nextEntries, { id: task.assigneeId, name: task.assigneeName || 'Üye' }];
+      }
+      await updateDoc(doc(db, 'tasks', item.id), {
+        assigneeId: userId,
+        assigneeName: u.displayName || u.email || 'Üye',
+        collaboratorIds: nextIds,
+        collaborators: nextEntries,
+        updatedAt: new Date(),
+      });
+    } catch (err) {
+      console.error('[NowAllTasksPanel] setAssignee failed:', err);
+    }
+    setPickerOpen(false);
+  };
+
+  // Picker'dan seçim: kendini seçersen collaborator, başkasını seçersen ata.
+  const pickMember = (uid: string) => {
+    if (uid === myUid) return addCollab(uid);
+    return setAssignee(uid);
   };
 
   return (
@@ -514,7 +547,7 @@ const TaskCard: React.FC<CardProps> = ({
           >
             <div className="px-3 py-2 border-b border-neutral-100">
               <p className="font-commons text-[10px] uppercase tracking-wider text-neutral-500">
-                Üye ekle
+                Birine ata
               </p>
             </div>
             <div className="max-h-64 overflow-y-auto py-1">
@@ -522,8 +555,9 @@ const TaskCard: React.FC<CardProps> = ({
                 <button
                   key={u.uid}
                   type="button"
-                  onClick={() => addCollab(u.uid)}
-                  className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-neutral-50 transition-colors"
+                  onClick={() => pickMember(u.uid)}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-neutral-50 transition-colors text-left"
+                  title={u.uid === myUid ? 'Kendini üye olarak ekle' : 'Bu kişiye ata'}
                 >
                   <Avatar
                     id={u.uid}
@@ -531,8 +565,11 @@ const TaskCard: React.FC<CardProps> = ({
                     avatarUrl={u.photoURL}
                     size={20}
                   />
-                  <span className="font-commons text-xs text-[#171717] truncate">
+                  <span className="flex-1 font-commons text-xs text-[#171717] truncate">
                     {u.displayName || u.email}
+                  </span>
+                  <span className="shrink-0 font-commons text-[10px] text-neutral-400">
+                    {u.uid === myUid ? 'üye ol' : 'ata →'}
                   </span>
                 </button>
               ))}
@@ -590,6 +627,9 @@ const NowAllTasksPanel: React.FC<NowAllTasksPanelProps> = ({
   // Mevcut kullanıcı — scope=mine için filtre
   const { user } = useAuth();
   const myUid = user?.uid;
+  const actor = user
+    ? { uid: user.uid, name: user.displayName || user.email || 'Bilinmeyen' }
+    : undefined;
 
   // Son 30 tamamlanan ROOT görev (subtask'lar parent içinde zaten görünüyor)
   useEffect(() => {
@@ -738,40 +778,64 @@ const NowAllTasksPanel: React.FC<NowAllTasksPanelProps> = ({
     setDraggingId(null);
     const { active, over } = event;
     if (!over) return;
-    const item = visibleItems.find((i) => i.id === active.id);
+
+    // Kart hem aktif/sıradaki (visibleItems) hem de tamamlanmış (completedItems)
+    // olabilir — ikisinde de ara.
+    const findStandalone = (id: string): UnifiedTaskItem | undefined =>
+      visibleItems.find((i) => i.id === id) ?? completedItems.find((i) => i.id === id);
+
+    const item = findStandalone(String(active.id));
     if (!item || item.source !== 'standalone') return;
+    if (over.id === item.id) return; // kendi üstüne bırakıldı
 
     const sourceCol = COLUMNS.find((c) => c.statuses.includes(item.status));
-    const updates: Record<string, any> = {};
 
-    // Hedef bir sütun başlığı mı yoksa bir kart mı?
-    const overCol = COLUMNS.find((c) => c.key === over.id);
-
-    if (overCol) {
-      // Sütun başlığına/boş alanına drop → cross-column, sona ekle
-      if (sourceCol?.key === overCol.key) return;
-      updates.status = overCol.dropStatus;
-      const colItems = grouped[overCol.key] || [];
-      updates.manualOrder = computeNewOrder(colItems, colItems.length, item.id);
-    } else {
-      // Başka bir kart üzerine drop → reorder (aynı veya farklı sütun)
-      const overItem = visibleItems.find((i) => i.id === over.id);
+    // Hedef sütunu belirle: ya doğrudan kolon başlığı/boşluğu, ya da
+    // üstüne bırakılan bir kartın ait olduğu kolon.
+    let targetCol = COLUMNS.find((c) => c.key === over.id);
+    let overItem: UnifiedTaskItem | undefined;
+    if (!targetCol) {
+      overItem = findStandalone(String(over.id));
       if (!overItem) return;
-      const targetCol = COLUMNS.find((c) => c.statuses.includes(overItem.status));
-      if (!targetCol) return;
-      // Cross-column ise status değişir
-      if (sourceCol?.key !== targetCol.key) {
-        updates.status = targetCol.dropStatus;
-      }
-      const colItems = grouped[targetCol.key] || [];
-      const targetIdx = colItems.findIndex((it) => it.id === overItem.id);
-      updates.manualOrder = computeNewOrder(colItems, targetIdx, item.id);
+      targetCol = COLUMNS.find((c) => c.statuses.includes(overItem.status));
     }
+    if (!targetCol) return;
+
+    const sameColumn = sourceCol?.key === targetCol.key;
+    const isCompletedNow = item.status === 'completed' || item.status === 'cancelled';
 
     try {
-      await updateTask(tenantId, item.id, updates);
-      // AI öğrenme — bu manuel sıralamayı sonraki AI çağrılarında örnek olarak kullan
-      if (db && tenantId) {
+      if (targetCol.key === 'completed') {
+        // Tamamlandı kolonuna bırak → görevi düzgünce tamamla:
+        // sayacı durdurur, completedAt yazar, SOP parent roll-up'ı çalıştırır.
+        if (isCompletedNow) return; // zaten tamamlanmış, sadece kart sırası — atla
+        await completeTask(tenantId, item.id, actor);
+      } else {
+        // Açık ('Sırada') ya da aktif ('Devam Eden') bir kolona bırak.
+        const colItems = grouped[targetCol.key] || [];
+        const overId = overItem?.id;
+        const targetIdx = overId
+          ? colItems.findIndex((it) => it.id === overId)
+          : colItems.length;
+        const updates: Record<string, any> = {
+          manualOrder: computeNewOrder(colItems, targetIdx, item.id),
+        };
+        // Kolon değiştiyse status'u güncelle. Aynı kolonda reorder ise status'a
+        // dokunma — çalışan (in_progress) görevi yanlışlıkla duraklatmamak için.
+        if (!sameColumn) {
+          updates.status = targetCol.dropStatus;
+          if (isCompletedNow) {
+            // Tamamlanmıştan geri alınıyor → tamamlanma izlerini temizle.
+            updates.completedAt = undefined;
+            updates.completedBy = undefined;
+            updates.completedByName = undefined;
+          }
+        }
+        await updateTask(tenantId, item.id, updates);
+      }
+
+      // AI öğrenme — kolon değişimini sonraki AI önceliklendirmelerine sinyal yap
+      if (db && tenantId && !sameColumn) {
         try {
           const { addDoc, serverTimestamp } = await import('firebase/firestore');
           addDoc(collection(db, 'priority_signals'), {
@@ -782,9 +846,7 @@ const NowAllTasksPanel: React.FC<NowAllTasksPanelProps> = ({
             projectId: item.task?.projectId || null,
             projectName: item.task?.projectName || null,
             fromColumn: sourceCol?.key || '?',
-            toColumn: overCol ? overCol.key : (COLUMNS.find((c) =>
-              c.statuses.includes(visibleItems.find((i) => i.id === over.id)?.status || '')
-            )?.key || '?'),
+            toColumn: targetCol.key,
             wasFlagged: !!item.task?.flagged,
             createdAt: serverTimestamp(),
           }).catch(() => {});

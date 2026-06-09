@@ -119,6 +119,10 @@ const NowQuickAdd: React.FC<NowQuickAddProps> = ({ open, onClose, onCreated }) =
         aiAnalyzed: false,
         createdBy: user?.uid || '',
         createdByName: user?.displayName || user?.email || '',
+        // Kendi eklediğin görev sana atanır → "Görevlerim"de görünür
+        ...(user?.uid
+          ? { assigneeId: user.uid, assigneeName: user.displayName || user.email || '' }
+          : {}),
       });
 
       const token = await getAuthToken();
@@ -194,6 +198,7 @@ const NowQuickAdd: React.FC<NowQuickAddProps> = ({ open, onClose, onCreated }) =
           parentPriorityScore: parent?.aiPriorityScore ?? 50,
           sopId,
           sopName,
+          asDraft: payload.asDraft,
         }
       );
       setBreakdown(null);
@@ -300,6 +305,7 @@ const NowQuickAdd: React.FC<NowQuickAddProps> = ({ open, onClose, onCreated }) =
         error={breakdownError}
         onCancel={handleBreakdownCancel}
         onAccept={handleBreakdownAccept}
+        cancelLabel="Alt adımsız devam et"
       />
     </>
   );

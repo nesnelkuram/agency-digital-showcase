@@ -2,6 +2,7 @@ import type { Timestamp } from 'firebase/firestore';
 
 // ─── Task Status ─────────────────────────────────────────────────────────────
 export type TaskStatus =
+  | 'draft'            // taslak — plana eklendi ama henüz aktif değil; akışta/kanban'da görünmez
   | 'open'
   | 'in_progress'
   | 'paused'
@@ -19,6 +20,28 @@ export type TaskRiskLevel = 'none' | 'low' | 'medium' | 'high';
 // 'personal' → kişisel işler (özel notlar, kişisel takvim)
 export type TaskCategory = 'brand' | 'admin' | 'personal';
 export type CategorySource = 'ai' | 'manual';
+
+// ─── Work Session — tek bir çalışma segmenti (gün-gün döküm için) ─────────────
+// Her BAŞLA→DURAKLAT/BİTTİ arası kapanan segment buraya eklenir.
+// `seconds` boşta (idle) geçen süre çıkarılmış net çalışma süresidir.
+export interface WorkSession {
+  startedAt: number;   // segment başlangıcı (epoch ms)
+  endedAt: number;     // segment bitişi (epoch ms)
+  seconds: number;     // net sayılan saniye (idle trim'lenmiş)
+  auto?: boolean;      // true = segment otomatik (idle) duraklatma ile kapandı
+}
+
+// ─── Task Note — zaman damgalı serbest not (görev günlüğü) ───────────────────
+// Her not ayrı bir giriş: kim yazdı + ne zaman. Görevde birden fazla kişi
+// çalışabildiği için yorum/günlük gibi alt alta birikir.
+export interface TaskNote {
+  id: string;            // crypto-based kısa id
+  text: string;
+  authorId: string;
+  authorName: string;
+  createdAt: number;     // epoch ms
+  updatedAt?: number;    // düzenlendiyse epoch ms
+}
 
 // ─── Main Task Document (Firestore: `tasks`) ─────────────────────────────────
 export interface Task {
@@ -101,14 +124,19 @@ export interface Task {
   delegationBlockers?: string[];
 
   // Source channel
-  source?: 'web' | 'telegram' | 'intake' | 'workflow';
+  source?: 'web' | 'telegram' | 'intake' | 'workflow' | 'recurring';
+
+  // Periyodik görev kaynağı (recurring_tasks şablonundan üretildiyse)
+  recurringTemplateId?: string;
 
   // ŞİMDİ system (Phase 1) — execution telemetry
   startedAt?: Timestamp;             // en son DEVAM ettirildiği an (resume noktası)
   startedBy?: string;                // user.uid
   startedByName?: string;            // user.displayName/email
   pausedAt?: Timestamp;              // duraklatıldığı an (varsa = şu an paused)
+  autoPaused?: boolean;              // true = bilgisayardan uzaklaşınca otomatik duraklatıldı (devam önerisi göster)
   accumulatedSeconds?: number;       // önceki çalışma segmentlerinden biriken toplam
+  workSessions?: WorkSession[];      // her kapanan segment — gün-gün çalışma dökümü için
   completedAt?: Timestamp;           // when user pressed BİTTİ
   completedBy?: string;
   completedByName?: string;
@@ -129,6 +157,9 @@ export interface Task {
 
   // Snooze — sürekli atlanan görevler için "sonra" kararı
   snoozedUntil?: Timestamp;
+
+  // Notlar — zaman damgalı serbest not akışı (görev günlüğü)
+  notes?: TaskNote[];
 }
 
 // ─── UnifiedTaskItem — client-only, aggregated view ──────────────────────────
@@ -180,6 +211,7 @@ export interface TaskIntakeSession {
 
 // ─── Label / color maps ───────────────────────────────────────────────────────
 export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
+  draft: 'Taslak',
   open: 'Açık',
   in_progress: 'Devam Ediyor',
   paused: 'Duraklatıldı',

@@ -60,6 +60,54 @@ ${brandAnalysis.contentStrategy.hashtags?.length ? `- Hashtag'ler: ${brandAnalys
 `;
   }
 
+  // Build operational reality context — grounds the plan in production capacity,
+  // performance baseline, seasonality and conversion mechanics so the strategy
+  // does not propose more than the client can actually execute or measure.
+  let operationalInfo = '';
+  const ob = input.operationalBrief;
+  if (ob) {
+    const lines: string[] = [];
+    if (ob.performance) {
+      const p = ob.performance;
+      const perf = [
+        p.monthlyWebsiteVisitors && `aylik web ziyaretci: ${p.monthlyWebsiteVisitors}`,
+        p.monthlyLeadsOrSales && `aylik lead/satis: ${p.monthlyLeadsOrSales}`,
+        p.averageOrderValue && `ort. islem tutari: ${p.averageOrderValue}`,
+        p.currentMonthlyAdSpend && `mevcut reklam harcamasi: ${p.currentMonthlyAdSpend}`,
+        p.currentRoasOrCac && `mevcut ROAS/CAC: ${p.currentRoasOrCac}`,
+      ].filter(Boolean).join(', ');
+      if (perf) lines.push(`- Performans tabani (hedefleri buna gore GERCEKCI koy): ${perf}`);
+    }
+    if (ob.production) {
+      const pr = ob.production;
+      const prod = [
+        pr.monthlyContentCapacityNeeded && `aylik icerik kapasitesi: ${pr.monthlyContentCapacityNeeded}`,
+        pr.existingVisualAssets && `mevcut gorsel stok: ${pr.existingVisualAssets}`,
+        typeof pr.canShootOnSite === 'boolean' && `sahada cekim: ${pr.canShootOnSite ? 'evet' : 'hayir'}`,
+        pr.approvalTurnaround && `onay suresi: ${pr.approvalTurnaround}`,
+      ].filter(Boolean).join(', ');
+      if (prod) lines.push(`- Uretim kapasitesi (bunu ASMA — onerilen icerik hacmi buna uymali): ${prod}`);
+    }
+    if (ob.catalog?.heroProducts) lines.push(`- One cikarilacak urun/hizmet: ${ob.catalog.heroProducts}`);
+    if (ob.seasonality) {
+      const s = ob.seasonality;
+      const seas = [
+        s.peakPeriods && `yogun donem: ${s.peakPeriods}`,
+        s.upcomingKeyDates && `kritik tarihler: ${s.upcomingKeyDates}`,
+      ].filter(Boolean).join(', ');
+      if (seas) lines.push(`- Sezonsallik (butce/flight planini buna gore dagit): ${seas}`);
+    }
+    if (ob.conversion?.primaryChannels?.length) {
+      lines.push(`- Donusum kanallari (CTA/funnel bunlara yonlensin): ${ob.conversion.primaryChannels.join(', ')}`);
+    }
+    if (ob.constraints?.legalOrComplianceLimits) {
+      lines.push(`- KISIT (bunlara aykiri mesaj URETME): ${ob.constraints.legalOrComplianceLimits}`);
+    }
+    if (lines.length) {
+      operationalInfo = `\n## Operasyonel Gerceklik (musterinin sahadaki kapasitesi)\n${lines.join('\n')}\n`;
+    }
+  }
+
   // Build revision context if applicable
   let revisionContext = '';
   if (input.revisionNotes) {
@@ -74,6 +122,7 @@ ${input.revisionNotes}
 
 ${brandContext}
 ${businessInfo}
+${operationalInfo}
 ${revisionContext}
 
 ## Kampanya Parametreleri

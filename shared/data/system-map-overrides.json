@@ -1,0 +1,40 @@
+{
+  "_comment": "İNSAN SAHİPLİ TAKSONOMİ. Tüm feature'lar burada atandığı için enrich script 'sabit taksonomi' moduna geçer: gruplama tamamen senin kontrolünde ve KARARLI (her run aynı), AI yalnızca amaç + ilişki cümlelerini yazar. Bir modülü taşımak için assignments'taki domainId'sini değiştir. Yeni alan için domains'e ekle. Tazele: node scripts/enrich-system-map.mjs",
+  "domains": {
+    "marketing-social": { "name": "Pazarlama & Sosyal Medya", "purpose": "Reklam kampanyalarını ve sosyal medya içeriklerini planlar, üretir ve yönetir.", "color": "#f43f5e" },
+    "sales": { "name": "Satış & Teklif", "purpose": "Müşteri adaylarını, teklifleri ve fiyatlandırmayı yönetir.", "color": "#f59e0b" },
+    "work": { "name": "Proje & İş Akışı", "purpose": "Projeleri, görevleri ve iş akışlarını planlar, atar ve takip eder.", "color": "#6366f1" },
+    "clients": { "name": "Müşteri Portalı", "purpose": "Müşterilerin projelerini görmesini, içerikleri onaylamasını ve geri bildirim vermesini sağlar.", "color": "#0ea5e9" },
+    "content": { "name": "İçerik & Dosya", "purpose": "İçerik varlıklarını ve proje dosyalarını düzenler, saklar ve erişimi yönetir.", "color": "#14b8a6" },
+    "ai-tools": { "name": "AI Araçları", "purpose": "AI danışman, AI ajan yönetimi ve strateji haritası — yapay zeka destekli araçlar.", "color": "#a855f7" },
+    "team": { "name": "Ekip & Eğitim", "purpose": "Ekip üyelerini, iş kalıplarını (SOP) ve eğitim kaynaklarını yönetir.", "color": "#22c55e" },
+    "infra": { "name": "Altyapı & Ayarlar", "purpose": "Sistem ayarları, kimlik doğrulama, bildirimler ve ortak bileşenler.", "color": "#64748b" }
+  },
+  "assignments": {
+    "feature:marketing": "marketing-social",
+    "feature:social-media": "marketing-social",
+    "feature:leads": "sales",
+    "feature:pricing": "sales",
+    "feature:projects": "work",
+    "feature:tasks": "work",
+    "feature:workflows": "work",
+    "feature:now": "work",
+    "feature:approvals": "work",
+    "feature:portal": "clients",
+    "feature:feedback": "clients",
+    "feature:filing": "content",
+    "feature:assets": "content",
+    "feature:persona": "ai-tools",
+    "feature:agents": "ai-tools",
+    "feature:strategy": "ai-tools",
+    "feature:team": "team",
+    "feature:sops": "team",
+    "feature:training": "team",
+    "feature:settings": "infra",
+    "feature:auth": "infra",
+    "feature:notifications": "infra",
+    "feature:components": "infra",
+    "feature:contexts": "infra",
+    "feature:dashboard": "infra"
+  }
+}

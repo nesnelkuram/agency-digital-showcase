@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "build:vercel": "node scripts/build-blog-kb.mjs && node scripts/build-api.mjs && vite build",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "map": "node scripts/build-system-map.mjs && node scripts/enrich-system-map.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

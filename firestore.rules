@@ -80,9 +80,10 @@ service cloud.firestore {
       // Users can read their own document
       // Admins can read users in the same tenant
       // Super admins can read all users
+      // Aynı tenant üyeleri birbirini okuyabilir (görev atama / üye seçimi için).
       allow read: if isSuperAdmin()
                   || (isAuthenticated() && request.auth.uid == userId)
-                  || (isAdmin() && resource.data.tenantId == getUserTenantId());
+                  || belongsToTenant();
       // Users can update their own document
       // Admins can update users in their tenant
       // Super admins can update any user
@@ -465,6 +466,23 @@ service cloud.firestore {
     }
 
     // =============================================
+    // Operational / Production Briefs
+    // Filled after strategy + contract; mirrors content_plans share-token model
+    // =============================================
+    match /operational_briefs/{briefId} {
+      allow read: if isSuperAdmin()
+                  || belongsToTenant()
+                  || isClient()
+                  || resource.data.shareToken != null; // public client fill via token
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update: if isSuperAdmin()
+                    || belongsToTenant()
+                    || isClient()
+                    || resource.data.shareToken != null; // client fills via share token
+      allow delete: if isSuperAdmin() || belongsToTenant();
+    }
+
+    // =============================================
     // Notifications — users can only read their own
     // =============================================
     match /notifications/{notificationId} {
@@ -609,6 +627,16 @@ service cloud.firestore {
     // Tenant members can read/write tasks assigned to them or created by them
     // =============================================
     match /tasks/{taskId} {
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update, delete: if isSuperAdmin() || belongsToTenant();
+    }
+
+    // =============================================
+    // Recurring Tasks — periyodik görev şablonları
+    // Cron (Admin SDK) bunları okuyup `tasks` koleksiyonuna görev üretir
+    // =============================================
+    match /recurring_tasks/{templateId} {
       allow read: if isSuperAdmin() || belongsToTenant();
       allow create: if isSuperAdmin() || creatingForOwnTenant();
       allow update, delete: if isSuperAdmin() || belongsToTenant();

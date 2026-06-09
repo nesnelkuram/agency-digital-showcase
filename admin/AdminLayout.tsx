@@ -42,8 +42,8 @@ import {
   HardDrive,
   Share2,
   ClipboardList,
-  KanbanSquare,
   Map,
+  Network,
   BookMarked,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -142,12 +142,6 @@ const navItems: NavItem[] = [
     hiddenForRoles: ['client'],
   },
   {
-    label: 'Planla',
-    path: '/admin/tasks',
-    icon: KanbanSquare,
-    hiddenForRoles: ['client'],
-  },
-  {
     label: 'İş Kalıpları',
     path: '/admin/sops',
     icon: BookMarked,
@@ -157,6 +151,12 @@ const navItems: NavItem[] = [
     label: 'Strateji Haritası',
     path: '/admin/strategy-map',
     icon: Map,
+    hiddenForRoles: ['client', 'freelancer'],
+  },
+  {
+    label: 'Sistem Haritası',
+    path: '/admin/system-map',
+    icon: Network,
     hiddenForRoles: ['client', 'freelancer'],
   },
   {

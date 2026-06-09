@@ -51,8 +51,9 @@ export function buildQuestions(config: SectorQuestionConfig): Question[] {
       text: q.text,
       options: q.options || null,
       placeholder: q.placeholder,
-      // Store the context key in the action field for identification
-      action: `ctx:${q.key}:${q.required ? 'required' : 'optional'}`,
+      // Store the context key + importance in the action field for identification
+      // Importance tiers: required (zorunlu) | important (yarı-zorunlu) | optional (serbest)
+      action: `ctx:${q.key}:${q.required ? 'required' : q.important ? 'important' : 'optional'}`,
       condition: q.condition,
     });
   });

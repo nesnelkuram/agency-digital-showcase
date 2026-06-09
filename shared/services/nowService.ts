@@ -11,7 +11,10 @@
 import { Timestamp, collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { updateTask, getTask } from './taskService';
-import type { Task } from '@/shared/types/task';
+import type { Task, WorkSession } from '@/shared/types/task';
+
+// Çok uzun süren görevlerde workSessions dizisinin sınırsız büyümesini önle
+const MAX_SESSIONS = 300;
 
 export type SkipReason = NonNullable<Task['lastSkipReason']>;
 
@@ -27,16 +30,27 @@ export interface ActorInfo {
   name: string;                       // displayName veya email
 }
 
-// Mevcut accumulated + (running segment varsa) = toplam saniye
-function totalSecondsSoFar(existing: Task | null, atMs: number): number {
-  if (!existing) return 0;
-  const acc = existing.accumulatedSeconds ?? 0;
-  // status='in_progress' ise startedAt'ten itibaren ek segment biriksin
-  if (existing.status === 'in_progress' && existing.startedAt) {
-    const segMs = Math.max(0, atMs - existing.startedAt.toMillis());
-    return acc + Math.round(segMs / 1000);
-  }
-  return acc;
+// Aktif (in_progress) segment'i `asOfMs` anına kadar kapatır.
+// Boşta (idle) duraklatmada asOfMs = son aktivite anı olur; aradaki boşluk sayılmaz.
+// Aktif segment yoksa null döner.
+function closeActiveSegment(
+  existing: Task | null,
+  asOfMs: number,
+  auto: boolean
+): { session: WorkSession; accumulated: number } | null {
+  if (!existing || existing.status !== 'in_progress' || !existing.startedAt) return null;
+  const startMs = existing.startedAt.toMillis();
+  const endMs = Math.max(startMs, asOfMs);
+  const seconds = Math.round((endMs - startMs) / 1000);
+  if (seconds <= 0) return null;
+  const session: WorkSession = { startedAt: startMs, endedAt: endMs, seconds };
+  if (auto) session.auto = true;
+  return { session, accumulated: (existing.accumulatedSeconds ?? 0) + seconds };
+}
+
+function appendSession(existing: Task | null, session: WorkSession): WorkSession[] {
+  const prev = existing?.workSessions ?? [];
+  return [...prev, session].slice(-MAX_SESSIONS);
 }
 
 // BAŞLA — ilk kez başlat veya devam et
@@ -54,26 +68,36 @@ export async function startTask(
     status: 'in_progress',
     startedAt: now,
     pausedAt: undefined,
+    autoPaused: false,
     accumulatedSeconds: isFreshStart ? 0 : existing?.accumulatedSeconds ?? 0,
+    // Taze başlangıçta eski segment geçmişini temizle
+    ...(isFreshStart ? { workSessions: [] } : {}),
     ...(actor?.uid ? { startedBy: actor.uid } : {}),
     ...(actor?.name ? { startedByName: actor.name } : {}),
   });
 }
 
-// DURAKLAT — segment'i accumulated'a topla, status=paused
+// DURAKLAT — aktif segment'i kapat (accumulated + workSessions), status=paused.
+// opts.asOfMs : segment'in sayılacağı son an (idle'da = son aktivite anı)
+// opts.auto   : true = bilgisayardan uzaklaşma nedeniyle otomatik duraklatma
 export async function pauseTask(
   tenantId: string,
-  taskId: string
+  taskId: string,
+  opts?: { asOfMs?: number; auto?: boolean }
 ): Promise<void> {
   const existing = await getTask(tenantId, taskId);
   if (!existing || existing.status !== 'in_progress') return;
   const now = Timestamp.now();
-  const accumulated = totalSecondsSoFar(existing, now.toMillis());
+  const auto = opts?.auto ?? false;
+  const asOfMs = opts?.asOfMs ?? now.toMillis();
+  const seg = closeActiveSegment(existing, asOfMs, auto);
 
   await updateTask(tenantId, taskId, {
     status: 'paused',
     pausedAt: now,
-    accumulatedSeconds: accumulated,
+    autoPaused: auto,
+    accumulatedSeconds: seg ? seg.accumulated : existing.accumulatedSeconds ?? 0,
+    ...(seg ? { workSessions: appendSession(existing, seg.session) } : {}),
   });
 }
 
@@ -84,7 +108,9 @@ export async function completeTask(
 ): Promise<void> {
   const existing = await getTask(tenantId, taskId);
   const now = Timestamp.now();
-  const totalSec = totalSecondsSoFar(existing, now.toMillis());
+  // BİTTİ bilinçli bir aksiyon — segment'i şu ana kadar say
+  const seg = closeActiveSegment(existing, now.toMillis(), false);
+  const totalSec = seg ? seg.accumulated : existing?.accumulatedSeconds ?? 0;
 
   const actualSecondsSpent = totalSec || undefined;
   const actualMinutesSpent =
@@ -94,6 +120,9 @@ export async function completeTask(
     status: 'completed',
     completedAt: now,
     pausedAt: undefined,
+    autoPaused: false,
+    accumulatedSeconds: totalSec,
+    ...(seg ? { workSessions: appendSession(existing, seg.session) } : {}),
     ...(actor?.uid ? { completedBy: actor.uid } : {}),
     ...(actor?.name ? { completedByName: actor.name } : {}),
     ...(actualMinutesSpent !== undefined ? { actualMinutesSpent } : {}),

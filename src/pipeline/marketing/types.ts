@@ -2,6 +2,7 @@
 // Follows the same pattern as src/pipeline/types.ts
 
 import type { SynthesizedAnalysis, BusinessContextInput } from '../types';
+import type { OperationalBrief } from '@/shared/types/operationalBrief';
 import type {
   AdPlatform,
   CampaignObjective,
@@ -20,6 +21,7 @@ export interface MarketingPipelineInput {
   clientId?: string;
   brandAnalysis: SynthesizedAnalysis;
   businessContext?: BusinessContextInput;
+  operationalBrief?: OperationalBrief;  // Üretim kapasitesi/performans tabanı/sezonsallık — gerçekçi plan için
   businessName: string;
   sector: string;
 

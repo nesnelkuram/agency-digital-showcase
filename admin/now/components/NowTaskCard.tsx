@@ -83,7 +83,7 @@ const NowTaskCard: React.FC<NowTaskCardProps> = ({ item, isRunning, onOpenTraini
             >
               <Timer className="w-4 h-4" />
               <span className="font-mono text-base tabular-nums font-medium">
-                {elapsed.mmss}
+                {elapsed.seconds >= 3600 ? elapsed.hhmmss : elapsed.mmss}
               </span>
               {isPaused && (
                 <span className="font-commons text-xs font-medium">duraklatıldı</span>

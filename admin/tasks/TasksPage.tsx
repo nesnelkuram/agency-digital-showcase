@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   ClipboardList,
   Loader2,
@@ -15,6 +16,7 @@ import {
   User,
   LayoutGrid,
   Sparkles,
+  Repeat,
 } from 'lucide-react';
 import {
   DndContext,
@@ -306,6 +308,14 @@ const TasksPage: React.FC = () => {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Link
+            to="/admin/tasks/recurring"
+            className="flex items-center gap-2 px-3 py-2 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 transition-colors font-commons text-sm text-neutral-700"
+            title="Periyodik (tekrarlayan) görevler"
+          >
+            <Repeat className="w-4 h-4 text-violet-500" />
+            <span className="hidden sm:inline">Periyodik</span>
+          </Link>
           <button
             onClick={() => setTelegramOpen(true)}
             className="flex items-center gap-2 px-3 py-2 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 transition-colors font-commons text-sm text-neutral-700"

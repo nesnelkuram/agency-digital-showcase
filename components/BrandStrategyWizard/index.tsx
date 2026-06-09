@@ -169,6 +169,8 @@ const BrandStrategyWizard: React.FC = () => {
   const [stageResults, setStageResults] = useState<Record<number, ResultMatrix>>(restored?.stageResults || {});
   const [businessContext, setBusinessContext] = useState<BusinessContext>(restored?.businessContext || {});
   const [showResumePrompt, setShowResumePrompt] = useState(!!restored && restored.currentStep > 0);
+  // Yarı-zorunlu (important) sorularda "Atla"ya basılınca onay isteme durumu
+  const [skipConfirm, setSkipConfirm] = useState(false);
 
   // Restore startTime if we have a saved session
   if (restored && !isRestoredRef.current) {
@@ -290,6 +292,7 @@ const BrandStrategyWizard: React.FC = () => {
   };
 
   const handleNext = () => {
+    setSkipConfirm(false);
     let next = currentStep + 1;
     while (next < questions.length && !isConditionMet(questions[next])) {
       next++;
@@ -300,6 +303,7 @@ const BrandStrategyWizard: React.FC = () => {
   };
 
   const handleBack = () => {
+    setSkipConfirm(false);
     let prev = currentStep - 1;
     while (prev > 0 && !isConditionMet(questions[prev])) {
       prev--;
@@ -312,6 +316,7 @@ const BrandStrategyWizard: React.FC = () => {
   const handleNavigateToStep = (step: number) => {
     // Only allow backward navigation
     if (step < currentStep && step >= 0) {
+      setSkipConfirm(false);
       setCurrentStep(step);
     }
   };
@@ -340,6 +345,12 @@ const BrandStrategyWizard: React.FC = () => {
     return q.action.endsWith(':required');
   };
 
+  // Yarı-zorunlu (important) soru: atlanabilir ama atlamadan önce uyarı gösterilir
+  const isContextImportant = (q: Question): boolean => {
+    if (!q.action?.startsWith('ctx:')) return false;
+    return q.action.endsWith(':important');
+  };
+
   const handleBusinessContextUpdate = (key: string, value: string | string[]) => {
     // Strip @ prefix from Instagram handle
     if (key === 'instagramHandle' && typeof value === 'string') {
@@ -349,6 +360,11 @@ const BrandStrategyWizard: React.FC = () => {
   };
 
   const handleSkipContextQuestion = () => {
+    // Yarı-zorunlu sorularda ilk "Atla"da onay iste, ikincide geç
+    if (isContextImportant(currentQuestion) && !skipConfirm) {
+      setSkipConfirm(true);
+      return;
+    }
     handleNext();
   };
 
@@ -662,19 +678,50 @@ const BrandStrategyWizard: React.FC = () => {
           >
             Devam Et
           </motion.button>
-          {/* Skip button for optional business context questions */}
+          {/* Skip button for optional / important business context questions */}
           {isBusinessContextQuestion(currentQuestion) && !isContextRequired(currentQuestion) && (
-            <motion.button
-              onClick={handleSkipContextQuestion}
-              className="flex items-center gap-1.5 px-4 py-2 font-grotesk text-sm transition-opacity hover:opacity-70"
-              style={{ color: '#a3a3a3' }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3 }}
-            >
-              <SkipForward className="w-3.5 h-3.5" />
-              Atla
-            </motion.button>
+            isContextImportant(currentQuestion) && skipConfirm ? (
+              // Yarı-zorunlu soru — atlama öncesi nazik uyarı
+              <motion.div
+                className="flex flex-col items-center gap-2 max-w-md text-center"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <p className="font-grotesk text-sm" style={{ color: '#737373' }}>
+                  Bu soru, yapay zekânın size <strong>özel ve isabetli</strong> bir strateji üretmesi için çok değerli.
+                  Boş bırakırsanız öneriler daha genel kalır. Yine de atlamak ister misiniz?
+                </p>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setSkipConfirm(false)}
+                    className="px-4 py-2 font-grotesk text-sm rounded-full transition-opacity hover:opacity-80"
+                    style={{ backgroundColor: '#fffceb', color: '#171717' }}
+                  >
+                    Cevaplayayım
+                  </button>
+                  <button
+                    onClick={handleSkipContextQuestion}
+                    className="flex items-center gap-1.5 px-4 py-2 font-grotesk text-sm transition-opacity hover:opacity-70"
+                    style={{ color: '#a3a3a3' }}
+                  >
+                    <SkipForward className="w-3.5 h-3.5" />
+                    Yine de atla
+                  </button>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.button
+                onClick={handleSkipContextQuestion}
+                className="flex items-center gap-1.5 px-4 py-2 font-grotesk text-sm transition-opacity hover:opacity-70"
+                style={{ color: '#a3a3a3' }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+              >
+                <SkipForward className="w-3.5 h-3.5" />
+                Atla
+              </motion.button>
+            )
           )}
         </footer>
       )}

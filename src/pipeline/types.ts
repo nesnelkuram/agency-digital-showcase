@@ -31,6 +31,8 @@ export interface BusinessContextInput {
   customerStruggle?: string;      // "Müşteriniz size gelmeden önce ne ile mücadele ediyor?" — StoryBrand
   brandEnemy?: string;            // "Sektörünüzde en çok neye karşısınız?" — Cultural Branding
   alternativeToUs?: string;       // "Siz olmasaydınız müşteriniz ne yapardı?" — JTBD gerçek rakip
+  // Faz 4 — Mental Availability (Ehrenberg-Bass)
+  cep?: string;                   // "Müşteri hangi an/durum/ihtiyaçta sizi hatırlamalı?" — Category Entry Points
 }
 
 export interface PipelineInput {
