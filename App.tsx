@@ -34,6 +34,7 @@ const ImmersiveReportPage = lazy(() => import('./components/ImmersiveReportPage'
 const CemilayHero = lazy(() => import('./components/CemilayHero'));
 const ContentPlanSharePage = lazy(() => import('./components/ContentPlanSharePage'));
 const ProposalSharePage = lazy(() => import('./components/ProposalSharePage'));
+const GastronomyShowcasePage = lazy(() => import('./components/GastronomyShowcasePage'));
 
 const HomePage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -221,6 +222,16 @@ const App: React.FC = () => {
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<HomePage />} />
+
+        {/* Gastronomi vitrini — herkese açık video galerisi */}
+        <Route
+          path="/gastronomi"
+          element={
+            <Suspense fallback={<div className="min-h-screen bg-[#0a0a0a]" />}>
+              <GastronomyShowcasePage />
+            </Suspense>
+          }
+        />
         <Route
           path="/brand-strategy"
           element={
