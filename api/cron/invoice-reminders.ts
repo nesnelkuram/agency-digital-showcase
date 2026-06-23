@@ -83,9 +83,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
 
       try {
+        const extra = Array.isArray(inv.additionalEmails) ? inv.additionalEmails : [];
+        const toList = Array.from(new Set([inv.recipientEmail, ...extra].filter(Boolean)));
         const { error } = await resend.emails.send({
           from: FROM_ADDRESS,
-          to: inv.recipientEmail,
+          to: toList,
           replyTo: 'info@intiba.co.uk',
           subject,
           html,

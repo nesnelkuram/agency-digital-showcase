@@ -65,7 +65,8 @@ export interface Invoice {
   // Alıcı (karşı taraf)
   customerId?: string; // pricing/data/customers referansı (seçildiyse)
   customerName: string; // Müşteri/Şirket adı
-  recipientEmail: string; // Bildirim maili gönderilecek adres
+  recipientEmail: string; // Birincil bildirim adresi
+  additionalEmails?: string[]; // Ek alıcılar (CC olarak değil, hepsi "to")
   recipientName?: string; // İletişim kişisi
 
   // Tutar

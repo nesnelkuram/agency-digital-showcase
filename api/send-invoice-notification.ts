@@ -25,6 +25,7 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
   try {
     const {
       recipientEmail,
+      additionalEmails,
       recipientName,
       customerName,
       invoiceNumber,
@@ -57,9 +58,15 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
       senderName: senderName || req.userDisplayName || 'intiba ekibi',
     });
 
+    // Birincil + ek alıcıların tümü "to" listesine (tekilleştirilmiş)
+    const extra = Array.isArray(additionalEmails) ? additionalEmails : [];
+    const toList = Array.from(
+      new Set([...(Array.isArray(recipientEmail) ? recipientEmail : [recipientEmail]), ...extra].filter(Boolean))
+    );
+
     const { data, error } = await resend.emails.send({
       from: FROM_ADDRESS,
-      to: Array.isArray(recipientEmail) ? recipientEmail : [recipientEmail],
+      to: toList,
       replyTo: 'info@intiba.co.uk',
       subject: emailContent.subject,
       html: emailContent.html,

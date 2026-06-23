@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTenantId } from '@/shared/hooks/useTenant';
 import { createInvoice, getInvoice, updateInvoiceStatus } from '@/shared/services/invoiceService';
 import { sendInvoiceEmail } from './sendInvoiceEmail';
+import EmailChipsInput from './EmailChipsInput';
 import type { Customer } from '@/shared/types/pricing';
 import type { InvoiceCurrency } from '@/shared/types/invoice';
 import { INVOICE_CURRENCY_LABELS } from '@/shared/types/invoice';
@@ -31,7 +32,7 @@ const InvoiceFormPage: React.FC = () => {
   // Form alanları
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [customerName, setCustomerName] = useState('');
-  const [recipientEmail, setRecipientEmail] = useState('');
+  const [emails, setEmails] = useState<string[]>([]);
   const [recipientName, setRecipientName] = useState('');
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState<InvoiceCurrency>('TRY');
@@ -61,7 +62,7 @@ const InvoiceFormPage: React.FC = () => {
           if (c) {
             setSelectedCustomerId(c.id);
             setCustomerName(c.name);
-            setRecipientEmail(c.email || '');
+            setEmails(c.email ? [c.email] : []);
             setRecipientName(c.contactPerson || '');
           }
         }
@@ -77,7 +78,7 @@ const InvoiceFormPage: React.FC = () => {
     const c = customers.find((x) => x.id === id);
     if (c) {
       setCustomerName(c.name);
-      setRecipientEmail(c.email || '');
+      setEmails(c.email ? [c.email] : []);
       setRecipientName(c.contactPerson || '');
     }
   };
@@ -123,7 +124,7 @@ const InvoiceFormPage: React.FC = () => {
       // Müşteri listeden seçilmediyse müşteri bilgilerini de öner
       if (!selectedCustomerId) {
         if (data.customerName && !customerName) setCustomerName(data.customerName);
-        if (data.recipientEmail && !recipientEmail) setRecipientEmail(data.recipientEmail);
+        if (data.recipientEmail && emails.length === 0) setEmails([data.recipientEmail]);
       }
       setExtractNote('Alanlar fatura PDF\'inden AI ile dolduruldu. Lütfen kontrol edip gönderin.');
     } catch (err) {
@@ -153,7 +154,7 @@ const InvoiceFormPage: React.FC = () => {
   const validate = (): string | null => {
     if (!invoiceNumber.trim()) return 'Fatura numarası zorunludur.';
     if (!customerName.trim()) return 'Müşteri adı zorunludur.';
-    if (!recipientEmail.trim() || !/^\S+@\S+\.\S+$/.test(recipientEmail)) return 'Geçerli bir alıcı e-postası girin.';
+    if (emails.length === 0) return 'En az bir alıcı e-postası ekleyin.';
     if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) return 'Geçerli bir tutar girin.';
     if (!file) return 'Fatura PDF dosyası zorunludur.';
     return null;
@@ -184,7 +185,8 @@ const InvoiceFormPage: React.FC = () => {
         description: description.trim() || undefined,
         customerId: selectedCustomerId || undefined,
         customerName: customerName.trim(),
-        recipientEmail: recipientEmail.trim(),
+        recipientEmail: emails[0],
+        additionalEmails: emails.length > 1 ? emails.slice(1) : undefined,
         recipientName: recipientName.trim() || undefined,
         amount: Number(amount),
         currency,
@@ -264,8 +266,9 @@ const InvoiceFormPage: React.FC = () => {
             <input value={customerName} onChange={(e) => setCustomerName(e.target.value)} className={inputClass} />
           </div>
           <div>
-            <label className={labelClass}>Alıcı E-posta *</label>
-            <input type="email" value={recipientEmail} onChange={(e) => setRecipientEmail(e.target.value)} placeholder="muhasebe@firma.com" className={inputClass} />
+            <label className={labelClass}>Alıcı E-posta(lar) *</label>
+            <EmailChipsInput emails={emails} onChange={setEmails} />
+            <p className="text-[11px] text-neutral-400 mt-1">Birden fazla adres için virgül veya Enter ile ayır; her biri fatura mailini alır.</p>
           </div>
           <div>
             <label className={labelClass}>İletişim Kişisi</label>

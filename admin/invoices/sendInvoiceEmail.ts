@@ -29,6 +29,7 @@ export async function sendInvoiceEmail(invoice: Invoice, senderName?: string): P
     },
     body: JSON.stringify({
       recipientEmail: invoice.recipientEmail,
+      additionalEmails: invoice.additionalEmails,
       recipientName: invoice.recipientName,
       customerName: invoice.customerName,
       invoiceNumber: invoice.invoiceNumber,
