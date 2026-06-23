@@ -224,6 +224,10 @@ const navItems: NavItem[] = [
     icon: ReceiptText,
     // Sadece admin/super_admin — izin sistemine değil role'e bağlı (dinamik rol konfigürasyon tuzağını atlar)
     hiddenForRoles: ['account_manager', 'editor', 'staff', 'client', 'freelancer'],
+    children: [
+      { label: 'Faturalar', path: '/admin/invoices', icon: ReceiptText },
+      { label: 'Müşteriler', path: '/admin/invoices/customers', icon: Users2 },
+    ],
   },
   {
     label: 'Finansal Yonetim',

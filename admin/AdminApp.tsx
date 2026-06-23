@@ -120,6 +120,7 @@ const AgentFormPage = React.lazy(() => import('./agents/AgentFormPage'));
 
 const InvoicesListPage = React.lazy(() => import('./invoices/InvoicesListPage'));
 const InvoiceFormPage = React.lazy(() => import('./invoices/InvoiceFormPage'));
+const InvoiceCustomersPage = React.lazy(() => import('./invoices/InvoiceCustomersPage'));
 
 // Task Pages
 const RecurringTasksPage = React.lazy(() => import('./tasks/RecurringTasksPage'));
@@ -1003,6 +1004,16 @@ const AdminApp: React.FC = () => {
               <PermissionGuard blockedRoles={['account_manager', 'editor', 'staff', 'client', 'freelancer']}>
                 <React.Suspense fallback={<PageLoader />}>
                   <InvoiceFormPage />
+                </React.Suspense>
+              </PermissionGuard>
+            }
+          />
+          <Route
+            path="invoices/customers"
+            element={
+              <PermissionGuard blockedRoles={['account_manager', 'editor', 'staff', 'client', 'freelancer']}>
+                <React.Suspense fallback={<PageLoader />}>
+                  <InvoiceCustomersPage />
                 </React.Suspense>
               </PermissionGuard>
             }

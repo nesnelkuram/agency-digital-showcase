@@ -613,3 +613,50 @@ export function invoiceNotificationEmail(params: {
   `);
   return { subject, html };
 }
+
+// =========================================================
+// Invoice: Payment Reminder (→ Customer / Karşı taraf)
+// =========================================================
+export function invoiceReminderEmail(params: {
+  recipientName: string;
+  customerName: string;
+  invoiceNumber: string;
+  amountLabel: string;
+  dueDate: string;
+  daysLeft: number; // pozitif: vadeye kalan gün, 0: bugün, negatif: vade geçti
+  viewUrl: string;
+  senderName: string;
+}): { subject: string; html: string } {
+  const overdue = params.daysLeft < 0;
+  const today = params.daysLeft === 0;
+  const badge = overdue
+    ? '<span class="badge badge-red">Vadesi Geçti</span>'
+    : '<span class="badge badge-amber">Ödeme Hatırlatması</span>';
+  const headline = overdue
+    ? `<strong>${params.invoiceNumber}</strong> numaralı faturanızın son ödeme tarihi <strong>${Math.abs(params.daysLeft)} gün önce</strong> doldu.`
+    : today
+      ? `<strong>${params.invoiceNumber}</strong> numaralı faturanızın son ödeme tarihi <strong>bugün</strong>.`
+      : `<strong>${params.invoiceNumber}</strong> numaralı faturanızın son ödeme tarihine <strong>${params.daysLeft} gün</strong> kaldı.`;
+  const subject = overdue
+    ? `Hatırlatma: ${params.invoiceNumber} numaralı faturanızın vadesi geçti (${params.amountLabel})`
+    : `Hatırlatma: ${params.invoiceNumber} numaralı faturanızın ödeme vadesi yaklaşıyor`;
+  const html = wrapHtml(subject, `
+    ${badge}
+    <p>Merhaba <strong>${params.recipientName || params.customerName}</strong>,</p>
+    <p>${headline}</p>
+    <div class="metadata">
+      <p><strong>Fatura No:</strong> ${params.invoiceNumber}</p>
+      <p><strong>Tutar:</strong> ${params.amountLabel}</p>
+      <p><strong>Son Ödeme Tarihi:</strong> ${params.dueDate}</p>
+    </div>
+    <p>Fatura belgenizi görüntülemek ve indirmek için:</p>
+    <div style="text-align:center;">
+      <a href="${params.viewUrl}" class="cta">Faturayı Görüntüle</a>
+    </div>
+    <p style="color:#737373;font-size:13px;margin-top:16px;">Ödemenizi yaptıysanız bu mesajı dikkate almayabilirsiniz. Sorularınız için bu e-postayı yanıtlayabilirsiniz.</p>
+    <div class="link-box">
+      Link çalışmıyorsa bu adresi tarayıcınıza kopyalayın:<br>${params.viewUrl}
+    </div>
+  `);
+  return { subject, html };
+}

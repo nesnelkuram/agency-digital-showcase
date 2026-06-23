@@ -91,6 +91,10 @@ export interface Invoice {
   viewedAt?: Timestamp; // Müşteri faturayı ilk açtığında
   paidAt?: Timestamp;
 
+  // Vade hatırlatma takibi (cron) — gönderilen eşikler (gün; -1 = vade geçti bildirimi)
+  sentReminderLeadDays?: number[];
+  lastReminderAt?: Timestamp;
+
   // Meta
   createdBy: string;
   createdByName?: string;

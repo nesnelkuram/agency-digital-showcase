@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, Upload, FileText, Loader2, Save, Send, X, Sparkles } from 'lucide-react';
 import { collection, getDocs, Timestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -18,6 +18,8 @@ const labelClass = 'block font-commons text-xs font-medium text-neutral-600 mb-1
 
 const InvoiceFormPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const presetCustomerId = searchParams.get('customerId');
   const { user } = useAuth();
   const tenantId = useTenantId();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -53,6 +55,16 @@ const InvoiceFormPage: React.FC = () => {
           .map((d) => ({ ...(d.data() as Customer), id: d.id }))
           .filter((c) => c.isActive);
         setCustomers(items);
+        // Müşteriler sayfasından "Yeni Fatura" ile gelindiyse müşteriyi önseç
+        if (presetCustomerId) {
+          const c = items.find((x) => x.id === presetCustomerId);
+          if (c) {
+            setSelectedCustomerId(c.id);
+            setCustomerName(c.name);
+            setRecipientEmail(c.email || '');
+            setRecipientName(c.contactPerson || '');
+          }
+        }
       } catch (err) {
         console.error('Müşteriler yüklenemedi:', err);
       }
