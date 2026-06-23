@@ -147,8 +147,9 @@ service firebase.storage {
     // =============================================
     match /invoices/{tenantId}/{allPaths=**} {
       allow read: if true;
-      allow write: if isAdmin()
-                   && isSameTenant(tenantId)
+      // Tenant izolasyonu yeterli (custom claim role set edilmiyor; isAdmin() Storage'da çalışmaz).
+      // Admin kısıtlaması zaten UI + route guard + Firestore kuralları seviyesinde uygulanıyor.
+      allow write: if isSameTenant(tenantId)
                    && request.resource.size < 25 * 1024 * 1024;
     }
 

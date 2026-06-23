@@ -5,7 +5,8 @@ import { invoiceNotificationEmail } from './_lib/emailTemplates.js';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const FROM_ADDRESS = process.env.RESEND_FROM || 'intiba <onboarding@resend.dev>';
+// Doğrulanmış domain (diğer çalışan mailler de bunu kullanıyor); test domaini herkese gönderemiyor.
+const FROM_ADDRESS = process.env.RESEND_FROM || 'intiba <info@intiba.co.uk>';
 
 /**
  * POST /api/send-invoice-notification
@@ -41,7 +42,7 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
       });
     }
 
-    const appUrl = process.env.APP_URL || '';
+    const appUrl = process.env.APP_URL || 'https://www.intiba.co.uk';
     const viewUrl = `${appUrl}/fatura/${shareToken}`;
 
     const emailContent = invoiceNotificationEmail({
