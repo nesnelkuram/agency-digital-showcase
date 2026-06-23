@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { ChevronLeft, Upload, FileText, Loader2, Save, Send, X, Sparkles } from 'lucide-react';
 import { collection, getDocs, Timestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage, auth } from '@/lib/firebase/config';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTenantId } from '@/shared/hooks/useTenant';
-import { createInvoice, getInvoice, updateInvoiceStatus } from '@/shared/services/invoiceService';
+import { createInvoice, getInvoice, updateInvoice, updateInvoiceStatus } from '@/shared/services/invoiceService';
 import { sendInvoiceEmail } from './sendInvoiceEmail';
 import EmailChipsInput from './EmailChipsInput';
 import type { Customer } from '@/shared/types/pricing';
@@ -21,6 +21,8 @@ const InvoiceFormPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const presetCustomerId = searchParams.get('customerId');
+  const { id } = useParams<{ id: string }>();
+  const isEdit = Boolean(id);
   const { user } = useAuth();
   const tenantId = useTenantId();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -41,10 +43,49 @@ const InvoiceFormPage: React.FC = () => {
   const [description, setDescription] = useState('');
   const [file, setFile] = useState<File | null>(null);
 
+  // Düzenleme modunda mevcut fatura PDF'i (yeni dosya yüklenmezse korunur)
+  const [existingPdfUrl, setExistingPdfUrl] = useState<string>('');
+  const [existingPdfName, setExistingPdfName] = useState<string>('');
+  const [existingStatus, setExistingStatus] = useState<string>('draft');
+
+  const [loadingInvoice, setLoadingInvoice] = useState(isEdit);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [extracting, setExtracting] = useState(false);
   const [extractNote, setExtractNote] = useState<string | null>(null);
+
+  // Düzenleme: mevcut faturayı yükle
+  useEffect(() => {
+    if (!isEdit || !id || !tenantId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const inv = await getInvoice(tenantId, id);
+        if (cancelled || !inv) {
+          if (!cancelled) setError('Fatura bulunamadı.');
+          return;
+        }
+        setInvoiceNumber(inv.invoiceNumber || '');
+        setCustomerName(inv.customerName || '');
+        setEmails([inv.recipientEmail, ...(inv.additionalEmails || [])].filter(Boolean));
+        setRecipientName(inv.recipientName || '');
+        setSelectedCustomerId(inv.customerId || '');
+        setAmount(inv.amount != null ? String(inv.amount) : '');
+        setCurrency(inv.currency || 'TRY');
+        if (inv.issueDate) setIssueDate(new Date((inv.issueDate as any).seconds * 1000).toISOString().slice(0, 10));
+        if (inv.dueDate) setDueDate(new Date((inv.dueDate as any).seconds * 1000).toISOString().slice(0, 10));
+        setDescription(inv.description || '');
+        setExistingPdfUrl(inv.pdfUrl || '');
+        setExistingPdfName(inv.pdfFileName || '');
+        setExistingStatus(inv.status || 'draft');
+      } catch (err) {
+        if (!cancelled) setError('Fatura yüklenemedi.');
+      } finally {
+        if (!cancelled) setLoadingInvoice(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isEdit, id, tenantId]);
 
   // Müşterileri çek
   useEffect(() => {
@@ -156,7 +197,7 @@ const InvoiceFormPage: React.FC = () => {
     if (!customerName.trim()) return 'Müşteri adı zorunludur.';
     if (emails.length === 0) return 'En az bir alıcı e-postası ekleyin.';
     if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) return 'Geçerli bir tutar girin.';
-    if (!file) return 'Fatura PDF dosyası zorunludur.';
+    if (!file && !existingPdfUrl) return 'Fatura PDF dosyası zorunludur.';
     return null;
   };
 
@@ -166,45 +207,61 @@ const InvoiceFormPage: React.FC = () => {
       setError(validationError);
       return;
     }
-    if (!tenantId || !file) return;
+    if (!tenantId) return;
 
     setSaving(true);
     setError(null);
 
     try {
-      // 1. PDF'i Storage'a yükle
-      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const filePath = `invoices/${tenantId}/${Date.now()}_${safeName}`;
-      const storageRef = ref(storage!, filePath);
-      await uploadBytes(storageRef, file);
-      const pdfUrl = await getDownloadURL(storageRef);
+      // PDF: yeni dosya seçildiyse yükle, yoksa mevcut PDF korunur
+      let pdfUrl = existingPdfUrl;
+      let pdfFileName = existingPdfName;
+      let pdfSize: number | undefined;
+      if (file) {
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const filePath = `invoices/${tenantId}/${Date.now()}_${safeName}`;
+        const storageRef = ref(storage!, filePath);
+        await uploadBytes(storageRef, file);
+        pdfUrl = await getDownloadURL(storageRef);
+        pdfFileName = file.name;
+        pdfSize = file.size;
+      }
 
-      // 2. Firestore kaydı oluştur
-      const invoiceId = await createInvoice(tenantId, {
+      const baseData: any = {
         invoiceNumber: invoiceNumber.trim(),
         description: description.trim() || undefined,
         customerId: selectedCustomerId || undefined,
         customerName: customerName.trim(),
         recipientEmail: emails[0],
-        additionalEmails: emails.length > 1 ? emails.slice(1) : undefined,
+        additionalEmails: emails.slice(1), // her zaman dizi → edit'te silinenler temizlenir
         recipientName: recipientName.trim() || undefined,
         amount: Number(amount),
         currency,
         issueDate: Timestamp.fromDate(new Date(issueDate)),
         dueDate: dueDate ? Timestamp.fromDate(new Date(dueDate)) : undefined,
         pdfUrl,
-        pdfFileName: file.name,
-        pdfSize: file.size,
-        status: 'draft',
-        createdBy: user?.uid || '',
-        createdByName: user?.displayName || undefined,
-      });
+        pdfFileName,
+      };
+      if (pdfSize != null) baseData.pdfSize = pdfSize;
 
-      // 3. İstenirse bildirim maili gönder
+      let invoiceId: string;
+      if (isEdit && id) {
+        await updateInvoice(tenantId, id, baseData);
+        invoiceId = id;
+      } else {
+        invoiceId = await createInvoice(tenantId, {
+          ...baseData,
+          status: 'draft',
+          createdBy: user?.uid || '',
+          createdByName: user?.displayName || undefined,
+        });
+      }
+
+      // İstenirse bildirim maili gönder
       if (sendEmail) {
-        const created = await getInvoice(tenantId, invoiceId);
-        if (created) {
-          await sendInvoiceEmail(created, user?.displayName || undefined);
+        const saved = await getInvoice(tenantId, invoiceId);
+        if (saved) {
+          await sendInvoiceEmail(saved, user?.displayName || undefined);
           await updateInvoiceStatus(tenantId, invoiceId, 'sent');
         }
       }
@@ -217,6 +274,14 @@ const InvoiceFormPage: React.FC = () => {
     }
   };
 
+  if (loadingInvoice) {
+    return (
+      <div className="flex items-center justify-center h-64 text-neutral-400">
+        <Loader2 className="w-6 h-6 animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 max-w-2xl">
       {/* Header */}
@@ -225,9 +290,11 @@ const InvoiceFormPage: React.FC = () => {
           <ChevronLeft className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-2xl font-grotesk font-bold text-[#1a1a2e]">Yeni Fatura</h1>
+          <h1 className="text-2xl font-grotesk font-bold text-[#1a1a2e]">{isEdit ? 'Faturayı Düzenle' : 'Yeni Fatura'}</h1>
           <p className="font-commons text-sm text-neutral-500 mt-0.5">
-            PDF faturayı yükleyin, alıcıyı seçin ve bilgilendirme maili gönderin.
+            {isEdit
+              ? 'Fatura bilgilerini güncelleyin. PDF değiştirmek istemezseniz mevcut dosya korunur.'
+              : 'PDF faturayı yükleyin, alıcıyı seçin ve bilgilendirme maili gönderin.'}
           </p>
         </div>
       </div>
@@ -307,17 +374,7 @@ const InvoiceFormPage: React.FC = () => {
         <div>
           <label className={labelClass}>Fatura PDF *</label>
           <input ref={fileInputRef} type="file" accept="application/pdf" onChange={handleFileSelect} className="hidden" />
-          {!file ? (
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full flex flex-col items-center justify-center gap-2 py-8 rounded-xl border-2 border-dashed border-neutral-200 bg-neutral-50 hover:border-indigo-300 hover:bg-indigo-50/30 transition-colors"
-            >
-              <Upload className="w-6 h-6 text-neutral-400" />
-              <span className="font-commons text-sm text-neutral-500">PDF faturayı seçmek için tıklayın</span>
-              <span className="text-[11px] text-neutral-400">Maks. 25MB</span>
-            </button>
-          ) : (
+          {file ? (
             <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-neutral-200 bg-neutral-50">
               <div className="flex items-center gap-3 min-w-0">
                 <FileText className="w-5 h-5 text-red-500 shrink-0" />
@@ -330,6 +387,31 @@ const InvoiceFormPage: React.FC = () => {
                 <X className="w-4 h-4" />
               </button>
             </div>
+          ) : existingPdfUrl ? (
+            <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-neutral-200 bg-neutral-50">
+              <div className="flex items-center gap-3 min-w-0">
+                <FileText className="w-5 h-5 text-red-500 shrink-0" />
+                <div className="min-w-0">
+                  <a href={existingPdfUrl} target="_blank" rel="noreferrer" className="font-commons text-sm text-neutral-700 truncate hover:underline block">
+                    {existingPdfName || 'Mevcut fatura PDF'}
+                  </a>
+                  <p className="text-[11px] text-neutral-400">Mevcut dosya — değiştirmezsen korunur</p>
+                </div>
+              </div>
+              <button type="button" onClick={() => fileInputRef.current?.click()} className="px-3 py-1.5 rounded-lg bg-white border border-neutral-200 text-neutral-600 font-commons text-xs hover:bg-neutral-50 shrink-0">
+                Değiştir
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full flex flex-col items-center justify-center gap-2 py-8 rounded-xl border-2 border-dashed border-neutral-200 bg-neutral-50 hover:border-indigo-300 hover:bg-indigo-50/30 transition-colors"
+            >
+              <Upload className="w-6 h-6 text-neutral-400" />
+              <span className="font-commons text-sm text-neutral-500">PDF faturayı seçmek için tıklayın</span>
+              <span className="text-[11px] text-neutral-400">Maks. 25MB</span>
+            </button>
           )}
           {extracting && (
             <div className="mt-2 flex items-center gap-2 text-indigo-600 font-commons text-xs">
@@ -360,7 +442,7 @@ const InvoiceFormPage: React.FC = () => {
           className="px-4 py-2 bg-white border border-neutral-200 text-neutral-700 rounded-xl font-commons text-sm font-medium hover:bg-neutral-50 disabled:opacity-50 inline-flex items-center gap-2"
         >
           <Save className="w-4 h-4" />
-          Taslak Kaydet
+          {isEdit ? 'Değişiklikleri Kaydet' : 'Taslak Kaydet'}
         </button>
       </div>
     </div>

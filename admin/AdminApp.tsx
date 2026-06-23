@@ -1018,6 +1018,16 @@ const AdminApp: React.FC = () => {
               </PermissionGuard>
             }
           />
+          <Route
+            path="invoices/:id/edit"
+            element={
+              <PermissionGuard blockedRoles={['account_manager', 'editor', 'staff', 'client', 'freelancer']}>
+                <React.Suspense fallback={<PageLoader />}>
+                  <InvoiceFormPage />
+                </React.Suspense>
+              </PermissionGuard>
+            }
+          />
           {/* Task Routes */}
           {/* 'Planla' kaldırıldı — tek 'Görevlerim' = /admin/now. Eski linkler yönlenir. */}
           <Route path="tasks" element={<Navigate to="/admin/now" replace />} />

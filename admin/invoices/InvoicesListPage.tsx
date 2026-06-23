@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ReceiptText, Plus, Send, ExternalLink, Trash2, Loader2, Check, FileText } from 'lucide-react';
+import { ReceiptText, Plus, Send, ExternalLink, Trash2, Loader2, Check, FileText, Pencil } from 'lucide-react';
 import { Timestamp } from 'firebase/firestore';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTenantId } from '@/shared/hooks/useTenant';
@@ -212,6 +212,15 @@ const InvoicesListPage: React.FC = () => {
                       </option>
                     ))}
                   </select>
+
+                  {/* Düzenle */}
+                  <Link
+                    to={`/admin/invoices/${inv.id}/edit`}
+                    className="p-2 rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100"
+                    title="Düzenle"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </Link>
 
                   {/* Görüntüleme sayfası (public) */}
                   <a
