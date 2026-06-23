@@ -88,6 +88,17 @@
   ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" },
+    {
+      "source": "/fatura/:token",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": "(?i).*(facebookexternalhit|whatsapp|twitterbot|linkedinbot|telegrambot|slackbot|discordbot|googlebot|bingbot|redditbot|pinterest|applebot|skypeuripreview|vkshare|embedly|quora link preview|outbrain|nuzzel|w3c_validator).*"
+        }
+      ],
+      "destination": "/api/og/invoice"
+    },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
   "headers": [
