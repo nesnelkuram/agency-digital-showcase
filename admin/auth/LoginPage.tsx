@@ -4,9 +4,12 @@ import { motion } from 'framer-motion';
 import { Mail, Lock, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
+const REMEMBERED_EMAIL_KEY = 'intiba_remembered_email';
+
 const LoginPage: React.FC = () => {
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(() => localStorage.getItem(REMEMBERED_EMAIL_KEY) || '');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(() => localStorage.getItem(REMEMBERED_EMAIL_KEY) !== null);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -23,7 +26,13 @@ const LoginPage: React.FC = () => {
     clearError();
 
     try {
-      await signIn(email, password);
+      await signIn(email, password, rememberMe);
+      // "Beni hatırla" işaretliyse e-postayı sonraki giriş için sakla, değilse temizle
+      if (rememberMe) {
+        localStorage.setItem(REMEMBERED_EMAIL_KEY, email);
+      } else {
+        localStorage.removeItem(REMEMBERED_EMAIL_KEY);
+      }
       // Redirect clients to portal, everyone else to admin
       // Note: user state may not be updated yet — rely on onAuthStateChanged redirect below
       navigate('/admin');
@@ -139,8 +148,17 @@ const LoginPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Forgot Password Link */}
-                <div className="text-right">
+                {/* Remember Me + Forgot Password */}
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="w-4 h-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-400 cursor-pointer"
+                    />
+                    <span className="text-sm font-grotesk text-neutral-600">Beni Hatirla</span>
+                  </label>
                   <button
                     type="button"
                     onClick={() => {

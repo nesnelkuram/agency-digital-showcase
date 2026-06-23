@@ -118,6 +118,9 @@ const TeamPage = React.lazy(() => import('./team/TeamPage'));
 const AgentRegistryPage = React.lazy(() => import('./agents/AgentRegistryPage'));
 const AgentFormPage = React.lazy(() => import('./agents/AgentFormPage'));
 
+const InvoicesListPage = React.lazy(() => import('./invoices/InvoicesListPage'));
+const InvoiceFormPage = React.lazy(() => import('./invoices/InvoiceFormPage'));
+
 // Task Pages
 const RecurringTasksPage = React.lazy(() => import('./tasks/RecurringTasksPage'));
 
@@ -981,6 +984,27 @@ const AdminApp: React.FC = () => {
               <React.Suspense fallback={<PageLoader />}>
                 <AgentFormPage />
               </React.Suspense>
+            }
+          />
+          {/* Invoice Routes — sadece admin/super_admin (role-based, dinamik izin config'inden bağımsız) */}
+          <Route
+            path="invoices"
+            element={
+              <PermissionGuard blockedRoles={['account_manager', 'editor', 'staff', 'client', 'freelancer']}>
+                <React.Suspense fallback={<PageLoader />}>
+                  <InvoicesListPage />
+                </React.Suspense>
+              </PermissionGuard>
+            }
+          />
+          <Route
+            path="invoices/new"
+            element={
+              <PermissionGuard blockedRoles={['account_manager', 'editor', 'staff', 'client', 'freelancer']}>
+                <React.Suspense fallback={<PageLoader />}>
+                  <InvoiceFormPage />
+                </React.Suspense>
+              </PermissionGuard>
             }
           />
           {/* Task Routes */}

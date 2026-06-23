@@ -35,6 +35,7 @@ const CemilayHero = lazy(() => import('./components/CemilayHero'));
 const ContentPlanSharePage = lazy(() => import('./components/ContentPlanSharePage'));
 const ProposalSharePage = lazy(() => import('./components/ProposalSharePage'));
 const GastronomyShowcasePage = lazy(() => import('./components/GastronomyShowcasePage'));
+const InvoiceSharePage = lazy(() => import('./components/InvoiceSharePage'));
 
 const HomePage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -307,6 +308,16 @@ const App: React.FC = () => {
           element={
             <Suspense fallback={<div className="min-h-screen bg-neutral-50" />}>
               <ProposalSharePage />
+            </Suspense>
+          }
+        />
+
+        {/* Invoice Share - Public secure invoice view/download page */}
+        <Route
+          path="/fatura/:shareToken"
+          element={
+            <Suspense fallback={<div className="min-h-screen bg-[#fafafa]" />}>
+              <InvoiceSharePage />
             </Suspense>
           }
         />

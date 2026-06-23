@@ -575,3 +575,41 @@ export function wizardInvitationEmail(params: {
   `);
   return { subject, html };
 }
+
+// =========================================================
+// Invoice: New Invoice Notification (→ Customer / Karşı taraf)
+// =========================================================
+export function invoiceNotificationEmail(params: {
+  recipientName: string;
+  customerName: string;
+  invoiceNumber: string;
+  amountLabel: string; // ör: "₺12.500,00" (sembol dahil, formatlı)
+  issueDate?: string;
+  dueDate?: string;
+  description?: string;
+  viewUrl: string; // /fatura/:shareToken — güvenli görüntüleme/indirme sayfası
+  senderName: string;
+}): { subject: string; html: string } {
+  const subject = `${params.invoiceNumber} numaralı faturanız (${params.amountLabel})`;
+  const html = wrapHtml(subject, `
+    <span class="badge badge-blue">Yeni Fatura</span>
+    <p>Merhaba <strong>${params.recipientName || params.customerName}</strong>,</p>
+    <p><strong>${params.senderName}</strong> tarafından adınıza bir fatura düzenlenmiştir. Fatura detayları aşağıdadır:</p>
+    <div class="metadata">
+      <p><strong>Fatura No:</strong> ${params.invoiceNumber}</p>
+      <p><strong>Tutar:</strong> ${params.amountLabel}</p>
+      ${params.issueDate ? `<p><strong>Düzenlenme Tarihi:</strong> ${params.issueDate}</p>` : ''}
+      ${params.dueDate ? `<p><strong>Son Ödeme Tarihi:</strong> ${params.dueDate}</p>` : ''}
+      ${params.description ? `<p><strong>Açıklama:</strong> ${params.description}</p>` : ''}
+    </div>
+    <p>Faturanızın PDF belgesini aşağıdaki butondan güvenle görüntüleyebilir ve indirebilirsiniz.</p>
+    <div style="text-align:center;">
+      <a href="${params.viewUrl}" class="cta">Faturayı Görüntüle ve İndir</a>
+    </div>
+    <p style="color:#737373;font-size:13px;margin-top:16px;">Bu link size özeldir. Herhangi bir sorunuz olursa bu e-postayı yanıtlayabilirsiniz.</p>
+    <div class="link-box">
+      Link çalışmıyorsa bu adresi tarayıcınıza kopyalayın:<br>${params.viewUrl}
+    </div>
+  `);
+  return { subject, html };
+}

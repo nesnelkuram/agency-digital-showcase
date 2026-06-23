@@ -45,6 +45,7 @@ import {
   Map,
   Network,
   BookMarked,
+  ReceiptText,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermission } from '@/shared/hooks/usePermission';
@@ -216,6 +217,13 @@ const navItems: NavItem[] = [
     path: '/admin/pricing/proposals',
     icon: FileCheck,
     hiddenForRoles: ['editor', 'client', 'freelancer'],
+  },
+  {
+    label: 'Faturalar',
+    path: '/admin/invoices',
+    icon: ReceiptText,
+    // Sadece admin/super_admin — izin sistemine değil role'e bağlı (dinamik rol konfigürasyon tuzağını atlar)
+    hiddenForRoles: ['account_manager', 'editor', 'staff', 'client', 'freelancer'],
   },
   {
     label: 'Finansal Yonetim',

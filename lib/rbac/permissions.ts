@@ -129,6 +129,13 @@ export const PERMISSIONS = {
   FILING_DELETE: 'filing:delete',
   FILING_TEMPLATES_MANAGE: 'filing:templates_manage',
 
+  // Invoices (Faturalar) — sadece admin erişimi
+  INVOICES_VIEW: 'invoices:view',
+  INVOICES_CREATE: 'invoices:create',
+  INVOICES_EDIT: 'invoices:edit',
+  INVOICES_DELETE: 'invoices:delete',
+  INVOICES_SEND: 'invoices:send',
+
   // Pricing Erişim Seviyeleri (ayrıştırılmış)
   PRICING_VIEW_PRICE: 'pricing:view_price',     // sadece satış fiyatı
   PRICING_VIEW_COST: 'pricing:view_cost',       // maliyet detayı

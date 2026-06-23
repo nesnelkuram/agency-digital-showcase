@@ -5,6 +5,9 @@ import {
   signOut as firebaseSignOut,
   onAuthStateChanged,
   sendPasswordResetEmail,
+  setPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence,
 } from 'firebase/auth';
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db, isFirebaseConfigured } from '@/lib/firebase/config';
@@ -15,7 +18,7 @@ interface AuthContextType {
   firebaseUser: FirebaseUser | null;
   loading: boolean;
   error: string | null;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -98,7 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [fetchUserData]);
 
   const signIn = useCallback(
-    async (email: string, password: string) => {
+    async (email: string, password: string, rememberMe: boolean = true) => {
       if (!auth) {
         setError('Firebase yapılandırılmamış. Lütfen yönetici ile iletişime geçin.');
         throw new Error('Firebase yapılandırılmamış.');
@@ -106,6 +109,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
       setError(null);
       try {
+        // "Beni hatırla" işaretliyse oturum tarayıcıda kalıcı tutulur (browserLocalPersistence),
+        // değilse yalnızca sekme açık kaldığı sürece geçerlidir (browserSessionPersistence).
+        await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
         const result = await signInWithEmailAndPassword(auth, email, password);
         const userData = await fetchUserData(result.user.uid);
 

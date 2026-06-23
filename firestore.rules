@@ -145,6 +145,24 @@ service cloud.firestore {
     }
 
     // =============================================
+    // Asset locations — masaüstü uygulaması klasör⇄marka/proje eşlemeleri
+    // =============================================
+    match /asset_locations/{linkId} {
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update, delete: if isSuperAdmin() || belongsToTenant();
+    }
+
+    // =============================================
+    // Drives — masaüstü uygulaması disk kaydı (etiket, UUID, durum)
+    // =============================================
+    match /drives/{driveId} {
+      allow read: if isSuperAdmin() || belongsToTenant();
+      allow create: if isSuperAdmin() || creatingForOwnTenant();
+      allow update, delete: if isSuperAdmin() || belongsToTenant();
+    }
+
+    // =============================================
     // Marketing campaigns
     // =============================================
     match /marketing_campaigns/{campaignId} {
@@ -432,6 +450,21 @@ service cloud.firestore {
         allow create: if true; // Public share page can log 'viewed' events
         allow update, delete: if false;
       }
+    }
+
+    // =============================================
+    // Invoices (Faturalar) — sadece admin oluşturur/yönetir.
+    // Public read/update via shareToken (müşteri görüntüleme sayfası + viewedAt).
+    // =============================================
+    match /invoices/{invoiceId} {
+      allow read: if isSuperAdmin()
+                  || (belongsToTenant() && isAdmin())
+                  || resource.data.shareToken != null;
+      allow create: if isSuperAdmin() || (creatingForOwnTenant() && isAdmin());
+      allow update: if isSuperAdmin()
+                    || (belongsToTenant() && isAdmin())
+                    || resource.data.shareToken != null; // public sayfa viewedAt günceller
+      allow delete: if isSuperAdmin() || (belongsToTenant() && isAdmin());
     }
 
     match /pricing_quotes/{quoteId} {
