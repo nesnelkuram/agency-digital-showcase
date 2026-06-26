@@ -539,16 +539,22 @@ const ProposalSharePage: React.FC = () => {
               )}
             </div>
             <div className="bg-[#171717] px-6 py-4 flex justify-between items-center">
-              <span className="font-grotesk text-sm font-bold text-white">GENEL TOPLAM (KDV Dahil)</span>
+              <span className="font-grotesk text-sm font-bold text-white">GENEL TOPLAM (KDV Hariç)</span>
               <AnimatePresence mode="wait">
-                <motion.span
-                  key={calculated.grandTotal}
+                <motion.div
+                  key={calculated.subtotal}
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="font-grotesk text-xl font-bold text-white"
+                  className="text-right text-white"
                 >
-                  {fmt(calculated.grandTotal)}
-                </motion.span>
+                  <div>
+                    <span className="font-grotesk text-xl font-bold">{fmt(calculated.subtotal)}</span>
+                    <span className="font-grotesk text-sm font-medium text-neutral-400"> + %{Math.round((proposal.kdvRate ?? 0.2) * 100)} KDV</span>
+                  </div>
+                  <div className="font-grotesk text-xs text-neutral-400 mt-0.5">
+                    KDV dahil: {fmt(calculated.grandTotal)}
+                  </div>
+                </motion.div>
               </AnimatePresence>
             </div>
           </div>

@@ -400,6 +400,8 @@ export function proposalSentEmail(params: {
   companyName: string;
   projectTitle: string;
   proposalNumber: string;
+  netTotal: string;
+  kdvRate: number;
   grandTotal: string;
   validityDays: number;
   shareUrl: string;
@@ -415,7 +417,7 @@ export function proposalSentEmail(params: {
       <p><strong>Teklif No:</strong> ${params.proposalNumber}</p>
       <p><strong>Proje:</strong> ${params.projectTitle}</p>
       ${params.servicesSummary ? `<p><strong>Hizmetler:</strong> ${params.servicesSummary}</p>` : ''}
-      <p><strong>Toplam Tutar:</strong> ${params.grandTotal} TL (KDV dahil)</p>
+      <p><strong>Toplam Tutar:</strong> ${params.netTotal} + %${Math.round(params.kdvRate * 100)} KDV <span style="color:#737373;">(KDV dahil ${params.grandTotal})</span></p>
       <p><strong>Gecerlilik:</strong> ${params.validityDays} gun</p>
     </div>
     <p>Teklifin detaylarini incelemek icin asagidaki butona tiklayin:</p>

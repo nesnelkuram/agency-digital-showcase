@@ -688,6 +688,8 @@ const ProposalViewPage: React.FC = () => {
           projectTitle: proposal.projectTitle,
           proposalNumber: proposal.proposalNumber,
           proposalId: proposal.id,
+          netTotal: formatProposalAmount(proposal.netTotal, proposal.currency ?? 'TRY', proposal.exchangeRate ?? 1),
+          kdvRate: proposal.kdvRate,
           grandTotal: formatProposalAmount(proposal.grandTotal, proposal.currency ?? 'TRY', proposal.exchangeRate ?? 1),
           validityDays: proposal.validityDays,
           shareUrl,
@@ -1309,10 +1311,16 @@ const ProposalViewPage: React.FC = () => {
                 </tr>
                 <tr className="bg-[#171717]">
                   <td colSpan={4} className="py-4 px-4 text-right font-grotesk text-sm font-bold text-white">
-                    GENEL TOPLAM (KDV Dahil)
+                    GENEL TOPLAM (KDV Haric)
                   </td>
-                  <td className="py-4 px-4 text-right font-grotesk text-xl font-bold text-white">
-                    {formatProposalAmount(proposal.grandTotal, proposal.currency ?? 'TRY', proposal.exchangeRate ?? 1)}
+                  <td className="py-4 px-4 text-right text-white">
+                    <span className="font-grotesk text-xl font-bold">
+                      {formatProposalAmount(proposal.netTotal, proposal.currency ?? 'TRY', proposal.exchangeRate ?? 1)}
+                    </span>
+                    <span className="font-grotesk text-sm font-medium text-neutral-400"> + %{Math.round(proposal.kdvRate * 100)} KDV</span>
+                    <div className="font-grotesk text-xs text-neutral-400 mt-1">
+                      KDV dahil: {formatProposalAmount(proposal.grandTotal, proposal.currency ?? 'TRY', proposal.exchangeRate ?? 1)}
+                    </div>
                   </td>
                 </tr>
               </tfoot>
