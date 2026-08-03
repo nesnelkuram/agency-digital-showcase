@@ -21,8 +21,10 @@ const InvoiceFormPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const presetCustomerId = searchParams.get('customerId');
+  const copyFromId = searchParams.get('copyFrom');
   const { id } = useParams<{ id: string }>();
   const isEdit = Boolean(id);
+  const isCopy = Boolean(copyFromId) && !isEdit;
   const { user } = useAuth();
   const tenantId = useTenantId();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -46,38 +48,44 @@ const InvoiceFormPage: React.FC = () => {
   // Düzenleme modunda mevcut fatura PDF'i (yeni dosya yüklenmezse korunur)
   const [existingPdfUrl, setExistingPdfUrl] = useState<string>('');
   const [existingPdfName, setExistingPdfName] = useState<string>('');
-  const [existingStatus, setExistingStatus] = useState<string>('draft');
 
-  const [loadingInvoice, setLoadingInvoice] = useState(isEdit);
+  const [loadingInvoice, setLoadingInvoice] = useState(isEdit || isCopy);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [extracting, setExtracting] = useState(false);
   const [extractNote, setExtractNote] = useState<string | null>(null);
 
-  // Düzenleme: mevcut faturayı yükle
+  // Düzenleme veya kopyalama: kaynak faturayı yükleyip alanları doldur
   useEffect(() => {
-    if (!isEdit || !id || !tenantId) return;
+    const sourceId = isEdit ? id : copyFromId;
+    if (!sourceId || !tenantId) return;
     let cancelled = false;
     (async () => {
       try {
-        const inv = await getInvoice(tenantId, id);
+        const inv = await getInvoice(tenantId, sourceId);
         if (cancelled || !inv) {
           if (!cancelled) setError('Fatura bulunamadı.');
           return;
         }
-        setInvoiceNumber(inv.invoiceNumber || '');
+        // Kopyada fatura numarasını boş bırak — her fatura benzersiz numara ister
+        setInvoiceNumber(isCopy ? '' : inv.invoiceNumber || '');
         setCustomerName(inv.customerName || '');
         setEmails([inv.recipientEmail, ...(inv.additionalEmails || [])].filter(Boolean));
         setRecipientName(inv.recipientName || '');
         setSelectedCustomerId(inv.customerId || '');
         setAmount(inv.amount != null ? String(inv.amount) : '');
         setCurrency(inv.currency || 'TRY');
-        if (inv.issueDate) setIssueDate(new Date((inv.issueDate as any).seconds * 1000).toISOString().slice(0, 10));
+        // Kopyada düzenlenme tarihi bugüne çekilir; düzenlemede kaynak tarih korunur
+        if (!isCopy && inv.issueDate) {
+          setIssueDate(new Date((inv.issueDate as any).seconds * 1000).toISOString().slice(0, 10));
+        }
         if (inv.dueDate) setDueDate(new Date((inv.dueDate as any).seconds * 1000).toISOString().slice(0, 10));
         setDescription(inv.description || '');
-        setExistingPdfUrl(inv.pdfUrl || '');
-        setExistingPdfName(inv.pdfFileName || '');
-        setExistingStatus(inv.status || 'draft');
+        // Kopyada PDF taşınmaz — yeni fatura için yeni PDF yüklenmeli
+        if (!isCopy) {
+          setExistingPdfUrl(inv.pdfUrl || '');
+          setExistingPdfName(inv.pdfFileName || '');
+        }
       } catch (err) {
         if (!cancelled) setError('Fatura yüklenemedi.');
       } finally {
@@ -85,7 +93,7 @@ const InvoiceFormPage: React.FC = () => {
       }
     })();
     return () => { cancelled = true; };
-  }, [isEdit, id, tenantId]);
+  }, [isEdit, isCopy, id, copyFromId, tenantId]);
 
   // Müşterileri çek
   useEffect(() => {
@@ -151,7 +159,15 @@ const InvoiceFormPage: React.FC = () => {
         body: JSON.stringify({ pdfData, mimeType: f.type }),
       });
       if (!res.ok) {
-        setExtractNote('Otomatik okuma yapılamadı; alanları elle girebilirsiniz.');
+        let reason = '';
+        try {
+          const body = await res.json();
+          reason = body?.error ? ` (${body.error})` : '';
+        } catch {
+          reason = ` (HTTP ${res.status})`;
+        }
+        console.error('[extract-invoice] başarısız:', res.status, reason);
+        setExtractNote(`Otomatik okuma yapılamadı; alanları elle girebilirsiniz.${reason}`);
         return;
       }
       const { data } = await res.json();
@@ -290,10 +306,14 @@ const InvoiceFormPage: React.FC = () => {
           <ChevronLeft className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-2xl font-grotesk font-bold text-[#1a1a2e]">{isEdit ? 'Faturayı Düzenle' : 'Yeni Fatura'}</h1>
+          <h1 className="text-2xl font-grotesk font-bold text-[#1a1a2e]">
+            {isEdit ? 'Faturayı Düzenle' : isCopy ? 'Faturayı Kopyala' : 'Yeni Fatura'}
+          </h1>
           <p className="font-commons text-sm text-neutral-500 mt-0.5">
             {isEdit
               ? 'Fatura bilgilerini güncelleyin. PDF değiştirmek istemezseniz mevcut dosya korunur.'
+              : isCopy
+              ? 'Bilgiler önceki faturadan dolduruldu. Yeni fatura numarasını girin ve güncel PDF\'i yükleyin.'
               : 'PDF faturayı yükleyin, alıcıyı seçin ve bilgilendirme maili gönderin.'}
           </p>
         </div>

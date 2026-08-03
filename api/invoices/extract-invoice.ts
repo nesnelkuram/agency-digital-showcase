@@ -69,7 +69,10 @@ Yalnızca aşağıdaki JSON şemasında cevap ver, başka hiçbir şey yazma:
       ],
       config: {
         temperature: 0.1,
-        maxOutputTokens: 1024,
+        // Düşünmeyi kapat: yapılandırılmış çıkarımda fayda sağlamaz ve token
+        // bütçesini tüketerek çıktının boş/yarım dönmesine yol açıyordu.
+        thinkingConfig: { thinkingBudget: 0 },
+        maxOutputTokens: 2048,
         responseMimeType: 'application/json',
       },
     });
