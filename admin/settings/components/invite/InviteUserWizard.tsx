@@ -121,6 +121,15 @@ const ROLE_OPTIONS: RoleOption[] = [
     group: 'external',
   },
   {
+    role: 'brand_manager',
+    label: 'Marka Yöneticisi',
+    description: 'Atanan markaların içerik akışını Studio panelinden yönetir',
+    icon: UserIcon,
+    chips: ['Studio', 'Atanan markalar', 'İç onay', 'Firmaya gönderme'],
+    accentColor: 'from-rose-500 to-pink-500',
+    group: 'internal',
+  },
+  {
     role: 'super_admin',
     label: 'Süper Admin',
     description: 'Tüm tenant\'lara global erişim',
@@ -163,6 +172,11 @@ function validate(role: UserRole | null, form: FormState): {
     if (!form.extraFields.clientCompany?.trim()) extraErrors.clientCompany = 'Şirket adı zorunlu';
     if (!form.extraFields.assignedProjectIds || form.extraFields.assignedProjectIds.length === 0) {
       extraErrors.assignedProjectIds = 'En az bir proje seçin';
+    }
+  }
+  if (role === 'brand_manager') {
+    if (!form.extraFields.assignedProjectIds || form.extraFields.assignedProjectIds.length === 0) {
+      extraErrors.assignedProjectIds = 'En az bir marka (proje) seçin';
     }
   }
   if (role === 'freelancer') {

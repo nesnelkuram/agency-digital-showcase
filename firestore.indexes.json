@@ -1,6 +1,15 @@
 {
   "indexes": [
     {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tenantId", "order": "ASCENDING" },
+        { "fieldPath": "role", "order": "ASCENDING" },
+        { "fieldPath": "profile.assignedProjectIds", "arrayConfig": "CONTAINS" }
+      ]
+    },
+    {
       "collectionGroup": "operational_briefs",
       "queryScope": "COLLECTION",
       "fields": [

@@ -224,6 +224,37 @@ describe.skipIf(!HAS_EMULATOR)('firestore.rules', () => {
     });
   });
 
+  // ── Studio akışı (marka yöneticisinin gerçek sorgu/yazma biçimleri) ──
+  describe('Studio akışı', () => {
+    it('plan ve post sorguları (tenant + proje filtresi) çalışır', async () => {
+      const db = as('bm1');
+      await assertSucceeds(db.collection('content_plans').where('tenantId', '==', 't1').where('projectId', '==', 'projA').get());
+      await assertSucceeds(db.collection('social_media_posts').where('tenantId', '==', 't1').where('projectId', '==', 'projA').get());
+      await assertSucceeds(db.collection('content_plans/planA/approval_events').get());
+      await assertFails(db.collection('content_plans').where('tenantId', '==', 't1').where('projectId', '==', 'projB').get());
+    });
+    it('haftalık plan oluşturma: önce plan, sonra post bağı (createContentPlan sırası)', async () => {
+      const db = as('bm1');
+      const ref = await assertSucceeds(
+        db.collection('content_plans').add({
+          tenantId: 't1', projectId: 'projA', status: 'draft', title: 'Hafta', postIds: ['postA'],
+          shareToken: 'abc123def456', clientComments: [], approvalConfig: { requireInternalReview: false, autoScheduleOnApproval: true, allowPartialApproval: true },
+        })
+      );
+      const batch = db.batch();
+      batch.update(db.doc('social_media_posts/postA'), { contentPlanId: (ref as any).id, updatedAt: new Date() });
+      await assertSucceeds(batch.commit());
+    });
+    it('kendi bildirimlerini okur', async () => {
+      await env.withSecurityRulesDisabled(async (ctx) => {
+        await ctx.firestore().doc('notifications/n1').set({ tenantId: 't1', userId: 'bm1', title: 'x', read: false });
+        await ctx.firestore().doc('notifications/n2').set({ tenantId: 't1', userId: 'admin1', title: 'y', read: false });
+      });
+      await assertSucceeds(as('bm1').collection('notifications').where('tenantId', '==', 't1').where('userId', '==', 'bm1').get());
+      await assertFails(as('bm1').doc('notifications/n2').get());
+    });
+  });
+
   // ── Durum ve kimlik alanları: yalnızca sunucu ──
   describe('onay alanları', () => {
     it('iç ekip post durumunu ve onay alanlarını değiştiremez', async () => {

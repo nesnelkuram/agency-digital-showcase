@@ -183,6 +183,29 @@ const RoleSpecificFields: React.FC<RoleSpecificFieldsProps> = ({
     );
   }
 
+  if (role === 'brand_manager') {
+    return (
+      <div className="space-y-4">
+        <div>
+          <label className={labelClass}>
+            Yöneteceği markalar (projeler){requiredBadge}
+          </label>
+          <ProjectMultiSelect
+            value={value.assignedProjectIds || []}
+            onChange={(ids) => set({ assignedProjectIds: ids })}
+            placeholder="Mevcut projelerden seç..."
+          />
+          <p className="mt-1 text-[11px] text-neutral-400 font-grotesk">
+            Marka yöneticisi yalnızca seçilen projeleri Studio panelinde görür ve yönetir.
+          </p>
+          {errors?.assignedProjectIds && (
+            <p className="mt-1 text-[11px] text-red-500 font-grotesk">{errors.assignedProjectIds}</p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   if (role === 'client') {
     return (
       <div className="space-y-4">

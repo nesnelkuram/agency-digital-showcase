@@ -330,6 +330,34 @@ export const ROLES: Record<string, RoleConfig> = {
       PERMISSIONS.SOP_VIEW,
     ],
   },
+
+  // Marka Yöneticisi — Studio (/studio) kullanıcısı. Yalnızca atanmış projelerin (markaların)
+  // içerik akışını yönetir: hazırlama, iç inceleme (son insan kararı) ve firmaya gönderme.
+  // Müşteri adına onay veremez; admin paneline giremez. Veri erişimi proje atamasıyla sınırlı.
+  brand_manager: {
+    name: 'brand_manager',
+    displayName: 'Marka Yöneticisi',
+    description: 'Atanan markaların içerik akışını Studio panelinden yönetir',
+    permissions: [
+      PERMISSIONS.PROJECTS_VIEW_OWN,
+
+      PERMISSIONS.SOCIAL_MEDIA_VIEW,
+      PERMISSIONS.SOCIAL_MEDIA_CREATE,
+      PERMISSIONS.SOCIAL_MEDIA_EDIT,
+
+      PERMISSIONS.APPROVALS_VIEW,
+      PERMISSIONS.APPROVALS_SUBMIT,
+      PERMISSIONS.APPROVALS_COMMENT,
+      PERMISSIONS.APPROVALS_INTERNAL_REVIEW,
+      PERMISSIONS.APPROVALS_SKIP_INTERNAL, // yalnızca atama/yeniden bildirim; Studio politikası taslaktan müşteriye geçişi engeller
+      PERMISSIONS.APPROVALS_VIEW_AUDIT,
+
+      PERMISSIONS.ASSETS_VIEW,
+      PERMISSIONS.ASSETS_UPLOAD,
+      PERMISSIONS.ASSETS_DOWNLOAD,
+      PERMISSIONS.BRAND_KIT_VIEW,
+    ],
+  },
 };
 
 export type RoleName = keyof typeof ROLES;

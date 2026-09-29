@@ -1,6 +1,6 @@
 import { Timestamp } from 'firebase/firestore';
 
-export type UserRole = 'super_admin' | 'admin' | 'account_manager' | 'editor' | 'staff' | 'client' | 'freelancer';
+export type UserRole = 'super_admin' | 'admin' | 'account_manager' | 'editor' | 'staff' | 'client' | 'freelancer' | 'brand_manager';
 export type UserStatus = 'active' | 'invited' | 'suspended';
 export type InvitationStatus = 'pending' | 'accepted' | 'expired' | 'cancelled';
 
@@ -24,7 +24,7 @@ export interface UserProfile {
   hourlyCurrency?: HourlyCurrency;       // freelancer
   clientCompany?: string;                // client
   billingEmail?: string;                 // client (fatura e-postasi ayri ise)
-  assignedProjectIds?: string[];         // client, freelancer, editor
+  assignedProjectIds?: string[];         // client, freelancer, editor, brand_manager (zorunlu)
   managerId?: string;                    // ic roller icin
 }
 

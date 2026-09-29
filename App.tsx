@@ -27,6 +27,7 @@ const AdminApp = lazy(() => import('./admin/AdminApp'));
 const LoginPage = lazy(() => import('./admin/auth/LoginPage'));
 const JoinPage = lazy(() => import('./admin/auth/JoinPage'));
 const PortalApp = lazy(() => import('./portal/PortalApp'));
+const StudioApp = lazy(() => import('./studio/StudioApp'));
 const AgentOfficeSimulator = lazy(() => import('./components/AgentOfficeSimulator'));
 const FeedbackSharePage = lazy(() => import('./components/FeedbackSharePage'));
 const AnalysisReportPage = lazy(() => import('./components/AnalysisReportPage'));
@@ -338,6 +339,18 @@ const App: React.FC = () => {
           element={
             <Suspense fallback={<div className="min-h-screen bg-neutral-50" />}>
               <JoinPage />
+            </Suspense>
+          }
+        />
+
+        {/* Studio — marka yöneticisi paneli */}
+        <Route
+          path="/studio/*"
+          element={
+            <Suspense fallback={<div className="min-h-screen bg-neutral-50" />}>
+              <TenantProvider>
+                <StudioApp />
+              </TenantProvider>
             </Suspense>
           }
         />

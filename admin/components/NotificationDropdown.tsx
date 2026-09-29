@@ -18,7 +18,12 @@ function getTimeAgo(date: Date): string {
   return `${diffDays}g önce`;
 }
 
-const NotificationDropdown: React.FC = () => {
+interface NotificationDropdownProps {
+  /** "Tüm bildirimler" hedefi; null ise bağlantı gösterilmez (ör. Studio) */
+  viewAllPath?: string | null;
+}
+
+const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ viewAllPath = '/admin/notifications' }) => {
   const { notifications, unreadCount, loading, markAsRead, markAllAsRead } = useNotificationsContext();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -140,10 +145,10 @@ const NotificationDropdown: React.FC = () => {
             </div>
 
             {/* Footer */}
-            {notifications.length > 0 && (
+            {notifications.length > 0 && viewAllPath && (
               <div className="px-4 py-3 border-t border-neutral-100">
                 <button
-                  onClick={() => { setOpen(false); navigate('/admin/notifications'); }}
+                  onClick={() => { setOpen(false); navigate(viewAllPath); }}
                   className="w-full text-center font-grotesk text-xs text-neutral-500 hover:text-neutral-700 transition-colors"
                 >
                   Tüm bildirimleri gör →

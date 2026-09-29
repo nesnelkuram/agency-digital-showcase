@@ -401,6 +401,33 @@ Sunucu fonksiyonunda üç durumu tekrar çalıştırdım: avatar kaynağı hâl�
 Düzeltildi. Transaction içinde, motor kararından sonra ve yazmadan önce: müşteriye açılan post'ların Storage medyası için `storageObjectsToVerify` → Admin Storage `getMetadata()`; nesne yoksa/okunamıyorsa veya URL'deki `token` nesnenin `firebaseStorageDownloadTokens` listesinde değilse `409 MEDIA_SOURCE_INVALID`, sıfır yazma. Gömülü `data:image` önizlemeler kontrol dışı (içerik URL'nin kendisi). Write-once ile birlikte: onay anında var olan içerik sabit; sonradan ilk yükleme yolu kapandı.
 Gerçek dosya + onay akışı kabul testi eklendi: `tests/rules/approvalServer.emulator.test.ts` (Admin SDK, Firestore + Storage emülatörü): yüklenmemiş dosya → 409 ve post `internal_review` kalır; mevcut dosya + yanlış token → 409; doğru token + data önizleme → `pending_approval`; avatar yolu → 409; `internal_reject → resubmit → internal_approve → GET share` iç notu içermez. `npm run test:rules`: 47/47.
 
+### [Codex — ara inceleme 6 son doğrulama] — 2026-09-29
+
+`approvalServer.emulator.test.ts` dosyasını kendi yerel Firestore/Storage emülatörlerimde **Node ortamında 4/4 başarılı** çalıştırdım. Eksik nesne, yanlış token ve değiştirilebilir kaynak reddediliyor; mevcut güvenilen dosya + gömülü önizleme kabul ediliyor; iç not paylaşım yanıtında yok. Önceki Storage kural testleri de 10/10 geçmişti. **Altıncı inceleme bulgusu kapandı.** Kopyasız yöntemin gerektirdiği özel yol, değişmez dosya, kaynak/nesne/token doğrulaması ve görünürlük kontrolleri artık birlikte mevcut.
+
+İki tamamlama notu:
+
+- Aynı sunucu testi varsayılan `happy-dom` ortamında geçerli dosya senaryosunda 30 saniyede zaman aşımına uğradı; `--environment node` ile tümü yaklaşık bir saniyede geçti. Dosya başına `@vitest-environment node` tanımlanmalı veya test konfigürasyonunda bu sunucu testleri Node'a alınmalı.
+- Bölüm 8'in 0D yol ayrımı maddesi hâlâ `social-media-shared` sunucu kopyasını söylüyor. Uygulanan, doğrulanmış kopyasız yöntemle bu ana plan metni de tutarlı hâle getirilmeli.
+
+### [Codex — uygulama ara incelemesi 9: Studio yeniden bildirim akışı] — 2026-09-29
+
+[StudioPlanPage](../studio/pages/StudioPlanPage.tsx) üzerinden iki sorun gördüm:
+
+1. **Kısmen onaylanmış plan yeniden bildirilemiyor.** Ekran, en az bir `pending_approval` post varken “Firmaya yeniden bildir” gösteriyor; düğme `postIds` vermeden `submit_to_client` çağırıyor. Motorun atama-only yolu ise bütün post'ların `pending_approval` olmasını istiyor. Gerçek saf motoru atanmış `brand_manager` ve Studio politikasıyla çalıştırdım: iki bekleyen post başarılı; bekleyen + onaylı ve bekleyen + müşteri revizyonu `409 NO_ELIGIBLE_POSTS`; bekleyen + taslak `409 INTERNAL_REVIEW_REQUIRED`. Bu durumlarda e-posta adımına hiç gelinmiyor. Yeniden bildirim/atama, karma planın bekleyen içeriklerine uygulanabilmeli; iç inceleme zorunluluğu korunmalı.
+
+2. **Onay başarılı, e-posta başarısız olursa ekran eski durumda kalıyor.** `approveAndSend` önce onay transaction'ını tamamlıyor, sonra e-posta isteğini yapıyor. İkinci adım hata verince `run` içindeki `load()` atlanıyor. Kullanıcı aynı modalda tekrar gönderdiğinde eski `counts.internal_review` ile yeniden `internal_approve` çağrılıyor; içerikler artık beklediği için `NO_ELIGIBLE_POSTS` alıyor. Başarılı durum değişikliğinden sonra veriler, bildirim sonucu ne olursa olsun yenilenmeli; başarısız e-posta yeniden denenebilmeli.
+
+İlk madde yerel motor çalıştırmasıyla, ikinci madde çağrı sırasının kod incelemesiyle doğrulandı. Kabul testi: iki içerikten biri onaylandıktan sonra kalan içeriği yeniden bildir; ayrıca onay sonrası e-posta hatası üretip sayfayı elle yenilemeden e-postayı tekrar dene.
+
+### [Claude — ana oturum] — 2026-09-29 (Faz 1 — Studio uygulandı, incelemeye hazır)
+- **Rol:** `brand_manager` (Marka Yöneticisi) — `lib/rbac/roles.ts`, `UserRole`, davet sihirbazı (en az bir marka zorunlu), toplu davet, ekip/rol kartları. Giriş ve `/admin/*` → `/studio`.
+- **Studio (`studio/`):** `/studio` Markalarım (tek marka → doğrudan), `/:projectId` Bu Hafta (senden bekleyenler / firma revizyonu / firmada bekleyen planlar + kaç gündür / yayına hazır), `/planlar`, `/planlar/yeni` (varsayılan **bir sonraki hafta**; plana bağlanmamış taslaklar), `/planlar/:planId` (kontrole al, "Düzeltilsin" + iç not, metin düzenleme yalnızca düzenlenebilir durumda, **Onayla ve firmaya gönder** = `internal_approve` + atama + e-posta, Revizyona al, firma linki, geçmiş), `/takvim` (salt okunur), `/marka` (`api/studio/brand-kit`, salt okunur; lead'in iletişim/fiyat alanları dönmez).
+- **Politika:** projeye bir `brand_manager` atanmışsa (veya `projects.studioManaged`) sunucu `requireInternalReview=true`, `autoScheduleOnApproval=false` uygular (users index: tenantId+role+assignedProjectIds). "Zamanla" aksiyonu Studio'da yok; onay `approved`'da kalır.
+- `internal_approve` artık opsiyonel `assignee` alıyor (tek adımda onay + firma ataması).
+- **Testler:** Firestore kurallarına Studio akışı (plan/post sorguları, önce plan sonra post bağı, bildirimler) — `npm run test:rules` 50/50; motor 53/53; `vite build` ve `build-api` başarılı.
+- **Bilinen v1 sınırları:** Post oluşturma mevcut `CreatePostPanel` ile (plan bağı plan oluşturulurken); takvim salt okunur; performans sekmesi yok; freelancer'ın proje dışı iç koleksiyon erişimi korunuyor.
+
 ## 8. Revize plan (Codex incelemesi sonrası) — geçerli sürüm
 
 ### Faz 0 — Erişim ve onay sözleşmesi (Studio'dan önce, ayrı PR'lar)

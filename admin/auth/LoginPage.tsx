@@ -43,10 +43,12 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  // After successful login, redirect clients to portal
+  // After successful login, redirect clients to portal, brand managers to Studio
   React.useEffect(() => {
     if (user?.role === 'client') {
       navigate('/portal', { replace: true });
+    } else if (user?.role === 'brand_manager') {
+      navigate('/studio', { replace: true });
     }
   }, [user, navigate]);
 

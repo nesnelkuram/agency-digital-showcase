@@ -19,6 +19,7 @@ const roleIcons: Record<UserRole, React.ElementType> = {
   staff: UserCheck,
   client: Users,
   freelancer: Laptop,
+  brand_manager: Laptop,
 };
 
 const roleDescriptions: Record<UserRole, string> = {
@@ -29,6 +30,7 @@ const roleDescriptions: Record<UserRole, string> = {
   staff: 'Genel proje ve gorev yonetimi',
   client: 'Proje gorunturleme ve onay islemleri',
   freelancer: 'Atanan gorevlerde sinirli erisim',
+  brand_manager: 'Atanan markaların içerik akışını yönetir (Studio)',
 };
 
 const roleBgColors: Record<UserRole, string> = {
@@ -39,6 +41,7 @@ const roleBgColors: Record<UserRole, string> = {
   staff: 'bg-blue-50 border-blue-100',
   client: 'bg-green-50 border-green-100',
   freelancer: 'bg-amber-50 border-amber-100',
+  brand_manager: 'bg-rose-50 border-rose-100',
 };
 
 const roleIconColors: Record<UserRole, string> = {
@@ -49,6 +52,7 @@ const roleIconColors: Record<UserRole, string> = {
   staff: 'text-blue-600',
   client: 'text-green-600',
   freelancer: 'text-amber-600',
+  brand_manager: 'text-rose-600',
 };
 
 interface RoleInfoCardProps {

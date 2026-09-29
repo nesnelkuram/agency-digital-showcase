@@ -23,6 +23,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
   staff: 'Çalışan',
   client: 'Müşteri',
   freelancer: 'Freelancer',
+  brand_manager: 'Marka Yöneticisi',
 };
 
 const labelClass = 'block font-grotesk text-xs font-medium text-neutral-700 mb-1.5';

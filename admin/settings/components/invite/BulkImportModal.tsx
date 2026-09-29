@@ -17,6 +17,7 @@ const VALID_ROLES: UserRole[] = [
   'staff',
   'client',
   'freelancer',
+  'brand_manager',
 ];
 
 interface Row {

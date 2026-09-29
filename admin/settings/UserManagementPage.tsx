@@ -41,6 +41,7 @@ const roleLabels: Record<UserRole, string> = {
   staff: 'Çalışan',
   client: 'Müşteri',
   freelancer: 'Freelancer',
+  brand_manager: 'Marka Yöneticisi',
 };
 
 const roleColors: Record<UserRole, string> = {
@@ -51,6 +52,7 @@ const roleColors: Record<UserRole, string> = {
   staff: 'bg-blue-100 text-blue-700',
   client: 'bg-green-100 text-green-700',
   freelancer: 'bg-amber-100 text-amber-700',
+  brand_manager: 'bg-rose-100 text-rose-700',
 };
 
 // Roles assignable via role change dropdown (super_admin atanmaz, wizard UI üzerinden)

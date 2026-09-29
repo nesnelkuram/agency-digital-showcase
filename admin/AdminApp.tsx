@@ -161,6 +161,10 @@ const AdminAppRoleGate: React.FC<{ children: React.ReactNode }> = ({ children })
   if (user?.role === 'client') {
     return <Navigate to="/portal" replace />;
   }
+  // Marka yöneticisi admin paneline giremez; Studio'da çalışır
+  if (user?.role === 'brand_manager') {
+    return <Navigate to="/studio" replace />;
+  }
   return <>{children}</>;
 };
 

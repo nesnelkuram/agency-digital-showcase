@@ -11,6 +11,7 @@ const roleLabels: Record<UserRole, string> = {
   staff: 'Calisan',
   client: 'Musteri',
   freelancer: 'Freelancer',
+  brand_manager: 'Marka Yöneticisi',
 };
 
 const roleDescShort: Record<string, string> = {
@@ -20,6 +21,7 @@ const roleDescShort: Record<string, string> = {
   staff: 'Genel gorev yonetimi',
   client: 'Proje goruntuleme ve onay',
   freelancer: 'Sinirli gorev erisimi',
+  brand_manager: 'Atanan markaların içerik akışı (Studio)',
 };
 
 const inviteRoles: UserRole[] = ['admin', 'account_manager', 'editor', 'staff', 'client', 'freelancer'];

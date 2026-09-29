@@ -28,6 +28,7 @@ const roleLabels: Record<UserRole, string> = {
   staff: 'Calisan',
   client: 'Musteri',
   freelancer: 'Freelancer',
+  brand_manager: 'Marka Yöneticisi',
 };
 
 const allRoles: UserRole[] = ['super_admin', 'admin', 'account_manager', 'editor', 'staff', 'client', 'freelancer'];

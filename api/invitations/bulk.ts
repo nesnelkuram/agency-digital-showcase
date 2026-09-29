@@ -19,6 +19,7 @@ const VALID_ROLES = new Set([
   'staff',
   'client',
   'freelancer',
+  'brand_manager',
 ]);
 
 function stripUndefined<T extends Record<string, any>>(obj: T): Partial<T> {
