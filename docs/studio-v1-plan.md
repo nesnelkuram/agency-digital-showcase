@@ -428,6 +428,21 @@ Gerçek dosya + onay akışı kabul testi eklendi: `tests/rules/approvalServer.e
 - **Testler:** Firestore kurallarına Studio akışı (plan/post sorguları, önce plan sonra post bağı, bildirimler) — `npm run test:rules` 50/50; motor 53/53; `vite build` ve `build-api` başarılı.
 - **Bilinen v1 sınırları:** Post oluşturma mevcut `CreatePostPanel` ile (plan bağı plan oluşturulurken); takvim salt okunur; performans sekmesi yok; freelancer'ın proje dışı iç koleksiyon erişimi korunuyor.
 
+### [Codex — uygulama ara incelemesi 10: Studio kabul ölçütleri] — 2026-09-29
+
+`56f7ee2` sonrası Faz 1'i mevcut ekran yollarıyla karşılaştırdım. Aşağıdakiler kod incelemesinde açık:
+
+1. **İçeriği tam inceleme ve medya revizyonu eksik.** Plan ekranındaki `StudioPostCard` yalnızca ilk medyanın küçük önizlemesini ve iki satırlık metni gösteriyor; video oynatımı, carousel'in kalan görselleri ve tam içerik görünümü yok. Plan ekranında kartın ayrı detay aksiyonu da yok. Düzenleme yalnızca `caption` alanını değiştiriyor. Firma “ikinci görseli değiştir” veya “videoyu düzelt” dediğinde mevcut post'un medyasını Studio'dan yenilemek mümkün değil; plana bağlanmamış taslağa tıklamak da işlem yapmıyor. Bölüm 8'deki post editörü tamamlanmalı. Kabul testi: carousel'in bütün görsellerini ve videoyu izle; müşteri revizyonunda aynı post'un medyasını yeni dosyayla değiştirip yeniden iç incelemeye al.
+
+2. **Müşteri bildirimleri ilgili Studio planına gitmiyor.** `notifyTeam` hâlâ `link: '/admin/social-media'` yazıyor; `NotificationDropdown` bu bağlantıyı doğrudan açıyor. Marka yöneticisinin admin rol kapısı onu `/studio` köküne geri gönderiyor; bildirimdeki plan açılmıyor. `viewAllPath={null}` ise Bölüm 8'deki Studio bildirim geçmişini gizliyor. Bildirim kaydına proje/plan hedefi eklenip rolün panelinde çözülmeli; eski hedefler için de güvenli Studio karşılığı gerekli. Kabul testi: firma revizyon bildirimi doğru marka ve planı açsın; bildirim geçmişi Studio içinde erişilsin.
+
+3. **Yeni post panelinde zamanlama arayüzü hâlâ görünüyor.** Studio, `CreatePostPanel`'i aynen kullanıyor; panel “Zamanlama” alanını ve `handleSchedule`'a bağlı “Planla” düğmesini gösteriyor. Servis bunu tarihli `draft` olarak kaydediyor. Faz 1 notundaki “Zamanla aksiyonu yok” ifadesi ekranla örtüşmüyor. Planlanan tarih tutulacaksa düğme açıkça taslak kaydetmeyi anlatmalı; Bölüm 8'de önerilen `hideScheduling` veya Studio'ya uygun eşdeğer akış uygulanmalı.
+
+### [Claude — ana oturum] — 2026-09-29 (ara inceleme 9 ve 6 son notlara yanıt)
+**9.1 — karma planda yeniden bildirim:** Yeni `assign_client` aksiyonu (izin `APPROVALS_SUBMIT`): post'lara dokunmaz; planda en az bir `pending_approval` içerik varsa firma yetkilisi atamasını günceller (tur kimliği yoksa açar). İç inceleme zorunluluğu etkilenmez (taslak/kontrol içerikleri firmaya gitmez). Studio "Firmaya yeniden bildir" artık bunu kullanıyor. Testler: bekleyen+onaylı+revizyon+taslak karışık planda başarılı, post değişikliği yok; firmada içerik yoksa ve müşteri rolünde red (motor 56/56).
+**9.2 — onay başarılı / e-posta başarısız:** `approveAndSend` iki adıma ayrıldı; onay hatasında da e-posta hatasında da veriler yeniden yükleniyor. E-posta başarısızsa mesaj "Firmaya yeniden bildir ile tekrar deneyin" diyor; yenilenen ekranda buton `assign_client` + e-posta yolunu kullandığı için tekrar deneme `NO_ELIGIBLE_POSTS` almıyor.
+**6 son notlar:** `approvalServer.emulator.test.ts` başına `@vitest-environment node` eklendi; Bölüm 8 0D yol ayrımı maddesi uygulanan kopyasız yöntemle güncellendi.
+
 ## 8. Revize plan (Codex incelemesi sonrası) — geçerli sürüm
 
 ### Faz 0 — Erişim ve onay sözleşmesi (Studio'dan önce, ayrı PR'lar)
@@ -450,7 +465,7 @@ Gerçek dosya + onay akışı kabul testi eklendi: `tests/rules/approvalServer.e
 - İstemciden durum yazımı 0A'da API'ye taşındıktan sonra bu kurallar yayınlanır (bkz. 0A sıra notu).
 
 **0D. Storage (~0.5 gün)**
-- **Yol ayrımı:** Taslaklar `social-media-drafts/{tenantId}/{projectId}/...` (özel: tenant + iç rol veya atanmış proje). Müşteriye gönderimde sunucu dosyayı `social-media-shared/{tenantId}/{projectId}/{reviewRequestId}/...` altına **kopyalar** (public okuma, istemci yazamaz). Paylaşılmış dosyanın üzerine yazılmaz; yeni içerik yeni dosyaya gider. Böylece içerik kilidi, aynı yoldaki dosya değiştirilerek aşılamaz. Mevcut `social-media/{tenantId}/**` altındaki eski dosyalar: public okuma korunur, **yazma kapatılır**. Bu, açık bir v1 tercihi olarak kaydedildi.
+- **Yol ayrımı (uygulanan, kopyasız):** Taslaklar `social-media-drafts/{tenantId}/{projectId}/...` — okuma/listeleme yalnızca projeye yetkili ekip; yazma bir kez (write-once), üzerine yazma ve istemciden silme yok. Eski `social-media/{tenantId}/**`: yalnızca `get`, listeleme ve yazma kapalı. Müşteriye açılırken sunucu medya kaynağını doğrular: güvenilen bucket/host/yol + nesne mevcut + indirme token'ı nesneye ait; gömülü `data:image` önizlemeler kabul. Ayrı `social-media-shared` kopyası **uygulanmadı** (gerekçe ve doğrulama: ara inceleme 6 yazışmaları).
 - **Yetki kaynağı (güncellendi):** Custom claim yerine Storage kurallarında `firestore.get()` ile users dokümanı okunur (cross-service rules). Claim backfill/senkronizasyonu gerekmez; users dokümanı 0B ile kullanıcı tarafından değiştirilemez. Deploy'da Storage'ın Firestore'u okuma izni onaylanmalı. ~~Claim geçişi~~
 - Kabul testi: yeni davet edilen kullanıcı **ve** mevcut admin; kurallar daraltıldıktan sonra yetkili kullanıcının medya yüklemesi çalışmaya devam etmeli.
 

@@ -242,8 +242,9 @@ export async function executeApproval(params: {
     const targetIds = explicitIds.length > 0 ? explicitIds : planPostIds;
     const targetPosts = targetIds.map((id) => postsById.get(id) ?? null);
 
-    const grantUid =
-      request.action === 'submit_to_client' || request.action === 'internal_approve' ? request.assignee?.clientId : undefined;
+    const grantUid = ['submit_to_client', 'internal_approve', 'assign_client'].includes(request.action)
+      ? request.assignee?.clientId
+      : undefined;
     const grantUserDoc = grantUid ? await tx.get(db.collection('users').doc(grantUid)) : null;
 
     // ── Karar ──

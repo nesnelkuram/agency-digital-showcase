@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Onay sunucusu — gerçek Firestore + Storage emülatörüyle kabul testleri (Admin SDK).
  * Çalıştırma: npm run emulators:rules (ayrı terminal) → npm run test:rules

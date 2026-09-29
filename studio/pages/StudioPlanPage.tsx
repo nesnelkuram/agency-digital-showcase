@@ -145,28 +145,34 @@ const StudioPlanPage: React.FC = () => {
   const bulk = (action: ApprovalActionName, label: string) =>
     run(`bulk:${action}`, () => runApprovalAction({ planId: plan!.id, action, reviewRequestId: plan!.reviewRequestId }), label);
 
-  /** Kontroldeki içerikleri onayla → firmaya gönder (atama + e-posta) */
+  /**
+   * Kontroldeki içerikleri onayla → firmaya gönder (atama + e-posta).
+   * İçerikler zaten firmadaysa yalnızca yetkili güncellenir ve yeniden bildirilir (karma planlarda da).
+   * Onay başarılı olup e-posta başarısız olursa durum yine yenilenir; e-posta tekrar denenebilir.
+   */
   const approveAndSend = async () => {
     const email = clientEmail.trim().toLowerCase();
     if (!email || !clientName.trim()) {
       setError('Firma yetkilisinin adı ve e-postası gerekli.');
       return;
     }
+    setBusy('send');
+    setError(null);
+    setNotice(null);
+    const assignee = { clientName: clientName.trim(), clientEmail: email };
+    try {
+      await runApprovalAction({
+        planId: plan!.id,
+        action: (counts.internal_review || 0) > 0 ? 'internal_approve' : 'assign_client',
+        assignee,
+      });
+    } catch (err) {
+      setError(err instanceof ApprovalApiError ? err.message : 'Onay başarısız.');
+      setBusy(null);
+      await load();
+      return;
+    }
     const ok = await run('send', async () => {
-      if ((counts.internal_review || 0) > 0) {
-        await runApprovalAction({
-          planId: plan!.id,
-          action: 'internal_approve',
-          assignee: { clientName: clientName.trim(), clientEmail: email },
-        });
-      } else {
-        // İçerikler zaten firmada: yalnızca yetkiliyi güncelle / yeniden bildir
-        await runApprovalAction({
-          planId: plan!.id,
-          action: 'submit_to_client',
-          assignee: { clientName: clientName.trim(), clientEmail: email },
-        });
-      }
       const res = await authenticatedFetch('/api/send-content-plan-notification', {
         method: 'POST',
         body: JSON.stringify({
@@ -181,10 +187,13 @@ const StudioPlanPage: React.FC = () => {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new ApprovalApiError(`Onaylandı fakat e-posta gönderilemedi: ${body?.error || res.status}`);
+        throw new ApprovalApiError(
+          `İçerikler firmaya açıldı fakat e-posta gönderilemedi (${body?.error || res.status}). "Firmaya yeniden bildir" ile tekrar deneyin.`
+        );
       }
     }, 'Firmaya gönderildi.');
     if (ok) setSendOpen(false);
+    else await load(); // onay yazıldı; ekran güncel durumu göstersin
   };
 
   const saveCaption = (post: SocialMediaPost) =>

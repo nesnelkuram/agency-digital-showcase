@@ -398,3 +398,31 @@ describe('gömülü önizleme (Codex ara inceleme 8)', () => {
     expect(r.ok).toBe(true);
   });
 });
+
+// ─── Karma planda yeniden bildirim (Codex ara inceleme 9) ───────────────────
+describe('assign_client', () => {
+  const bm = user('brand_manager', { assignedProjectIds: ['proj-rakle'] });
+  const assignee = { clientName: 'Rakle Yetkili', clientEmail: 'Yetkili@Rakle.com' };
+  it('bekleyen + onaylı + revizyon + taslak karışık planda atama güncellenir, post\'lara dokunulmaz', () => {
+    const r = run(bm, { action: 'assign_client', assignee }, plan({ status: 'partially_approved', reviewRequestId: 'r1' }), [
+      post('p1', 'pending_approval'),
+      post('p2', 'approved'),
+      post('p3', 'revision_requested'),
+      post('p4', 'draft'),
+    ], true);
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.postChanges).toHaveLength(0);
+      expect(r.planFields.assignedClientEmail).toBe('yetkili@rakle.com');
+      expect(r.newReviewRequestId).toBeUndefined();
+    }
+  });
+  it('firmada bekleyen içerik yoksa reddedilir', () => {
+    const r = run(bm, { action: 'assign_client', assignee }, plan({ status: 'internal_review' }), [post('p1', 'internal_review')], true);
+    expect(r.ok).toBe(false);
+  });
+  it('müşteri atama yapamaz', () => {
+    const r = run(user('client', { assignedProjectIds: ['proj-rakle'] }), { action: 'assign_client', assignee }, plan({ status: 'pending_approval' }), [post('p1', 'pending_approval')]);
+    expect(r.ok).toBe(false);
+  });
+});

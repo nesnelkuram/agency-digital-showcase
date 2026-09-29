@@ -18,7 +18,8 @@ export type ApprovalActionName =
   | 'client_reject'
   | 'client_undo'
   | 'comment'
-  | 'update_approval_config';
+  | 'update_approval_config'
+  | 'assign_client';
 
 export interface ApprovalResponse {
   success: true;

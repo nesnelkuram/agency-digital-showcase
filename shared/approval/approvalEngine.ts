@@ -26,7 +26,8 @@ export type ApprovalActionName =
   | 'client_reject'
   | 'client_undo'
   | 'comment'
-  | 'update_approval_config';
+  | 'update_approval_config'
+  | 'assign_client';
 
 export type ApprovalActor =
   | {
@@ -185,6 +186,7 @@ const INTERNAL_ACTIONS = new Set<ApprovalActionName>([
   'resubmit',
   'reopen',
   'update_approval_config',
+  'assign_client',
 ]);
 
 const CLIENT_DECISION_ACTIONS = new Set<ApprovalActionName>(['client_approve', 'client_reject', 'client_undo']);
@@ -201,6 +203,7 @@ const ACTION_PERMISSION: Record<ApprovalActionName, string> = {
   client_undo: PERMISSIONS.APPROVALS_APPROVE,
   comment: PERMISSIONS.APPROVALS_COMMENT,
   update_approval_config: PERMISSIONS.APPROVALS_SKIP_INTERNAL,
+  assign_client: PERMISSIONS.APPROVALS_SUBMIT,
 };
 
 // ============================================
@@ -445,6 +448,40 @@ export function planApproval(input: PlanApprovalInput): ApprovalResult {
       postChanges: [],
       planFields: { approvalConfig: clean },
       comments: [],
+      performedBy,
+      performedByName,
+      performedByRole,
+    };
+  }
+
+  // ── 2b. Firma yetkilisi ataması / yeniden bildirim (post'lara dokunmaz) ──
+  // Karma planlarda da çalışır: en az bir içerik firmada bekliyorsa atama güncellenir.
+  if (action === 'assign_client') {
+    const assignee = request.assignee;
+    const email = (assignee?.clientEmail || '').trim().toLowerCase();
+    if (!assignee || !email) return fail('BAD_REQUEST', 'Firma yetkilisinin e-postası gerekli');
+    const planPosts = targetPosts.filter((p): p is PostSnapshot => p !== null && postBelongsToPlan(p, plan));
+    if (!planPosts.some((p) => p.status === 'pending_approval')) {
+      return fail('NO_ELIGIBLE_POSTS', 'Firmada bekleyen içerik yok', 409);
+    }
+    const planFields: Record<string, unknown> = {
+      assignedClientName: (assignee.clientName || '').trim(),
+      assignedClientEmail: email,
+      sentToClientAt: '__now__',
+      sentToClientBy: performedBy,
+      sentToClientByName: performedByName,
+    };
+    if (assignee.clientId) planFields.assignedClientId = assignee.clientId;
+    // Tur kimliği olmayan eski planlarda tur açılır (müşteri kararları tura bağlansın)
+    const newReviewRequestId = plan.reviewRequestId ? undefined : input.newId();
+    if (newReviewRequestId) planFields.reviewRequestId = newReviewRequestId;
+    return {
+      ok: true,
+      postChanges: [],
+      planFields,
+      newReviewRequestId,
+      comments: [],
+      grantProjectToClientUid: assignee.clientId || undefined,
       performedBy,
       performedByName,
       performedByRole,
