@@ -284,16 +284,35 @@ export function postBelongsToPlan(post: PostSnapshot, plan: PlanSnapshot): boole
 // Medya kaynağı: müşteriye açılan içerik yalnızca değiştirilemez yollardan medya kullanabilir
 // ============================================
 
-/** Firebase Storage indirme URL'sinden bucket ve nesne yolunu çıkarır */
-export function parseStorageDownloadUrl(url: string): { host: string; bucket: string; path: string } | null {
+/** Firebase Storage indirme URL'sinden bucket, nesne yolu ve indirme token'ını çıkarır */
+export function parseStorageDownloadUrl(url: string): { host: string; bucket: string; path: string; token: string | null } | null {
   try {
     const u = new URL(url);
     const m = u.pathname.match(/^\/v0\/b\/([^/]+)\/o\/(.+)$/);
     if (!m) return null;
-    return { host: u.host, bucket: decodeURIComponent(m[1]), path: decodeURIComponent(m[2]) };
+    return { host: u.host, bucket: decodeURIComponent(m[1]), path: decodeURIComponent(m[2]), token: u.searchParams.get('token') };
   } catch {
     return null;
   }
+}
+
+/**
+ * Müşteriye açılacak post'ların Storage medya nesneleri (gömülü data: görseller hariç).
+ * Sunucu bunların gerçekten var olduğunu ve URL token'ının nesneye ait olduğunu doğrular —
+ * aksi halde "önce URL onaylat, sonra dosyayı ilk kez yükle" ile içerik sonradan eklenebilir.
+ */
+export function storageObjectsToVerify(changes: PostChange[], posts: PostSnapshot[]) {
+  const out: Array<{ postId: string; bucket: string; path: string; token: string | null }> = [];
+  for (const c of changes) {
+    if (c.toStatus !== 'pending_approval') continue;
+    const post = posts.find((p) => p.id === c.postId);
+    for (const url of post?.mediaUrls || []) {
+      if (url.startsWith('data:')) continue;
+      const parsed = parseStorageDownloadUrl(url);
+      if (parsed) out.push({ postId: c.postId, bucket: parsed.bucket, path: parsed.path, token: parsed.token });
+    }
+  }
+  return out;
 }
 
 /**

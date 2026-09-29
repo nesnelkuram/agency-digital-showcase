@@ -38,7 +38,7 @@ const sharedOptions = {
   platform: 'node',
   target: 'node18',
   format: 'esm',
-  external: ['@vercel/node', 'firebase-admin', 'firebase-admin/app', 'firebase-admin/firestore', 'firebase-admin/auth'],
+  external: ['@vercel/node', 'firebase-admin', 'firebase-admin/app', 'firebase-admin/firestore', 'firebase-admin/auth', 'firebase-admin/storage'],
   allowOverwrite: true,
   minify: true,
   sourcemap: false,

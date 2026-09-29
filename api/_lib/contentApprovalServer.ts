@@ -5,13 +5,14 @@
  */
 
 import { randomUUID } from 'crypto';
-import { getAdminDb, getFieldValue } from './firebaseAdmin.js';
+import { getAdminDb, getFieldValue, getAdminStorage } from './firebaseAdmin.js';
 import {
   planApproval,
   computePlanStatus,
   computeApprovalSummary,
   planApprovedFields,
   validatePostIdsParam,
+  storageObjectsToVerify,
   type ApprovalActor,
   type ApprovalRequest,
   type PlanSnapshot,
@@ -140,6 +141,20 @@ function toPostSnapshot(id: string, data: any): PostSnapshot {
   };
 }
 
+/** Nesne var mı ve indirme token'ı nesnenin metadata'sında kayıtlı mı? */
+async function verifyStorageObject(storage: any, bucket: string, path: string, token: string | null): Promise<boolean> {
+  try {
+    const [metadata] = await storage.bucket(bucket).file(path).getMetadata();
+    const tokens = String(metadata?.metadata?.firebaseStorageDownloadTokens || '')
+      .split(',')
+      .map((t) => t.trim())
+      .filter(Boolean);
+    return !!token && tokens.includes(token);
+  } catch {
+    return false; // yok veya okunamıyor
+  }
+}
+
 function uniqueStrings(values: unknown[]): string[] {
   return Array.from(new Set(values.filter((v): v is string => typeof v === 'string' && v.length > 0)));
 }
@@ -191,7 +206,21 @@ export async function executeApproval(params: {
     const plan = toPlanSnapshot(planDoc.id, planData);
 
     const projectDoc = plan.projectId ? await tx.get(db.collection('projects').doc(plan.projectId)) : null;
-    const policy = { studioManaged: !!projectDoc?.data()?.studioManaged };
+    // Studio politikası: proje açıkça işaretliyse ya da projeye bir marka yöneticisi atanmışsa
+    // (iç inceleme zorunlu, onayda otomatik zamanlama yok)
+    let studioManaged = !!projectDoc?.data()?.studioManaged;
+    if (!studioManaged && plan.projectId) {
+      const managers = await tx.get(
+        db
+          .collection('users')
+          .where('tenantId', '==', plan.tenantId)
+          .where('role', '==', 'brand_manager')
+          .where('profile.assignedProjectIds', 'array-contains', plan.projectId)
+          .limit(1)
+      );
+      studioManaged = !managers.empty;
+    }
+    const policy = { studioManaged };
 
     // Planın tüm post'ları: contentPlanId bağı + plan.postIds (eski kayıtlar)
     const linkedSnap = await tx.get(db.collection(POSTS).where('contentPlanId', '==', plan.id));
@@ -213,7 +242,8 @@ export async function executeApproval(params: {
     const targetIds = explicitIds.length > 0 ? explicitIds : planPostIds;
     const targetPosts = targetIds.map((id) => postsById.get(id) ?? null);
 
-    const grantUid = request.action === 'submit_to_client' ? request.assignee?.clientId : undefined;
+    const grantUid =
+      request.action === 'submit_to_client' || request.action === 'internal_approve' ? request.assignee?.clientId : undefined;
     const grantUserDoc = grantUid ? await tx.get(db.collection('users').doc(grantUid)) : null;
 
     // ── Karar ──
@@ -228,6 +258,25 @@ export async function executeApproval(params: {
     });
     if (!result.ok) {
       return { ok: false, httpStatus: result.httpStatus, code: result.code, error: result.message } as ApprovalFailure;
+    }
+
+    // Müşteriye açılacak medya: Storage nesnesi gerçekten var olmalı ve URL token'ı ona ait olmalı
+    if (request.action !== 'client_undo') {
+      const targets = storageObjectsToVerify(result.postChanges, targetPosts.filter((p): p is PostSnapshot => !!p));
+      if (targets.length > 0) {
+        const storage = await getAdminStorage();
+        for (const t of targets) {
+          const verified = await verifyStorageObject(storage, t.bucket, t.path, t.token);
+          if (!verified) {
+            return {
+              ok: false,
+              httpStatus: 409,
+              code: 'MEDIA_SOURCE_INVALID',
+              error: 'Bir medya dosyası bulunamadı veya doğrulanamadı. Lütfen medyayı post düzenleyiciden yeniden yükleyin.',
+            } as ApprovalFailure;
+          }
+        }
+      }
     }
 
     // Atanacak müşteri aynı tenant'ta bir client olmalı

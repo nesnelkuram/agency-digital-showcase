@@ -37,3 +37,10 @@ export function getFirebaseAuth(): any {
   getAdminDb();
   return authModule.getAuth();
 }
+
+// Storage modülü yalnızca gerektiğinde yüklenir (medya doğrulaması)
+export async function getAdminStorage(): Promise<any> {
+  getAdminDb();
+  const storageModule = await import('firebase-admin/storage');
+  return storageModule.getStorage();
+}
