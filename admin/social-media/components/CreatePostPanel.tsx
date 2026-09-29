@@ -25,6 +25,11 @@ interface CreatePostPanelProps {
   onPostCreated: () => void;
   projectId: string;
   prefilledDate?: Date;
+  /**
+   * Studio modu: yayın zamanlaması yok. Tarih yalnızca "planlanan tarih" olarak taslağa yazılır
+   * (haftalık plana eklemek için); tek aksiyon "Taslak olarak kaydet".
+   */
+  studioMode?: boolean;
 }
 
 interface StoryFrame {
@@ -76,6 +81,7 @@ const CreatePostPanel: React.FC<CreatePostPanelProps> = ({
   onPostCreated,
   projectId,
   prefilledDate,
+  studioMode = false,
 }) => {
   const { user } = useAuth();
   const tenantId = useTenantId();
@@ -235,7 +241,7 @@ const CreatePostPanel: React.FC<CreatePostPanelProps> = ({
     setSubmitting(true);
 
     try {
-      const scheduledAt = status === 'scheduled' ? buildScheduledAt() : undefined;
+      const scheduledAt = status === 'scheduled' || studioMode ? buildScheduledAt() : undefined;
 
       if (isStoryMode && storyFrames.length > 0) {
         // Create separate post for each story frame
@@ -430,8 +436,13 @@ const CreatePostPanel: React.FC<CreatePostPanelProps> = ({
                 {/* 5. Schedule */}
                 <div>
                   <label className="block font-grotesk text-xs font-medium text-neutral-500 uppercase tracking-wider mb-2">
-                    Zamanlama
+                    {studioMode ? 'Planlanan tarih' : 'Zamanlama'}
                   </label>
+                  {studioMode && (
+                    <p className="font-grotesk text-[11px] text-neutral-400 -mt-1 mb-2">
+                      Yayın zamanlaması değildir; içerik taslak olarak kaydedilir ve haftalık plana bu tarihle eklenir.
+                    </p>
+                  )}
                   <div className="flex gap-3">
                     <input
                       type="date"
@@ -489,8 +500,9 @@ const CreatePostPanel: React.FC<CreatePostPanelProps> = ({
                   ) : (
                     <Save className="w-4 h-4" />
                   )}
-                  Taslak Kaydet
+                  {studioMode ? 'Taslak olarak kaydet' : 'Taslak Kaydet'}
                 </button>
+                {!studioMode && (
                 <button
                   type="button"
                   onClick={handleSchedule}
@@ -504,6 +516,7 @@ const CreatePostPanel: React.FC<CreatePostPanelProps> = ({
                   )}
                   Planla
                 </button>
+                )}
               </div>
             </div>
           </motion.div>

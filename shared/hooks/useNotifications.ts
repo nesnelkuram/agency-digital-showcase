@@ -31,6 +31,9 @@ export interface AppNotification {
   title: string;
   message: string;
   link?: string;
+  /** İçerik onayı bildirimlerinde hedef (rolün kendi panelinde çözülür) */
+  projectId?: string;
+  planId?: string;
   read: boolean;
   createdAt: Date;
 }
@@ -98,6 +101,8 @@ export function useNotifications(): UseNotificationsReturn {
             title: data.title || '',
             message: data.message || '',
             link: data.link,
+            projectId: data.projectId,
+            planId: data.planId,
             read: data.read ?? false,
             createdAt: data.createdAt?.toDate?.() || new Date(),
           });

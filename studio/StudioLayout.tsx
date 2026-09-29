@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTenantId } from '@/shared/hooks/useTenant';
 import { NotificationsProvider } from '@/admin/contexts/NotificationsContext';
 import NotificationDropdown from '@/admin/components/NotificationDropdown';
-import { getStudioProjects, type StudioProject } from './studioData';
+import { getStudioProjects, studioLinkFor, type StudioProject } from './studioData';
 
 export interface StudioContext {
   projects: StudioProject[];
@@ -99,7 +99,7 @@ const StudioLayout: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-1">
-              <NotificationDropdown viewAllPath={null} />
+              <NotificationDropdown viewAllPath="/studio/bildirimler" resolveLink={studioLinkFor} />
               <div className="relative">
                 <button
                   onClick={() => setMenuOpen(!menuOpen)}

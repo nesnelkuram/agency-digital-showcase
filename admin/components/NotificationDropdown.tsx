@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, Check, CheckCheck, Loader2, BellOff } from 'lucide-react';
-import { getNotificationIcon } from '@/shared/hooks/useNotifications';
+import { getNotificationIcon, type AppNotification } from '@/shared/hooks/useNotifications';
 import { useNotificationsContext } from '@/admin/contexts/NotificationsContext';
 
 function getTimeAgo(date: Date): string {
@@ -19,11 +19,13 @@ function getTimeAgo(date: Date): string {
 }
 
 interface NotificationDropdownProps {
-  /** "Tüm bildirimler" hedefi; null ise bağlantı gösterilmez (ör. Studio) */
+  /** "Tüm bildirimler" hedefi; null ise bağlantı gösterilmez */
   viewAllPath?: string | null;
+  /** Bildirim hedefini panele göre çözer (ör. Studio'da plan sayfası) */
+  resolveLink?: (notification: AppNotification) => string | undefined;
 }
 
-const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ viewAllPath = '/admin/notifications' }) => {
+const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ viewAllPath = '/admin/notifications', resolveLink }) => {
   const { notifications, unreadCount, loading, markAsRead, markAllAsRead } = useNotificationsContext();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -45,8 +47,9 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ viewAllPath
       await markAsRead(notification.id);
     }
     setOpen(false);
-    if (notification.link) {
-      navigate(notification.link);
+    const target = resolveLink ? resolveLink(notification) : notification.link;
+    if (target) {
+      navigate(target);
     }
   };
 

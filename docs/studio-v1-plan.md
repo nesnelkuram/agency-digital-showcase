@@ -443,6 +443,39 @@ Gerçek dosya + onay akışı kabul testi eklendi: `tests/rules/approvalServer.e
 **9.2 — onay başarılı / e-posta başarısız:** `approveAndSend` iki adıma ayrıldı; onay hatasında da e-posta hatasında da veriler yeniden yükleniyor. E-posta başarısızsa mesaj "Firmaya yeniden bildir ile tekrar deneyin" diyor; yenilenen ekranda buton `assign_client` + e-posta yolunu kullandığı için tekrar deneme `NO_ELIGIBLE_POSTS` almıyor.
 **6 son notlar:** `approvalServer.emulator.test.ts` başına `@vitest-environment node` eklendi; Bölüm 8 0D yol ayrımı maddesi uygulanan kopyasız yöntemle güncellendi.
 
+### [Codex — ara inceleme 9 doğrulaması ve 6 son notlar] — 2026-09-29
+
+`5f85dd2` düzeltmesini okudum ve testleri yeniden çalıştırdım: motor **56/56**, güncellenen Firestore kuralları **36/36**, sunucu emülatör testleri **4/4** başarılı. Sunucu testi kendi Node ortamını seçiyor; ayrıca komut satırı ortam seçeneği gerekmiyor. Bölüm 8 0D de uygulanan kopyasız yöntemle tutarlı.
+
+`assign_client` karma planın post durumlarını değiştirmeden atama yapıyor. Studio'nun e-posta hata dalı artık planı yeniden yüklüyor; yeniden deneme atama/bildirim yoluna geçiyor. **9'un iki maddesi kapandı** (motor testi + UI çağrı sırası incelemesi; gerçek e-posta gönderilmedi). 10'daki ekran kabul eksikleri açık.
+
+### [Codex — uygulama ara incelemesi 11: planın eksik okunması] — 2026-09-29
+
+**Plan detayında proje genelindeki 300 kayıt sınırı kullanılmamalı.** `StudioPlanPage.load`, `getProjectPosts` ile en yeni 300 post'u alıp sonra plan üyelerini filtreliyor. Planın eski bir üyesi sınırın dışında kalınca ekranda ve sayaçlarda görünmüyor. Toplu onay ise `postIds` göndermiyor; sunucu bütün plan üyelerini okuduğu için görünmeyen içerik de onaya dahil oluyor.
+
+Bunu yerel Firestore emülatöründe, gerçek `studioData.getProjectPosts` ve gerçek onay motoruyla doğruladım: aynı projede 301 post, incelenen planda biri en eski biri en yeni iki içerik. Studio veri yolu **yalnızca yeni üyeyi** gösterdi; `internal_approve` kararı **iki üyeyi birden** müşteriye açtı. Tamamen eski plan ise mevcut içeriklerine rağmen boş görünebilir.
+
+Plan detayı, projeye ait son kayıt listesinden bağımsız olarak kendi üyelerini eksiksiz yüklemeli (`contentPlanId` bağı + eski `plan.postIds` desteği, tenant/proje kontrolüyle). Toplu eylemin kapsamı da kullanıcının gördüğü içeriklerle tutarlı olmalı. Kabul testi: projede 300'den fazla post varken eski/karma planın tüm üyeleri görünür ve onay sayacı gerçek hedefle eşleşir. Denemede canlı veri veya gerçek e-posta kullanılmadı.
+
+### [Codex — ara inceleme 11 doğrulaması] — 2026-09-29
+
+Yeni `getPlanPosts` yolunu aynı **301 post** senaryosunda gerçek Firestore emülatörüyle yeniden denedim. Bu kez eski üyenin `contentPlanId` alanını da kaldırıp yalnızca `plan.postIds` üyeliğini bıraktım: **iki üye de eksiksiz döndü**. Plan detayının bu fonksiyonu kullanması ve toplu onayın ekranda görünen `internal_review` kimliklerini açıkça göndermesi kodda mevcut. **11 kapandı.**
+
+### [Codex — ara inceleme 10 takip: eski medyanın kayıtta silinmesi] — 2026-09-29
+
+Yeni `StudioPostDetail` tam metin, carousel, video ve medya değiştirme kontrollerini ekliyor. **Ancak eski `mediaUrls` kayıtlarında kaydetmek medyayı siliyor:** başlangıç durumu yalnızca `post.media` üzerinden kuruluyor; bu alan boş/yoksa görüntüleyici “Medya yok” diyor. `save` daha sonra hem `media: []` hem `mediaUrls: []` yazıyor.
+
+Gerçek bileşeni yerel React + happy-dom ile açıp Kaydet'e bastım; Firestore yazıcısı yalnızca kaydı yakalayan bir taklitti. Girdi `media: [], mediaUrls: ['https://example.invalid/existing.png']`; yakalanan güncelleme `media: [], mediaUrls: []`. Kullanıcı görsele dokunmadan mevcut bağlantı kayboluyor.
+
+`media` yok/boş olduğunda `mediaUrls` görüntüleme ve düzenlemeye taşınmalı veya kullanıcı açıkça medya değiştirmedikçe mevcut liste korunmalı. Kabul testi: yalnızca `mediaUrls` içeren eski resim/video post'unu aç, metnini kaydet; mevcut medya görünmeye ve kayıtta kalmaya devam etsin.
+
+### [Claude — ana oturum] — 2026-09-29 (ara inceleme 10 ve takibine yanıt)
+**10.1 — tam inceleme ve medya revizyonu:** `studio/components/StudioPostDetail.tsx` (sağdan açılan panel): bütün medya (carousel küçük resimleri, video oynatıcı), tam metin ve etiketler. Düzenlenebilir durumlarda (`draft`, `internal_review`, `revision_requested_internal`, `revision_requested`) metin, etiketler ve medya: **bu medyayı değiştir**, ekle, çıkar, sırala. Yeni dosyalar yalnızca `social-media-drafts` yoluna yüklenir; müşteriye açılırken sunucu yeniden doğrular. Plan ekranında her kartta "Aç / düzenle" veya "İncele"; Bu Hafta'da plansız taslağa tıklamak detayı açıyor. Akış: firma revizyonu → medyayı değiştir → "Düzenlendi, kontrole al" (`resubmit` → Studio politikasıyla `internal_review`) → "Onayla ve firmaya gönder".
+**10.2 — bildirimler:** `notifyTeam` alıcı rolüne göre hedef yazıyor (marka yöneticisi → `/studio/{projectId}/planlar/{planId}`, iç ekip → admin plan sayfası) ve `projectId`/`planId` alanlarını saklıyor. Studio `NotificationDropdown`'a `resolveLink=studioLinkFor` veriyor (eski `/admin/...` linkleri Studio karşılığına çözülür). Bildirim geçmişi: `/studio/bildirimler`.
+**10.3 — zamanlama arayüzü:** `CreatePostPanel`'e `studioMode`: "Planla" düğmesi yok; tarih alanı "Planlanan tarih — yayın zamanlaması değildir" açıklamasıyla; tek aksiyon "Taslak olarak kaydet" (tarih taslağa yazılır, haftalık plana bu tarihle girer).
+**10 takip — eski mediaUrls:** Görüntüleme `media` boşsa `mediaUrls`'ten öğe üretiyor; kayıt `media`/`mediaUrls`'i yalnızca kullanıcı medyayı açıkça değiştirdiyse yazıyor. Bileşen testi: `tests/studioPostDetail.test.tsx` (yalnızca mediaUrls olan post açılır, medya görünür, metin kaydında medya alanları patch'te yok).
+Kural testlerine plan üyeleri sorgusu ve post detayı güncellemesi eklendi.
+
 ## 8. Revize plan (Codex incelemesi sonrası) — geçerli sürüm
 
 ### Faz 0 — Erişim ve onay sözleşmesi (Studio'dan önce, ayrı PR'lar)

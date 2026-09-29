@@ -57,6 +57,34 @@ export async function getProjectPosts(tenantId: string, projectId: string): Prom
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as SocialMediaPost);
 }
 
+/**
+ * Planın tüm üyeleri — proje genelindeki son-kayıt sınırından bağımsız.
+ * contentPlanId bağı + eski plan.postIds; tenant/proje uyumlu olanlar.
+ */
+export async function getPlanPosts(tenantId: string, plan: ContentPlan): Promise<SocialMediaPost[]> {
+  if (!db) return [];
+  const byId = new Map<string, SocialMediaPost>();
+  const snap = await getDocs(
+    query(
+      collection(db, 'social_media_posts'),
+      where('tenantId', '==', tenantId),
+      where('projectId', '==', plan.projectId),
+      where('contentPlanId', '==', plan.id)
+    )
+  );
+  snap.docs.forEach((d) => byId.set(d.id, { id: d.id, ...d.data() } as SocialMediaPost));
+  const legacyIds = (plan.postIds || []).filter((id) => !byId.has(id));
+  const legacy = await Promise.all(legacyIds.map((id) => getDoc(doc(db!, 'social_media_posts', id)).catch(() => null)));
+  for (const d of legacy) {
+    if (!d || !d.exists()) continue;
+    const data = d.data() as any;
+    if (data.projectId !== plan.projectId || (data.tenantId && data.tenantId !== tenantId)) continue;
+    if (data.contentPlanId && data.contentPlanId !== plan.id) continue;
+    byId.set(d.id, { id: d.id, ...data } as SocialMediaPost);
+  }
+  return Array.from(byId.values());
+}
+
 export async function getProjectPlans(tenantId: string, projectId: string): Promise<ContentPlan[]> {
   if (!db) return [];
   const snap = await getDocs(
@@ -92,6 +120,17 @@ export async function getBrandKit(projectId: string): Promise<BrandKit> {
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(body?.error || 'Marka kiti yüklenemedi');
   return body as BrandKit;
+}
+
+/**
+ * Bildirim hedefi Studio'da: Studio linki olduğu gibi; plan hedefi varsa Studio plan sayfası;
+ * eski admin linkleri (ör. /admin/social-media) → Studio ana sayfası.
+ */
+export function studioLinkFor(n: { link?: string; projectId?: string; planId?: string }): string {
+  if (n.link?.startsWith('/studio')) return n.link;
+  if (n.projectId && n.planId) return `/studio/${n.projectId}/planlar/${n.planId}`;
+  if (n.projectId) return `/studio/${n.projectId}`;
+  return '/studio';
 }
 
 // ── Post durum grupları (Şeyma'nın yapacağı işe göre) ──

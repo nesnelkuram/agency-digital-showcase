@@ -232,6 +232,16 @@ describe.skipIf(!HAS_EMULATOR)('firestore.rules', () => {
       await assertSucceeds(db.collection('social_media_posts').where('tenantId', '==', 't1').where('projectId', '==', 'projA').get());
       await assertSucceeds(db.collection('content_plans/planA/approval_events').get());
       await assertFails(db.collection('content_plans').where('tenantId', '==', 't1').where('projectId', '==', 'projB').get());
+      // Plan üyeleri (getPlanPosts)
+      await assertSucceeds(
+        db.collection('social_media_posts').where('tenantId', '==', 't1').where('projectId', '==', 'projA').where('contentPlanId', '==', 'planA').get()
+      );
+    });
+    it('düzenlenebilir post\'ta medya ve etiketler güncellenir (post detayı)', async () => {
+      await assertSucceeds(
+        as('bm1').doc('social_media_posts/postA').update({ caption: 'x', hashtags: ['#a'], media: [], mediaUrls: [], updatedAt: new Date() })
+      );
+      await assertFails(as('bm1').doc('social_media_posts/postA2').update({ media: [], mediaUrls: [] }));
     });
     it('haftalık plan oluşturma: önce plan, sonra post bağı (createContentPlan sırası)', async () => {
       const db = as('bm1');

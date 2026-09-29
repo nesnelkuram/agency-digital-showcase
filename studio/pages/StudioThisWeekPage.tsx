@@ -5,6 +5,7 @@ import type { ContentPlan, SocialMediaPost } from '@/shared/types/socialMedia';
 import CreatePostPanel from '@/admin/social-media/components/CreatePostPanel';
 import { useStudio } from '../StudioLayout';
 import StudioPostCard from '../components/StudioPostCard';
+import StudioPostDetail from '../components/StudioPostDetail';
 import { DONE, NEEDS_ME, WITH_CLIENT, daysSince, getProjectPlans, getProjectPosts } from '../studioData';
 
 /**
@@ -19,6 +20,7 @@ const StudioThisWeekPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [detail, setDetail] = useState<SocialMediaPost | null>(null);
 
   const load = useCallback(async () => {
     if (!project) return;
@@ -48,8 +50,10 @@ const StudioThisWeekPage: React.FC = () => {
   const withClientPlans = plans.filter((p) => posts.some((post) => post.contentPlanId === p.id && WITH_CLIENT.has(post.status)));
   const done = posts.filter((p) => DONE.has(p.status)).slice(0, 8);
 
+  // Plana bağlı içerik → plan ekranı (onay işlemleri orada); plansız taslak → detay/düzenleme
   const openPost = (post: SocialMediaPost) => {
     if (post.contentPlanId && planById.has(post.contentPlanId)) navigate(`/studio/${project!.id}/planlar/${post.contentPlanId}`);
+    else setDetail(post);
   };
 
   if (!project) return null;
@@ -178,7 +182,8 @@ const StudioThisWeekPage: React.FC = () => {
         </>
       )}
 
-      <CreatePostPanel open={createOpen} onClose={() => setCreateOpen(false)} onPostCreated={load} projectId={project.id} />
+      <StudioPostDetail post={detail} onClose={() => setDetail(null)} onSaved={load} />
+      <CreatePostPanel open={createOpen} onClose={() => setCreateOpen(false)} onPostCreated={load} projectId={project.id} studioMode />
     </div>
   );
 };

@@ -1,18 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Loader2, Send, RotateCcw, CheckCircle2, PencilLine, Copy, Check, Mail, X } from 'lucide-react';
-import { doc, serverTimestamp, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
 import { authenticatedFetch } from '@/lib/firebase/apiClient';
 import type { ContentPlan, SocialMediaPost } from '@/shared/types/socialMedia';
 import { runApprovalAction, ApprovalApiError, type ApprovalActionName } from '@/shared/services/contentApprovalApi';
 import ApprovalAuditTrail from '@/admin/social-media/components/ApprovalAuditTrail';
 import { useStudio } from '../StudioLayout';
 import StudioPostCard from '../components/StudioPostCard';
-import { formatDate, getBrandKit, getPlan, getProjectPosts, STUDIO_STATUS_LABEL } from '../studioData';
-
-/** Metni düzenlenebilir durumlar (firestore.rules ile aynı) */
-const EDITABLE = new Set(['draft', 'internal_review', 'revision_requested_internal', 'revision_requested']);
+import StudioPostDetail, { EDITABLE_STATUSES } from '../components/StudioPostDetail';
+import { formatDate, getBrandKit, getPlan, getPlanPosts, STUDIO_STATUS_LABEL } from '../studioData';
 
 interface PostActionDef {
   action: ApprovalActionName;
@@ -50,9 +46,8 @@ const StudioPlanPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
-  // Metin düzenleme
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editCaption, setEditCaption] = useState('');
+  // Post detayı (tam inceleme + düzenleme)
+  const [detail, setDetail] = useState<SocialMediaPost | null>(null);
 
   // Yorum isteyen işlem
   const [commentFor, setCommentFor] = useState<{ postId: string; action: ApprovalActionName } | null>(null);
@@ -68,18 +63,15 @@ const StudioPlanPage: React.FC = () => {
     if (!project || !planId) return;
     setLoading(true);
     try {
-      const [p, all] = await Promise.all([getPlan(planId), getProjectPosts(tenantId, project.id)]);
+      const p = await getPlan(planId);
       if (!p || p.projectId !== project.id) {
         setPlan(null);
         return;
       }
       setPlan(p);
-      const ids = new Set(p.postIds || []);
-      setPosts(
-        all
-          .filter((x) => x.contentPlanId === p.id || ids.has(x.id))
-          .sort((a, b) => ((a.scheduledAt as any)?.toMillis?.() || 0) - ((b.scheduledAt as any)?.toMillis?.() || 0))
-      );
+      // Planın bütün üyeleri, proje geneli listeden bağımsız
+      const members = await getPlanPosts(tenantId, p);
+      setPosts(members.sort((a, b) => ((a.scheduledAt as any)?.toMillis?.() || 0) - ((b.scheduledAt as any)?.toMillis?.() || 0)));
     } catch (err) {
       console.error('[Studio] Plan yüklenemedi:', err);
       setError('Plan yüklenemedi.');
@@ -142,8 +134,13 @@ const StudioPlanPage: React.FC = () => {
       runApprovalAction({ planId: plan!.id, action, postIds: [postId], comment: text, reviewRequestId: plan!.reviewRequestId })
     );
 
-  const bulk = (action: ApprovalActionName, label: string) =>
-    run(`bulk:${action}`, () => runApprovalAction({ planId: plan!.id, action, reviewRequestId: plan!.reviewRequestId }), label);
+  // Toplu işlemler yalnızca ekranda görünen içerikleri hedefler (kapsam kullanıcının gördüğüyle aynı)
+  const idsWithStatus = (...statuses: string[]) => posts.filter((p) => statuses.includes(p.status)).map((p) => p.id);
+  const bulk = (action: ApprovalActionName, label: string, statuses: string[]) => {
+    const postIds = idsWithStatus(...statuses);
+    if (postIds.length === 0) return Promise.resolve(false);
+    return run(`bulk:${action}`, () => runApprovalAction({ planId: plan!.id, action, postIds, reviewRequestId: plan!.reviewRequestId }), label);
+  };
 
   /**
    * Kontroldeki içerikleri onayla → firmaya gönder (atama + e-posta).
@@ -161,9 +158,11 @@ const StudioPlanPage: React.FC = () => {
     setNotice(null);
     const assignee = { clientName: clientName.trim(), clientEmail: email };
     try {
+      const reviewIds = idsWithStatus('internal_review');
       await runApprovalAction({
         planId: plan!.id,
-        action: (counts.internal_review || 0) > 0 ? 'internal_approve' : 'assign_client',
+        action: reviewIds.length > 0 ? 'internal_approve' : 'assign_client',
+        ...(reviewIds.length > 0 ? { postIds: reviewIds } : {}),
         assignee,
       });
     } catch (err) {
@@ -195,12 +194,6 @@ const StudioPlanPage: React.FC = () => {
     if (ok) setSendOpen(false);
     else await load(); // onay yazıldı; ekran güncel durumu göstersin
   };
-
-  const saveCaption = (post: SocialMediaPost) =>
-    run(`${post.id}:edit`, async () => {
-      await updateDoc(doc(db!, 'social_media_posts', post.id), { caption: editCaption, updatedAt: serverTimestamp() });
-      setEditingId(null);
-    });
 
   const shareUrl = plan ? `${window.location.origin}/icerik-plani/${plan.shareToken}` : '';
 
@@ -245,7 +238,11 @@ const StudioPlanPage: React.FC = () => {
           <div className="flex gap-2 flex-wrap">
             {drafts > 0 && (
               <button
-                onClick={() => (counts.draft ? bulk('submit_for_review', 'Taslaklar kontrole alındı.') : bulk('resubmit', 'Kontrole alındı.'))}
+                onClick={() =>
+                  counts.draft
+                    ? bulk('submit_for_review', 'Taslaklar kontrole alındı.', ['draft'])
+                    : bulk('resubmit', 'Kontrole alındı.', ['revision_requested_internal'])
+                }
                 disabled={!!busy}
                 className="px-3 py-2 border border-neutral-200 rounded-lg font-grotesk text-sm hover:bg-neutral-50 disabled:opacity-50"
               >
@@ -296,64 +293,35 @@ const StudioPlanPage: React.FC = () => {
 
       <div className="grid gap-3 lg:grid-cols-2">
         {posts.map((post) => {
-          const editable = EDITABLE.has(post.status);
-          const isEditing = editingId === post.id;
+          const editable = EDITABLE_STATUSES.has(post.status);
           return (
-            <StudioPostCard key={post.id} post={post}>
-              {isEditing ? (
-                <div className="space-y-2">
-                  <textarea
-                    value={editCaption}
-                    onChange={(e) => setEditCaption(e.target.value)}
-                    rows={5}
-                    className="w-full px-2 py-1.5 border border-neutral-200 rounded-lg font-grotesk text-xs resize-y"
-                  />
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => saveCaption(post)}
-                      disabled={!!busy}
-                      className="px-3 py-1.5 bg-[#171717] text-white rounded-lg font-grotesk text-[11px] disabled:opacity-50"
-                    >
-                      Kaydet
-                    </button>
-                    <button onClick={() => setEditingId(null)} className="px-3 py-1.5 border border-neutral-200 rounded-lg font-grotesk text-[11px]">
-                      Vazgeç
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 flex-wrap">
-                  {editable && (
-                    <button
-                      onClick={() => {
-                        setEditingId(post.id);
-                        setEditCaption(post.caption || '');
-                      }}
-                      className="inline-flex items-center gap-1 px-2 py-1 border border-neutral-200 rounded-lg font-grotesk text-[11px] text-neutral-700 hover:bg-neutral-50"
-                    >
-                      <PencilLine className="w-3.5 h-3.5" /> Metni düzenle
-                    </button>
-                  )}
-                  {actionsFor(post.status).map((a) => (
-                    <button
-                      key={a.action}
-                      disabled={!!busy}
-                      onClick={() => (a.needsComment ? setCommentFor({ postId: post.id, action: a.action }) : postAction(post.id, a.action))}
-                      className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg font-grotesk text-[11px] disabled:opacity-50 ${
-                        a.tone === 'danger'
-                          ? 'border border-red-200 text-red-700 hover:bg-red-50'
-                          : 'border border-neutral-200 text-neutral-700 hover:bg-neutral-50'
-                      }`}
-                    >
-                      {a.action === 'reopen' ? <RotateCcw className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                      {busy === `${post.id}:${a.action}` ? '…' : a.label}
-                    </button>
-                  ))}
-                  {!editable && post.status !== 'published' && (
-                    <span className="font-grotesk text-[10px] text-neutral-400">Firmaya gönderildi — düzenlemek için "Revizyona al"</span>
-                  )}
-                </div>
-              )}
+            <StudioPostCard key={post.id} post={post} onClick={() => setDetail(post)}>
+              <div className="flex items-center gap-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
+                <button
+                  onClick={() => setDetail(post)}
+                  className="inline-flex items-center gap-1 px-2 py-1 border border-neutral-200 rounded-lg font-grotesk text-[11px] text-neutral-700 hover:bg-neutral-50"
+                >
+                  <PencilLine className="w-3.5 h-3.5" /> {editable ? 'Aç / düzenle' : 'İncele'}
+                </button>
+                {actionsFor(post.status).map((a) => (
+                  <button
+                    key={a.action}
+                    disabled={!!busy}
+                    onClick={() => (a.needsComment ? setCommentFor({ postId: post.id, action: a.action }) : postAction(post.id, a.action))}
+                    className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg font-grotesk text-[11px] disabled:opacity-50 ${
+                      a.tone === 'danger'
+                        ? 'border border-red-200 text-red-700 hover:bg-red-50'
+                        : 'border border-neutral-200 text-neutral-700 hover:bg-neutral-50'
+                    }`}
+                  >
+                    {a.action === 'reopen' ? <RotateCcw className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                    {busy === `${post.id}:${a.action}` ? '…' : a.label}
+                  </button>
+                ))}
+                {!editable && post.status !== 'published' && (
+                  <span className="font-grotesk text-[10px] text-neutral-400">Firmaya gönderildi — değiştirmek için "Revizyona al"</span>
+                )}
+              </div>
             </StudioPostCard>
           );
         })}
@@ -363,6 +331,8 @@ const StudioPlanPage: React.FC = () => {
         <h2 className="font-grotesk text-sm font-semibold text-[#171717] mb-2">Geçmiş</h2>
         <ApprovalAuditTrail planId={plan.id} compact />
       </div>
+
+      <StudioPostDetail post={detail} onClose={() => setDetail(null)} onSaved={load} />
 
       {/* Yorum gerektiren işlem */}
       {commentFor && (

@@ -194,7 +194,7 @@ export async function executeApproval(params: {
   request.postIds = postIdsCheck.ids;
 
   const planRef = db.collection(PLANS).doc(planId);
-  let notifyContext: { tenantId: string; title: string; recipients: string[] } | null = null;
+  let notifyContext: { tenantId: string; title: string; recipients: string[]; projectId: string; planId: string } | null = null;
 
   const outcome = await db.runTransaction(async (tx: any) => {
     // ── Okumalar (transaction'da tüm okumalar yazmalardan önce) ──
@@ -357,6 +357,8 @@ export async function executeApproval(params: {
         tenantId: plan.tenantId,
         title: planData.title || 'İçerik planı',
         recipients: uniqueStrings([planData.createdBy, planData.sentToClientBy]),
+        projectId: plan.projectId,
+        planId: plan.id,
       };
     }
 
@@ -378,7 +380,7 @@ export async function executeApproval(params: {
 }
 
 async function notifyTeam(
-  ctx: { tenantId: string; title: string; recipients: string[] },
+  ctx: { tenantId: string; title: string; recipients: string[]; projectId: string; planId: string },
   request: ApprovalRequest,
   actor: ApprovalActor
 ) {
@@ -392,15 +394,24 @@ async function notifyTeam(
       : request.action === 'client_reject'
         ? { title: 'Revizyon İstendi', message: `"${ctx.title}" için ${who} revizyon istedi.${comment ? ` Not: ${comment}` : ''}` }
         : { title: 'Yeni Müşteri Yorumu', message: `"${ctx.title}" için ${who}: ${comment || ''}` };
+  // Hedef, alıcının panelinde: marka yöneticisi → Studio planı, iç ekip → admin plan sayfası
+  const userDocs = await db.getAll(...ctx.recipients.map((uid) => db.collection('users').doc(uid)));
+  const roleOf = new Map<string, string>(userDocs.map((d: any) => [d.id, d.exists ? d.data().role : '']));
   const batch = db.batch();
   for (const userId of ctx.recipients) {
+    const link =
+      roleOf.get(userId) === 'brand_manager'
+        ? `/studio/${ctx.projectId}/planlar/${ctx.planId}`
+        : `/admin/projects/${ctx.projectId}/social-media/plans/${ctx.planId}`;
     batch.set(db.collection('notifications').doc(), {
       tenantId: ctx.tenantId,
       userId,
       type: 'social_media',
       title,
       message,
-      link: '/admin/social-media',
+      link,
+      projectId: ctx.projectId,
+      planId: ctx.planId,
       read: false,
       createdAt: new Date(),
     });

@@ -12,6 +12,7 @@ const StudioNewPlanPage = lazy(() => import('./pages/StudioNewPlanPage'));
 const StudioPlanPage = lazy(() => import('./pages/StudioPlanPage'));
 const StudioCalendarPage = lazy(() => import('./pages/StudioCalendarPage'));
 const StudioBrandKitPage = lazy(() => import('./pages/StudioBrandKitPage'));
+const StudioNotificationsPage = lazy(() => import('./pages/StudioNotificationsPage'));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-[300px]">
@@ -36,6 +37,7 @@ const StudioApp: React.FC = () => (
       <Routes>
         <Route element={<StudioLayout />}>
           <Route index element={page(<StudioHomePage />)} />
+          <Route path="bildirimler" element={page(<StudioNotificationsPage />)} />
           <Route path=":projectId" element={page(<StudioThisWeekPage />)} />
           <Route path=":projectId/planlar" element={page(<StudioPlansPage />)} />
           <Route path=":projectId/planlar/yeni" element={page(<StudioNewPlanPage />)} />
