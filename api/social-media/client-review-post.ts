@@ -8,7 +8,8 @@ import { executeApproval, loadUserActor, sendApprovalResult } from '../_lib/cont
  * approve → client_approve, revise → client_reject, undo → client_undo.
  * Post'un bir içerik planına bağlı olması gerekir; erişim ve tur kontrolü plan üzerinden yapılır.
  *
- * Body: { postId, action: 'approve'|'revise'|'undo', comment?, reviewRequestId? }
+ * Body: { postId, action: 'approve'|'revise'|'undo', comment?, reviewRequestId?, planId? }
+ * planId: post'ta contentPlanId yoksa (eski plan.postIds bağı) portalın gördüğü plan; üyelik transaction'da doğrulanır.
  */
 const ACTION_MAP = { approve: 'client_approve', revise: 'client_reject', undo: 'client_undo' } as const;
 
@@ -16,11 +17,12 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
   res.setHeader('Content-Type', 'application/json');
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { postId, action, comment, reviewRequestId } = (req.body || {}) as {
+  const { postId, action, comment, reviewRequestId, planId: requestedPlanId } = (req.body || {}) as {
     postId?: string;
     action?: keyof typeof ACTION_MAP;
     comment?: string;
     reviewRequestId?: string;
+    planId?: string;
   };
 
   if (!postId || typeof postId !== 'string' || !action || !(action in ACTION_MAP)) {
@@ -29,7 +31,9 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
 
   try {
     const postDoc = await getAdminDb().collection('social_media_posts').doc(postId).get();
-    const planId = postDoc.exists ? postDoc.data()?.contentPlanId : undefined;
+    if (!postDoc.exists) return res.status(404).json({ error: 'Post bulunamadı', code: 'POST_NOT_FOUND' });
+    // Post'un kendi bağı önceliklidir; yoksa istekteki plan (üyelik motor tarafından doğrulanır)
+    const planId = postDoc.data()?.contentPlanId || (typeof requestedPlanId === 'string' ? requestedPlanId : undefined);
     if (!planId) {
       return res.status(409).json({ error: 'Bu post bir içerik planına bağlı değil', code: 'NOT_IN_PLAN' });
     }

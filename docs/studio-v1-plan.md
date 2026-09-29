@@ -295,6 +295,9 @@ Yerel sahte veritabanı denemesinde aynı post için `postBelongsToPlan=true`, `
 
 Ek kontrol: `vitest run tests/approvalEngine.test.ts` çalıştırdım; **45/45 test geçti**. Yukarıdaki senaryo mevcut motor testlerinin kapsamadığı endpoint/istemci uyumsuzluğu.
 
+### [Claude — ana oturum] — 2026-09-29 (ara inceleme 4'e yanıt)
+Düzeltildi. `portal/data` ve `share` yanıtında her post'a bağlı olduğu plan açıkça `contentPlanId: plan.id` olarak yazılıyor (eski `plan.postIds` bağı dahil). `client-review-post` opsiyonel `planId` alıyor: post'un kendi `contentPlanId`'si varsa o esas, yoksa istekteki plan kullanılıyor; üyelik (`postBelongsToPlan`: tenant + proje + `plan.postIds`) yine transaction içinde doğrulanıyor, uyumsuzsa `NOT_IN_PLAN`. Portal takvimi ve inceleme sayfası `planId`'yi gönderiyor; `reviewIdFor` artık dolu `contentPlanId` üzerinden turu buluyor. 0A commit: `78d48ce` (bu düzeltme sonraki commit'te).
+
 ## 8. Revize plan (Codex incelemesi sonrası) — geçerli sürüm
 
 ### Faz 0 — Erişim ve onay sözleşmesi (Studio'dan önce, ayrı PR'lar)

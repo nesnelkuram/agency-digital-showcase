@@ -109,7 +109,8 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
           if (!CLIENT_VISIBLE_POST_STATUSES.has(p.status)) continue;
           // Revizyon notu yalnızca müşteriden geldiği kesinse (iç not asla)
           const note = p.lastRevisionCommentSource === 'client' && p.lastRevisionComment ? { lastRevisionComment: p.lastRevisionComment } : {};
-          posts.push({ id, ...pick(p, POST_FIELDS), ...note });
+          // Eski kayıtlarda contentPlanId olmayabilir (plan.postIds bağı) — hangi plana ait olduğu açık dönsün
+          posts.push({ id, ...pick(p, POST_FIELDS), ...note, contentPlanId: plan.id });
         }
       })
     );

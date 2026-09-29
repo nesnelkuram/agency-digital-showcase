@@ -64,7 +64,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .filter(([, p]) => p.projectId === plan.projectId && (!p.tenantId || p.tenantId === plan.tenantId))
       .filter(([, p]) => !p.contentPlanId || p.contentPlanId === planId)
       .map(([id, p]) => {
-        if (CLIENT_VISIBLE_POST_STATUSES.has(p.status)) return { id, ...pick(p, PUBLIC_POST_FIELDS), ...clientRevisionNote(p) };
+        if (CLIENT_VISIBLE_POST_STATUSES.has(p.status)) return { id, ...pick(p, PUBLIC_POST_FIELDS), ...clientRevisionNote(p), contentPlanId: planId };
         // Revizyondaki post: içerik ekipte düzenleniyor olabilir — sadece durum ve müşteri notu
         if (p.status === 'revision_requested') {
           return { id, ...pick(p, ['projectId', 'postType', 'platforms', 'status', 'contentPlanId', 'scheduledAt', 'revisionCount']), ...clientRevisionNote(p), media: [], mediaUrls: [], caption: '', hashtags: [], tags: [], contentHidden: true };

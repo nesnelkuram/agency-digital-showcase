@@ -84,7 +84,8 @@ const PortalClientCalendarPage: React.FC = () => {
 
   const callReviewApi = async (postId: string, action: 'approve' | 'revise' | 'undo', comment?: string) => {
     try {
-      await reviewSinglePost({ postId, action, comment, reviewRequestId: reviewIdFor(postId) });
+      const planId = posts.find((p) => p.id === postId)?.contentPlanId;
+      await reviewSinglePost({ postId, planId, action, comment, reviewRequestId: reviewIdFor(postId) });
     } catch (err) {
       // Eski inceleme turu: güncel içeriği yükle, kullanıcı tekrar baksın
       if (err instanceof ApprovalApiError && err.isStale) await loadData();

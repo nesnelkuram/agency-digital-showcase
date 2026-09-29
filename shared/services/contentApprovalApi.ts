@@ -64,6 +64,8 @@ export async function runApprovalAction(params: {
 /** Portal: tek post kararı */
 export async function reviewSinglePost(params: {
   postId: string;
+  /** Eski kayıtlarda post'ta contentPlanId olmayabilir — portalın gördüğü plan */
+  planId?: string;
   action: 'approve' | 'revise' | 'undo';
   comment?: string;
   reviewRequestId?: string | null;

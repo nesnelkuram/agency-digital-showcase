@@ -53,7 +53,7 @@ const PortalContentPlanReviewPage: React.FC = () => {
 
   const callReviewApi = async (postId: string, action: 'approve' | 'revise' | 'undo', comment?: string) => {
     try {
-      await reviewSinglePost({ postId, action, comment, reviewRequestId: plan?.reviewRequestId });
+      await reviewSinglePost({ postId, planId: plan?.id, action, comment, reviewRequestId: plan?.reviewRequestId });
     } catch (err) {
       // Eski inceleme turu: güncel içeriği yükle, kullanıcı tekrar baksın
       if (err instanceof ApprovalApiError && err.isStale) await loadData();
