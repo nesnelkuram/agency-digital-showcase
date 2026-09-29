@@ -12,7 +12,9 @@
     "build:vercel": "node scripts/build-blog-kb.mjs && node scripts/build-api.mjs && vite build",
     "test": "vitest run",
     "test:watch": "vitest",
-    "map": "node scripts/build-system-map.mjs && node scripts/enrich-system-map.mjs"
+    "map": "node scripts/build-system-map.mjs && node scripts/enrich-system-map.mjs",
+    "emulators:rules": "firebase emulators:start --only firestore,storage --project demo-rules-test",
+    "test:rules": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 FIREBASE_STORAGE_EMULATOR_HOST=127.0.0.1:9199 vitest run tests/rules --no-file-parallelism"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -50,6 +52,7 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^22.14.0",

@@ -334,3 +334,15 @@ describe('revizyon notları', () => {
     }
   });
 });
+
+// ─── Plan aktif onay alanları (Codex ara inceleme 7) ────────────────────────
+import { planApprovedFields } from '@/shared/approval/approvalEngine';
+describe('planApprovedFields', () => {
+  it('onaydan çıkınca aktif onay alanları silinir', () => {
+    expect(planApprovedFields('pending_approval', 'u', 'U', 'approved')).toEqual({ approvedBy: null, approvedByName: null, approvedAt: null });
+  });
+  it('yeni onayda yazılır, zaten onaylıysa ilk onay korunur', () => {
+    expect(planApprovedFields('approved', 'u', 'U', 'pending_approval')).toMatchObject({ approvedBy: 'u' });
+    expect(planApprovedFields('approved', 'u2', 'U2', 'approved')).toEqual({});
+  });
+});

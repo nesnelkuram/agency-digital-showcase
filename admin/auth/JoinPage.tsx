@@ -2,18 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Lock, User, Loader2, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react';
-import {
-  getDoc,
-  doc,
-  setDoc,
-  updateDoc,
-  serverTimestamp,
-  arrayUnion,
-  writeBatch,
-} from 'firebase/firestore';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { getDoc, doc } from 'firebase/firestore';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase/config';
-import { ROLES } from '@/lib/rbac/roles';
 
 const ROLE_DISPLAY_NAMES: Record<string, string> = {
   super_admin: 'Super Admin',
@@ -23,7 +14,15 @@ const ROLE_DISPLAY_NAMES: Record<string, string> = {
   staff: 'Personel',
   client: 'Müşteri',
   freelancer: 'Freelancer',
+  brand_manager: 'Marka Yöneticisi',
 };
+
+/** Rol'e göre giriş sonrası ana sayfa */
+function homeForRole(role: string): string {
+  if (role === 'client') return '/portal';
+  if (role === 'brand_manager') return '/studio';
+  return '/admin';
+}
 
 const JoinPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -119,100 +118,43 @@ const JoinPage: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      // 1. Create Firebase Auth user
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        invitation.email,
-        password
-      );
-      const { user: firebaseUser } = userCredential;
-
-      // 2. Update Firebase Auth display name
+      // 1. Firebase Auth hesabı. Yarım kalan akışta hesap zaten varsa aynı şifreyle giriş yapılıp devam edilir.
+      let firebaseUser;
+      try {
+        ({ user: firebaseUser } = await createUserWithEmailAndPassword(auth, invitation.email, password));
+      } catch (createErr: any) {
+        if (createErr?.code !== 'auth/email-already-in-use') throw createErr;
+        ({ user: firebaseUser } = await signInWithEmailAndPassword(auth, invitation.email, password));
+      }
       await updateProfile(firebaseUser, { displayName: displayName.trim() });
 
-      // 3. Get role permissions
-      const roleConfig = ROLES[invitation.role];
-      const permissions = roleConfig?.permissions || [];
-
-      // 4. Build profile from invitation extraFields
-      const extras = invitation.extraFields || {};
-      const profile: Record<string, any> = {};
-      if (extras.phone) profile.phone = extras.phone;
-      if (extras.title) profile.title = extras.title;
-      if (extras.department) profile.department = extras.department;
-      if (extras.skills && Array.isArray(extras.skills) && extras.skills.length > 0)
-        profile.skills = extras.skills;
-      if (typeof extras.hourlyRate === 'number') profile.hourlyRate = extras.hourlyRate;
-      if (extras.hourlyCurrency) profile.hourlyCurrency = extras.hourlyCurrency;
-      if (extras.clientCompany) profile.clientCompany = extras.clientCompany;
-      if (extras.billingEmail) profile.billingEmail = extras.billingEmail;
-      if (extras.managerId) profile.managerId = extras.managerId;
-      if (
-        extras.assignedProjectIds &&
-        Array.isArray(extras.assignedProjectIds) &&
-        extras.assignedProjectIds.length > 0
-      ) {
-        profile.assignedProjectIds = extras.assignedProjectIds;
-      }
-
-      // 5. Create Firestore user document
-      await setDoc(doc(db, 'users', firebaseUser.uid), {
-        email: invitation.email,
-        displayName: displayName.trim(),
-        role: invitation.role,
-        tenantId: invitation.tenantId,
-        permissions,
-        status: 'active',
-        metadata: {
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-          invitedBy: invitation.invitedBy,
-        },
-        profile,
-        settings: {
-          notifications: { email: true, push: true, approvalReminders: true },
-        },
+      // 2. Kullanıcı dokümanı sunucuda, davetten oluşturulur (rol/tenant/projeler istemciden gelmez)
+      const idToken = await firebaseUser.getIdToken();
+      const res = await fetch('/api/invitations/accept', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+        body: JSON.stringify({ invitationId: invitation.id, displayName: displayName.trim() }),
       });
-
-      // 6. Mark invitation as accepted
-      await updateDoc(doc(db, 'invitations', invitation.id), {
-        status: 'accepted',
-        acceptedAt: serverTimestamp(),
-        acceptedByUid: firebaseUser.uid,
-      });
-
-      // 7. assignedProjectIds varsa projelere teamMember ekle
-      if (profile.assignedProjectIds && profile.assignedProjectIds.length > 0) {
-        try {
-          const batch = writeBatch(db);
-          const member = {
-            uid: firebaseUser.uid,
-            name: displayName.trim(),
-            role: invitation.role,
-          };
-          for (const projectId of profile.assignedProjectIds as string[]) {
-            batch.update(doc(db, 'projects', projectId), {
-              teamMembers: arrayUnion(member),
-              updatedAt: serverTimestamp(),
-            });
-          }
-          await batch.commit();
-        } catch (projErr) {
-          console.warn('[JoinPage] Failed to attach user to projects:', projErr);
-        }
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const acceptErr: any = new Error(body?.error || 'Davet kabul edilemedi');
+        acceptErr.code = 'accept-failed';
+        throw acceptErr;
       }
 
       setStep('success');
 
-      // Rol'e göre yönlendir: client → /portal, diğerleri → /admin
-      const redirectTo = invitation.role === 'client' ? '/portal' : '/admin';
+      const redirectTo = homeForRole(body.role || invitation.role);
       setTimeout(() => {
-        navigate(redirectTo);
+        // Kullanıcı dokümanı yeni oluştu; AuthContext'in taze okuması için tam yükleme
+        window.location.assign(redirectTo);
       }, 2000);
     } catch (err: any) {
       console.error('[JoinPage] Error creating account:', err);
-      if (err.code === 'auth/email-already-in-use') {
-        setFormError('Bu email adresi zaten kayıtlı. Giriş yapmayı deneyin.');
+      if (err.code === 'accept-failed') {
+        setFormError(err.message);
+      } else if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password') {
+        setFormError('Bu email adresi zaten kayıtlı ve şifre eşleşmedi. Giriş yapmayı deneyin.');
       } else if (err.code === 'auth/weak-password') {
         setFormError('Şifre çok zayıf. En az 8 karakter kullanın.');
       } else {

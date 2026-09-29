@@ -187,7 +187,9 @@ export function useMediaUpload(): UseMediaUploadReturn {
             try {
               const timestamp = Date.now();
               const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-              const filePath = `social-media/${tenantId}/${projectId}/${timestamp}_${safeName}`;
+              // Taslak medya: özel yol, bir kez yazılır (storage.rules) — üzerine yazılamaz, istemciden silinemez
+              const unique = crypto.randomUUID().slice(0, 8);
+              const filePath = `social-media-drafts/${tenantId}/${projectId}/${timestamp}_${unique}_${safeName}`;
               const storageRef = ref(storage, filePath);
 
               progressMap.set(file.name, 30);

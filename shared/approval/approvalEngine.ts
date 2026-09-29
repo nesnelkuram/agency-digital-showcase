@@ -600,8 +600,20 @@ function clearedApprovalFields(): Record<string, null> {
   };
 }
 
-/** Plan dokümanına yazılacak onay alanları (tüm post'lar onaylandıysa) */
-export function planApprovedFields(newPlanStatus: string, performedBy: string, performedByName: string) {
-  if (newPlanStatus !== 'approved') return {};
-  return { approvedBy: performedBy, approvedByName: performedByName, approvedAt: '__now__' };
+/**
+ * Plan dokümanının aktif onay alanları: tüm post'lar onaylıysa yazılır, değilse (ör. onay geri alındı)
+ * silinir (null → sunucuda FieldValue.delete). Geçmiş kararlar approval_events'te kalır.
+ */
+export function planApprovedFields(
+  newPlanStatus: string,
+  performedBy: string,
+  performedByName: string,
+  previousPlanStatus?: string
+): Record<string, unknown> {
+  if (newPlanStatus === 'approved') {
+    // Zaten onaylı planda (ör. zamanlama) ilk onaylayanı korumak için yalnızca yeni geçişte yaz
+    if (previousPlanStatus === 'approved') return {};
+    return { approvedBy: performedBy, approvedByName: performedByName, approvedAt: '__now__' };
+  }
+  return { approvedBy: null, approvedByName: null, approvedAt: null };
 }

@@ -242,7 +242,7 @@ export async function executeApproval(params: {
       planUpdate.postApprovalSummary = summary;
       Object.assign(
         planUpdate,
-        materialize(planApprovedFields(planStatus, result.performedBy, result.performedByName), now, FieldValue)
+        materialize(planApprovedFields(planStatus, result.performedBy, result.performedByName, plan.status), now, FieldValue)
       );
     }
     if (result.comments.length > 0) {

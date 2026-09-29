@@ -204,6 +204,7 @@ const SocialMediaCalendar: React.FC = () => {
   const [editCaption, setEditCaption] = useState('');
   const [editScheduledAt, setEditScheduledAt] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
 
   // CreatePostPanel state
   const [panelOpen, setPanelOpen] = useState(false);
@@ -410,11 +411,13 @@ const SocialMediaCalendar: React.FC = () => {
     setEditTitle('');
     setEditCaption('');
     setEditScheduledAt('');
+    setEditError(null);
   };
 
   const savePostEdit = async () => {
     if (!editingPostId || !db) return;
     setSavingEdit(true);
+    setEditError(null);
     try {
       const patch: Record<string, any> = {
         title: editTitle.trim() || null,
@@ -427,8 +430,13 @@ const SocialMediaCalendar: React.FC = () => {
       await updateDoc(doc(db, 'social_media_posts', editingPostId), patch);
       cancelEditingPost();
       await loadData();
-    } catch (e) {
+    } catch (e: any) {
       console.error('[SocialMediaCalendar] save edit failed', e);
+      setEditError(
+        e?.code === 'permission-denied'
+          ? 'Müşteriye gönderilmiş veya onaylanmış içerik düzenlenemez. Önce plan ekranından "Revizyona al" yapın.'
+          : 'Kaydedilemedi'
+      );
     } finally {
       setSavingEdit(false);
     }
@@ -495,13 +503,14 @@ const SocialMediaCalendar: React.FC = () => {
       const endDate = new Date(sendEndDate);
       endDate.setHours(23, 59, 59, 999);
 
-      // 1) Tarih aralığındaki post'ları topla
+      // 1) Tarih aralığındaki, henüz müşteriye gönderilmemiş ve başka plana bağlı olmayan post'ları topla
+      const SENDABLE = new Set(['draft', 'internal_review', 'revision_requested_internal']);
       const postsInRange = allProjectPosts.filter((p) => {
         const d = (p.scheduledAt as any)?.toDate?.();
-        return d && d >= startDate && d <= endDate;
+        return d && d >= startDate && d <= endDate && SENDABLE.has(p.status) && !p.contentPlanId;
       });
       if (postsInRange.length === 0) {
-        throw new Error('Seçilen tarih aralığında planlanmış post yok');
+        throw new Error('Seçilen tarih aralığında müşteriye gönderilecek yeni post yok (başka plana bağlı ya da zaten gönderilmiş olabilir)');
       }
 
       // 2) Platform çıkarımı: en çok kullanılan
@@ -1239,6 +1248,9 @@ const SocialMediaCalendar: React.FC = () => {
                                     className="w-full px-2 py-1.5 border border-neutral-200 rounded-lg font-grotesk text-xs focus:outline-none focus:border-neutral-400 bg-white resize-none"
                                   />
                                 </div>
+                                {editError && (
+                                  <p className="font-grotesk text-[11px] text-red-600">{editError}</p>
+                                )}
                                 <div className="flex items-center gap-2 pt-1">
                                   <button
                                     type="button"

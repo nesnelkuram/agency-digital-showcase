@@ -1,5 +1,6 @@
 import type { VercelResponse } from '@vercel/node';
 import { withAuth, AuthenticatedRequest } from './_lib/withAuth.js';
+import { provisionUserFromInvitation, canInviteRole } from './_lib/invitationProvisioning.js';
 import { getAdminDb, getFieldValue, getFirebaseAuth } from './_lib/firebaseAdmin.js';
 
 const ROLE_DISPLAY_NAMES: Record<string, string> = {
@@ -60,6 +61,21 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
       return res.status(400).json({ error: 'Eksik alanlar: invitationId, email, role zorunlu' });
     }
 
+    // Davet bu tenant'a ait ve istekle tutarlı olmalı (e-posta/rol istemciden değiştirilemez)
+    {
+      const invDoc = await getAdminDb().collection('invitations').doc(invitationId).get();
+      const inv = invDoc.exists ? invDoc.data() : null;
+      if (!inv || inv.tenantId !== req.tenantId || inv.status !== 'pending') {
+        return res.status(404).json({ error: 'Davet bulunamadı' });
+      }
+      if ((inv.email || '').toLowerCase() !== String(email).toLowerCase() || inv.role !== role) {
+        return res.status(400).json({ error: 'Davet bilgileri uyuşmuyor' });
+      }
+      if (!canInviteRole(req.userRole, role)) {
+        return res.status(403).json({ error: 'Bu rolü davet etme yetkiniz yok' });
+      }
+    }
+
     // Temporary password path: Firebase Admin ile kullanici olustur
     if (useTemporaryPassword) {
       const tempPassword = generateTemporaryPassword();
@@ -76,11 +92,20 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
           disabled: false,
         });
 
+        // Kullanıcı dokümanı davetten, sunucuda oluşturulur (daveti de tüketir)
+        const provisioned = await provisionUserFromInvitation({
+          invitationId,
+          uid: user.uid,
+          email,
+          displayName: displayName || email,
+        });
+        if (!provisioned.ok) {
+          await auth.deleteUser(user.uid).catch(() => {});
+          return res.status(provisioned.httpStatus).json({ error: provisioned.error });
+        }
         await adminDb.collection('invitations').doc(invitationId).update({
-          status: 'accepted',
-          acceptedAt: FieldValue.serverTimestamp(),
-          acceptedByUid: user.uid,
           temporaryPasswordIssued: true,
+          updatedAt: FieldValue.serverTimestamp(),
         });
 
         return res.status(200).json({

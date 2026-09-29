@@ -318,7 +318,7 @@ export interface UpdateSocialPostData {
   postType?: PostType;
   platforms?: SocialPlatform[];
   contentPlanId?: string;
-  status?: PostStatus;
+  // status burada yok: onay durumları yalnızca sunucudan (api/content-approval) değişir
   scheduledAt?: Timestamp;
   gridPosition?: number;
   tags?: string[];

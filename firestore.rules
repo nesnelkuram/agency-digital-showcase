@@ -18,12 +18,63 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
     }
 
+    // Kullanıcının atanmış projeleri (proje kapsamlı roller için)
+    function getAssignedProjectIds() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('profile', {}).get('assignedProjectIds', []);
+    }
+
+    // İç ekip rolleri: tenant genelindeki verilere erişir.
+    // client ve brand_manager bu kümede DEĞİL — yalnızca açıkça tanımlı, proje kapsamlı kurallardan geçer.
+    function isInternal() {
+      return isAuthenticated()
+        && getUserRole() in ['super_admin', 'admin', 'account_manager', 'staff', 'editor', 'freelancer'];
+    }
+
+    function isBrandManager() {
+      return isAuthenticated() && getUserRole() == 'brand_manager';
+    }
+
+    // Proje verisinde (projects, content_plans, social_media_posts) tenant genelinde erişen roller.
+    // freelancer ve brand_manager proje verisine yalnızca atanmış projelerden erişir.
+    function hasTenantWideProjectAccess(tenantId) {
+      return isAuthenticated()
+        && getUserRole() in ['super_admin', 'admin', 'account_manager', 'staff', 'editor']
+        && tenantId == getUserTenantId();
+    }
+
     function belongsToTenant() {
-      return isAuthenticated() && resource.data.tenantId == getUserTenantId();
+      return isInternal() && resource.data.tenantId == getUserTenantId();
     }
 
     function creatingForOwnTenant() {
-      return isAuthenticated() && request.resource.data.tenantId == getUserTenantId();
+      return isInternal() && request.resource.data.tenantId == getUserTenantId();
+    }
+
+    // Proje kapsamlı roller (marka yöneticisi, freelancer): aynı tenant + atanmış proje
+    function brandManagerOwnsProject(tenantId, projectId) {
+      return isAuthenticated()
+        && getUserRole() in ['brand_manager', 'freelancer']
+        && tenantId == getUserTenantId()
+        && projectId in getAssignedProjectIds();
+    }
+
+    // Post'un bağlandığı plan (varsa) aynı tenant ve projeye ait olmalı
+    function validPlanLink(data) {
+      return data.get('contentPlanId', null) == null
+        || (exists(/databases/$(database)/documents/content_plans/$(data.contentPlanId))
+            && get(/databases/$(database)/documents/content_plans/$(data.contentPlanId)).data.tenantId == data.tenantId
+            && get(/databases/$(database)/documents/content_plans/$(data.contentPlanId)).data.projectId == data.get('projectId', null));
+    }
+
+    // Belirtilen alanlar dışında değişiklik yok
+    function onlyChanges(keys) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
+    }
+
+    // Kimlik alanları değişmiyor (kayıt başka tenant/projeye taşınamaz)
+    function keepsIdentity() {
+      return request.resource.data.tenantId == resource.data.tenantId
+        && request.resource.data.get('projectId', null) == resource.data.get('projectId', null);
     }
 
     function isSuperAdmin() {
@@ -77,45 +128,51 @@ service cloud.firestore {
     // Users collection
     // =============================================
     match /users/{userId} {
-      // Users can read their own document
-      // Admins can read users in the same tenant
-      // Super admins can read all users
-      // Aynı tenant üyeleri birbirini okuyabilir (görev atama / üye seçimi için).
+      // Okuma: kendi kaydı; iç ekip aynı tenant'taki üyeleri (görev atama / üye seçimi)
       allow read: if isSuperAdmin()
                   || (isAuthenticated() && request.auth.uid == userId)
                   || belongsToTenant();
-      // Users can update their own document
-      // Admins can update users in their tenant
-      // Super admins can update any user
+      // Kullanıcı kendi kaydında yalnızca zararsız alanları değiştirebilir.
+      // Rol, tenant, izinler, durum ve proje atamaları kullanıcı tarafından değiştirilemez.
       allow update: if isSuperAdmin()
-                    || (isAuthenticated() && request.auth.uid == userId)
-                    || (isAdmin() && resource.data.tenantId == getUserTenantId());
-      // User creation:
-      // - Super admins can create any user
-      // - Admins can create users in their tenant
-      // - New users can create their own document (invitation join flow)
-      allow create: if isSuperAdmin()
-                    || (isAdmin() && request.resource.data.tenantId == getUserTenantId())
-                    || (isAuthenticated() && request.auth.uid == userId);
+                    || (isAuthenticated() && request.auth.uid == userId
+                        && onlyChanges(['displayName', 'photoURL', 'profile', 'settings', 'metadata'])
+                        && request.resource.data.get('profile', {}).diff(resource.data.get('profile', {})).affectedKeys()
+                             .hasOnly(['phone', 'title', 'department', 'timezone'])
+                        && request.resource.data.get('metadata', {}).diff(resource.data.get('metadata', {})).affectedKeys()
+                             .hasOnly(['lastLoginAt', 'updatedAt']))
+                    || (isAdmin() && request.auth.uid != userId
+                        && resource.data.tenantId == getUserTenantId()
+                        && request.resource.data.tenantId == resource.data.tenantId
+                        && request.resource.data.role != 'super_admin'
+                        && resource.data.role != 'super_admin');
+      // Kullanıcı kaydı oluşturma: yalnızca sunucu (davet kabulü, Admin SDK) veya super admin.
+      allow create: if isSuperAdmin();
       allow delete: if isSuperAdmin()
-                    || (isAdmin() && resource.data.tenantId == getUserTenantId());
+                    || (isAdmin() && resource.data.tenantId == getUserTenantId() && resource.data.role != 'super_admin');
     }
 
     // =============================================
     // Invitations collection
     // =============================================
     match /invitations/{invitationId} {
-      // Single-document read allowed without auth (join page token validation)
-      // The invitation ID itself is an unguessable token — no enumeration risk
+      // Tekil okuma kimliksiz serbest (davet linki doğrulama; kimlik tahmin edilemez)
       allow get: if true;
-      // List requires auth to prevent enumeration
-      allow list: if isAuthenticated();
-      allow write: if isSuperAdmin() || belongsToTenant();
-      allow create: if isSuperAdmin() || creatingForOwnTenant();
-      // Allow newly registered users to mark their own invitation as accepted
-      allow update: if isAuthenticated()
-                    && request.resource.data.status == 'accepted'
-                    && request.resource.data.acceptedByUid == request.auth.uid;
+      // Listeleme: yalnızca aynı tenant'ın yöneticisi
+      allow list: if isSuperAdmin() || (isAdmin() && resource.data.tenantId == getUserTenantId());
+      // Oluşturma/değiştirme: yalnızca yönetici, kendi tenant'ında, super_admin daveti hariç.
+      // Kabul (status: accepted) yalnızca sunucuda (api/invitations/accept).
+      allow create: if isSuperAdmin()
+                    || (isAdmin() && request.resource.data.tenantId == getUserTenantId()
+                        && request.resource.data.role != 'super_admin'
+                        && request.resource.data.status == 'pending');
+      allow update: if isSuperAdmin()
+                    || (isAdmin() && resource.data.tenantId == getUserTenantId()
+                        && request.resource.data.tenantId == resource.data.tenantId
+                        && request.resource.data.role == resource.data.role
+                        && request.resource.data.email == resource.data.email
+                        && request.resource.data.status in ['pending', 'cancelled']);
+      allow delete: if isSuperAdmin() || (isAdmin() && resource.data.tenantId == getUserTenantId());
     }
 
     // =============================================
@@ -136,12 +193,15 @@ service cloud.firestore {
     // Projects — clients can read their own projects
     // =============================================
     match /projects/{projectId} {
-      // Client'ın kendi atandığı projeyi okuyabilmesi için tenant içindeki tüm client'lara izin
+      // Müşteri projeleri portal API'sinden (sunucu) okur; doğrudan okuma yok.
+      // Marka yöneticisi yalnızca atanmış projesini okur.
       allow read: if isSuperAdmin()
-                  || belongsToTenant()
-                  || (isClient() && isAuthenticated());
-      allow create: if isSuperAdmin() || creatingForOwnTenant();
-      allow update, delete: if isSuperAdmin() || belongsToTenant();
+                  || hasTenantWideProjectAccess(resource.data.tenantId)
+                  || brandManagerOwnsProject(resource.data.tenantId, projectId);
+      allow create: if isSuperAdmin() || hasTenantWideProjectAccess(request.resource.data.tenantId);
+      allow update: if isSuperAdmin()
+                    || (hasTenantWideProjectAccess(resource.data.tenantId) && request.resource.data.tenantId == resource.data.tenantId);
+      allow delete: if isSuperAdmin() || hasTenantWideProjectAccess(resource.data.tenantId);
     }
 
     // =============================================
@@ -349,9 +409,36 @@ service cloud.firestore {
     // Social media posts
     // =============================================
     match /social_media_posts/{postId} {
-      allow read: if isSuperAdmin() || belongsToTenant() || (isClient() && isAuthenticated());
-      allow create: if isSuperAdmin() || creatingForOwnTenant();
-      allow update, delete: if isSuperAdmin() || belongsToTenant();
+      // Durum ve onay alanları yalnızca sunucudan (api/content-approval) değişir.
+      // Müşteriye gönderilmiş/onaylanmış içerik kilitli: yalnızca takvim yeri (scheduledAt, gridPosition) değişebilir.
+      function isContentEditable() {
+        return resource.data.status in ['draft', 'internal_review', 'revision_requested_internal', 'revision_requested'];
+      }
+      function validContentUpdate() {
+        return keepsIdentity()
+          && (!('contentPlanId' in request.resource.data.diff(resource.data).affectedKeys()) || validPlanLink(request.resource.data))
+          && onlyChanges(['title', 'caption', 'hashtags', 'mediaUrls', 'media', 'aiGeneratedCaption', 'captionChatHistory', 'postType', 'platforms', 'tags', 'contentPlanId', 'gridPosition', 'scheduledAt', 'updatedAt'])
+          && (isContentEditable() || onlyChanges(['gridPosition', 'scheduledAt', 'updatedAt']));
+      }
+      function validNewPost() {
+        return request.resource.data.status == 'draft'
+          && validPlanLink(request.resource.data)
+          && !('approvedBy' in request.resource.data)
+          && !('internalReviewedBy' in request.resource.data);
+      }
+
+      allow read: if isSuperAdmin()
+                  || hasTenantWideProjectAccess(resource.data.tenantId)
+                  || brandManagerOwnsProject(resource.data.tenantId, resource.data.projectId);
+      allow create: if isSuperAdmin()
+                    || (hasTenantWideProjectAccess(request.resource.data.tenantId) && validNewPost())
+                    || (brandManagerOwnsProject(request.resource.data.tenantId, request.resource.data.projectId) && validNewPost());
+      allow update: if isSuperAdmin()
+                    || (hasTenantWideProjectAccess(resource.data.tenantId) && validContentUpdate())
+                    || (brandManagerOwnsProject(resource.data.tenantId, resource.data.projectId) && validContentUpdate());
+      allow delete: if isSuperAdmin()
+                    || (hasTenantWideProjectAccess(resource.data.tenantId) && resource.data.status in ['draft', 'internal_review', 'revision_requested_internal'])
+                    || (brandManagerOwnsProject(resource.data.tenantId, resource.data.projectId) && resource.data.status == 'draft');
     }
 
     // =============================================
@@ -478,23 +565,41 @@ service cloud.firestore {
     // clients can read/update (for approvals)
     // =============================================
     match /content_plans/{planId} {
-      allow read: if isSuperAdmin()
-                  || belongsToTenant()
-                  || isClient()
-                  || resource.data.shareToken != null;
-      allow create: if isSuperAdmin() || creatingForOwnTenant();
-      allow update: if isSuperAdmin()
-                    || belongsToTenant()
-                    || isClient(); // Clients can approve/comment
-      allow delete: if isSuperAdmin() || belongsToTenant();
+      // Paylaşım linki ve müşteri portalı sunucu API'sinden okur (token/erişim sunucuda doğrulanır).
+      // Durum, onay ayarı, müşteri ataması, inceleme turu ve yorumlar yalnızca sunucudan değişir.
+      function validNewPlan() {
+        return request.resource.data.status == 'draft'
+          && !('reviewRequestId' in request.resource.data)
+          && !('approvedBy' in request.resource.data)
+          && !('assignedClientId' in request.resource.data);
+      }
+      function validPlanUpdate() {
+        return keepsIdentity()
+          && onlyChanges(['title', 'description', 'postIds', 'weekStartDate', 'weekEndDate', 'updatedAt']);
+      }
 
-      // Approval events — immutable audit trail
+      allow read: if isSuperAdmin()
+                  || hasTenantWideProjectAccess(resource.data.tenantId)
+                  || brandManagerOwnsProject(resource.data.tenantId, resource.data.projectId);
+      allow create: if isSuperAdmin()
+                    || (hasTenantWideProjectAccess(request.resource.data.tenantId) && validNewPlan())
+                    || (brandManagerOwnsProject(request.resource.data.tenantId, request.resource.data.projectId) && validNewPlan());
+      allow update: if isSuperAdmin()
+                    || (hasTenantWideProjectAccess(resource.data.tenantId) && validPlanUpdate())
+                    || (brandManagerOwnsProject(resource.data.tenantId, resource.data.projectId) && validPlanUpdate());
+      allow delete: if isSuperAdmin()
+                    || hasTenantWideProjectAccess(resource.data.tenantId)
+                    || (brandManagerOwnsProject(resource.data.tenantId, resource.data.projectId) && resource.data.status == 'draft');
+
+      // Onay geçmişi — değiştirilemez; yalnızca sunucu yazar
       match /approval_events/{eventId} {
+        function parentPlan() {
+          return get(/databases/$(database)/documents/content_plans/$(planId)).data;
+        }
         allow read: if isSuperAdmin()
-                    || belongsToTenant()
-                    || (isClient() && isAuthenticated());
-        allow create: if isSuperAdmin() || belongsToTenant();
-        allow update, delete: if false; // immutable audit log
+                    || hasTenantWideProjectAccess(parentPlan().tenantId)
+                    || brandManagerOwnsProject(parentPlan().tenantId, parentPlan().projectId);
+        allow create, update, delete: if false;
       }
     }
 
@@ -505,13 +610,11 @@ service cloud.firestore {
     match /operational_briefs/{briefId} {
       allow read: if isSuperAdmin()
                   || belongsToTenant()
-                  || isClient()
                   || resource.data.shareToken != null; // public client fill via token
       allow create: if isSuperAdmin() || creatingForOwnTenant();
       allow update: if isSuperAdmin()
                     || belongsToTenant()
-                    || isClient()
-                    || resource.data.shareToken != null; // client fills via share token
+                      || resource.data.shareToken != null; // client fills via share token
       allow delete: if isSuperAdmin() || belongsToTenant();
     }
 
@@ -547,8 +650,8 @@ service cloud.firestore {
     // Document ID = tenantId
     // =============================================
     match /filing_counters/{tenantId} {
-      allow read: if isSuperAdmin() || (isAuthenticated() && getUserTenantId() == tenantId);
-      allow write: if isSuperAdmin() || (isAuthenticated() && getUserTenantId() == tenantId);
+      allow read: if isSuperAdmin() || (isInternal() && getUserTenantId() == tenantId);
+      allow write: if isSuperAdmin() || (isInternal() && getUserTenantId() == tenantId);
     }
 
     // =============================================
@@ -556,8 +659,8 @@ service cloud.firestore {
     // Document ID = tenantId
     // =============================================
     match /filing_config/{tenantId} {
-      allow read: if isSuperAdmin() || (isAuthenticated() && getUserTenantId() == tenantId);
-      allow write: if isSuperAdmin() || (isAuthenticated() && getUserTenantId() == tenantId);
+      allow read: if isSuperAdmin() || (isInternal() && getUserTenantId() == tenantId);
+      allow write: if isSuperAdmin() || (isInternal() && getUserTenantId() == tenantId);
     }
 
     // =============================================
@@ -700,11 +803,9 @@ service cloud.firestore {
     // Only the creator can read/write their own session
     // =============================================
     match /task_intake_sessions/{sessionId} {
-      allow read: if isSuperAdmin()
-                  || (isAuthenticated() && resource.data.tenantId == getUserTenantId());
+      allow read: if isSuperAdmin() || belongsToTenant();
       allow create: if isSuperAdmin() || creatingForOwnTenant();
-      allow update: if isSuperAdmin()
-                    || (isAuthenticated() && resource.data.tenantId == getUserTenantId());
+      allow update: if isSuperAdmin() || belongsToTenant();
       allow delete: if isSuperAdmin() || belongsToTenant();
     }
 
@@ -773,10 +874,10 @@ service cloud.firestore {
       // Execution history subcollection
       match /executions/{executionId} {
         allow read: if isSuperAdmin()
-                    || (isAuthenticated()
+                    || (isInternal()
                         && get(/databases/$(database)/documents/background_agents/$(agentId)).data.tenantId == getUserTenantId());
         allow create: if isSuperAdmin()
-                      || (isAuthenticated()
+                      || (isInternal()
                           && get(/databases/$(database)/documents/background_agents/$(agentId)).data.tenantId == getUserTenantId());
       }
     }
