@@ -111,6 +111,9 @@ const CreatePostPanel: React.FC<CreatePostPanelProps> = ({
   useEffect(() => {
     if (prefilledDate) {
       setScheduleDate(formatDateForInput(prefilledDate));
+      if (prefilledDate.getHours() || prefilledDate.getMinutes()) {
+        setScheduleTime(`${String(prefilledDate.getHours()).padStart(2, '0')}:${String(prefilledDate.getMinutes()).padStart(2, '0')}`);
+      }
     }
   }, [prefilledDate]);
 

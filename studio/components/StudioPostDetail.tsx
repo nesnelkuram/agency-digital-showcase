@@ -24,6 +24,8 @@ interface Props {
   post: SocialMediaPost | null;
   onClose: () => void;
   onSaved: () => void;
+  /** İçerik bir plana bağlıysa plan ekranını açar (onay işlemleri orada) */
+  onOpenPlan?: () => void;
 }
 
 /**
@@ -31,7 +33,7 @@ interface Props {
  * Düzenlenebilir durumda metin, etiketler ve medya (değiştir / ekle / çıkar / sırala) güncellenir.
  * Yeni medya yalnızca taslak alanına (write-once) yüklenir; müşteriye açılırken sunucu yeniden doğrular.
  */
-const StudioPostDetail: React.FC<Props> = ({ post, onClose, onSaved }) => {
+const StudioPostDetail: React.FC<Props> = ({ post, onClose, onSaved, onOpenPlan }) => {
   const { uploadFiles, uploading, error: uploadError } = useMediaUpload();
   const fileInput = useRef<HTMLInputElement>(null);
   const [media, setMedia] = useState<MediaItem[]>([]);
@@ -148,9 +150,16 @@ const StudioPostDetail: React.FC<Props> = ({ post, onClose, onSaved }) => {
                 {post.scheduledAt && ` · ${formatDate(post.scheduledAt, true)}`}
               </span>
             </div>
-            <button onClick={onClose} aria-label="Kapat">
-              <X className="w-5 h-5 text-neutral-400" />
-            </button>
+            <div className="flex items-center gap-2">
+              {onOpenPlan && (
+                <button onClick={onOpenPlan} className="px-2.5 py-1 border border-neutral-200 rounded-lg font-grotesk text-xs hover:bg-neutral-50">
+                  Planı aç
+                </button>
+              )}
+              <button onClick={onClose} aria-label="Kapat">
+                <X className="w-5 h-5 text-neutral-400" />
+              </button>
+            </div>
           </div>
 
           <div className="p-4 space-y-4">

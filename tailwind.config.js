@@ -6,6 +6,8 @@ export default {
     "./utils/**/*.{js,ts,jsx,tsx}",
     "./admin/**/*.{js,ts,jsx,tsx}",
     "./shared/**/*.{js,ts,jsx,tsx}",
+    "./portal/**/*.{js,ts,jsx,tsx}",
+    "./studio/**/*.{js,ts,jsx,tsx}",
     "./App.tsx",
     "./index.tsx"
   ],

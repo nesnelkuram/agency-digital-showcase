@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Outlet, Link, NavLink, useNavigate, useParams, useOutletContext } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Sparkles, CalendarDays, FileText, Palette, LogOut, ChevronDown, Loader2 } from 'lucide-react';
+import { CalendarDays, FileText, Palette, LogOut, ChevronDown, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTenantId } from '@/shared/hooks/useTenant';
 import { NotificationsProvider } from '@/admin/contexts/NotificationsContext';
@@ -20,9 +20,8 @@ export function useStudio(): StudioContext {
 }
 
 const NAV = [
-  { label: 'Bu Hafta', to: '', icon: Sparkles, end: true },
+  { label: 'Takvim', to: '', icon: CalendarDays, end: true },
   { label: 'Planlar', to: 'planlar', icon: FileText, end: false },
-  { label: 'Takvim', to: 'takvim', icon: CalendarDays, end: false },
   { label: 'Marka Kiti', to: 'marka', icon: Palette, end: false },
 ];
 
@@ -68,7 +67,7 @@ const StudioLayout: React.FC = () => {
     <NotificationsProvider>
       <div className="min-h-screen bg-neutral-50">
         <header className="sticky top-0 z-40 bg-white border-b border-neutral-200">
-          <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
+          <div className="max-w-[1600px] mx-auto px-4 h-16 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
               <Link to="/studio" className="flex items-center gap-2 shrink-0">
                 <img src="/images/intibalogo.svg" alt="intiba" className="h-6 w-auto" />
@@ -79,7 +78,7 @@ const StudioLayout: React.FC = () => {
                   aria-label="Marka seç"
                   value={project?.id || ''}
                   onChange={(e) => e.target.value && navigate(`/studio/${e.target.value}`)}
-                  className={`font-grotesk text-sm border border-neutral-200 rounded-lg px-2 py-1.5 bg-white max-w-[200px] truncate ${
+                  className={`font-grotesk text-sm font-semibold border border-neutral-200 rounded-lg px-2 py-1.5 bg-white max-w-[220px] truncate ${
                     projects.length === 1 && project ? 'hidden' : ''
                   }`}
                 >
@@ -140,7 +139,7 @@ const StudioLayout: React.FC = () => {
           </div>
 
           {project && (
-            <nav className="max-w-6xl mx-auto px-4 flex gap-1 overflow-x-auto">
+            <nav className="max-w-[1600px] mx-auto px-4 flex gap-1 overflow-x-auto">
               {NAV.map((item) => {
                 const Icon = item.icon;
                 return (
@@ -163,7 +162,7 @@ const StudioLayout: React.FC = () => {
           )}
         </header>
 
-        <main className="max-w-6xl mx-auto px-4 py-6">
+        <main className="max-w-[1600px] mx-auto px-4 py-6">
           {loading ? (
             <div className="flex items-center justify-center min-h-[300px]">
               <Loader2 className="w-6 h-6 animate-spin text-neutral-400" />

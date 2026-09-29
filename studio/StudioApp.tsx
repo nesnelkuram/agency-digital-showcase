@@ -6,11 +6,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import StudioLayout from './StudioLayout';
 
 const StudioHomePage = lazy(() => import('./pages/StudioHomePage'));
-const StudioThisWeekPage = lazy(() => import('./pages/StudioThisWeekPage'));
+const StudioCalendarHome = lazy(() => import('./pages/StudioCalendarHome'));
 const StudioPlansPage = lazy(() => import('./pages/StudioPlansPage'));
 const StudioNewPlanPage = lazy(() => import('./pages/StudioNewPlanPage'));
 const StudioPlanPage = lazy(() => import('./pages/StudioPlanPage'));
-const StudioCalendarPage = lazy(() => import('./pages/StudioCalendarPage'));
 const StudioBrandKitPage = lazy(() => import('./pages/StudioBrandKitPage'));
 const StudioNotificationsPage = lazy(() => import('./pages/StudioNotificationsPage'));
 
@@ -38,11 +37,11 @@ const StudioApp: React.FC = () => (
         <Route element={<StudioLayout />}>
           <Route index element={page(<StudioHomePage />)} />
           <Route path="bildirimler" element={page(<StudioNotificationsPage />)} />
-          <Route path=":projectId" element={page(<StudioThisWeekPage />)} />
+          <Route path=":projectId" element={page(<StudioCalendarHome />)} />
           <Route path=":projectId/planlar" element={page(<StudioPlansPage />)} />
           <Route path=":projectId/planlar/yeni" element={page(<StudioNewPlanPage />)} />
           <Route path=":projectId/planlar/:planId" element={page(<StudioPlanPage />)} />
-          <Route path=":projectId/takvim" element={page(<StudioCalendarPage />)} />
+          <Route path=":projectId/takvim" element={<Navigate to=".." relative="path" replace />} />
           <Route path=":projectId/marka" element={page(<StudioBrandKitPage />)} />
           <Route path="*" element={<Navigate to="/studio" replace />} />
         </Route>
