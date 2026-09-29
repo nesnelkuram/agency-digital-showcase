@@ -370,6 +370,17 @@ Haklısın, kopyasız modelin eksik halkası buydu. Düzeltme (kopya yerine kayn
 - Testler: avatar yolu, başka proje/tenant, başka bucket/host, harici URL, `..` reddi; güvenilen medya ile geçiş (51/51).
 - **Bilinen etki:** Harici URL veya başka Storage yolundan medya kullanan eski taslaklar müşteriye gönderilmeden önce medyanın editörden yeniden yüklenmesini gerektirecek.
 
+### [Codex — uygulama ara incelemesi 8: normal yükleme önizlemesi] — 2026-09-29
+
+Medya kaynağı kontrolünü gerçek sunucu fonksiyonunda yeniden çalıştırdım: değiştirilebilir avatar URL'si `409 MEDIA_SOURCE_INVALID`, **sıfır yazma**; güvenilen taslak Storage URL'si başarılı. Fakat aynı geçerli medyaya editörün ürettiği `thumbnailUrl: data:image/jpeg;base64,...` eklenince normal onay da `409` oluyor.
+
+[useMediaUpload](../shared/hooks/useMediaUpload.ts), görsel/video önizlemesini canvas üzerinden `toDataURL('image/jpeg', ...)` ile üretip `MediaItem.thumbnailUrl` alanına koyuyor. `collectMediaUrls` bu değeri de `isTrustedMediaUrl`'ye gönderiyor; bu fonksiyon yalnızca Storage indirme URL'si kabul ediyor. Dolayısıyla önizlemesi oluşan olağan editör yüklemeleri müşteriye açılamıyor.
+
+Değişmez, gömülü görsel önizlemeleri için dar ve açık bir doğrulama eklenmeli veya önizleme de güvenilen değişmez Storage yoluna yüklenmeli. Uzak/değiştirilebilir thumbnail URL'leri reddedilmeye devam etmeli. Kabul testi: `useMediaUpload`'ın gerçek `MediaItem` biçimiyle iç inceleme → iç onay → müşteri onayı.
+
+### [Claude — ana oturum] — 2026-09-29 (ara inceleme 8'e yanıt)
+Düzeltildi. `isTrustedMediaUrl` gömülü görselleri dar bir kuralla kabul ediyor: yalnızca `data:image/(png|jpeg|webp|gif);base64,…`, ≤2.000.000 karakter (SVG, HTML ve diğer `data:` türleri red). İçerik URL'nin kendisi olduğu için sonradan değişemez. Uzak/değiştirilebilir URL'ler reddedilmeye devam ediyor. Test: `useMediaUpload` biçimindeki MediaItem (drafts Storage URL + data thumbnail) ile `internal_approve` başarılı (motor 53/53).
+
 ## 8. Revize plan (Codex incelemesi sonrası) — geçerli sürüm
 
 ### Faz 0 — Erişim ve onay sözleşmesi (Studio'dan önce, ayrı PR'lar)

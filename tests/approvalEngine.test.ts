@@ -382,3 +382,19 @@ describe('medya kaynağı', () => {
     expect(planApproval({ actor: user('admin'), request: { action: 'internal_approve' }, plan: plan({ status: 'internal_review' }), targetPosts: [good], newId: () => 'r' }).ok).toBe(false);
   });
 });
+
+describe('gömülü önizleme (Codex ara inceleme 8)', () => {
+  const policy = { buckets: ['intiba.appspot.com'], hosts: ['firebasestorage.googleapis.com'] };
+  it('data:image base64 önizleme kabul, diğer data türleri red', () => {
+    expect(isTrustedMediaUrl('data:image/jpeg;base64,/9j/4AAQSkZJRg==', 't1', 'p', policy)).toBe(true);
+    expect(isTrustedMediaUrl('data:text/html;base64,PGh0bWw+', 't1', 'p', policy)).toBe(false);
+    expect(isTrustedMediaUrl('data:image/svg+xml;base64,PHN2Zz4=', 't1', 'p', policy)).toBe(false);
+    expect(isTrustedMediaUrl('data:image/jpeg;base64,' + 'A'.repeat(2_100_000), 't1', 'p', policy)).toBe(false);
+  });
+  it('useMediaUpload biçimindeki MediaItem (Storage url + data thumbnail) müşteriye açılır', () => {
+    const storageUrl = `https://firebasestorage.googleapis.com/v0/b/intiba.appspot.com/o/${encodeURIComponent('social-media-drafts/t1/proj-rakle/1_ab_x.jpg')}?alt=media&token=t`;
+    const p1 = post('p1', 'internal_review', { mediaUrls: [storageUrl, 'data:image/jpeg;base64,/9j/4AAQ'] });
+    const r = planApproval({ actor: user('admin'), request: { action: 'internal_approve' }, plan: plan({ status: 'internal_review' }), targetPosts: [p1], newId: () => 'r', mediaPolicy: policy });
+    expect(r.ok).toBe(true);
+  });
+});

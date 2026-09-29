@@ -301,7 +301,12 @@ export function parseStorageDownloadUrl(url: string): { host: string; bucket: st
  * - social-media-drafts/{tenantId}/{projectId}/…  (write-once)
  * - social-media/{tenantId}/{projectId}/…         (eski yol, yazmaya kapalı)
  */
+/** Gömülü görsel (ör. editörün ürettiği küçük önizleme): içerik URL'nin kendisidir, sonradan değişemez */
+const EMBEDDED_IMAGE_RE = /^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+$/;
+const EMBEDDED_IMAGE_MAX_LENGTH = 2_000_000;
+
 export function isTrustedMediaUrl(url: string, tenantId: string, projectId: string, policy: MediaSourcePolicy): boolean {
+  if (url.startsWith('data:')) return url.length <= EMBEDDED_IMAGE_MAX_LENGTH && EMBEDDED_IMAGE_RE.test(url);
   const parsed = parseStorageDownloadUrl(url);
   if (!parsed) return false;
   if (!policy.hosts.includes(parsed.host) || !policy.buckets.includes(parsed.bucket)) return false;
@@ -580,10 +585,10 @@ export function planApproval(input: PlanApprovalInput): ApprovalResult {
   const planFields: Record<string, unknown> = {};
   let grantProjectToClientUid: string | undefined;
 
-  // Müşteriye gönderimde atama bilgisi (post zaten müşterideyse sadece atama güncellenir)
-  if (action === 'submit_to_client') {
+  // Müşteriye gönderimde (doğrudan veya iç onayla) atama bilgisi
+  if ((action === 'submit_to_client' || action === 'internal_approve') && request.assignee) {
     const assignee = request.assignee;
-    if (assignee) {
+    {
       const email = (assignee.clientEmail || '').trim().toLowerCase();
       if (!email) return fail('BAD_REQUEST', 'Müşteri e-postası gerekli');
       planFields.assignedClientName = (assignee.clientName || '').trim();
@@ -596,6 +601,10 @@ export function planApproval(input: PlanApprovalInput): ApprovalResult {
       planFields.sentToClientBy = performedBy;
       planFields.sentToClientByName = performedByName;
     }
+  }
+  // Post'lar zaten müşterideyse submit_to_client yalnızca atamayı günceller
+  if (action === 'submit_to_client') {
+    const assignee = request.assignee;
     if (postChanges.length === 0) {
       const allAlreadyWithClient = posts.length > 0 && posts.every((p) => p.status === 'pending_approval');
       if (!assignee || !allAlreadyWithClient) {
