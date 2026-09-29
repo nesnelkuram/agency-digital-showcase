@@ -2,26 +2,25 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Loader2, AlertCircle, CheckCircle, Clock } from 'lucide-react';
-import { getAuth } from 'firebase/auth';
 import { useAuth } from '@/contexts/AuthContext';
-import { useTenantId } from '@/shared/hooks/useTenant';
 import type { ContentPlan, SocialMediaPost } from '@/shared/types/socialMedia';
 import { SOCIAL_PLATFORM_LABELS } from '@/shared/types/socialMedia';
-import { getContentPlan } from '@/shared/services/contentPlanService';
-import { getSocialPostsForPlan } from '@/shared/services/socialMediaService';
-import { getProject } from '@/shared/services/projectService';
-import type { Project } from '@/shared/types/project';
+import {
+  getPortalData,
+  reviewSinglePost,
+  ApprovalApiError,
+  type PortalProject,
+} from '@/shared/services/contentApprovalApi';
 import InstagramProfileView from '@/admin/social-media/components/grid/InstagramProfileView';
 
 const PortalContentPlanReviewPage: React.FC = () => {
   const { planId } = useParams<{ planId: string }>();
   const navigate = useNavigate();
-  const tenantId = useTenantId();
   const { user } = useAuth();
 
   const [plan, setPlan] = useState<ContentPlan | null>(null);
   const [posts, setPosts] = useState<SocialMediaPost[]>([]);
-  const [project, setProject] = useState<Project | null>(null);
+  const [project, setProject] = useState<PortalProject | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,68 +28,36 @@ const PortalContentPlanReviewPage: React.FC = () => {
     if (!planId) return;
     try {
       setLoading(true);
-      const planData = await getContentPlan(tenantId, planId);
+      setError(null);
+      // Erişim ve görünürlük sunucuda uygulanır
+      const data = await getPortalData(planId);
+      const planData = data.plans[0];
       if (!planData) {
         setError('Plan bulunamadı');
         return;
       }
-      const assigned = (user?.profile as any)?.assignedProjectIds || [];
-      const userEmail = (user?.email || '').toLowerCase();
-      const canView =
-        planData.assignedClientId === user?.uid ||
-        (planData.assignedClientEmail || '').toLowerCase() === userEmail ||
-        (Array.isArray(assigned) && assigned.includes(planData.projectId));
-      if (!canView) {
-        setError('Bu plana erişim yetkiniz yok');
-        return;
-      }
       setPlan(planData);
-      const [planPosts, projectData] = await Promise.all([
-        getSocialPostsForPlan(tenantId, planId, planData.postIds || []),
-        getProject(tenantId, planData.projectId),
-      ]);
-      setPosts(planPosts);
-      setProject(projectData);
+      setPosts(data.posts);
+      setProject(data.projects.find((p) => p.id === planData.projectId) || null);
     } catch (err: any) {
       console.error('[PortalContentPlanReviewPage] load error', err);
-      setError(err?.message || 'Yükleme hatası');
+      setError(err?.status === 404 ? 'Bu plana erişim yetkiniz yok' : err?.message || 'Yükleme hatası');
     } finally {
       setLoading(false);
     }
-  }, [planId, tenantId, user?.uid]);
+  }, [planId]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  const callReviewApi = async (postId: string, action: 'approve' | 'revise', comment?: string) => {
-    let token: string | undefined;
+  const callReviewApi = async (postId: string, action: 'approve' | 'revise' | 'undo', comment?: string) => {
     try {
-      const currentUser = getAuth().currentUser;
-      if (!currentUser) {
-        throw new Error('Oturum bulunamadı. Lütfen sayfayı yenileyip tekrar giriş yapın.');
-      }
-      token = await currentUser.getIdToken(false);
-    } catch (err: any) {
-      if (err?.code === 'auth/network-request-failed' || /network/i.test(err?.message || '')) {
-        throw new Error(
-          'Firebase bağlantı hatası: Tarayıcınızın gizlilik ayarları veya adblocker Firebase Auth erişimini engelliyor olabilir. Lütfen adblocker\'ı kapatın, Safari kullanıyorsanız "Prevent cross-site tracking"i kapatın veya Chrome/Firefox deneyin.'
-        );
-      }
-      throw new Error(err?.message || 'Kimlik doğrulama başarısız');
-    }
-
-    const res = await fetch('/api/social-media/client-review-post', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ postId, action, comment }),
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      throw new Error(body?.error || `API ${res.status} döndü`);
+      await reviewSinglePost({ postId, action, comment, reviewRequestId: plan?.reviewRequestId });
+    } catch (err) {
+      // Eski inceleme turu: güncel içeriği yükle, kullanıcı tekrar baksın
+      if (err instanceof ApprovalApiError && err.isStale) await loadData();
+      throw err;
     }
   };
 

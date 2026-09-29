@@ -50,9 +50,9 @@ import { getProject, getProjects } from '@/shared/services/projectService';
 import type { Project, ProjectSummary } from '@/shared/types/project';
 import {
   createContentPlan,
-  assignAndSubmitToClient,
   findTenantUserByEmail,
 } from '@/shared/services/contentPlanService';
+import { runApprovalAction } from '@/shared/services/contentApprovalApi';
 import { authenticatedFetch } from '@/lib/firebase/apiClient';
 import type { User } from '@/shared/types/user';
 import { collection, query as fsQuery, where, getDocs } from 'firebase/firestore';
@@ -537,7 +537,7 @@ const SocialMediaCalendar: React.FC = () => {
       if (!resolvedUid) {
         try {
           const found = await findTenantUserByEmail(tenantId, sendClientEmail);
-          if (found) {
+          if (found && found.role === 'client') {
             resolvedUid = found.uid;
             console.info('[SocialMediaCalendar] Manuel e-posta için uid bulundu:', found);
           } else {
@@ -552,27 +552,17 @@ const SocialMediaCalendar: React.FC = () => {
       }
 
       // 4) Müşteriye ata + pending_approval
-      const assignResult = await assignAndSubmitToClient(planId, {
-        clientId: resolvedUid || undefined,
-        clientName: sendClientName.trim(),
-        clientEmail: sendClientEmail.trim().toLowerCase(),
-        sentByUid: user.uid,
-        sentByName: user.displayName || user.email || 'Ekip',
-      });
-      console.info('[SocialMediaCalendar] Plan müşteriye atandı:', {
+      await runApprovalAction({
         planId,
-        tenantId,
-        assignedClientId: assignResult.assignedClientId || null,
-        assignedClientEmail: assignResult.assignedClientEmail,
-        assignedClientName: sendClientName.trim(),
-        postCount: postsInRange.length,
+        action: 'submit_to_client',
+        assignee: {
+          clientId: resolvedUid || undefined,
+          clientName: sendClientName.trim(),
+          clientEmail: sendClientEmail.trim().toLowerCase(),
+        },
       });
 
-      // 5) Share URL + e-posta gönder
-      const plan = await import('@/shared/services/contentPlanService').then((m) =>
-        m.getContentPlan(tenantId, planId)
-      );
-      const shareUrl = `${window.location.origin}/icerik-plani/${plan?.shareToken || ''}`;
+      // 5) E-posta gönder (paylaşım linki sunucuda plandan üretilir)
       const weekRange = `${startDate.toLocaleDateString('tr-TR', {
         day: 'numeric',
         month: 'long',
@@ -586,13 +576,12 @@ const SocialMediaCalendar: React.FC = () => {
         method: 'POST',
         body: JSON.stringify({
           type: 'submitted',
-          recipientEmail: sendClientEmail.trim(),
+          planId,
+          recipientEmail: sendClientEmail.trim().toLowerCase(),
           recipientName: sendClientName.trim(),
           senderName: user.displayName || 'intiba ekibi',
-          planTitle: projectInfo?.name || 'Sosyal medya planı',
           brandName: projectInfo?.name,
           postCount: postsInRange.length,
-          shareUrl,
           weekRange,
         }),
       });

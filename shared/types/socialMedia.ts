@@ -90,6 +90,10 @@ export interface ContentPlan {
   assignedClientName?: string;
   assignedClientEmail?: string;
 
+  // Müşteri inceleme turu — her müşteriye gönderimde/revizyona almada yenilenir.
+  // Müşteri kararları bu kimliği taşır; eski turdan gelen karar sunucuda reddedilir.
+  reviewRequestId?: string;
+
   // Müşteriye gönderilme zamanı (onay için)
   sentToClientAt?: Timestamp;
   sentToClientBy?: string;
@@ -268,7 +272,11 @@ export interface SocialMediaPost {
 
   // Revizyon takibi
   revisionCount?: number;
+  /** Müşterinin son revizyon notu (lastRevisionCommentSource === 'client' ise müşteriden geldiği kesin) */
   lastRevisionComment?: string;
+  lastRevisionCommentSource?: 'client';
+  /** Ekip içi (iç inceleme) revizyon notu — müşteriye asla gösterilmez */
+  lastInternalRevisionComment?: string;
 
   // Etiketler
   tags: string[];

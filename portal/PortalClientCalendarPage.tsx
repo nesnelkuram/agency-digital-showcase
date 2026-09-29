@@ -1,14 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Loader2, CheckCircle, Clock, AlertCircle } from 'lucide-react';
-import { getAuth } from 'firebase/auth';
-import { collection, query as fsQuery, where, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
 import { useAuth } from '@/contexts/AuthContext';
-import { useTenantId } from '@/shared/hooks/useTenant';
 import type { ContentPlan, SocialMediaPost } from '@/shared/types/socialMedia';
-import { getSocialPostsForPlan } from '@/shared/services/socialMediaService';
-import { matchPlanForClient } from '@/shared/services/contentPlanAccess';
+import { getPortalData, reviewSinglePost, ApprovalApiError } from '@/shared/services/contentApprovalApi';
 import CalendarView from '@/admin/social-media/components/calendar/CalendarView';
 import InstagramProfileView from '@/admin/social-media/components/grid/InstagramProfileView';
 
@@ -16,7 +11,6 @@ type ViewMode = 'calendar' | 'grid';
 
 const PortalClientCalendarPage: React.FC = () => {
   const { user } = useAuth();
-  const tenantId = useTenantId();
   const [posts, setPosts] = useState<SocialMediaPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [brandName, setBrandName] = useState<string>('Marka');
@@ -30,157 +24,43 @@ const PortalClientCalendarPage: React.FC = () => {
     matched: number;
   } | null>(null);
 
+  const [plans, setPlans] = useState<ContentPlan[]>([]);
+
+  const loadData = useCallback(async () => {
+    if (!user) return;
+    try {
+      setLoading(true);
+      setQueryError(null);
+      // Görünürlük (atanmış proje / plan ataması / müşteriye açık durum) sunucuda uygulanır
+      const data = await getPortalData();
+      setPlans(data.plans);
+      setPosts(data.posts);
+      const firstProject = data.projects.find((p) => data.plans.some((pl) => pl.projectId === p.id)) || data.projects[0];
+      if (firstProject?.name) setBrandName(firstProject.name);
+      setDiagnostic({
+        totalInTenant: data.plans.length,
+        byClientId: data.plans.filter((p) => p.assignedClientId === user.uid).length,
+        byClientEmail: data.plans.filter((p) => (p.assignedClientEmail || '') === (user.email || '').toLowerCase()).length,
+        byProject: data.plans.filter((p) => ((user.profile as any)?.assignedProjectIds || []).includes(p.projectId)).length,
+        matched: data.plans.length,
+      });
+    } catch (err: any) {
+      console.error('[PortalClientCalendarPage] load error', err);
+      setQueryError(err?.message || 'Veri çekilemedi');
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.uid]);
+
   useEffect(() => {
-    if (!db || !user) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        setLoading(true);
-        const assigned: string[] = (user.profile as any)?.assignedProjectIds || [];
-        const userEmail = (user.email || '').toLowerCase();
+    loadData();
+  }, [loadData]);
 
-        console.info('[PortalClientCalendar] User context:', {
-          uid: user.uid,
-          role: user.role,
-          email: userEmail,
-          tenantId,
-          assignedProjectIds: assigned,
-        });
-
-        // Basitleştirilmiş: TÜM tenant planlarını oku, client-side filtrele.
-        // Firestore rules'ın isClient() branch'i buna izin verir (belongsToTenant).
-        const plansById: Map<string, ContentPlan> = new Map();
-        const clientContext = {
-          uid: user.uid,
-          email: user.email || '',
-          assignedProjectIds: assigned,
-        };
-
-        let totalInTenant = 0;
-        let byClientId = 0;
-        let byClientEmail = 0;
-        let byProject = 0;
-
-        try {
-          const snap = await getDocs(
-            fsQuery(collection(db!, 'content_plans'), where('tenantId', '==', tenantId))
-          );
-          totalInTenant = snap.size;
-          snap.forEach((d) => {
-            const data = { id: d.id, ...d.data() } as ContentPlan;
-            const match = matchPlanForClient(data, clientContext);
-            if (match.visible) {
-              plansById.set(d.id, data);
-              if (match.reason === 'uid') byClientId++;
-              else if (match.reason === 'email') byClientEmail++;
-              else if (match.reason === 'project') byProject++;
-            }
-          });
-        } catch (err: any) {
-          console.error('[PortalClientCalendar] Firestore query failed:', err);
-          const msg = err?.code === 'permission-denied'
-            ? 'Firestore izin hatası — yetkiniz olmayabilir. Ajansınıza bildirin.'
-            : err?.message || 'Veri çekilemedi';
-          setQueryError(msg);
-        }
-
-        // En yeniye göre sırala
-        const relevantPlans = Array.from(plansById.values()).sort((a, b) => {
-          const at = (a.createdAt as any)?.toDate?.()?.getTime?.() || 0;
-          const bt = (b.createdAt as any)?.toDate?.()?.getTime?.() || 0;
-          return bt - at;
-        });
-
-        setDiagnostic({
-          totalInTenant,
-          byClientId,
-          byClientEmail,
-          byProject,
-          matched: relevantPlans.length,
-        });
-
-        console.info('[PortalClientCalendar] Query sonuçları:', {
-          totalInTenant,
-          byClientId,
-          byClientEmail,
-          byProject,
-          matchedPlans: relevantPlans.length,
-        });
-
-        // Her planın post'larını yükle (paralel + hataları logla)
-        const allPosts: SocialMediaPost[] = [];
-        const postLoadResults: Array<{ planId: string; count: number; error?: string }> = [];
-        await Promise.all(
-          relevantPlans.map(async (plan) => {
-            try {
-              // plan.postIds varsa bunu kullan (orphan post'lar için fallback)
-              const planPosts = await getSocialPostsForPlan(
-                tenantId,
-                plan.id,
-                plan.postIds || []
-              );
-              postLoadResults.push({ planId: plan.id, count: planPosts.length });
-              planPosts.forEach((p) => allPosts.push(p));
-            } catch (err: any) {
-              console.error(
-                '[PortalClientCalendar] getSocialPostsForPlan failed for',
-                plan.id,
-                err
-              );
-              postLoadResults.push({
-                planId: plan.id,
-                count: 0,
-                error: err?.code || err?.message || 'unknown',
-              });
-            }
-          })
-        );
-        console.info('[PortalClientCalendar] Post loading:', postLoadResults);
-        const failedLoads = postLoadResults.filter((r) => r.error);
-        if (failedLoads.length > 0) {
-          setQueryError(
-            `${failedLoads.length} plan için gönderiler yüklenemedi (${failedLoads[0].error}).`
-          );
-        }
-
-        // Marka adı: ilk projenin adını kullan (basit yaklaşım)
-        if (relevantPlans.length > 0 && assigned.length > 0) {
-          try {
-            const projSnap = await getDocs(
-              fsQuery(
-                collection(db!, 'projects'),
-                where('tenantId', '==', tenantId),
-              )
-            );
-            const firstProject = projSnap.docs.find((d) => assigned.includes(d.id));
-            if (firstProject) {
-              const pd = firstProject.data();
-              setBrandName(pd.name || 'Marka');
-            }
-          } catch {
-            // skip
-          }
-        }
-
-        // Dedupe by postId
-        const seen = new Set<string>();
-        const unique = allPosts.filter((p) => {
-          if (seen.has(p.id)) return false;
-          seen.add(p.id);
-          return true;
-        });
-
-        if (!cancelled) setPosts(unique);
-      } catch (e) {
-        console.error('[PortalClientCalendarPage] load error', e);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.uid, tenantId]);
+  /** Post'un bağlı olduğu planın güncel inceleme turu */
+  const reviewIdFor = (postId: string) => {
+    const post = posts.find((p) => p.id === postId);
+    return plans.find((pl) => pl.id === post?.contentPlanId)?.reviewRequestId;
+  };
 
   const stats = useMemo(() => {
     // Post status'ü 'approved' değilse ve 'revision_requested' değilse "onay bekliyor" sayılır.
@@ -202,36 +82,13 @@ const PortalClientCalendarPage: React.FC = () => {
     };
   }, [posts]);
 
-  const callReviewApi = async (postId: string, action: 'approve' | 'revise', comment?: string) => {
-    // Firebase Auth token'ı — cache'li, yeni istek göndermez (network-request-failed'e karşı)
-    let token: string | undefined;
+  const callReviewApi = async (postId: string, action: 'approve' | 'revise' | 'undo', comment?: string) => {
     try {
-      const currentUser = getAuth().currentUser;
-      if (!currentUser) {
-        throw new Error('Oturum bulunamadı. Lütfen sayfayı yenileyip tekrar giriş yapın.');
-      }
-      // forceRefresh=false → cache'den oku; refresh gerekiyorsa network'e gider
-      token = await currentUser.getIdToken(false);
-    } catch (err: any) {
-      if (err?.code === 'auth/network-request-failed' || /network/i.test(err?.message || '')) {
-        throw new Error(
-          'Firebase bağlantı hatası: Tarayıcınızın gizlilik ayarları veya adblocker Firebase Auth erişimini engelliyor olabilir. Lütfen adblocker\'ı kapatın, Safari kullanıyorsanız "Prevent cross-site tracking"i kapatın veya Chrome/Firefox deneyin.'
-        );
-      }
-      throw new Error(err?.message || 'Kimlik doğrulama başarısız');
-    }
-
-    const res = await fetch('/api/social-media/client-review-post', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ postId, action, comment }),
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      throw new Error(body?.error || `API ${res.status} döndü`);
+      await reviewSinglePost({ postId, action, comment, reviewRequestId: reviewIdFor(postId) });
+    } catch (err) {
+      // Eski inceleme turu: güncel içeriği yükle, kullanıcı tekrar baksın
+      if (err instanceof ApprovalApiError && err.isStale) await loadData();
+      throw err;
     }
   };
 

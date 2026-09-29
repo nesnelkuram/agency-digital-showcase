@@ -26,12 +26,8 @@ import type {
   ApprovalAction,
 } from '@/shared/types/socialMedia';
 import { SOCIAL_PLATFORM_LABELS, DEFAULT_APPROVAL_CONFIG } from '@/shared/types/socialMedia';
-import {
-  getContentPlan,
-  submitForApproval,
-  updateApprovalConfig,
-  assignAndSubmitToClient,
-} from '@/shared/services/contentPlanService';
+import { getContentPlan } from '@/shared/services/contentPlanService';
+import { runApprovalAction } from '@/shared/services/contentApprovalApi';
 import { getSocialPostsForPlan } from '@/shared/services/socialMediaService';
 import { getProject } from '@/shared/services/projectService';
 import {
@@ -85,6 +81,7 @@ const ContentPlanView: React.FC = () => {
   const [emailSent, setEmailSent] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [transitioning, setTransitioning] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // Projeye bağlı müşteri kullanıcıları + proje verisi
   const [projectClients, setProjectClients] = useState<User[]>([]);
@@ -162,10 +159,12 @@ const ContentPlanView: React.FC = () => {
     if (!plan) return;
     setSubmittingForApproval(true);
     try {
-      await submitForApproval(tenantId, plan.id);
-      setPlan((prev) => prev ? { ...prev, status: 'pending_approval' } : prev);
-    } catch (err) {
+      setActionError(null);
+      await runApprovalAction({ planId: plan.id, action: 'submit_to_client' });
+      await loadData();
+    } catch (err: any) {
       console.error('[ContentPlanView] Error submitting for approval:', err);
+      setActionError(err?.message || 'Onaya gönderilemedi');
     } finally {
       setSubmittingForApproval(false);
     }
@@ -187,13 +186,15 @@ const ContentPlanView: React.FC = () => {
         .filter(Boolean)
         .join(' – ');
 
-      // 1. Plan'ı müşteriye ata + status'ü pending_approval'a çevir
-      await assignAndSubmitToClient(plan.id, {
-        clientId: selectedClientUid || undefined,
-        clientName: clientName.trim(),
-        clientEmail: clientEmail.trim().toLowerCase(),
-        sentByUid: user.uid,
-        sentByName: user.displayName || user.email || 'Ekip',
+      // 1. Plan'ı müşteriye ata + post'ları müşteri onayına gönder (sunucu)
+      await runApprovalAction({
+        planId: plan.id,
+        action: 'submit_to_client',
+        assignee: {
+          clientId: selectedClientUid || undefined,
+          clientName: clientName.trim(),
+          clientEmail: clientEmail.trim().toLowerCase(),
+        },
       });
 
       // 2. E-posta gönder
@@ -201,13 +202,12 @@ const ContentPlanView: React.FC = () => {
         method: 'POST',
         body: JSON.stringify({
           type: 'submitted',
-          recipientEmail: clientEmail.trim(),
+          planId: plan.id,
+          recipientEmail: clientEmail.trim().toLowerCase(),
           recipientName: clientName.trim(),
           senderName: user.displayName || 'intiba ekibi',
-          planTitle: plan.title,
           brandName: projectInfo?.name,
           postCount: posts.length,
-          shareUrl,
           weekRange,
         }),
       });
@@ -216,18 +216,8 @@ const ContentPlanView: React.FC = () => {
         throw new Error(body.error || 'E-posta gönderilemedi');
       }
 
-      // 3. Local state güncelle
-      setPlan((prev) =>
-        prev
-          ? {
-              ...prev,
-              status: 'pending_approval',
-              assignedClientName: clientName.trim(),
-              assignedClientEmail: clientEmail.trim().toLowerCase(),
-              assignedClientId: selectedClientUid || undefined,
-            }
-          : prev
-      );
+      // 3. Güncel durumu yükle
+      await loadData();
       setEmailSent(true);
       setTimeout(() => {
         setShowEmailModal(false);
@@ -255,20 +245,18 @@ const ContentPlanView: React.FC = () => {
     if (!plan) return;
     setTransitioning(true);
     try {
-      const postIds = posts.map((p) => p.id);
-      const res = await authenticatedFetch('/api/content-approval/transition', {
-        method: 'POST',
-        body: JSON.stringify({ planId: plan.id, postIds, action, comment }),
+      setActionError(null);
+      await runApprovalAction({
+        planId: plan.id,
+        postIds: posts.map((p) => p.id),
+        action,
+        comment,
+        reviewRequestId: plan.reviewRequestId,
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        console.error('Approval transition failed:', body.error);
-        return;
-      }
-      // Veriyi yeniden yukle
       await loadData();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Approval transition error:', err);
+      setActionError(err?.message || 'İşlem başarısız');
     } finally {
       setTransitioning(false);
     }
@@ -277,10 +265,11 @@ const ContentPlanView: React.FC = () => {
   const handleApprovalConfigChange = async (config: typeof DEFAULT_APPROVAL_CONFIG) => {
     if (!plan) return;
     try {
-      await updateApprovalConfig(tenantId, plan.id, config);
+      await runApprovalAction({ planId: plan.id, action: 'update_approval_config', approvalConfig: config });
       setPlan((prev) => prev ? { ...prev, approvalConfig: config } : prev);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Approval config update error:', err);
+      setActionError(err?.message || 'Onay ayarı güncellenemedi');
     }
   };
 
@@ -391,6 +380,12 @@ const ContentPlanView: React.FC = () => {
           approvedByName={plan.approvedByName}
         />
       </div>
+
+      {actionError && (
+        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 font-grotesk text-sm text-red-700">
+          {actionError}
+        </div>
+      )}
 
       {/* Bulk Approval Actions */}
       {plan.status !== 'approved' && plan.status !== 'partially_approved' && posts.length > 0 && (

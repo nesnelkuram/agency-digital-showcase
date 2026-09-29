@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Timestamp } from 'firebase/firestore';
 import { useAuth } from '@/contexts/AuthContext';
+import { runApprovalAction } from '@/shared/services/contentApprovalApi';
 import { useTenantId } from '@/shared/hooks/useTenant';
 import type {
   SocialPlatform,
@@ -21,7 +22,7 @@ import type {
 } from '@/shared/types/socialMedia';
 import { SOCIAL_PLATFORM_LABELS, POST_TYPE_LABELS, POST_TYPE_COLORS } from '@/shared/types/socialMedia';
 import { getSocialPosts } from '@/shared/services/socialMediaService';
-import { createContentPlan, submitForApproval } from '@/shared/services/contentPlanService';
+import { createContentPlan } from '@/shared/services/contentPlanService';
 import ProjectBreadcrumb from '@/admin/projects/components/ProjectBreadcrumb';
 import PlatformSelector from './components/PlatformSelector';
 
@@ -117,7 +118,7 @@ const CreateContentPlanPage: React.FC = () => {
       );
 
       if (sendForApproval) {
-        await submitForApproval(tenantId, planId);
+        await runApprovalAction({ planId, action: 'submit_to_client' });
       }
 
       navigate(`/admin/projects/${projectId}/social-media/plans/${planId}`);

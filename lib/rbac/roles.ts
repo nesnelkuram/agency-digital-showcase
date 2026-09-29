@@ -141,6 +141,7 @@ export const ROLES: Record<string, RoleConfig> = {
       PERMISSIONS.APPROVALS_COMMENT,
       PERMISSIONS.APPROVALS_APPROVE,
       PERMISSIONS.APPROVALS_INTERNAL_REVIEW,
+      PERMISSIONS.APPROVALS_SKIP_INTERNAL, // müşteriye gönderme (önceden istemci tarafında kontrolsüzdü)
       PERMISSIONS.APPROVALS_VIEW_AUDIT,
 
       // Assets

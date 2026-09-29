@@ -1,6 +1,9 @@
 import type { VercelResponse } from '@vercel/node';
 import { Resend } from 'resend';
 import { withAuth, AuthenticatedRequest } from './_lib/withAuth.js';
+import { getAdminDb } from './_lib/firebaseAdmin.js';
+import { checkProjectAccess } from './_lib/projectAccess.js';
+import { PERMISSIONS } from '../lib/rbac/permissions.js';
 import {
   contentPlanSubmittedEmail,
   contentPlanApprovedEmail,
@@ -36,12 +39,10 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
   try {
     const {
       type,
-      recipientEmail,
+      planId,
+      recipientEmail: rawRecipientEmail,
       recipientName,
       senderName,
-      planTitle,
-      shareUrl,
-      adminUrl,
       weekRange,
       comment,
       approvedCount,
@@ -50,19 +51,43 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
       postCount,
     } = req.body || {};
 
-    if (!type || !recipientEmail || !planTitle) {
-      return res.status(400).json({
-        error: 'Zorunlu alanlar eksik: type, recipientEmail, planTitle',
-      });
+    if (!type || typeof planId !== 'string' || !planId || typeof rawRecipientEmail !== 'string') {
+      return res.status(400).json({ error: 'Zorunlu alanlar eksik: type, planId, recipientEmail' });
     }
+
+    // Plan erişimi: gönderen planın projesine yetkili olmalı (müşteri rolü e-posta gönderemez)
+    const db = getAdminDb();
+    const planDoc = await db.collection('content_plans').doc(planId).get();
+    if (!planDoc.exists) return res.status(404).json({ error: 'İçerik planı bulunamadı' });
+    const plan = planDoc.data() || {};
+    const access = await checkProjectAccess(req, plan.projectId, PERMISSIONS.APPROVALS_SUBMIT);
+    if (!access.ok) return res.status(access.httpStatus).json({ error: access.error });
+
+    // Alıcı serbest değil: müşteri e-postası plana atanmış adres, ekip e-postası tenant kullanıcısı olmalı
+    const recipientEmail = rawRecipientEmail.trim().toLowerCase();
+    if (type === 'submitted') {
+      if (!plan.assignedClientEmail || plan.assignedClientEmail !== recipientEmail) {
+        return res.status(400).json({ error: 'Alıcı, plana atanmış müşteri e-postası olmalı' });
+      }
+    } else {
+      const userSnap = await db
+        .collection('users')
+        .where('tenantId', '==', req.tenantId)
+        .where('email', '==', recipientEmail)
+        .limit(1)
+        .get();
+      if (userSnap.empty) return res.status(400).json({ error: 'Alıcı bu ekibin bir üyesi olmalı' });
+    }
+
+    const appUrl = process.env.APP_URL || `https://${req.headers.host}`;
+    const planTitle: string = plan.title || 'İçerik planı';
+    const shareUrl = `${appUrl}/icerik-plani/${plan.shareToken}`;
+    const adminUrl = `${appUrl}/admin/social-media`;
 
     let emailContent: { subject: string; html: string };
 
     switch (type) {
       case 'submitted': {
-        if (!shareUrl) {
-          return res.status(400).json({ error: "'submitted' tipi için shareUrl zorunlu" });
-        }
         emailContent = contentPlanSubmittedEmail({
           recipientName: recipientName || recipientEmail,
           senderName: senderName || req.userDisplayName || 'intiba ekibi',
@@ -80,7 +105,7 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
           recipientName: recipientName || recipientEmail,
           approvedByName: senderName || 'Müşteri',
           planTitle,
-          adminUrl: adminUrl || (process.env.APP_URL ? `${process.env.APP_URL}/admin/social-media` : '/admin/social-media'),
+          adminUrl,
         });
         break;
       }
@@ -91,54 +116,50 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
           requestedByName: senderName || 'Müşteri',
           planTitle,
           comment,
-          adminUrl: adminUrl || (process.env.APP_URL ? `${process.env.APP_URL}/admin/social-media` : '/admin/social-media'),
+          adminUrl,
         });
         break;
       }
 
       case 'internal_review_needed': {
-        const defaultAdminUrl = process.env.APP_URL ? `${process.env.APP_URL}/admin/social-media` : '/admin/social-media';
         emailContent = internalReviewNeededEmail({
           recipientName: recipientName || recipientEmail,
           submittedByName: senderName || req.userDisplayName || 'Editor',
           planTitle,
-          adminUrl: adminUrl || defaultAdminUrl,
+          adminUrl,
         });
         break;
       }
 
       case 'internal_approved': {
-        const defaultAdminUrl = process.env.APP_URL ? `${process.env.APP_URL}/admin/social-media` : '/admin/social-media';
         emailContent = internalApprovedEmail({
           recipientName: recipientName || recipientEmail,
           approvedByName: senderName || req.userDisplayName || 'Account Manager',
           planTitle,
-          adminUrl: adminUrl || defaultAdminUrl,
+          adminUrl,
         });
         break;
       }
 
       case 'internal_revision': {
-        const defaultAdminUrl = process.env.APP_URL ? `${process.env.APP_URL}/admin/social-media` : '/admin/social-media';
         emailContent = internalRevisionEmail({
           recipientName: recipientName || recipientEmail,
           requestedByName: senderName || req.userDisplayName || 'Account Manager',
           planTitle,
           comment,
-          adminUrl: adminUrl || defaultAdminUrl,
+          adminUrl,
         });
         break;
       }
 
       case 'partial_approval': {
-        const defaultAdminUrl = process.env.APP_URL ? `${process.env.APP_URL}/admin/social-media` : '/admin/social-media';
         emailContent = partialApprovalEmail({
           recipientName: recipientName || recipientEmail,
           approvedByName: senderName || 'Musteri',
           planTitle,
           approvedCount: approvedCount || 0,
           totalCount: totalCount || 0,
-          adminUrl: adminUrl || defaultAdminUrl,
+          adminUrl,
         });
         break;
       }
@@ -149,7 +170,7 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
 
     const { data, error } = await resend.emails.send({
       from: FROM_ADDRESS,
-      to: Array.isArray(recipientEmail) ? recipientEmail : [recipientEmail],
+      to: [recipientEmail],
       subject: emailContent.subject,
       html: emailContent.html,
     });

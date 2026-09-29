@@ -3,6 +3,8 @@ import type { VercelResponse } from '@vercel/node';
 import { generateJSON } from '../_lib/gemini-bundle.mjs';
 import { getAdminDb } from '../_lib/firebaseAdmin.js';
 import { withAuth, AuthenticatedRequest } from '../_lib/withAuth.js';
+import { checkProjectAccess } from '../_lib/projectAccess.js';
+import { PERMISSIONS } from '../../lib/rbac/permissions.js';
 import { applyRateLimit, LIMITS } from '../_lib/rateLimit.js';
 import { buildBrandCharacterPure } from '../../shared/services/brandAICharacterBuilder.js';
 
@@ -79,6 +81,9 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
     if (!projectId || !platform) {
       return res.status(400).json({ error: 'Missing required fields: projectId, platform' });
     }
+
+    const access = await checkProjectAccess(req, projectId, PERMISSIONS.SOCIAL_MEDIA_EDIT);
+    if (!access.ok) return res.status(access.httpStatus).json({ error: access.error });
 
     // Load project info + brand AI character (if leadId available)
     let brandContext = '';

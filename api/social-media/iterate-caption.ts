@@ -3,6 +3,8 @@ import type { VercelResponse } from '@vercel/node';
 import { generateJSON } from '../_lib/gemini-bundle.mjs';
 import { getAdminDb } from '../_lib/firebaseAdmin.js';
 import { withAuth, AuthenticatedRequest } from '../_lib/withAuth.js';
+import { checkProjectAccess } from '../_lib/projectAccess.js';
+import { PERMISSIONS } from '../../lib/rbac/permissions.js';
 import { applyRateLimit, LIMITS } from '../_lib/rateLimit.js';
 import { buildBrandCharacterPure } from '../../shared/services/brandAICharacterBuilder.js';
 
@@ -42,6 +44,16 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
     }
 
     const adminDb = getAdminDb();
+
+    // Erişim: post'un projesine yetki
+    const accessPostDoc = await adminDb.collection('social_media_posts').doc(postId).get();
+    if (!accessPostDoc.exists) return res.status(404).json({ error: 'Post bulunamadı' });
+    const accessPost = accessPostDoc.data() || {};
+    if (accessPost.tenantId && accessPost.tenantId !== req.tenantId) {
+      return res.status(403).json({ error: 'Erişim reddedildi' });
+    }
+    const access = await checkProjectAccess(req, accessPost.projectId, PERMISSIONS.SOCIAL_MEDIA_EDIT);
+    if (!access.ok) return res.status(access.httpStatus).json({ error: access.error });
 
     // Load post → project → lead (for brand character)
     let projectId: string | undefined;

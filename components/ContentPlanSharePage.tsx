@@ -25,17 +25,7 @@ import {
   POST_STATUS_LABELS,
   POST_STATUS_COLORS,
 } from '@/shared/types/socialMedia';
-import {
-  getContentPlanByShareToken,
-  approveContentPlan,
-  requestRevision,
-  addClientComment,
-} from '@/shared/services/contentPlanService';
-import { getSocialPostsForPlan } from '@/shared/services/socialMediaService';
-import {
-  notifyContentPlanApproved,
-  notifyContentPlanRevisionRequested,
-} from '@/shared/services/notificationService';
+import { getSharedPlan, shareClientAction, ApprovalApiError } from '@/shared/services/contentApprovalApi';
 import ViewSwitcher, { SocialMediaViewMode } from '@/admin/social-media/components/ViewSwitcher';
 import CalendarView from '@/admin/social-media/components/calendar/CalendarView';
 import InstagramProfileView from '@/admin/social-media/components/grid/InstagramProfileView';
@@ -58,100 +48,80 @@ const ContentPlanSharePage: React.FC = () => {
 
   // Navigation
   const [currentPostIndex, setCurrentPostIndex] = useState(0);
+  const [actionError, setActionError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const load = async () => {
-      if (!shareToken) return;
-      try {
-        setLoading(true);
-        const planData = await getContentPlanByShareToken(shareToken);
-        if (!planData) {
-          setNotFound(true);
-          return;
-        }
-        setPlan(planData);
-
-        // Load posts - use tenantId from plan context (public access)
-        const planPosts = await getSocialPostsForPlan('', planData.id, planData.postIds || []);
-        setPosts(planPosts);
-      } catch (err) {
-        console.error('[ContentPlanSharePage] Error loading:', err);
+  const load = useCallback(async () => {
+    if (!shareToken) return;
+    try {
+      const data = await getSharedPlan(shareToken);
+      if (!data) {
         setNotFound(true);
-      } finally {
-        setLoading(false);
+        return;
       }
-    };
-    load();
+      setPlan(data.plan);
+      setPosts(data.posts);
+    } catch (err) {
+      console.error('[ContentPlanSharePage] Error loading:', err);
+      setNotFound(true);
+    }
   }, [shareToken]);
 
-  const handleApprove = async () => {
-    if (!plan || !clientName.trim()) return;
+  useEffect(() => {
+    setLoading(true);
+    load().finally(() => setLoading(false));
+  }, [load]);
+
+  /** Sunucuya müşteri kararı gönderir; eski tur hatasında sayfayı günceller */
+  const sendAction = async (
+    action: 'client_approve' | 'client_reject' | 'comment',
+    comment?: string,
+    postIds?: string[]
+  ): Promise<boolean> => {
+    if (!plan || !shareToken || !clientName.trim()) return false;
     setSubmitting(true);
+    setActionError(null);
     try {
-      await approveContentPlan(plan.id, 'client', clientName.trim());
-      setPlan((prev) => prev ? { ...prev, status: 'approved', approvedByName: clientName.trim() } : prev);
-      // Notify plan creator and team
-      if (plan.tenantId && plan.createdBy) {
-        notifyContentPlanApproved({
-          tenantId: plan.tenantId,
-          recipientUserIds: [plan.createdBy],
-          planTitle: plan.title,
-          approvedByName: clientName.trim(),
-        }).catch(() => {});
-      }
+      await shareClientAction({
+        shareToken,
+        action,
+        clientName: clientName.trim(),
+        comment,
+        postIds,
+        reviewRequestId: plan.reviewRequestId,
+      });
+      await load();
+      return true;
     } catch (err) {
-      console.error('[ContentPlanSharePage] Error approving:', err);
+      console.error('[ContentPlanSharePage] Action error:', err);
+      if (err instanceof ApprovalApiError && err.isStale) {
+        await load();
+        setActionError('İçerik siz incelerken güncellendi. Güncel hali yüklendi, lütfen tekrar gözden geçirin.');
+      } else {
+        setActionError(err instanceof Error ? err.message : 'İşlem başarısız');
+      }
+      return false;
     } finally {
       setSubmitting(false);
     }
   };
 
+  const handleApprove = async () => {
+    await sendAction('client_approve');
+  };
+
   const handleRequestRevision = async () => {
-    if (!plan || !revisionComment.trim() || !clientName.trim()) return;
-    setSubmitting(true);
-    try {
-      await requestRevision(plan.id, revisionComment.trim(), 'client', clientName.trim(), true);
-      setPlan((prev) => prev ? { ...prev, status: 'revision_requested' } : prev);
-      // Notify plan creator
-      if (plan.tenantId && plan.createdBy) {
-        notifyContentPlanRevisionRequested({
-          tenantId: plan.tenantId,
-          recipientUserIds: [plan.createdBy],
-          planTitle: plan.title,
-          requestedByName: clientName.trim(),
-          comment: revisionComment.trim(),
-        }).catch(() => {});
-      }
+    if (!revisionComment.trim()) return;
+    if (await sendAction('client_reject', revisionComment.trim())) {
       setRevisionComment('');
       setShowRevisionForm(false);
-    } catch (err) {
-      console.error('[ContentPlanSharePage] Error requesting revision:', err);
-    } finally {
-      setSubmitting(false);
     }
   };
 
   const handleAddComment = async () => {
-    if (!plan || !commentText.trim() || !clientName.trim()) return;
-    setSubmitting(true);
-    try {
-      const currentPost = posts[currentPostIndex];
-      await addClientComment(
-        plan.id,
-        commentText.trim(),
-        currentPost?.id,
-        'client',
-        clientName.trim(),
-        true
-      );
+    if (!commentText.trim()) return;
+    const currentPost = posts[currentPostIndex];
+    if (await sendAction('comment', commentText.trim(), currentPost ? [currentPost.id] : undefined)) {
       setCommentText('');
-      // Reload plan to get updated comments
-      const updated = await getContentPlanByShareToken(shareToken!);
-      if (updated) setPlan(updated);
-    } catch (err) {
-      console.error('[ContentPlanSharePage] Error adding comment:', err);
-    } finally {
-      setSubmitting(false);
     }
   };
 
@@ -251,24 +221,10 @@ const ContentPlanSharePage: React.FC = () => {
             posts={posts}
             brandName={plan.title || 'Marka'}
             onApprove={async (postId) => {
-              await addClientComment(
-                plan.id,
-                '✓ Onaylandı',
-                postId,
-                'anonymous-client',
-                clientName.trim() || 'Müşteri',
-                true
-              );
+              await sendAction('comment', '✓ Onaylandı', [postId]);
             }}
             onRequestRevision={async (postId, comment) => {
-              await addClientComment(
-                plan.id,
-                comment,
-                postId,
-                'anonymous-client',
-                clientName.trim() || 'Müşteri',
-                true
-              );
+              await sendAction('comment', comment, [postId]);
             }}
           />
         )}
@@ -439,6 +395,12 @@ const ContentPlanSharePage: React.FC = () => {
                 <Send className="w-4 h-4" />
               </button>
             </div>
+          </div>
+        )}
+
+        {actionError && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-3 font-grotesk text-sm text-red-700">
+            {actionError}
           </div>
         )}
 
