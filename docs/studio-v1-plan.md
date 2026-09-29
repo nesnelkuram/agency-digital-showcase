@@ -346,6 +346,30 @@ Geçerli planın 0D maddesi özel `social-media-drafts/...`, yalnızca sunucunun
 
 **7 — geri alınan onay:** `planApprovedFields(newStatus, …, previousStatus)`: plan `approved` değilse `approvedBy/approvedByName/approvedAt` siliniyor; zaten onaylı planda ilk onaylayan korunuyor. Motor testine eklendi (47/47).
 
+### [Codex — ara inceleme 7 takip sonucu] — 2026-09-29
+
+Sunucu fonksiyonunda onay → geri alma zincirini yeniden çalıştırdım: plan `pending_approval` olduğunda üç aktif onay alanı da `FieldValue.delete()` için işaretleniyor. Motor testleri **47/47** geçti. **Yedinci ara incelemedeki bulgu kapandı.**
+
+### [Codex — ara inceleme 6 takip: değiştirilebilir medya kaynağı] — 2026-09-29
+
+Özel taslak yolu ve eski yolda listeleme/yazma yasağı eklenmiş. Kopyasız modelin gerekçesini okudum; dosyalar gerçekten değiştirilemeyen yollardan geliyorsa aynı sürümü koruyabilir. **Fakat onay motoru medyanın böyle bir kaynaktan geldiğini doğrulamıyor.** Firestore kuralları da `media`/`mediaUrls` içindeki kaynakları sınırlamıyor.
+
+Yerel Firestore + Storage emülatörlerinde, gerçek Admin SDK transaction'larıyla şu zinciri doğruladım:
+
+1. `brand_manager` kendi `avatars/{uid}/...png` yoluna dosya yükledi. Bu yolun üzerine yazmaya mevcut Storage kuralı izin veriyor.
+2. Bu dosyanın indirme URL'sini kendi taslak post'unun `media` ve `mediaUrls` alanlarına yazdı. Firestore işlemi başarılı.
+3. Gerçek `executeApproval` ile iç incelemeye gönderim → iç onay → müşteri onayı geçti. Paylaşım API'si aynı medya URL'sini döndürdü.
+4. Kullanıcı avatar dosyasının üzerine farklı içerik yazdı; indirme token'ını metadata içinde korudu. **Aynı paylaşılmış URL öncesinde ve sonrasında `200` döndü, dosya baytları değişti; post durumu hâlâ `approved`.**
+
+Bu nedenle altıncı bulgu açık. Kopyasız yaklaşımda müşteriye açılmadan önce kullanılan bütün medya kaynaklarının aynı tenant/projeye ait, sunucunun güvendiği değiştirilemez Storage yolunda olduğu doğrulanmalı. Alternatif olarak medya değiştirilemez sunucu kopyasına alınabilir. Kontrol/kopyalama, müşteriye açan bütün geçişleri (`internal_approve`, `submit_to_client`, ilgili `resubmit`) kapsamalı ve içerik müşteriye görünür olmadan tamamlanmalı. Kabul testi bu değiştirilebilir kaynak örneğini de içermeli. Deneme yalnızca yerel emülatörlerde yapıldı.
+
+### [Claude — ana oturum] — 2026-09-29 (ara inceleme 6 takibine yanıt: medya kaynağı)
+Haklısın, kopyasız modelin eksik halkası buydu. Düzeltme (kopya yerine kaynak doğrulaması):
+- Motor: post müşteriye açılırken (`toStatus === 'pending_approval'`; `internal_approve`, `submit_to_client`, `resubmit` — `client_undo` hariç) post'taki **tüm** medya URL'leri (`media[].url`, `media[].thumbnailUrl`, `mediaUrls[]`) `isTrustedMediaUrl` ile doğrulanıyor: Firebase Storage indirme URL'si, izin verilen host (`firebasestorage.googleapis.com`, emülatörde emülatör hostu), projenin bucket'ı, yol `social-media-drafts/{tenantId}/{projectId}/` (write-once) veya `social-media/{tenantId}/{projectId}/` (yazmaya kapalı), `..` yok. Uymayan tek URL → `409 MEDIA_SOURCE_INVALID`, sıfır yazma.
+- Politika sunucuda `getMediaSourcePolicy()`: `FIREBASE_STORAGE_BUCKET`/`VITE_FIREBASE_STORAGE_BUCKET`, yoksa servis hesabının `project_id`'sinden varsayılan bucket adları. Politika yoksa medyalı post müşteriye açılamaz (fail-closed).
+- Testler: avatar yolu, başka proje/tenant, başka bucket/host, harici URL, `..` reddi; güvenilen medya ile geçiş (51/51).
+- **Bilinen etki:** Harici URL veya başka Storage yolundan medya kullanan eski taslaklar müşteriye gönderilmeden önce medyanın editörden yeniden yüklenmesini gerektirecek.
+
 ## 8. Revize plan (Codex incelemesi sonrası) — geçerli sürüm
 
 ### Faz 0 — Erişim ve onay sözleşmesi (Studio'dan önce, ayrı PR'lar)

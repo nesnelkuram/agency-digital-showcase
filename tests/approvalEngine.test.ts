@@ -346,3 +346,39 @@ describe('planApprovedFields', () => {
     expect(planApprovedFields('approved', 'u2', 'U2', 'approved')).toEqual({});
   });
 });
+
+// ─── Medya kaynağı (Codex ara inceleme 6 takip) ─────────────────────────────
+import { isTrustedMediaUrl } from '@/shared/approval/approvalEngine';
+describe('medya kaynağı', () => {
+  const policy = { buckets: ['intiba.appspot.com'], hosts: ['firebasestorage.googleapis.com'] };
+  const url = (bucket: string, path: string, host = 'firebasestorage.googleapis.com') =>
+    `https://${host}/v0/b/${bucket}/o/${encodeURIComponent(path)}?alt=media&token=abc`;
+
+  it('taslak ve eski yol kabul edilir', () => {
+    expect(isTrustedMediaUrl(url('intiba.appspot.com', 'social-media-drafts/t1/proj-rakle/a.png'), 't1', 'proj-rakle', policy)).toBe(true);
+    expect(isTrustedMediaUrl(url('intiba.appspot.com', 'social-media/t1/proj-rakle/a.png'), 't1', 'proj-rakle', policy)).toBe(true);
+  });
+  it('değiştirilebilir yol, başka proje/tenant, başka bucket/host reddedilir', () => {
+    expect(isTrustedMediaUrl(url('intiba.appspot.com', 'avatars/u1/a.png'), 't1', 'proj-rakle', policy)).toBe(false);
+    expect(isTrustedMediaUrl(url('intiba.appspot.com', 'social-media-drafts/t1/other/a.png'), 't1', 'proj-rakle', policy)).toBe(false);
+    expect(isTrustedMediaUrl(url('intiba.appspot.com', 'social-media-drafts/t2/proj-rakle/a.png'), 't1', 'proj-rakle', policy)).toBe(false);
+    expect(isTrustedMediaUrl(url('evil.appspot.com', 'social-media-drafts/t1/proj-rakle/a.png'), 't1', 'proj-rakle', policy)).toBe(false);
+    expect(isTrustedMediaUrl(url('intiba.appspot.com', 'social-media-drafts/t1/proj-rakle/a.png', 'evil.com'), 't1', 'proj-rakle', policy)).toBe(false);
+    expect(isTrustedMediaUrl('https://example.com/a.png', 't1', 'proj-rakle', policy)).toBe(false);
+    expect(isTrustedMediaUrl(url('intiba.appspot.com', 'social-media-drafts/t1/proj-rakle/../../avatars/x.png'), 't1', 'proj-rakle', policy)).toBe(false);
+  });
+  it('müşteriye açan geçiş güvenilmeyen medyada reddedilir', () => {
+    const bad = post('p1', 'internal_review', { mediaUrls: [url('intiba.appspot.com', 'avatars/u1/a.png')] });
+    const r = planApproval({
+      actor: user('admin'), request: { action: 'internal_approve' }, plan: plan({ status: 'internal_review' }),
+      targetPosts: [bad], newId: () => 'r', mediaPolicy: policy,
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.code).toBe('MEDIA_SOURCE_INVALID');
+  });
+  it('güvenilen medya ile geçiş olur; politika yoksa medyalı post açılamaz', () => {
+    const good = post('p1', 'internal_review', { mediaUrls: [url('intiba.appspot.com', 'social-media-drafts/t1/proj-rakle/a.png')] });
+    expect(planApproval({ actor: user('admin'), request: { action: 'internal_approve' }, plan: plan({ status: 'internal_review' }), targetPosts: [good], newId: () => 'r', mediaPolicy: policy }).ok).toBe(true);
+    expect(planApproval({ actor: user('admin'), request: { action: 'internal_approve' }, plan: plan({ status: 'internal_review' }), targetPosts: [good], newId: () => 'r' }).ok).toBe(false);
+  });
+});

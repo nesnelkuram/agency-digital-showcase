@@ -69,6 +69,16 @@ export interface PostSnapshot {
   status: string;
   hasScheduledAt: boolean;
   revisionCount?: number;
+  /** Post'taki tüm medya URL'leri (media[].url, media[].thumbnailUrl, mediaUrls[]) */
+  mediaUrls?: string[];
+}
+
+/** Medya kaynağı doğrulaması için sunucu yapılandırması */
+export interface MediaSourcePolicy {
+  /** İzin verilen Storage bucket adları */
+  buckets: string[];
+  /** İzin verilen indirme URL hostları (ör. firebasestorage.googleapis.com, emülatör) */
+  hosts: string[];
 }
 
 export interface ProjectPolicy {
@@ -103,6 +113,7 @@ export type ApprovalErrorCode =
   | 'PARTIAL_NOT_ALLOWED'
   | 'COMMENT_REQUIRED'
   | 'NO_ELIGIBLE_POSTS'
+  | 'MEDIA_SOURCE_INVALID'
   | 'BAD_REQUEST';
 
 export interface ApprovalError {
@@ -270,6 +281,38 @@ export function postBelongsToPlan(post: PostSnapshot, plan: PlanSnapshot): boole
 }
 
 // ============================================
+// Medya kaynağı: müşteriye açılan içerik yalnızca değiştirilemez yollardan medya kullanabilir
+// ============================================
+
+/** Firebase Storage indirme URL'sinden bucket ve nesne yolunu çıkarır */
+export function parseStorageDownloadUrl(url: string): { host: string; bucket: string; path: string } | null {
+  try {
+    const u = new URL(url);
+    const m = u.pathname.match(/^\/v0\/b\/([^/]+)\/o\/(.+)$/);
+    if (!m) return null;
+    return { host: u.host, bucket: decodeURIComponent(m[1]), path: decodeURIComponent(m[2]) };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Medya URL'si bu tenant/projenin değiştirilemez (write-once / yazmaya kapalı) yolunda mı?
+ * - social-media-drafts/{tenantId}/{projectId}/…  (write-once)
+ * - social-media/{tenantId}/{projectId}/…         (eski yol, yazmaya kapalı)
+ */
+export function isTrustedMediaUrl(url: string, tenantId: string, projectId: string, policy: MediaSourcePolicy): boolean {
+  const parsed = parseStorageDownloadUrl(url);
+  if (!parsed) return false;
+  if (!policy.hosts.includes(parsed.host) || !policy.buckets.includes(parsed.bucket)) return false;
+  if (parsed.path.includes('..')) return false;
+  return (
+    parsed.path.startsWith(`social-media-drafts/${tenantId}/${projectId}/`) ||
+    parsed.path.startsWith(`social-media/${tenantId}/${projectId}/`)
+  );
+}
+
+// ============================================
 // Plan durum hesaplama (post'lardan)
 // ============================================
 
@@ -314,6 +357,8 @@ export interface PlanApprovalInput {
   targetPosts: Array<PostSnapshot | null>;
   /** Yeni tur kimliği üretici (test edilebilirlik için dışarıdan) */
   newId: () => string;
+  /** Müşteriye açan geçişlerde medya kaynağı kontrolü (verilmezse kontrol yapılamaz → reddedilir) */
+  mediaPolicy?: MediaSourcePolicy;
 }
 
 export function planApproval(input: PlanApprovalInput): ApprovalResult {
@@ -506,6 +551,25 @@ export function planApproval(input: PlanApprovalInput): ApprovalResult {
     if (to === 'pending_approval' && action !== 'client_undo') opensClientRound = true;
 
     postChanges.push({ postId: post.id, fromStatus: from, toStatus: to, fields });
+  }
+
+  // Müşteriye açılan içerik: tüm medya bu tenant/projenin değiştirilemez yolundan gelmeli
+  const opening = postChanges.filter((c) => c.toStatus === 'pending_approval' && action !== 'client_undo');
+  if (opening.length > 0) {
+    for (const change of opening) {
+      const post = posts.find((p) => p.id === change.postId)!;
+      const urls = post.mediaUrls || [];
+      const bad = !input.mediaPolicy
+        ? urls.length > 0
+        : urls.some((u) => !isTrustedMediaUrl(u, plan.tenantId, plan.projectId, input.mediaPolicy!));
+      if (bad) {
+        return fail(
+          'MEDIA_SOURCE_INVALID',
+          'Bazı görseller/videolar bu projenin medya alanından yüklenmemiş. Lütfen medyayı post düzenleyiciden yeniden yükleyin.',
+          409
+        );
+      }
+    }
   }
 
   // Studio / iç inceleme zorunlu: taslaktan doğrudan müşteriye gidilemez

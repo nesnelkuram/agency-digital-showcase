@@ -16,6 +16,7 @@ import {
   type ApprovalRequest,
   type PlanSnapshot,
   type PostSnapshot,
+  type MediaSourcePolicy,
 } from '../../shared/approval/approvalEngine';
 
 const PLANS = 'content_plans';
@@ -96,8 +97,39 @@ function toPlanSnapshot(id: string, data: any): PlanSnapshot {
   };
 }
 
+function collectMediaUrls(data: any): string[] {
+  const urls: string[] = [];
+  if (Array.isArray(data.media)) {
+    for (const m of data.media) {
+      if (m && typeof m.url === 'string' && m.url) urls.push(m.url);
+      if (m && typeof m.thumbnailUrl === 'string' && m.thumbnailUrl) urls.push(m.thumbnailUrl);
+    }
+  }
+  if (Array.isArray(data.mediaUrls)) for (const u of data.mediaUrls) if (typeof u === 'string' && u) urls.push(u);
+  return urls;
+}
+
+/**
+ * Güvenilen medya kaynağı: projenin Storage bucket'ı. Açık yapılandırma yoksa servis hesabının
+ * projesinin varsayılan bucket adları kullanılır.
+ */
+export function getMediaSourcePolicy(): MediaSourcePolicy {
+  const explicit = (process.env.FIREBASE_STORAGE_BUCKET || process.env.VITE_FIREBASE_STORAGE_BUCKET || '').trim();
+  let projectId = (process.env.FIREBASE_PROJECT_ID || '').trim();
+  try {
+    if (!projectId && process.env.FIREBASE_SERVICE_ACCOUNT) projectId = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT).project_id || '';
+  } catch {
+    // yok say
+  }
+  const buckets = explicit ? [explicit] : projectId ? [`${projectId}.appspot.com`, `${projectId}.firebasestorage.app`] : [];
+  const hosts = ['firebasestorage.googleapis.com'];
+  if (process.env.FIREBASE_STORAGE_EMULATOR_HOST) hosts.push(process.env.FIREBASE_STORAGE_EMULATOR_HOST);
+  return { buckets, hosts };
+}
+
 function toPostSnapshot(id: string, data: any): PostSnapshot {
   return {
+    mediaUrls: collectMediaUrls(data),
     id,
     tenantId: data.tenantId,
     projectId: data.projectId,
@@ -192,6 +224,7 @@ export async function executeApproval(params: {
       policy,
       targetPosts,
       newId: () => randomUUID(),
+      mediaPolicy: getMediaSourcePolicy(),
     });
     if (!result.ok) {
       return { ok: false, httpStatus: result.httpStatus, code: result.code, error: result.message } as ApprovalFailure;
