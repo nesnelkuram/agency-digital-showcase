@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { storage } from '@/lib/firebase/config';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTenantId } from '@/shared/hooks/useTenant';
@@ -192,13 +192,20 @@ export function useMediaUpload(): UseMediaUploadReturn {
               const filePath = `social-media-drafts/${tenantId}/${projectId}/${timestamp}_${unique}_${safeName}`;
               const storageRef = ref(storage, filePath);
 
-              progressMap.set(file.name, 30);
-              setFileProgress(new Map(progressMap));
-
-              await uploadBytes(storageRef, file);
-
-              progressMap.set(file.name, 70);
-              setFileProgress(new Map(progressMap));
+              // Gerçek yükleme ilerlemesi (0–85%); kalan kısım URL + önizleme üretimi
+              await new Promise<void>((resolve, reject) => {
+                const task = uploadBytesResumable(storageRef, file, { contentType: file.type });
+                task.on(
+                  'state_changed',
+                  (snap) => {
+                    const pct = snap.totalBytes > 0 ? Math.round((snap.bytesTransferred / snap.totalBytes) * 85) : 0;
+                    progressMap.set(file.name, pct);
+                    setFileProgress(new Map(progressMap));
+                  },
+                  reject,
+                  () => resolve()
+                );
+              });
 
               const downloadUrl = await getDownloadURL(storageRef);
 

@@ -163,7 +163,7 @@ const MediaDropZone: React.FC<MediaDropZoneProps> = ({
                   {fileName}
                 </span>
                 <span className="font-grotesk text-xs text-neutral-500">
-                  {prog === -1 ? 'Hata' : `${prog}%`}
+                  {prog === -1 ? 'Hata' : prog >= 85 && prog < 100 ? 'İşleniyor…' : prog === 100 ? 'Tamam' : `${prog}%`}
                 </span>
               </div>
               <div className="w-full h-1.5 bg-neutral-200 rounded-full overflow-hidden">
