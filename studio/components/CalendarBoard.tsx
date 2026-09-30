@@ -54,13 +54,13 @@ const FilterMenu: React.FC<{
       <button
         onClick={() => setOpen(!open)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
-        className="inline-flex items-center gap-2 px-3 py-2 border border-neutral-300 rounded-lg bg-white font-grotesk text-sm text-[#171717] hover:bg-neutral-50"
+        className="glass-chip inline-flex items-center gap-2 px-4 py-2 font-grotesk text-sm text-[#171717]"
       >
         {label}: {current}
         <ChevronDown className="w-4 h-4" />
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1 w-52 bg-white border border-neutral-200 rounded-lg shadow-lg py-1 z-30">
+        <div className="absolute right-0 top-full mt-1 w-52 bg-white/90 backdrop-blur-xl border border-white rounded-2xl shadow-lg py-1 z-30">
           {options.map((o) => (
             <button
               key={o.value}
@@ -95,8 +95,8 @@ const PostTile: React.FC<{ post: SocialMediaPost; compact?: boolean; onClick: ()
         e.stopPropagation();
         onClick();
       }}
-      className={`group bg-white border border-neutral-200 rounded-lg hover:border-neutral-400 hover:shadow-sm transition-all cursor-pointer ${
-        compact ? 'px-1.5 py-1' : 'p-2'
+      className={`group glass-tile hover:bg-white transition-all cursor-pointer ${
+        compact ? 'px-2 py-1 !rounded-xl' : 'p-2.5'
       }`}
     >
       <div className="flex items-center gap-1.5">
@@ -111,7 +111,7 @@ const PostTile: React.FC<{ post: SocialMediaPost; compact?: boolean; onClick: ()
         <p className="font-grotesk text-[11px] text-neutral-700 truncate">{post.title || post.caption || POST_TYPE_LABELS[post.postType]}</p>
       ) : (
         <>
-          <div className="mt-1.5 aspect-square rounded-md bg-neutral-100 overflow-hidden flex items-center justify-center">
+          <div className="mt-1.5 aspect-square rounded-xl bg-slate-200/60 overflow-hidden flex items-center justify-center">
             {thumb ? (
               <img src={thumb} alt="" className="w-full h-full object-cover" loading="lazy" />
             ) : isVideo ? (
@@ -123,7 +123,7 @@ const PostTile: React.FC<{ post: SocialMediaPost; compact?: boolean; onClick: ()
           <p className="mt-1.5 font-grotesk text-[11px] text-neutral-700 line-clamp-3">{post.caption || post.title || ''}</p>
         </>
       )}
-      <span className={`mt-1 inline-block px-1.5 py-px rounded font-grotesk text-[10px] ${STUDIO_STATUS_COLOR[post.status] || 'bg-neutral-100'}`}>
+      <span className={`mt-1.5 inline-block px-2 py-px rounded-full font-grotesk text-[10px] ${STUDIO_STATUS_COLOR[post.status] || 'bg-neutral-100'}`}>
         {STUDIO_STATUS_LABEL[post.status] || post.status}
       </span>
     </div>
@@ -231,28 +231,28 @@ const CalendarBoard: React.FC<Props> = ({ posts, onPostClick, onCreate, onResche
   const platformOptions = [{ value: 'all', label: 'tümü' }, ...Object.entries(SOCIAL_PLATFORM_LABELS).map(([v, l]) => ({ value: v, label: l }))];
 
   return (
-    <div className="bg-white border border-neutral-200 rounded-xl overflow-hidden">
+    <div className="glass-card overflow-hidden">
       {/* Araç çubuğu */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-neutral-200 flex-wrap">
-        <div className="inline-flex bg-neutral-100 rounded-lg p-0.5">
+      <div className="flex items-center gap-3 px-5 py-4 border-b border-white/60 flex-wrap">
+        <div className="inline-flex glass-chip p-1">
           {(['week', 'month'] as CalendarMode[]).map((m) => (
             <button
               key={m}
               onClick={() => switchMode(m)}
-              className={`px-4 py-1.5 rounded-md font-grotesk text-sm ${mode === m ? 'bg-white shadow-sm text-[#171717] font-medium' : 'text-neutral-600'}`}
+              className={`px-5 py-1.5 rounded-full font-grotesk text-sm transition-colors ${mode === m ? 'bg-[#111] text-white font-medium shadow-sm' : 'text-neutral-600 hover:text-neutral-900'}`}
             >
               {m === 'week' ? 'Hafta' : 'Ay'}
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-1">
-          <button onClick={() => shift(-1)} className="p-1.5 rounded-lg hover:bg-neutral-100" aria-label="Önceki">
+        <div className="flex items-center gap-1.5">
+          <button onClick={() => shift(-1)} className="glass-chip p-2" aria-label="Önceki">
             <ChevronLeft className="w-5 h-5" />
           </button>
-          <button onClick={() => setAnchor(startOfDay(new Date()))} className="px-3 py-1.5 rounded-lg hover:bg-neutral-100 font-grotesk text-sm font-medium">
+          <button onClick={() => setAnchor(startOfDay(new Date()))} className="glass-chip px-4 py-2 font-grotesk text-sm font-medium">
             Bugün
           </button>
-          <button onClick={() => shift(1)} className="p-1.5 rounded-lg hover:bg-neutral-100" aria-label="Sonraki">
+          <button onClick={() => shift(1)} className="glass-chip p-2" aria-label="Sonraki">
             <ChevronRight className="w-5 h-5" />
           </button>
         </div>
@@ -267,12 +267,12 @@ const CalendarBoard: React.FC<Props> = ({ posts, onPostClick, onCreate, onResche
         <div className="flex-1 min-w-0 overflow-x-auto">
           {mode === 'week' ? (
             <div className="min-w-[840px]">
-              <div className="grid grid-cols-7 border-b border-neutral-200">
+              <div className="grid grid-cols-7 border-b border-white/60">
                 {weekDays.map((d, i) => (
                   <div key={i} className="py-2 flex justify-center">
                     <span
-                      className={`px-3 py-0.5 rounded-md font-grotesk text-sm ${
-                        sameDay(d, today) ? 'bg-[#171717] text-white font-semibold' : 'text-neutral-500'
+                      className={`px-3.5 py-1 rounded-full font-grotesk text-sm ${
+                        sameDay(d, today) ? 'bg-[#111] text-white font-semibold' : 'text-neutral-500'
                       }`}
                     >
                       {DAY_SHORT[i]} {d.getDate()}
@@ -289,15 +289,15 @@ const CalendarBoard: React.FC<Props> = ({ posts, onPostClick, onCreate, onResche
                       key={i}
                       {...dropProps(d)}
                       onClick={() => !past && createOn(d)}
-                      className={`group/day relative border-r border-neutral-100 last:border-r-0 p-1.5 space-y-1.5 ${
-                        sameDay(d, today) ? 'bg-neutral-50' : ''
-                      } ${dragOver === dayKey(d) ? 'bg-amber-50' : ''} ${past ? 'bg-neutral-50/60' : 'cursor-pointer'}`}
+                      className={`group/day relative border-r border-white/50 last:border-r-0 p-2 space-y-2 ${
+                        sameDay(d, today) ? 'bg-white/35' : ''
+                      } ${dragOver === dayKey(d) ? 'bg-amber-100/50' : ''} ${past ? 'bg-slate-300/15' : 'cursor-pointer'}`}
                     >
                       {list.map((p) => (
                         <PostTile key={p.id} post={p} onClick={() => onPostClick(p)} />
                       ))}
                       {!past && (
-                        <div className="hidden group-hover/day:flex items-center justify-center gap-1 py-2 rounded-lg border border-dashed border-neutral-300 font-grotesk text-xs text-neutral-500">
+                        <div className="hidden group-hover/day:flex items-center justify-center gap-1 py-2 rounded-2xl border border-dashed border-slate-400/50 bg-white/30 font-grotesk text-xs text-neutral-600">
                           <Plus className="w-3.5 h-3.5" /> Oluştur
                         </div>
                       )}
@@ -308,7 +308,7 @@ const CalendarBoard: React.FC<Props> = ({ posts, onPostClick, onCreate, onResche
             </div>
           ) : (
             <div className="min-w-[840px]">
-              <div className="grid grid-cols-7 border-b border-neutral-200">
+              <div className="grid grid-cols-7 border-b border-white/60">
                 {DAY_LONG.map((n) => (
                   <div key={n} className="py-2 text-center font-grotesk text-sm text-neutral-600">
                     {n}
@@ -325,15 +325,15 @@ const CalendarBoard: React.FC<Props> = ({ posts, onPostClick, onCreate, onResche
                       key={i}
                       {...dropProps(d)}
                       onClick={() => !past && createOn(d)}
-                      className={`group/day min-h-[128px] border-r border-b border-neutral-100 p-1.5 space-y-1 ${
-                        inMonth ? '' : 'bg-neutral-50'
-                      } ${dragOver === dayKey(d) ? 'bg-amber-50' : ''} ${past ? '' : 'cursor-pointer'}`}
+                      className={`group/day min-h-[128px] border-r border-b border-white/50 p-1.5 space-y-1 ${
+                        inMonth ? '' : 'bg-slate-300/15'
+                      } ${dragOver === dayKey(d) ? 'bg-amber-100/50' : ''} ${past ? '' : 'cursor-pointer'}`}
                     >
                       <div className="flex items-center justify-between">
                         <span
                           className={`font-grotesk text-sm ${
                             sameDay(d, today)
-                              ? 'bg-[#171717] text-white rounded-md px-1.5 font-semibold'
+                              ? 'bg-[#111] text-white rounded-full px-2 font-semibold'
                               : inMonth
                                 ? 'text-[#171717]'
                                 : 'text-neutral-400'
@@ -367,7 +367,7 @@ const CalendarBoard: React.FC<Props> = ({ posts, onPostClick, onCreate, onResche
         </div>
 
         {/* Yan panel */}
-        {sidebar && <aside className="hidden lg:block w-80 shrink-0 border-l border-neutral-200">{sidebar}</aside>}
+        {sidebar && <aside className="hidden lg:block w-80 shrink-0 border-l border-white/50 bg-white/15">{sidebar}</aside>}
       </div>
     </div>
   );

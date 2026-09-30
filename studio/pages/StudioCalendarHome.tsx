@@ -101,13 +101,13 @@ const StudioCalendarHome: React.FC = () => {
               setCreateDate(null);
               setCreateOpen(true);
             }}
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-[#171717] text-white rounded-lg font-grotesk text-sm hover:bg-neutral-800"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-[#111] text-white rounded-full font-grotesk text-sm hover:bg-neutral-800"
           >
             <Plus className="w-4 h-4" /> İçerik oluştur
           </button>
           <Link
             to={`/studio/${project.id}/planlar/yeni`}
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-2 border border-neutral-300 rounded-lg font-grotesk text-sm hover:bg-neutral-50"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-2 glass-chip font-grotesk text-sm hover:bg-neutral-50"
           >
             <FilePlus2 className="w-4 h-4" /> Haftalık plan
           </Link>
@@ -150,7 +150,7 @@ const StudioCalendarHome: React.FC = () => {
                     <Link
                       key={plan.id}
                       to={`/studio/${project.id}/planlar/${plan.id}`}
-                      className="block bg-amber-50 border border-amber-200 rounded-lg p-2.5 hover:border-amber-300"
+                      className="block glass-tile !bg-amber-50/70 !border-amber-200 p-2.5 hover:border-amber-300"
                     >
                       <p className="font-grotesk text-sm font-medium text-[#171717] truncate">{plan.title}</p>
                       <p className="font-grotesk text-[11px] text-neutral-600">

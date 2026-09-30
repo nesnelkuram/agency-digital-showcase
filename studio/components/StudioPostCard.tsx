@@ -24,7 +24,7 @@ const StudioPostCard: React.FC<Props> = ({ post, onClick, children, compact }) =
 
   return (
     <div
-      className={`bg-white rounded-xl border border-neutral-200 overflow-hidden ${onClick ? 'cursor-pointer hover:border-neutral-300 hover:shadow-sm transition-all' : ''}`}
+      className={`glass-tile overflow-hidden ${onClick ? 'cursor-pointer hover:border-neutral-300 hover:shadow-sm transition-all' : ''}`}
       onClick={onClick}
     >
       <div className="flex gap-3 p-3">

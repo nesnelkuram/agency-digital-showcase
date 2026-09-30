@@ -20,7 +20,7 @@ const StudioNotificationsPage: React.FC = () => {
         )}
       </div>
       {notifications.length === 0 ? (
-        <div className="bg-white border border-neutral-200 rounded-xl p-8 text-center">
+        <div className="glass-card p-8 text-center">
           <Bell className="w-8 h-8 text-neutral-300 mx-auto" />
           <p className="font-grotesk text-sm text-neutral-500 mt-2">Henüz bildirim yok.</p>
         </div>

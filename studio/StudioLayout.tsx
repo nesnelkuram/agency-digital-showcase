@@ -65,8 +65,8 @@ const StudioLayout: React.FC = () => {
 
   return (
     <NotificationsProvider>
-      <div className="min-h-screen bg-neutral-50">
-        <header className="sticky top-0 z-40 bg-white border-b border-neutral-200">
+      <div className="studio-bg">
+        <header className="sticky top-0 z-40 bg-white/25 backdrop-blur-xl border-b border-white/50">
           <div className="max-w-[1600px] mx-auto px-4 h-16 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
               <Link to="/studio" className="flex items-center gap-2 shrink-0">
@@ -78,7 +78,7 @@ const StudioLayout: React.FC = () => {
                   aria-label="Marka seç"
                   value={project?.id || ''}
                   onChange={(e) => e.target.value && navigate(`/studio/${e.target.value}`)}
-                  className={`font-grotesk text-sm font-semibold border border-neutral-200 rounded-lg px-2 py-1.5 bg-white max-w-[220px] truncate ${
+                  className={`glass-chip font-grotesk text-sm font-semibold px-3 py-1.5 max-w-[220px] truncate outline-none ${
                     projects.length === 1 && project ? 'hidden' : ''
                   }`}
                 >
@@ -118,7 +118,7 @@ const StudioLayout: React.FC = () => {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 4 }}
                       transition={{ duration: 0.12 }}
-                      className="absolute right-0 top-full mt-1 w-52 bg-white rounded-xl border border-neutral-200 shadow-lg py-1 z-50"
+                      className="absolute right-0 top-full mt-1 w-52 bg-white/90 backdrop-blur-xl rounded-2xl border border-white shadow-lg py-1 z-50"
                     >
                       <div className="px-3 py-2 border-b border-neutral-100">
                         <p className="font-grotesk text-xs font-semibold text-[#171717] truncate">{user?.displayName || user?.email}</p>
@@ -139,7 +139,7 @@ const StudioLayout: React.FC = () => {
           </div>
 
           {project && (
-            <nav className="max-w-[1600px] mx-auto px-4 flex gap-1 overflow-x-auto">
+            <nav className="max-w-[1600px] mx-auto px-4 pb-3 flex gap-2 overflow-x-auto">
               {NAV.map((item) => {
                 const Icon = item.icon;
                 return (
@@ -148,8 +148,8 @@ const StudioLayout: React.FC = () => {
                     to={item.to ? `/studio/${project.id}/${item.to}` : `/studio/${project.id}`}
                     end={item.end}
                     className={({ isActive }) =>
-                      `flex items-center gap-1.5 px-3 py-2.5 border-b-2 font-grotesk text-sm whitespace-nowrap transition-colors ${
-                        isActive ? 'border-[#171717] text-[#171717] font-medium' : 'border-transparent text-neutral-500 hover:text-neutral-800'
+                      `flex items-center gap-1.5 px-4 py-2 rounded-full font-grotesk text-sm whitespace-nowrap transition-colors ${
+                        isActive ? 'bg-[#111] text-white font-medium shadow-sm' : 'glass-chip text-neutral-600 hover:text-neutral-900'
                       }`
                     }
                   >

@@ -226,7 +226,7 @@ const StudioPlanPage: React.FC = () => {
         <ArrowLeft className="w-4 h-4" /> Planlar
       </Link>
 
-      <div className="bg-white border border-neutral-200 rounded-xl p-4 space-y-3">
+      <div className="glass-card p-4 space-y-3">
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
             <h1 className="font-grotesk text-xl font-bold text-[#171717]">{plan.title}</h1>
@@ -253,7 +253,7 @@ const StudioPlanPage: React.FC = () => {
               <button
                 onClick={() => setSendOpen(true)}
                 disabled={!!busy}
-                className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#171717] text-white rounded-lg font-grotesk text-sm hover:bg-neutral-800 disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#111] text-white rounded-full font-grotesk text-sm hover:bg-neutral-800 disabled:opacity-50"
               >
                 <Send className="w-4 h-4" />
                 {toReview > 0 ? `Onayla ve firmaya gönder (${toReview})` : 'Firmaya yeniden bildir'}
@@ -327,7 +327,7 @@ const StudioPlanPage: React.FC = () => {
         })}
       </div>
 
-      <div className="bg-white border border-neutral-200 rounded-xl p-4">
+      <div className="glass-card p-4">
         <h2 className="font-grotesk text-sm font-semibold text-[#171717] mb-2">Geçmiş</h2>
         <ApprovalAuditTrail planId={plan.id} compact />
       </div>
@@ -337,7 +337,7 @@ const StudioPlanPage: React.FC = () => {
       {/* Yorum gerektiren işlem */}
       {commentFor && (
         <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4" onClick={() => setCommentFor(null)}>
-          <div className="bg-white rounded-xl p-4 w-full max-w-md space-y-3" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white/95 backdrop-blur-xl rounded-3xl p-5 w-full max-w-md space-y-3 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <h3 className="font-grotesk text-sm font-semibold">Ne düzeltilsin?</h3>
             <textarea
               value={comment}
@@ -359,7 +359,7 @@ const StudioPlanPage: React.FC = () => {
                     setComment('');
                   }
                 }}
-                className="px-3 py-1.5 bg-[#171717] text-white rounded-lg font-grotesk text-sm disabled:opacity-50"
+                className="px-3 py-1.5 bg-[#111] text-white rounded-full font-grotesk text-sm disabled:opacity-50"
               >
                 Gönder
               </button>
@@ -371,7 +371,7 @@ const StudioPlanPage: React.FC = () => {
       {/* Firmaya gönder */}
       {sendOpen && (
         <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4" onClick={() => setSendOpen(false)}>
-          <div className="bg-white rounded-xl p-4 w-full max-w-md space-y-3" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white/95 backdrop-blur-xl rounded-3xl p-5 w-full max-w-md space-y-3 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h3 className="flex items-center gap-2 font-grotesk text-sm font-semibold">
                 <Mail className="w-4 h-4" /> {toReview > 0 ? 'Onayla ve firmaya gönder' : 'Firmaya yeniden bildir'}
@@ -405,7 +405,7 @@ const StudioPlanPage: React.FC = () => {
               <button
                 onClick={approveAndSend}
                 disabled={busy === 'send'}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#171717] text-white rounded-lg font-grotesk text-sm disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#111] text-white rounded-full font-grotesk text-sm disabled:opacity-50"
               >
                 {busy === 'send' && <Loader2 className="w-4 h-4 animate-spin" />}
                 Gönder

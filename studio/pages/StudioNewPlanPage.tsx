@@ -110,7 +110,7 @@ const StudioNewPlanPage: React.FC = () => {
         </p>
       </div>
 
-      <div className="bg-white border border-neutral-200 rounded-xl p-4 flex items-end gap-3 flex-wrap">
+      <div className="glass-card p-4 flex items-end gap-3 flex-wrap">
         <label className="font-grotesk text-xs text-neutral-600">
           Hafta başlangıcı (Pazartesi)
           <input
@@ -130,7 +130,7 @@ const StudioNewPlanPage: React.FC = () => {
           <Loader2 className="w-6 h-6 animate-spin text-neutral-400" />
         </div>
       ) : posts.length === 0 ? (
-        <p className="font-grotesk text-sm text-neutral-500 bg-white border border-neutral-200 rounded-xl p-6 text-center">
+        <p className="font-grotesk text-sm text-neutral-500 glass-card p-6 text-center">
           Plana eklenecek taslak yok. Önce "Bu Hafta" ekranından post oluşturun.
         </p>
       ) : (
@@ -152,7 +152,7 @@ const StudioNewPlanPage: React.FC = () => {
         <button
           onClick={handleCreate}
           disabled={saving || selected.size === 0}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#171717] text-white rounded-lg font-grotesk text-sm disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#111] text-white rounded-full font-grotesk text-sm disabled:opacity-50"
         >
           {saving && <Loader2 className="w-4 h-4 animate-spin" />}
           Planı oluştur ({selected.size})

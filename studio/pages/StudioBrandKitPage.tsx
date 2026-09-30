@@ -50,11 +50,11 @@ const StudioBrandKitPage: React.FC = () => {
       </div>
 
       {!kit.brand || !kit.brand.hasAnalysis ? (
-        <p className="font-grotesk text-sm text-neutral-500 bg-white border border-neutral-200 rounded-xl p-6">
+        <p className="font-grotesk text-sm text-neutral-500 glass-card p-6">
           Bu marka için henüz marka analizi yok. Analiz tamamlandığında marka sesi burada görünecek.
         </p>
       ) : (
-        <div className="bg-white border border-neutral-200 rounded-xl p-5 space-y-4">
+        <div className="glass-card p-5 space-y-4">
           <div>
             <p className="font-grotesk text-xs font-medium text-neutral-500 mb-1">Marka sesi</p>
             <p className="font-grotesk text-sm text-[#171717]">{kit.brand.voiceSummary}</p>

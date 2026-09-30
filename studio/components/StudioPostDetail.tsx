@@ -306,7 +306,7 @@ const StudioPostDetail: React.FC<Props> = ({ post, onClose, onSaved, onOpenPlan 
                 <button
                   onClick={save}
                   disabled={saving || uploading}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#171717] text-white rounded-lg font-grotesk text-sm disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#111] text-white rounded-full font-grotesk text-sm disabled:opacity-50"
                 >
                   {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                   Kaydet
