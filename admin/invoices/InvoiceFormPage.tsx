@@ -314,7 +314,7 @@ const InvoiceFormPage: React.FC = () => {
               ? 'Fatura bilgilerini güncelleyin. PDF değiştirmek istemezseniz mevcut dosya korunur.'
               : isCopy
               ? 'Bilgiler önceki faturadan dolduruldu. Yeni fatura numarasını girin ve güncel PDF\'i yükleyin.'
-              : 'PDF faturayı yükleyin, alıcıyı seçin ve bilgilendirme maili gönderin.'}
+              : 'PDF faturayı yükleyin ve alıcıyı seçin. Kaydet mail göndermez.'}
           </p>
         </div>
       </div>
@@ -449,20 +449,20 @@ const InvoiceFormPage: React.FC = () => {
       {/* Aksiyonlar */}
       <div className="flex flex-wrap items-center gap-3">
         <button
-          onClick={() => handleSave(true)}
+          onClick={() => handleSave(false)}
           disabled={saving}
           className="px-4 py-2 bg-[#171717] text-white rounded-xl font-commons text-sm font-medium hover:bg-neutral-800 disabled:opacity-50 inline-flex items-center gap-2"
         >
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-          Kaydet ve Gönder
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          {isEdit ? 'Değişiklikleri Kaydet' : 'Kaydet'}
         </button>
         <button
-          onClick={() => handleSave(false)}
+          onClick={() => handleSave(true)}
           disabled={saving}
           className="px-4 py-2 bg-white border border-neutral-200 text-neutral-700 rounded-xl font-commons text-sm font-medium hover:bg-neutral-50 disabled:opacity-50 inline-flex items-center gap-2"
         >
-          <Save className="w-4 h-4" />
-          {isEdit ? 'Değişiklikleri Kaydet' : 'Taslak Kaydet'}
+          <Send className="w-4 h-4" />
+          Kaydet ve Müşteriye Mail Gönder
         </button>
       </div>
     </div>

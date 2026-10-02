@@ -38,6 +38,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
+  // Otomatik hatırlatma mailleri kapalı — yalnızca açıkça etkinleştirilirse çalışır.
+  if (process.env.INVOICE_REMINDERS_ENABLED !== 'true') {
+    return res.status(200).json({ success: true, skipped: 'invoice reminders disabled' });
+  }
+
   try {
     const db = getAdminDb();
     const snap = await db
