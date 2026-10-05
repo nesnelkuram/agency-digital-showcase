@@ -1,7 +1,7 @@
 // Oro di Milas sunumundaki web için kodlanmış portföy videolarını Vercel Blob'a yükler.
 // Mevcut vitrin videolarının yanına (videos/full/) yeni adlarla eklenir; var olan dosyanın üzerine yazılmaz.
 // Token .env.vercel.local içindeki BLOB_READ_WRITE_TOKEN'dan okunur ve hiçbir yere yazdırılmaz.
-// Kullanım: node scripts/orodimilas/upload-videos.mjs
+// Kullanım: node scripts/orodimilas/upload-videos.mjs <yerel.mp4> <videos/full/ad-web.mp4> [<yerel> <hedef> ...]
 import { readFileSync, createReadStream, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -12,16 +12,17 @@ const envFile = readFileSync(path.join(root, '.env.vercel.local'), 'utf8');
 const token = envFile.match(/^BLOB_READ_WRITE_TOKEN="?([^"\n]+)"?/m)?.[1];
 if (!token) throw new Error('BLOB_READ_WRITE_TOKEN bulunamadı.');
 
-const VIDEOS = [
-  ['rakle.mp4', 'videos/full/018-web.mp4'],
-  ['dieci-kitchen.mp4', 'videos/full/039-web.mp4'],
-  ['dieci-dinner.mp4', 'videos/full/040-web.mp4'],
-  ['dieci-sorular.mp4', 'videos/full/dieci-2026-v6-web.mp4'],
-];
+const args = process.argv.slice(2);
+if (!args.length || args.length % 2) throw new Error('Yerel dosya ve hedef yol çiftler hâlinde verilmeli.');
+const VIDEOS = [];
+for (let i = 0; i < args.length; i += 2) {
+  if (!args[i + 1].startsWith('videos/full/') || !args[i + 1].endsWith('.mp4')) throw new Error(`${args[i + 1]} videos/full/ altında bir .mp4 olmalı.`);
+  VIDEOS.push([path.resolve(args[i]), args[i + 1]]);
+}
 
 const results = {};
-for (const [file, pathname] of VIDEOS) {
-  const local = path.join(root, 'public/orodimilas/assets/video', file);
+for (const [local, pathname] of VIDEOS) {
+  const file = path.basename(local);
   const existing = await head(pathname, { token }).catch(() => null);
   if (existing) {
     if (existing.size !== statSync(local).size) throw new Error(`${pathname} zaten var ve farklı; üzerine yazılmadı.`);

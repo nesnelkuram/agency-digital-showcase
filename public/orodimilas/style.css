@@ -521,6 +521,43 @@ figcaption.lbl, .photo-wide figcaption { font-size: 9px; letter-spacing: 0.2em; 
 .op-list .d { font-size: 16px; color: var(--ink-2); line-height: 1.65; }
 @media (max-width: 600px) { .op-list li { grid-template-columns: 1fr; gap: 4px; } }
 
+/* VIII · Görüşme soruları */
+.qform { margin-top: 56px; text-align: left; }
+.qf-intro p { font-size: 16.5px; line-height: 1.75; color: var(--ink-2); margin-top: 12px; }
+.qf-group { border: 0; border-top: 1px solid var(--gold); margin: 34px 0 0; padding: 0; min-width: 0; }
+.qf-group legend { float: left; width: 100%; padding: 16px 0 4px; font-size: 10px; letter-spacing: 0.24em; color: var(--gold-ink); }
+.qf-group legend + * { clear: both; }
+.qf-item { padding: 14px 0; border-bottom: 1px solid var(--hair); }
+.qf-item label { display: block; font-size: 16.5px; line-height: 1.5; color: var(--olive); }
+.qf-n { display: inline-block; min-width: 30px; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 15px; color: var(--gold); }
+.qf-item textarea, .qf-item input {
+  display: block; width: 100%; margin-top: 8px; padding: 10px 12px;
+  font: 16px/1.6 'EB Garamond', Georgia, serif; color: var(--ink);
+  background: #FFFDF7; border: 1px solid var(--hair); border-radius: 2px; resize: vertical;
+  transition: border-color .2s, box-shadow .2s;
+}
+.qf-item textarea { min-height: 52px; }
+.qf-item textarea:focus, .qf-item input:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(184, 146, 74, 0.18); }
+.qf-item [aria-invalid="true"] { border-color: #A4462E; }
+.qf-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; }
+@media (max-width: 640px) { .qf-row { grid-template-columns: 1fr; } }
+.qf-req { font-family: Jost, sans-serif; font-size: 8.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); margin-left: 6px; }
+.qf-hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.qf-submit { margin-top: 32px; text-align: center; }
+.qf-progress { font-family: Jost, sans-serif; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); }
+.qf-send {
+  margin-top: 14px; min-height: 48px; padding: 12px 34px; border-radius: 999px; cursor: pointer;
+  font-family: Jost, sans-serif; font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase;
+  border: 1px solid var(--olive); background: var(--olive); color: var(--cream); transition: background .25s, color .25s;
+}
+.qf-send:hover:not(:disabled) { background: var(--gold-2); border-color: var(--gold-2); color: var(--night); }
+.qf-send:disabled { opacity: .7; cursor: default; }
+.qf-status { min-height: 24px; margin-top: 14px; font-size: 16px; color: var(--ink-2); }
+.qf-status[data-state="error"] { color: #A4462E; }
+.qf-status[data-state="ok"] { color: var(--olive); font-style: italic; }
+.qf-note { font-size: 14px; font-style: italic; color: var(--muted); margin-top: 6px; }
+.qform.is-sent textarea, .qform.is-sent input { opacity: .7; pointer-events: none; }
+
 /* VII · Koyu panel */
 .panel-dark { background: var(--olive); color: var(--on-dark); padding: clamp(56px, 8vw, 96px) 0; margin-top: clamp(64px, 9vw, 110px); }
 .panel-dark .prose p { line-height: 1.9; }

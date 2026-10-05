@@ -1,9 +1,9 @@
 {
-  "priorProductionDeployment": "dpl_BxvzAi9g8VH5wzuM76GkJax8exgg",
+  "priorProductionDeployment": "dpl_DVrmr8hVjGPDhnF1M1XuAd9pPQKU",
+  "mode": "update",
   "publicUrl": "https://www.intiba.co.uk/orodimilas/",
-  "sourceFileCount": 3947,
+  "sourceFileCount": 3983,
   "changedFiles": [
-    "vercel.json",
     "public/orodimilas/assets/bottle-albedo.jpg",
     "public/orodimilas/assets/bottle-hero.webp",
     "public/orodimilas/assets/bottle-profile.json",
@@ -18,8 +18,11 @@
     "public/orodimilas/assets/portfolio/dieci-dinner.jpg",
     "public/orodimilas/assets/portfolio/dieci-kitchen.jpg",
     "public/orodimilas/assets/portfolio/dieci-sorular.jpg",
+    "public/orodimilas/assets/portfolio/dieci-tiramisu.jpg",
     "public/orodimilas/assets/portfolio/dieci.jpg",
     "public/orodimilas/assets/portfolio/papillon.jpg",
+    "public/orodimilas/assets/portfolio/rakle-pomodoro-teaser.jpg",
+    "public/orodimilas/assets/portfolio/rakle-pomodoro.jpg",
     "public/orodimilas/assets/trunk.jpg",
     "public/orodimilas/index.html",
     "public/orodimilas/page.js",
@@ -30,15 +33,19 @@
     "scripts/orodimilas/prepare-bottle.py",
     "scripts/orodimilas/scene.js",
     "scripts/orodimilas/stage-production.mjs",
+    "scripts/orodimilas/test-questionnaire.mjs",
     "scripts/orodimilas/upload-videos.mjs",
     "scripts/orodimilas/verify-showcase.mjs",
-    "scripts/build-orodimilas-showcase.mjs"
+    "scripts/build-orodimilas-showcase.mjs",
+    "api/orodimilas/questions.ts",
+    "api/_lib/orodimilasQuestionnaire.ts",
+    "api/_lib/orodimilasQuestions.json"
   ],
-  "retainedUnchangedFiles": 3946,
+  "retainedUnchangedFiles": 3947,
   "promoted": true,
-  "createdAt": "2026-10-05T06:29:04.008Z",
-  "newProductionDeployment": "dpl_7EoMsbEUM7if6eFuLZe7vY4Hynyz",
-  "stagingUrl": "https://v0-intiba-website-l45b00og5-info-intibacouks-projects.vercel.app",
+  "createdAt": "2026-10-05T13:54:40.270Z",
+  "newProductionDeployment": "dpl_5njfU8THjYQ5uVMLtXUm9t1YbMEq",
+  "stagingUrl": "https://v0-intiba-website-87p9gsz7r-info-intibacouks-projects.vercel.app",
   "buildStatus": "INITIALIZING",
-  "promotedAt": "2026-10-05T06:38:37.581Z"
+  "promotedAt": "2026-10-05T14:27:11.607Z"
 }

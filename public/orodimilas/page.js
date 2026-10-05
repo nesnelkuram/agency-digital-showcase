@@ -237,6 +237,70 @@ $$('[data-term]').forEach(el => {
   el.classList.add('is-set');
 });
 
+/* ───────── Görüşme soruları ───────── */
+// Taslak bu tarayıcıda saklanır; aynı gönderim kimliği yeniden denemelerde çift kaydı önler.
+const qform = $('#qform');
+const DRAFT_KEY = 'orodimilas-qform-v1';
+const qStatus = $('#qf-status');
+const qProgress = $('#qf-progress');
+const qAreas = $$('textarea', qform);
+const readDraft = () => { try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); } catch { return null; } };
+const writeDraft = draft => { try { localStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch { /* Gizli pencere: taslak saklanamaz. */ } };
+const newId = () => (crypto.randomUUID ? crypto.randomUUID() : '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)));
+let draft = readDraft() || { requestId: newId(), values: {} };
+function grow(area) { area.style.height = 'auto'; area.style.height = Math.min(area.scrollHeight + 2, 480) + 'px'; }
+function progress() {
+  const done = qAreas.filter(area => area.value.trim()).length;
+  qProgress.textContent = `${done} / ${qAreas.length} soru yanıtlandı`;
+}
+for (const field of qform.elements) {
+  if (!field.name || field.name === 'website') continue;
+  if (draft.values[field.name] !== undefined) field.value = draft.values[field.name];
+  field.addEventListener('input', () => {
+    draft.values[field.name] = field.value;
+    writeDraft(draft);
+    if (field.tagName === 'TEXTAREA') { grow(field); progress(); }
+    field.removeAttribute('aria-invalid');
+  });
+}
+qAreas.forEach(grow);
+progress();
+qform.addEventListener('submit', async event => {
+  event.preventDefault();
+  const button = $('.qf-send', qform);
+  const name = qform.elements.name, email = qform.elements.email;
+  const invalid = [];
+  if (name.value.trim().length < 2) invalid.push(name);
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim())) invalid.push(email);
+  invalid.forEach(field => field.setAttribute('aria-invalid', 'true'));
+  if (invalid.length) { qStatus.textContent = 'Lütfen ad soyad ve geçerli bir e-posta adresi yazın.'; qStatus.dataset.state = 'error'; invalid[0].focus(); return; }
+  const answers = Object.fromEntries(qAreas.filter(area => area.value.trim()).map(area => [area.name, area.value.trim()]));
+  if (!Object.keys(answers).length) { qStatus.textContent = 'Lütfen en az bir soruyu yanıtlayın.'; qStatus.dataset.state = 'error'; qAreas[0].focus(); return; }
+  button.disabled = true; button.textContent = 'Gönderiliyor…';
+  qStatus.textContent = ''; qStatus.dataset.state = '';
+  try {
+    const response = await fetch('/api/orodimilas/questions', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        requestId: draft.requestId, name: name.value.trim(), email: email.value.trim(),
+        phone: qform.elements.phone.value.trim(), company: qform.elements.company.value.trim(),
+        answers, website: qform.elements.website.value,
+      }),
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.error || 'Yanıtlarınız şu anda gönderilemedi. Lütfen tekrar deneyin.');
+    try { localStorage.removeItem(DRAFT_KEY); } catch { /* yok */ }
+    qform.classList.add('is-sent');
+    qStatus.dataset.state = 'ok';
+    qStatus.textContent = `Teşekkürler, yanıtlarınız bize ulaştı. Referans: ${body.reference}`;
+    button.textContent = 'Gönderildi';
+  } catch (error) {
+    qStatus.dataset.state = 'error';
+    qStatus.textContent = error instanceof TypeError ? 'Bağlantı kurulamadı. Yanıtlarınız bu tarayıcıda saklı; lütfen tekrar deneyin.' : error.message;
+    button.disabled = false; button.textContent = 'Gönder';
+  }
+});
+
 addEventListener('pagehide', () => { scene?.setMotion(false); bottle?.setMotion(false); dialogPlayer.pause(); });
 addEventListener('pageshow', updateMotion);
 updateMotion();

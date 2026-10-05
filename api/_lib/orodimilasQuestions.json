@@ -1,0 +1,166 @@
+{
+  "version": "2026-10",
+  "groups": [
+    {
+      "title": "Hedefler",
+      "questions": [
+        {
+          "id": "q01",
+          "text": "Önümüzdeki üç yılda Oro di Milas'ı nerede görmek istiyorsunuz? Önceliğiniz hacim mi, fiyat mı, bilinirlik mi?"
+        },
+        {
+          "id": "q02",
+          "text": "ABD sizin için öncelikli pazar mı, yoksa Türkiye ve Avrupa da aynı ağırlıkta mı?"
+        },
+        {
+          "id": "q03",
+          "text": "Bugüne kadar pazarlamada en çok neyin işe yaradığını, neyin yaramadığını düşünüyorsunuz?"
+        },
+        {
+          "id": "q04",
+          "text": "Daha önce bir ajansla çalıştınız mı? Deneyiminiz nasıldı?"
+        }
+      ]
+    },
+    {
+      "title": "Üretim",
+      "questions": [
+        {
+          "id": "q05",
+          "text": "Son iki hasatta yaklaşık ne kadar yağ üretildi? (Ton ya da şişe olarak)"
+        },
+        {
+          "id": "q06",
+          "text": "Önümüzdeki yıllarda üretim hacmini artırmayı düşünüyor musunuz?"
+        },
+        {
+          "id": "q07",
+          "text": "Üretimin ürünlere dağılımı nasıl? (Reserve 500 ml, 250 ml, bag-in-box)"
+        },
+        {
+          "id": "q08",
+          "text": "Stok genellikle yılın hangi döneminde tükeniyor?"
+        }
+      ]
+    },
+    {
+      "title": "ABD'deki mevcut durum",
+      "questions": [
+        {
+          "id": "q09",
+          "text": "ABD'deki ithalat ve dağıtım anlaşmanızın yapısı nasıl? Münhasırlık var mı, süresi ne kadar?"
+        },
+        {
+          "id": "q10",
+          "text": "ABD'de şu an çalıştığınız satış noktaları ve kanallar hangileri?"
+        },
+        {
+          "id": "q11",
+          "text": "Amazon'daki satışları kim yönetiyor?"
+        },
+        {
+          "id": "q12",
+          "text": "ABD'ye yılda ne kadar gönderim yapıyorsunuz? Bu, toplam satışınızın yaklaşık yüzde kaçı?"
+        },
+        {
+          "id": "q13",
+          "text": "ABD'de bir mağaza sizden ürün almak istediğinde süreç bugün nasıl işliyor?"
+        }
+      ]
+    },
+    {
+      "title": "Fiyat ve maliyet",
+      "questions": [
+        {
+          "id": "q14",
+          "text": "ABD'ye toptan satış fiyatlarınız nedir? (İthalatçıya ve doğrudan mağazaya)"
+        },
+        {
+          "id": "q15",
+          "text": "Şişe başı üretim maliyetinizi kabaca paylaşabilir misiniz? İş birliği modelini doğru kurmamıza yardımcı olur; isteğe bağlıdır."
+        },
+        {
+          "id": "q16",
+          "text": "ABD'deki raf fiyatını kim belirliyor? Fiyat konusunda esnekliğiniz var mı?"
+        }
+      ]
+    },
+    {
+      "title": "E-ticaret ve satış kanalları",
+      "questions": [
+        {
+          "id": "q17",
+          "text": "ABD'deki tüketiciye doğrudan satış yapıyor musunuz, ya da yapmak ister misiniz?"
+        },
+        {
+          "id": "q18",
+          "text": "Türkiye'deki aylık abonelik sisteminiz nasıl gidiyor?"
+        },
+        {
+          "id": "q19",
+          "text": "Türkiye'deki satışlarınız kanallara nasıl dağılıyor? (Kendi siteniz, pazaryerleri, tesis)"
+        }
+      ]
+    },
+    {
+      "title": "Operasyon ve mevzuat",
+      "questions": [
+        {
+          "id": "q20",
+          "text": "ABD'de ithalatçı kaydı, FDA kaydı, etiketleme ve gümrük süreçlerini kim yürütüyor?"
+        },
+        {
+          "id": "q21",
+          "text": "ABD'de stok tutuluyor mu, yoksa siparişler Türkiye'den mi gönderiliyor?"
+        },
+        {
+          "id": "q22",
+          "text": "Organik sertifika süreciniz ne aşamada?"
+        }
+      ]
+    },
+    {
+      "title": "Varlıklar ve erişimler",
+      "questions": [
+        {
+          "id": "q23",
+          "text": "Sosyal medya, reklam, Analytics ve Search Console hesaplarınızı kim yönetiyor?"
+        },
+        {
+          "id": "q24",
+          "text": "Fotoğraf ve video arşivi, marka kılavuzu ve ambalaj dosyalarınız mevcut mu?"
+        }
+      ]
+    },
+    {
+      "title": "Zamanlama ve bütçe",
+      "questions": [
+        {
+          "id": "q26",
+          "text": "Reklam bütçesi için aklınızda bir aralık var mı?"
+        },
+        {
+          "id": "q27",
+          "text": "Çalışmaya ne zaman başlamayı düşünüyorsunuz?"
+        }
+      ]
+    },
+    {
+      "title": "İş birliği",
+      "questions": [
+        {
+          "id": "q28",
+          "text": "İki modelden hangisi size daha yakın geliyor? Neden?"
+        },
+        {
+          "id": "q29",
+          "text": "Satış ortaklığı modelinde sizi en çok ne düşündürür?"
+        },
+        {
+          "id": "q30",
+          "text": "Satış verilerini aylık olarak paylaşmakta bir sakıncanız olur mu?"
+        }
+      ]
+    }
+  ]
+}

@@ -15,7 +15,8 @@ const url = base + pagePath;
 function watch(page) {
   page.on('pageerror', error => report.consoleErrors.push(error.message));
   page.on('response', response => {
-    if (response.status() >= 400 && response.url().startsWith(base)) report.failedAssets.push({ url: response.url(), status: response.status() });
+    // Form testinde bilinçli olarak taklit edilen hata yanıtı sayılmaz.
+    if (response.status() >= 400 && response.url().startsWith(base) && !response.url().includes('/api/orodimilas/questions')) report.failedAssets.push({ url: response.url(), status: response.status() });
   });
 }
 try {
@@ -49,7 +50,8 @@ try {
 
   // Fiyatlar: kullanıcının belirlediği ve onayladığı paket fiyatları; Köşebaşı rakamları, yer tutucu ve iç not yok.
   const text = await page.locator('body').innerText();
-  for (const price of ['120.000 ₺', '240.000 ₺', '140.000 ₺', '360.000 ₺', '80.000 ₺', '5.160.000 ₺', '%10', '18 ay']) assert.ok(text.includes(price), price);
+  for (const total of ['5.160.000', '1.440.000', '1.680.000', '960.000', 'İlk yıl toplam']) assert.ok(!text.includes(total), total);
+  for (const price of ['120.000 ₺', '240.000 ₺', '140.000 ₺', '360.000 ₺', '80.000 ₺', '%10', '18 ay']) assert.ok(text.includes(price), price);
   assert.doesNotMatch(text, /100\.000 ₺|250\.000 ₺|2\.200\.000/);
   assert.doesNotMatch(text, /özel indirim|indirimli|garanti ediyoruz|Yer tutucu|önerirdim|500\.000 \$/i);
   assert.equal(await page.locator('.pkg').count(), 3);
@@ -87,7 +89,7 @@ try {
   pass('hero_opening_title_then_bottle_then_offer_title_then_scroll_steps');
 
   // Portföy: tam video yalnız tıklamayla, pencerede ve sesli açılır.
-  assert.equal(await page.locator('.case').count(), 8);
+  assert.equal(await page.locator('.case').count(), 11);
   const categories = await page.locator('.case-k').allTextContents();
   assert.ok(categories.filter(c => c.startsWith('Gastronomi')).length >= 8, 'Portföy gastronomi ağırlıklı olmalı');
   assert.equal(await page.locator('#video-dialog-player').getAttribute('src'), null);
@@ -95,7 +97,7 @@ try {
   await firstPlay.scrollIntoViewIfNeeded();
   await firstPlay.click();
   assert.equal(await page.locator('#video-dialog').evaluate(d => d.open), true);
-  assert.match(await page.locator('#video-dialog-player').getAttribute('src'), /\/videos\/full\/04\.mp4$/);
+  assert.match(await page.locator('#video-dialog-player').getAttribute('src'), /\/videos\/full\/bengi-mutfak-web\.mp4$/);
   await page.waitForFunction(() => { const v = document.querySelector('#video-dialog-player'); return !v.paused && v.readyState >= 2 && !v.muted; }, null, { timeout: 20000 });
   await page.screenshot({ path: path.join(output, 'desktop-video-dialog.png') });
   await page.keyboard.press('Escape');
@@ -153,6 +155,47 @@ try {
   assert.ok(await page.evaluate(() => Math.abs(document.getElementById('secenek-2').getBoundingClientRect().top) < innerHeight), 'Ortaklık bölümüne gidilmeli');
   pass('crossroad_transition_reveals_two_paths_and_links_to_options');
 
+  // Görüşme soruları: taslak saklanır, zorunlu alanlar denetlenir, hata ve başarı durumları.
+  // Yerelde API yok; sunucu cevabı tarayıcıda taklit edilir, gönderilen gövde kaydedilir.
+  const sent = [];
+  let replyStatus = 503;
+  await page.route('**/api/orodimilas/questions', async route => {
+    sent.push(JSON.parse(route.request().postData()));
+    await route.fulfill({ status: replyStatus, contentType: 'application/json', body: JSON.stringify(replyStatus === 201 ? { reference: 'ODM-TEST000001' } : { error: 'Yanıtlarınız şu anda gönderilemedi. Bilgileriniz bu tarayıcıda saklı; lütfen tekrar deneyin.' }) });
+  });
+  assert.equal(await page.locator('#qform textarea').count(), 29);
+  assert.equal(await page.getByText('kullanmamıza izin verir misiniz', { exact: false }).count(), 0);
+  assert.equal(await page.getByText('Bu kararı kim veriyor', { exact: false }).count(), 0);
+  assert.equal(await page.getByText('Hasat döneminin', { exact: false }).count(), 0);
+  await page.locator('#q01').scrollIntoViewIfNeeded();
+  await page.locator('#q01').fill('Önce fiyat ve bilinirlik.');
+  await page.locator('#q05').fill('Yaklaşık 20 ton.');
+  await page.reload({ waitUntil: 'networkidle' });
+  assert.equal(await page.locator('#q01').inputValue(), 'Önce fiyat ve bilinirlik.', 'Taslak yenilemeden sonra geri gelmeli');
+  assert.match(await page.locator('#qf-progress').textContent(), /^2 \/ 29/);
+  await page.locator('#qform .qf-send').scrollIntoViewIfNeeded();
+  await page.locator('#qform .qf-send').click();
+  assert.equal(sent.length, 0, 'Zorunlu alanlar boşken gönderilmemeli');
+  assert.equal(await page.locator('#qf-name').getAttribute('aria-invalid'), 'true');
+  await page.locator('#qf-name').fill('Test Kişi');
+  await page.locator('#qf-email').fill('test@example.com');
+  await page.locator('#qform .qf-send').click();
+  await page.waitForFunction(() => document.querySelector('#qf-status').dataset.state === 'error');
+  assert.equal(await page.locator('#qform .qf-send').isEnabled(), true);
+  assert.equal(await page.locator('#q01').inputValue(), 'Önce fiyat ve bilinirlik.');
+  replyStatus = 201;
+  await page.locator('#qform .qf-send').click();
+  await page.waitForFunction(() => document.querySelector('#qf-status').dataset.state === 'ok');
+  assert.match(await page.locator('#qf-status').textContent(), /ODM-TEST000001/);
+  assert.equal(sent.length, 2);
+  assert.equal(sent[0].requestId, sent[1].requestId, 'Yeniden denemede aynı gönderim kimliği kullanılmalı');
+  assert.deepEqual(Object.keys(sent[1]).sort(), ['answers', 'company', 'email', 'name', 'phone', 'requestId', 'website']);
+  assert.deepEqual(sent[1].answers, { q01: 'Önce fiyat ve bilinirlik.', q05: 'Yaklaşık 20 ton.' });
+  assert.equal(await page.evaluate(() => localStorage.getItem('orodimilas-qform-v1')), null, 'Başarılı gönderimden sonra taslak silinmeli');
+  await page.locator('#qform').screenshot({ path: path.join(output, 'desktop-questions.png') });
+  await page.unroute('**/api/orodimilas/questions');
+  pass('questionnaire_draft_validation_error_and_success');
+
   await page.locator('#b6').scrollIntoViewIfNeeded();
   await page.waitForTimeout(500);
   await page.locator('#b6').screenshot({ path: path.join(output, 'desktop-options.png') });
@@ -166,6 +209,8 @@ try {
 
   await page.setViewportSize({ width: 390, height: 844 });
   for (const section of await page.locator('main > section').all()) { await section.scrollIntoViewIfNeeded(); await page.waitForTimeout(120); }
+  // Uzun bölümlerde (portföy) tembel yüklenen görsellerin hepsi ekrana girsin.
+  for (const img of await page.locator('img[loading="lazy"]').all()) { await img.scrollIntoViewIfNeeded(); await page.waitForTimeout(60); }
   await page.waitForTimeout(800);
   await page.evaluate(() => scrollTo({ top: 0, behavior: 'instant' }));
   await page.waitForTimeout(200);

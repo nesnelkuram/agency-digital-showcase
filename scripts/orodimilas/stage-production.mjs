@@ -53,7 +53,7 @@ const sourceRoot = tree.find(node => node.name === 'src' && node.type === 'direc
 assert.ok(sourceRoot, 'Canlı sürümün kaynak ağacı alınamadı.');
 const manifest = flatten([sourceRoot]).map(file => ({ file: file.name.slice(4), sha: file.uid }));
 const fileMap = new Map(manifest.map(file => [file.file, file]));
-assert.ok(![...fileMap.keys()].some(name => name.startsWith('public/orodimilas/')), 'Canlıda zaten bir Oro di Milas sayfası var; önce inceleyin.');
+const isUpdate = [...fileMap.keys()].some(name => name.startsWith('public/orodimilas/'));
 async function sourceText(filename) {
   const entry = fileMap.get(filename);
   assert.ok(entry, `Canlı kaynakta ${filename} yok`);
@@ -62,12 +62,15 @@ async function sourceText(filename) {
 }
 
 const config = JSON.parse(await sourceText('vercel.json'));
-assert.ok(!config.rewrites.some(rule => rule.source.startsWith('/orodimilas')), 'Rota zaten var; önce inceleyin.');
-config.rewrites.unshift(
-  { source: '/orodimilas', destination: '/orodimilas/index.html' },
-  { source: '/orodimilas/', destination: '/orodimilas/index.html' },
-);
-const overlay = new Map([['vercel.json', Buffer.from(JSON.stringify(config, null, 2) + '\n')]]);
+const overlay = new Map();
+// İlk yayında iki rota eklenir; güncellemede canlıdaki vercel.json olduğu gibi kalır.
+if (!config.rewrites.some(rule => rule.source.startsWith('/orodimilas'))) {
+  config.rewrites.unshift(
+    { source: '/orodimilas', destination: '/orodimilas/index.html' },
+    { source: '/orodimilas/', destination: '/orodimilas/index.html' },
+  );
+  overlay.set('vercel.json', Buffer.from(JSON.stringify(config, null, 2) + '\n'));
+}
 function collect(directory) {
   for (const entry of readdirSync(path.join(root, directory), { withFileTypes: true })) {
     const relative = directory + '/' + entry.name;
@@ -78,9 +81,14 @@ function collect(directory) {
 collect('public/orodimilas');
 collect('scripts/orodimilas');
 overlay.set('scripts/build-orodimilas-showcase.mjs', readFileSync(path.join(root, 'scripts/build-orodimilas-showcase.mjs')));
+// Görüşme soruları API'si: yalnız bu üç dosya; diğer api/_lib dosyaları canlıdaki haliyle kalır.
+collect('api/orodimilas');
+for (const name of ['orodimilasQuestionnaire.ts', 'orodimilasQuestions.json']) overlay.set('api/_lib/' + name, readFileSync(path.join(root, 'api/_lib', name)));
+for (const name of [...overlay.keys()]) if (name.endsWith('.mjs') && name.startsWith('api/')) overlay.delete(name);
 
 const report = {
   priorProductionDeployment: live.id,
+  mode: isUpdate ? 'update' : 'first-release',
   publicUrl: 'https://www.intiba.co.uk/orodimilas/',
   sourceFileCount: manifest.length,
   changedFiles: [...overlay.keys()],
