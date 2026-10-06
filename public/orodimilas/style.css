@@ -271,10 +271,20 @@ section.part { padding: clamp(64px, 9vw, 110px) 0 0; }
 .vd-close { width: 44px; height: 44px; border-radius: 50%; border: 1px solid rgba(212, 178, 108, 0.6); background: transparent; color: var(--cream); font-size: 24px; line-height: 1; cursor: pointer; }
 .vd-close:hover { background: var(--gold-2); color: var(--night); }
 .video-dialog video { max-width: 100%; max-height: calc(100dvh - 110px); aspect-ratio: 9 / 16; background: #000; }
+.video-dialog.is-wide .vd-head { width: min(100%, calc((100dvh - 110px) * 16 / 9)); }
+.video-dialog.is-wide video { width: min(100%, calc((100dvh - 110px) * 16 / 9)); aspect-ratio: 16 / 9; }
 body.modal-open { overflow: hidden; }
 .case-k { font-size: 8.5px; letter-spacing: 0.18em; color: var(--gold-ink); margin-top: 12px; }
 .case h3 { margin: 4px 0 0; font-size: 21px; line-height: 1.2; color: var(--olive); font-weight: 500; }
 .case-d { font-size: 14.5px; line-height: 1.6; color: var(--ink-3); margin-top: 6px; }
+
+/* Bölüm açılışı · temsili atmosfer videoları (sabit kamera, sessiz döngü) */
+.atmo { max-width: 1200px; margin: 0 auto clamp(48px, 7vw, 84px); padding: 0 var(--pad); }
+.atmo-frame { position: relative; aspect-ratio: 16 / 8; overflow: hidden; background: var(--night); }
+.atmo-v { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.atmo figcaption { font-size: 9px; letter-spacing: 0.2em; color: var(--muted); margin-top: 10px; }
+.atmo.on-dark figcaption { color: rgba(242, 236, 220, 0.55); }
+@media (max-width: 640px) { .atmo-frame { aspect-ratio: 4 / 3; } }
 
 /* III · Oro di Milas */
 .photo-wide { margin: 56px auto 0; max-width: 1200px; padding: 0 var(--pad); }

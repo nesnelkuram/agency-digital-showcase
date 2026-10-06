@@ -89,7 +89,12 @@ try {
   pass('hero_opening_title_then_bottle_then_offer_title_then_scroll_steps');
 
   // Portföy: tam video yalnız tıklamayla, pencerede ve sesli açılır.
-  assert.equal(await page.locator('.case').count(), 11);
+  assert.equal(await page.getByText('satılmayı bekliyor', { exact: false }).count(), 0);
+  assert.equal(await page.locator('.case').count(), 12);
+  const caseTitles = await page.locator('.case h3').allTextContents();
+  assert.equal(caseTitles[8], 'Rakle × Bengi Kurtcebe · Pomodoro');
+  assert.equal(caseTitles.at(-2), 'Dieci · Tiramisu');
+  assert.equal(caseTitles.at(-1), 'Inspera');
   const categories = await page.locator('.case-k').allTextContents();
   assert.ok(categories.filter(c => c.startsWith('Gastronomi')).length >= 8, 'Portföy gastronomi ağırlıklı olmalı');
   assert.equal(await page.locator('#video-dialog-player').getAttribute('src'), null);
@@ -97,7 +102,7 @@ try {
   await firstPlay.scrollIntoViewIfNeeded();
   await firstPlay.click();
   assert.equal(await page.locator('#video-dialog').evaluate(d => d.open), true);
-  assert.match(await page.locator('#video-dialog-player').getAttribute('src'), /\/videos\/full\/bengi-mutfak-web\.mp4$/);
+  assert.match(await page.locator('#video-dialog-player').getAttribute('src'), /\/videos\/full\/bengi-teaser-web\.mp4$/);
   await page.waitForFunction(() => { const v = document.querySelector('#video-dialog-player'); return !v.paused && v.readyState >= 2 && !v.muted; }, null, { timeout: 20000 });
   await page.screenshot({ path: path.join(output, 'desktop-video-dialog.png') });
   await page.keyboard.press('Escape');
@@ -110,6 +115,17 @@ try {
     assert.equal(head.status(), 200, src);
     assert.match(head.headers()['content-type'] || '', /video\/mp4/, src);
   }
+  // Yatay video pencerede 16:9 açılır, dikey olana dönünce sınıf kalkar.
+  const wide = page.locator('.play-btn[data-aspect="16:9"]');
+  await wide.scrollIntoViewIfNeeded();
+  await wide.click();
+  assert.equal(await page.locator('#video-dialog').evaluate(d => d.open && d.classList.contains('is-wide')), true);
+  const box = await page.locator('#video-dialog-player').boundingBox();
+  assert.ok(box.width > box.height * 1.6, `Yatay video yatay görünmeli: ${box.width}x${box.height}`);
+  await page.keyboard.press('Escape');
+  await page.locator('.play-btn').first().click();
+  assert.equal(await page.locator('#video-dialog').evaluate(d => d.classList.contains('is-wide')), false);
+  await page.keyboard.press('Escape');
   pass('portfolio_full_videos_open_in_dialog_with_sound_and_close');
 
   await page.locator('#harita').scrollIntoViewIfNeeded();
@@ -155,7 +171,7 @@ try {
   assert.ok(await page.evaluate(() => Math.abs(document.getElementById('secenek-2').getBoundingClientRect().top) < innerHeight), 'Ortaklık bölümüne gidilmeli');
   pass('crossroad_transition_reveals_two_paths_and_links_to_options');
 
-  // Görüşme soruları: taslak saklanır, zorunlu alanlar denetlenir, hata ve başarı durumları.
+  // Görüşme soruları: iletişim alanı yok, taslak saklanır, boş gönderim engellenir, hata ve başarı durumları.
   // Yerelde API yok; sunucu cevabı tarayıcıda taklit edilir, gönderilen gövde kaydedilir.
   const sent = [];
   let replyStatus = 503;
@@ -167,18 +183,18 @@ try {
   assert.equal(await page.getByText('kullanmamıza izin verir misiniz', { exact: false }).count(), 0);
   assert.equal(await page.getByText('Bu kararı kim veriyor', { exact: false }).count(), 0);
   assert.equal(await page.getByText('Hasat döneminin', { exact: false }).count(), 0);
+  await page.locator('#qform .qf-send').scrollIntoViewIfNeeded();
+  await page.locator('#qform .qf-send').click();
+  assert.equal(sent.length, 0, 'Hiç yanıt yokken gönderilmemeli');
+  assert.equal(await page.locator('#qf-status').getAttribute('data-state'), 'error');
   await page.locator('#q01').scrollIntoViewIfNeeded();
   await page.locator('#q01').fill('Önce fiyat ve bilinirlik.');
   await page.locator('#q05').fill('Yaklaşık 20 ton.');
   await page.reload({ waitUntil: 'networkidle' });
   assert.equal(await page.locator('#q01').inputValue(), 'Önce fiyat ve bilinirlik.', 'Taslak yenilemeden sonra geri gelmeli');
   assert.match(await page.locator('#qf-progress').textContent(), /^2 \/ 29/);
+  assert.equal(await page.locator('#qform input:not(#qf-website), #qform select').count(), 0, 'Formda iletişim alanı olmamalı');
   await page.locator('#qform .qf-send').scrollIntoViewIfNeeded();
-  await page.locator('#qform .qf-send').click();
-  assert.equal(sent.length, 0, 'Zorunlu alanlar boşken gönderilmemeli');
-  assert.equal(await page.locator('#qf-name').getAttribute('aria-invalid'), 'true');
-  await page.locator('#qf-name').fill('Test Kişi');
-  await page.locator('#qf-email').fill('test@example.com');
   await page.locator('#qform .qf-send').click();
   await page.waitForFunction(() => document.querySelector('#qf-status').dataset.state === 'error');
   assert.equal(await page.locator('#qform .qf-send').isEnabled(), true);
@@ -189,12 +205,37 @@ try {
   assert.match(await page.locator('#qf-status').textContent(), /ODM-TEST000001/);
   assert.equal(sent.length, 2);
   assert.equal(sent[0].requestId, sent[1].requestId, 'Yeniden denemede aynı gönderim kimliği kullanılmalı');
-  assert.deepEqual(Object.keys(sent[1]).sort(), ['answers', 'company', 'email', 'name', 'phone', 'requestId', 'website']);
+  assert.deepEqual(Object.keys(sent[1]).sort(), ['answers', 'requestId', 'website']);
   assert.deepEqual(sent[1].answers, { q01: 'Önce fiyat ve bilinirlik.', q05: 'Yaklaşık 20 ton.' });
   assert.equal(await page.evaluate(() => localStorage.getItem('orodimilas-qform-v1')), null, 'Başarılı gönderimden sonra taslak silinmeli');
   await page.locator('#qform').screenshot({ path: path.join(output, 'desktop-questions.png') });
   await page.unroute('**/api/orodimilas/questions');
   pass('questionnaire_draft_validation_error_and_success');
+
+  // Atmosfer videoları: her bölümde bir tane, tembel yüklenir, sessiz döngü, hareket düğmesiyle durur.
+  const atmo = page.locator('.atmo-v');
+  assert.equal(await atmo.count(), 8);
+  assert.deepEqual(await page.locator('section:has(.atmo) ').evaluateAll(list => list.map(s => s.id)), ['b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'b7', 'b8']);
+  assert.equal(await page.locator('.atmo figcaption').count(), 0, 'Atmosfer videolarının altında yazı olmamalı');
+  assert.ok(await atmo.evaluateAll(list => list.every(v => v.muted && v.loop && v.playsInline && v.getAttribute('aria-hidden') === 'true')));
+  await page.evaluate(() => scrollTo({ top: 0, behavior: 'instant' }));
+  await page.waitForTimeout(300);
+  assert.equal(await page.locator('#b8 .atmo-v').getAttribute('src'), null, 'Uzaktaki video baştan yüklenmemeli');
+  const lastAtmo = page.locator('#b8 .atmo-v');
+  await lastAtmo.scrollIntoViewIfNeeded();
+  await page.waitForFunction(() => { const v = document.querySelector('#b8 .atmo-v'); return v.src && !v.paused && v.readyState >= 2; }, null, { timeout: 20000 });
+  assert.match(await lastAtmo.getAttribute('src'), /orodimilas-atmo-10-masa\.mp4$/);
+  await page.locator('.motion-toggle').click();
+  await page.waitForFunction(() => document.querySelector('#b8 .atmo-v').paused);
+  await page.locator('.motion-toggle').click();
+  await page.waitForFunction(() => !document.querySelector('#b8 .atmo-v').paused);
+  await page.locator('#b8 .atmo').screenshot({ path: path.join(output, 'desktop-atmo.png') });
+  for (const src of await atmo.evaluateAll(list => list.map(v => v.dataset.src))) {
+    const head = await page.request.fetch(src, { method: 'HEAD' });
+    assert.equal(head.status(), 200, src);
+    assert.match(head.headers()['content-type'] || '', /video\/mp4/, src);
+  }
+  pass('atmosphere_videos_lazy_muted_loop_pause_with_motion_toggle');
 
   await page.locator('#b6').scrollIntoViewIfNeeded();
   await page.waitForTimeout(500);
@@ -236,6 +277,9 @@ try {
   assert.equal(await page.locator('.hero-bottle').evaluate(e => e.classList.contains('has-webgl')), false);
   assert.equal(await page.locator('h1').isVisible(), true);
   assert.equal(await page.locator('.hero-overlay').isVisible(), true);
+  await page.locator('#b8 .atmo-v').scrollIntoViewIfNeeded();
+  await page.waitForTimeout(400);
+  assert.equal(await page.locator('.atmo-v').evaluateAll(list => list.every(v => v.paused && !v.getAttribute('src'))), true, 'Azaltılmış harekette atmosfer videoları yüklenmemeli');
   await page.locator('#iki-yol').scrollIntoViewIfNeeded();
   assert.equal(await page.locator('.cr-left').isVisible(), true);
   assert.equal(await page.locator('.cr-left').evaluate(e => getComputedStyle(e.closest('.cr-paths')).opacity), '1');

@@ -25,7 +25,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!req.headers['content-type']?.toLowerCase().startsWith('application/json')) throw new QuestionnaireError(415, 'Yanıtları sayfadaki form üzerinden gönderin.');
     if (Buffer.byteLength(JSON.stringify(req.body) || '', 'utf8') > 160_000) throw new QuestionnaireError(413, 'Yanıtlar çok uzun.');
     const parsed = questionnaireSchema.safeParse(req.body);
-    if (!parsed.success) return res.status(400).json({ error: 'Lütfen ad soyad ve e-posta alanlarını kontrol edin.', fields: [...new Set(parsed.error.issues.map(issue => issue.path[0]))] });
+    if (!parsed.success) return res.status(400).json({ error: 'Yanıtlar doğrulanamadı. Lütfen sayfayı yenileyip tekrar deneyin.', fields: [...new Set(parsed.error.issues.map(issue => issue.path[0]))] });
     const ip = String(req.headers['x-vercel-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
     if (!checkRateLimit(`orodimilas:${ip}`, 5, 60_000).allowed) throw new QuestionnaireError(429, 'Çok fazla istek geldi. Lütfen bir dakika sonra tekrar deneyin.');
     const collection = getAdminDb().collection(ORODIMILAS_COLLECTION);

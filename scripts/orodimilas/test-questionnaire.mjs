@@ -13,7 +13,7 @@ const lib = await import(pathToFileURL(outfile).href);
 
 const results = [];
 const check = async (name, fn) => { await fn(); results.push(name); };
-const base = () => ({ requestId: crypto.randomUUID(), name: 'Emine Colin', email: 'Test@Example.com', answers: { q01: 'Fiyat ve bilinirlik' } });
+const base = () => ({ requestId: crypto.randomUUID(), answers: { q01: 'Fiyat ve bilinirlik' } });
 function fakes({ failMail = false } = {}) {
   const docs = new Map(); const mails = [];
   return {
@@ -39,8 +39,8 @@ await check('gecerli_gonderim_kaydedilir_ve_eposta_gider', async () => {
   const r = await lib.submitQuestionnaire(input, f.deps);
   assert.match(r.reference, /^ODM-[0-9A-F]{10}$/); assert.equal(r.emailed, true);
   assert.equal(f.docs.size, 1); assert.equal(f.mails.length, 1);
-  assert.equal(f.mails[0].to, lib.NOTIFY_TO); assert.equal(f.mails[0].replyTo, 'test@example.com');
-  assert.match(f.mails[0].subject, /Emine Colin/); assert.match(f.mails[0].text, /1 \/ 29 soru yanıtlandı/);
+  assert.equal(f.mails[0].to, lib.NOTIFY_TO); assert.equal(f.mails[0].replyTo, undefined);
+  assert.match(f.mails[0].subject, /ODM-[0-9A-F]{10}$/); assert.match(f.mails[0].text, /1 \/ 29 soru yanıtlandı/);
 });
 await check('ayni_istek_tekrar_gelirse_ikinci_eposta_gitmez', async () => {
   const f = fakes(); const input = lib.questionnaireSchema.parse(base());
@@ -60,14 +60,20 @@ await check('bot_tuzagi_ve_bos_gonderim_reddedilir', async () => {
   assert.equal(f.docs.size, 0);
 });
 await check('gecersiz_alanlar_ve_bilinmeyen_sorular_reddedilir', () => {
-  assert.equal(lib.questionnaireSchema.safeParse({ ...base(), email: 'gecersiz' }).success, false);
-  assert.equal(lib.questionnaireSchema.safeParse({ ...base(), name: 'A' }).success, false);
   assert.equal(lib.questionnaireSchema.safeParse({ ...base(), answers: { q99: 'x' } }).success, false);
   assert.equal(lib.questionnaireSchema.safeParse({ ...base(), extra: 1 }).success, false);
   assert.equal(lib.questionnaireSchema.safeParse({ ...base(), answers: { q01: 'x'.repeat(4001) } }).success, false);
 });
+await check('eski_sayfadan_gelen_iletisim_alanlari_saklanmaz', async () => {
+  const f = fakes();
+  const input = lib.questionnaireSchema.parse({ ...base(), name: 'Eski', email: 'eski@example.com', phone: '1', company: 'X' });
+  await lib.submitQuestionnaire(input, f.deps);
+  const stored = [...f.docs.values()][0];
+  for (const key of ['name', 'email', 'phone', 'company']) assert.equal(key in stored, false, key);
+  assert.ok(!f.mails[0].text.includes('eski@example.com'));
+});
 await check('eposta_html_kacisi', () => {
-  const input = lib.questionnaireSchema.parse({ ...base(), name: '<script>x</script>', answers: { q01: '<img src=x onerror=1>' } });
+  const input = lib.questionnaireSchema.parse({ ...base(), answers: { q01: '<script>x</script><img src=x onerror=1>' } });
   const { html } = lib.buildEmail(input, 'ODM-TEST');
   assert.ok(!html.includes('<script>') && !html.includes('<img src=x'));
   assert.ok(html.includes('&lt;script&gt;'));

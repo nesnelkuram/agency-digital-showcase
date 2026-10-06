@@ -1,9 +1,17 @@
 {
-  "priorProductionDeployment": "dpl_DVrmr8hVjGPDhnF1M1XuAd9pPQKU",
+  "priorProductionDeployment": "dpl_EzwnrDqwTK2FiJAr6iovnc76kLZi",
   "mode": "update",
   "publicUrl": "https://www.intiba.co.uk/orodimilas/",
-  "sourceFileCount": 3983,
+  "sourceFileCount": 3992,
   "changedFiles": [
+    "public/orodimilas/assets/atmo/01-dal.webp",
+    "public/orodimilas/assets/atmo/02-eller.webp",
+    "public/orodimilas/assets/atmo/03-yag-golge.webp",
+    "public/orodimilas/assets/atmo/05-kasa-seedance.webp",
+    "public/orodimilas/assets/atmo/06-sikim.webp",
+    "public/orodimilas/assets/atmo/08-iki-dal.webp",
+    "public/orodimilas/assets/atmo/09-tas.webp",
+    "public/orodimilas/assets/atmo/10-masa.webp",
     "public/orodimilas/assets/bottle-albedo.jpg",
     "public/orodimilas/assets/bottle-hero.webp",
     "public/orodimilas/assets/bottle-profile.json",
@@ -20,6 +28,7 @@
     "public/orodimilas/assets/portfolio/dieci-sorular.jpg",
     "public/orodimilas/assets/portfolio/dieci-tiramisu.jpg",
     "public/orodimilas/assets/portfolio/dieci.jpg",
+    "public/orodimilas/assets/portfolio/inspera.jpg",
     "public/orodimilas/assets/portfolio/papillon.jpg",
     "public/orodimilas/assets/portfolio/rakle-pomodoro-teaser.jpg",
     "public/orodimilas/assets/portfolio/rakle-pomodoro.jpg",
@@ -41,11 +50,11 @@
     "api/_lib/orodimilasQuestionnaire.ts",
     "api/_lib/orodimilasQuestions.json"
   ],
-  "retainedUnchangedFiles": 3947,
+  "retainedUnchangedFiles": 3948,
   "promoted": true,
-  "createdAt": "2026-10-05T13:54:40.270Z",
-  "newProductionDeployment": "dpl_5njfU8THjYQ5uVMLtXUm9t1YbMEq",
-  "stagingUrl": "https://v0-intiba-website-87p9gsz7r-info-intibacouks-projects.vercel.app",
+  "createdAt": "2026-10-06T07:04:30.810Z",
+  "newProductionDeployment": "dpl_D3D6UbfkWJ2c29ch7sb2Bg54j7ZN",
+  "stagingUrl": "https://v0-intiba-website-2g08w3onr-info-intibacouks-projects.vercel.app",
   "buildStatus": "INITIALIZING",
-  "promotedAt": "2026-10-05T14:27:11.607Z"
+  "promotedAt": "2026-10-06T07:13:42.524Z"
 }

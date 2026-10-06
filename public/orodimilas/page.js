@@ -139,12 +139,34 @@ if ('IntersectionObserver' in window) {
   revealEls.forEach(el => revealObserver.observe(el));
 } else revealEls.forEach(el => el.classList.add('in'));
 
+/* ───────── Atmosfer videoları ───────── */
+// Kaynak yalnız ekrana yaklaşınca yüklenir; ekrandan çıkınca, hareket durdurulunca ya da sekme gizlenince durur.
+// Azaltılmış hareket ve veri tasarrufunda yalnız kapak görseli kalır.
+const atmoVideos = $$('.atmo-v');
+const atmoNear = new Set();
+function syncAtmo() {
+  for (const video of atmoVideos) {
+    if (shouldAnimate() && atmoNear.has(video)) {
+      if (!video.getAttribute('src')) video.src = video.dataset.src;
+      if (video.paused) video.play().catch(() => {});
+    } else if (!video.paused) video.pause();
+  }
+}
+if ('IntersectionObserver' in window) {
+  const atmoObserver = new IntersectionObserver(entries => {
+    for (const entry of entries) entry.isIntersecting ? atmoNear.add(entry.target) : atmoNear.delete(entry.target);
+    syncAtmo();
+  }, { rootMargin: '240px 0px' });
+  atmoVideos.forEach(video => atmoObserver.observe(video));
+}
+
 /* ───────── Hareket kontrolü ───────── */
 const motionButton = $('.motion-toggle');
 function updateMotion() {
   const paused = manuallyPaused || reducedMotion.matches || saveData;
   document.body.classList.toggle('motion-paused', paused);
   scene?.setMotion(shouldAnimate());
+  syncAtmo();
   bottle?.setMotion(!manuallyPaused && !document.hidden && !videoDialog?.open);
   motionButton.setAttribute('aria-pressed', String(paused));
   motionButton.setAttribute('aria-label', reducedMotion.matches ? 'Sistem tercihi: azaltılmış hareket' : saveData ? 'Sistem tercihi: veri tasarrufu' : paused ? 'Hareketli görselleri oynat' : 'Hareketli görselleri duraklat');
@@ -207,6 +229,8 @@ let videoTrigger;
 $$('.play-btn').forEach(button => button.addEventListener('click', () => {
   videoTrigger = button;
   $('#video-dialog-title').textContent = button.dataset.title;
+  // Yatay videolar (data-aspect="16:9") pencerede yatay açılır; varsayılan dikey 9:16.
+  videoDialog.classList.toggle('is-wide', button.dataset.aspect === '16:9');
   dialogPlayer.poster = $('img', button.closest('.case-media')).currentSrc;
   if (dialogPlayer.getAttribute('src') !== button.dataset.video) dialogPlayer.src = button.dataset.video;
   videoDialog.showModal();
@@ -268,12 +292,6 @@ progress();
 qform.addEventListener('submit', async event => {
   event.preventDefault();
   const button = $('.qf-send', qform);
-  const name = qform.elements.name, email = qform.elements.email;
-  const invalid = [];
-  if (name.value.trim().length < 2) invalid.push(name);
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim())) invalid.push(email);
-  invalid.forEach(field => field.setAttribute('aria-invalid', 'true'));
-  if (invalid.length) { qStatus.textContent = 'Lütfen ad soyad ve geçerli bir e-posta adresi yazın.'; qStatus.dataset.state = 'error'; invalid[0].focus(); return; }
   const answers = Object.fromEntries(qAreas.filter(area => area.value.trim()).map(area => [area.name, area.value.trim()]));
   if (!Object.keys(answers).length) { qStatus.textContent = 'Lütfen en az bir soruyu yanıtlayın.'; qStatus.dataset.state = 'error'; qAreas[0].focus(); return; }
   button.disabled = true; button.textContent = 'Gönderiliyor…';
@@ -282,9 +300,7 @@ qform.addEventListener('submit', async event => {
     const response = await fetch('/api/orodimilas/questions', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        requestId: draft.requestId, name: name.value.trim(), email: email.value.trim(),
-        phone: qform.elements.phone.value.trim(), company: qform.elements.company.value.trim(),
-        answers, website: qform.elements.website.value,
+        requestId: draft.requestId, answers, website: qform.elements.website.value,
       }),
     });
     const body = await response.json().catch(() => ({}));
