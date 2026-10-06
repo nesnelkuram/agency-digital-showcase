@@ -21,7 +21,7 @@ try {
 
   assert.equal(await page.locator('meta[name="robots"]').getAttribute('content'), 'noindex, nofollow');
   const text = await page.locator('body').innerText();
-  for (const s of ['100.000 ₺', '350.000 ₺', '80.000 ₺', '4 taksit', 'Meta reklam', 'KDV dahil değildir']) assert.ok(text.includes(s), s);
+  for (const s of ['100.000 ₺', '350.000 ₺', '80.000 ₺', '4 taksit', 'İlk çekimin bedeli', 'Tek ödeme', 'Meta reklam', 'KDV dahil değildir']) assert.ok(text.includes(s), s);
   assert.ok(!/TikTok|Google reklam|Google İşletme Profili yönetimi|ertelen/i.test(text), 'Çıkarılan hizmetler ya da erteleme sayfada olmamalı');
   assert.ok(!/(^|[\s(])(toplam|yıllık)([\s:.,)]|$)/i.test(text), 'Toplam ya da yıllık tutar yazılmamalı');
   assert.ok(!/\bEge\b/.test(text), 'Ege vurgusu olmamalı');

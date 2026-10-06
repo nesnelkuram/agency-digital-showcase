@@ -1,5 +1,5 @@
 {
-  "priorProductionDeployment": "dpl_5CLyAfEMyapzbXscXWsK48Tcdcr7",
+  "priorProductionDeployment": "dpl_6DXWFfYhaQZpFHgjJSWbhiqKZpWB",
   "mode": "update",
   "publicUrl": "https://www.intiba.co.uk/kalis/",
   "sourceFileCount": 4005,
@@ -19,8 +19,8 @@
   ],
   "retainedUnchangedFiles": 3993,
   "promoted": false,
-  "createdAt": "2026-10-06T14:48:54.915Z",
-  "newProductionDeployment": "dpl_6DXWFfYhaQZpFHgjJSWbhiqKZpWB",
-  "stagingUrl": "https://v0-intiba-website-hjdz5mp9q-info-intibacouks-projects.vercel.app",
+  "createdAt": "2026-10-06T15:01:13.263Z",
+  "newProductionDeployment": "dpl_52ykA72NHcAEQxLXXBHgXkTNses6",
+  "stagingUrl": "https://v0-intiba-website-eceivhpq7-info-intibacouks-projects.vercel.app",
   "buildStatus": "INITIALIZING"
 }
