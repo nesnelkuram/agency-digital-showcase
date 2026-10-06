@@ -51,12 +51,13 @@ try {
   // Fiyatlar: kullanıcının belirlediği ve onayladığı paket fiyatları; Köşebaşı rakamları, yer tutucu ve iç not yok.
   const text = await page.locator('body').innerText();
   for (const total of ['5.160.000', '1.440.000', '1.680.000', '960.000', 'İlk yıl toplam']) assert.ok(!text.includes(total), total);
-  for (const price of ['120.000 ₺', '240.000 ₺', '140.000 ₺', '360.000 ₺', '80.000 ₺', '%10', '18 ay']) assert.ok(text.includes(price), price);
+  for (const price of ['120.000 ₺', '240.000 ₺', '140.000 ₺', '360.000 ₺', '80.000 ₺', 'Satıştan komisyon', '18 ay']) assert.ok(text.includes(price), price);
+  assert.ok(!/%10(?!0)|1\.000 \$ komisyon/.test(text), 'Komisyon oranı sayfada açık yazılmamalı');
   assert.doesNotMatch(text, /100\.000 ₺|250\.000 ₺|2\.200\.000/);
   assert.doesNotMatch(text, /özel indirim|indirimli|garanti ediyoruz|Yer tutucu|önerirdim|500\.000 \$/i);
   assert.equal(await page.locator('.pkg').count(), 3);
   assert.equal((await page.locator('[data-term="ortaklik_sabit_bedel"]').textContent()).trim(), 'Görüşmede belirlenecek');
-  assert.equal(await page.locator('.op-list li').count(), 6);
+  assert.equal(await page.locator('.op-list li').count(), 7);
   pass('package_prices_partnership_terms_no_placeholders_or_internal_notes');
 
   // Kahraman: kaydırmayla dönen Three.js şişe.

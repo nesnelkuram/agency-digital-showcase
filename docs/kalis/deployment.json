@@ -1,0 +1,26 @@
+{
+  "priorProductionDeployment": "dpl_5CLyAfEMyapzbXscXWsK48Tcdcr7",
+  "mode": "update",
+  "publicUrl": "https://www.intiba.co.uk/kalis/",
+  "sourceFileCount": 4005,
+  "changedFiles": [
+    "public/kalis/assets/dis-aksam.jpg",
+    "public/kalis/assets/logo.jpg",
+    "public/kalis/assets/pf/cliff-paris-brest.jpg",
+    "public/kalis/assets/pf/cliff.jpg",
+    "public/kalis/assets/pf/dieci-dinner.jpg",
+    "public/kalis/assets/pf/dieci.jpg",
+    "public/kalis/assets/pf/papillon.jpg",
+    "public/kalis/assets/pf/rakle-pomodoro.jpg",
+    "public/kalis/index.html",
+    "public/kalis/style.css",
+    "scripts/kalis/stage-production.mjs",
+    "scripts/kalis/verify.mjs"
+  ],
+  "retainedUnchangedFiles": 3993,
+  "promoted": false,
+  "createdAt": "2026-10-06T14:48:54.915Z",
+  "newProductionDeployment": "dpl_6DXWFfYhaQZpFHgjJSWbhiqKZpWB",
+  "stagingUrl": "https://v0-intiba-website-hjdz5mp9q-info-intibacouks-projects.vercel.app",
+  "buildStatus": "INITIALIZING"
+}

@@ -1,8 +1,8 @@
 {
-  "priorProductionDeployment": "dpl_EzwnrDqwTK2FiJAr6iovnc76kLZi",
+  "priorProductionDeployment": "dpl_D3D6UbfkWJ2c29ch7sb2Bg54j7ZN",
   "mode": "update",
   "publicUrl": "https://www.intiba.co.uk/orodimilas/",
-  "sourceFileCount": 3992,
+  "sourceFileCount": 3993,
   "changedFiles": [
     "public/orodimilas/assets/atmo/01-dal.webp",
     "public/orodimilas/assets/atmo/02-eller.webp",
@@ -52,9 +52,9 @@
   ],
   "retainedUnchangedFiles": 3948,
   "promoted": true,
-  "createdAt": "2026-10-06T07:04:30.810Z",
-  "newProductionDeployment": "dpl_D3D6UbfkWJ2c29ch7sb2Bg54j7ZN",
-  "stagingUrl": "https://v0-intiba-website-2g08w3onr-info-intibacouks-projects.vercel.app",
+  "createdAt": "2026-10-06T08:21:09.134Z",
+  "newProductionDeployment": "dpl_3UJ6GyBbqDqB88B4tBj4ubuaqBDs",
+  "stagingUrl": "https://v0-intiba-website-nm31ykpke-info-intibacouks-projects.vercel.app",
   "buildStatus": "INITIALIZING",
-  "promotedAt": "2026-10-06T07:13:42.524Z"
+  "promotedAt": "2026-10-06T08:29:53.280Z"
 }
