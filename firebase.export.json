@@ -1,0 +1,9 @@
+{
+  "firestore": [
+    {
+      "database": "export-audience",
+      "rules": "firestore.export.rules",
+      "indexes": "firestore.export.indexes.json"
+    }
+  ]
+}

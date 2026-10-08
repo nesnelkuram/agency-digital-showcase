@@ -218,6 +218,8 @@ class VideoCache {
       const success = (via: string) => {
         if (resolved) return;
         resolved = true;
+        video.autoplay = false;
+        video.pause();
         entry.status = 'hybrid-streaming';
         this.notify(url);
         console.log(`⚡ Playable: ${fileName} (via=${via}, readyState=${video.readyState})`);
@@ -290,6 +292,8 @@ class VideoCache {
       const success = (via: string) => {
         if (resolved) return;
         resolved = true;
+        video.autoplay = false;
+        video.pause();
         entry.status = 'streaming';
         this.notify(url);
         console.log(`⚡ Full playable: ${fileName} (via=${via}, readyState=${video.readyState})`);

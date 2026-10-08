@@ -1,0 +1,16 @@
+{
+  "source": "/tmp/odagi-native-production-20260912",
+  "changedFiles": [
+    "admin/AdminApp.tsx",
+    "admin/AdminLayout.tsx",
+    "api/odagi/applications.ts",
+    "api/_lib/odagiApplications.ts",
+    "public/odagi/index.html",
+    "public/odagi/style.css",
+    "public/odagi/application.js",
+    "public/odagi/app.js",
+    "shared/types/odagi.ts",
+    "admin/odagi/OdagiApplicationsPage.tsx"
+  ],
+  "unexpectedChanges": []
+}

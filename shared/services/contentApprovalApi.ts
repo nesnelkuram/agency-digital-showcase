@@ -14,6 +14,7 @@ export type ApprovalActionName =
   | 'submit_to_client'
   | 'resubmit'
   | 'reopen'
+  | 'reschedule'
   | 'client_approve'
   | 'client_reject'
   | 'client_undo'
@@ -54,6 +55,8 @@ export async function runApprovalAction(params: {
   reviewRequestId?: string | null;
   assignee?: { clientId?: string; clientName: string; clientEmail: string };
   approvalConfig?: Partial<ApprovalConfig>;
+  /** reschedule: yeni zaman (epoch ms) */
+  scheduledAt?: number;
 }): Promise<ApprovalResponse> {
   const res = await authenticatedFetch('/api/content-approval/transition', {
     method: 'POST',

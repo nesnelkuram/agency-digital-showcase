@@ -22,6 +22,7 @@ export type ApprovalActionName =
   | 'submit_to_client'
   | 'resubmit'
   | 'reopen'
+  | 'reschedule'
   | 'client_approve'
   | 'client_reject'
   | 'client_undo'
@@ -102,6 +103,8 @@ export interface ApprovalRequest {
   reviewRequestId?: string;
   assignee?: ClientAssignee;
   approvalConfig?: Partial<ApprovalConfigShape>;
+  /** reschedule: yeni yayın zamanı (epoch ms) */
+  scheduledAt?: number;
 }
 
 export type ApprovalErrorCode =
@@ -185,11 +188,19 @@ const INTERNAL_ACTIONS = new Set<ApprovalActionName>([
   'submit_to_client',
   'resubmit',
   'reopen',
+  'reschedule',
   'update_approval_config',
   'assign_client',
 ]);
 
 const CLIENT_DECISION_ACTIONS = new Set<ApprovalActionName>(['client_approve', 'client_reject', 'client_undo']);
+
+/** Yeniden zamanlama: bu durumlarda zaman onayın parçasıdır → yeniden onay */
+const RESCHEDULE_REAPPROVAL = new Set(['pending_approval', 'approved', 'scheduled']);
+/** Henüz onaya gitmemiş içerik: yalnız zaman değişir */
+const RESCHEDULE_IN_PLACE = new Set(['draft', 'internal_review', 'revision_requested_internal', 'revision_requested']);
+const RESCHEDULE_MIN_MS = Date.UTC(2020, 0, 1);
+const RESCHEDULE_MAX_MS = Date.UTC(2100, 0, 1);
 
 const ACTION_PERMISSION: Record<ApprovalActionName, string> = {
   submit_for_review: PERMISSIONS.APPROVALS_SUBMIT,
@@ -198,6 +209,7 @@ const ACTION_PERMISSION: Record<ApprovalActionName, string> = {
   submit_to_client: PERMISSIONS.APPROVALS_SKIP_INTERNAL,
   resubmit: PERMISSIONS.APPROVALS_SUBMIT,
   reopen: PERMISSIONS.APPROVALS_SUBMIT,
+  reschedule: PERMISSIONS.APPROVALS_SUBMIT,
   client_approve: PERMISSIONS.APPROVALS_APPROVE,
   client_reject: PERMISSIONS.APPROVALS_APPROVE,
   client_undo: PERMISSIONS.APPROVALS_APPROVE,
@@ -322,6 +334,7 @@ export function storageObjectsToVerify(changes: PostChange[], posts: PostSnapsho
  * Medya URL'si bu tenant/projenin değiştirilemez (write-once / yazmaya kapalı) yolunda mı?
  * - social-media-drafts/{tenantId}/{projectId}/…  (write-once)
  * - social-media/{tenantId}/{projectId}/…         (eski yol, yazmaya kapalı)
+ * - brand-media/{tenantId}/{projectId}/…          (marka medya kütüphanesi, write-once)
  */
 /** Gömülü görsel (ör. editörün ürettiği küçük önizleme): içerik URL'nin kendisidir, sonradan değişemez */
 const EMBEDDED_IMAGE_RE = /^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+$/;
@@ -335,7 +348,8 @@ export function isTrustedMediaUrl(url: string, tenantId: string, projectId: stri
   if (parsed.path.includes('..')) return false;
   return (
     parsed.path.startsWith(`social-media-drafts/${tenantId}/${projectId}/`) ||
-    parsed.path.startsWith(`social-media/${tenantId}/${projectId}/`)
+    parsed.path.startsWith(`social-media/${tenantId}/${projectId}/`) ||
+    parsed.path.startsWith(`brand-media/${tenantId}/${projectId}/`)
   );
 }
 
@@ -530,9 +544,22 @@ export function planApproval(input: PlanApprovalInput): ApprovalResult {
     return fail('COMMENT_REQUIRED', 'Revizyon için açıklama gerekli');
   }
 
+  // Yeniden zamanlama: tek post, geçerli zaman. Onaylı/firmadaki zaman onayın parçasıdır →
+  // değişirse içerik iç incelemeye döner, onaylar temizlenir, yeni tur (eski müşteri ekranı geçersiz).
+  let rescheduleAt: Date | null = null;
+  if (action === 'reschedule') {
+    if (!explicitPosts || posts.length !== 1) return fail('BAD_REQUEST', 'Yeniden zamanlama tek bir içerik için yapılır');
+    const ms = request.scheduledAt;
+    if (typeof ms !== 'number' || !Number.isFinite(ms) || ms < RESCHEDULE_MIN_MS || ms > RESCHEDULE_MAX_MS) {
+      return fail('BAD_REQUEST', 'Geçersiz zaman');
+    }
+    rescheduleAt = new Date(ms);
+  }
+
   // ── 6. Geçişler ─────────────────────────────────────────────
   const postChanges: PostChange[] = [];
   let opensClientRound = false;
+  let reopenedByReschedule = false;
 
   for (const post of posts) {
     const from = post.status;
@@ -573,6 +600,17 @@ export function planApproval(input: PlanApprovalInput): ApprovalResult {
         }
         break;
 
+      case 'reschedule':
+        if (RESCHEDULE_REAPPROVAL.has(from)) {
+          to = 'internal_review';
+          Object.assign(fields, clearedApprovalFields());
+          reopenedByReschedule = true;
+        } else if (RESCHEDULE_IN_PLACE.has(from)) {
+          to = from;
+        }
+        if (to) fields.scheduledAt = rescheduleAt;
+        break;
+
       case 'client_approve':
         if (from === 'pending_approval') {
           to = config.autoScheduleOnApproval && post.hasScheduledAt ? 'scheduled' : 'approved';
@@ -598,14 +636,15 @@ export function planApproval(input: PlanApprovalInput): ApprovalResult {
 
     if (!to) continue;
 
-    if (to === 'revision_requested' || to === 'revision_requested_internal') {
+    // Revizyon sayacı yalnız gerçek geçişte artar (yerinde yeniden zamanlamada durum aynı kalır)
+    if ((to === 'revision_requested' || to === 'revision_requested_internal') && to !== from) {
       fields.revisionCount = (post.revisionCount || 0) + 1;
     }
     // İç ve müşteri revizyon notları ayrı alanlarda: iç not müşteriye hiçbir yoldan gitmez
-    if (to === 'revision_requested_internal' && comment) {
+    if (to === 'revision_requested_internal' && to !== from && comment) {
       fields.lastInternalRevisionComment = comment;
     }
-    if (to === 'revision_requested' && comment) {
+    if (to === 'revision_requested' && to !== from && comment) {
       fields.lastRevisionComment = comment;
       fields.lastRevisionCommentSource = 'client';
     }
@@ -680,11 +719,11 @@ export function planApproval(input: PlanApprovalInput): ApprovalResult {
 
   // Yeni müşteri turu ya da revizyona alma → eski müşteri ekranları geçersiz
   let newReviewRequestId: string | undefined;
-  if (opensClientRound || action === 'reopen') {
+  if (opensClientRound || action === 'reopen' || reopenedByReschedule) {
     newReviewRequestId = input.newId();
     planFields.reviewRequestId = newReviewRequestId;
   }
-  if (action === 'reopen') {
+  if (action === 'reopen' || reopenedByReschedule) {
     Object.assign(planFields, clearedApprovalFields());
   }
 

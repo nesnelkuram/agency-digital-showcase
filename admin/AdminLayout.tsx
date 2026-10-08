@@ -90,6 +90,18 @@ const navItems: NavItem[] = [
     permission: PERMISSIONS.PROJECTS_VIEW,
   },
   {
+    label: 'Odağı Başvuruları',
+    path: '/admin/odagi/applications',
+    icon: ClipboardList,
+    hiddenForRoles: ['account_manager', 'editor', 'staff', 'client', 'freelancer'],
+  },
+  {
+    label: 'İhracat Kitlesi',
+    path: '/admin/marketing/export-audience',
+    icon: Users,
+    hiddenForRoles: ['account_manager', 'editor', 'staff', 'client', 'freelancer'],
+  },
+  {
     label: 'Dosyalama',
     path: '/admin/filing',
     icon: HardDrive,

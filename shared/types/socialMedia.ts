@@ -15,6 +15,8 @@ export interface MediaItem {
   height?: number;
   duration?: number;
   order: number;
+  /** Marka medya kütüphanesinden seçildiyse kaynak varlık (brand_media) */
+  libraryAssetId?: string;
 }
 
 // ============================================
@@ -240,6 +242,8 @@ export interface SocialMediaPost {
   hashtags?: string[];
   mediaUrls?: string[];
   media?: MediaItem[];
+  /** media içindeki kütüphane varlıkları (medyadan türetilir; kullanım geçmişi kaynağı) */
+  libraryAssetIds?: string[];
   aiGeneratedCaption?: string;
 
   // AI caption iterasyon sohbeti
@@ -299,6 +303,7 @@ export interface CreateSocialPostData {
   hashtags?: string[];
   mediaUrls?: string[];
   media?: MediaItem[];
+  libraryAssetIds?: string[];
   aiGeneratedCaption?: string;
   postType: PostType;
   platforms: SocialPlatform[];
@@ -313,6 +318,7 @@ export interface UpdateSocialPostData {
   hashtags?: string[];
   mediaUrls?: string[];
   media?: MediaItem[];
+  libraryAssetIds?: string[];
   aiGeneratedCaption?: string;
   captionChatHistory?: CaptionChatMessage[];
   postType?: PostType;

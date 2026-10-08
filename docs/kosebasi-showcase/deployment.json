@@ -1,0 +1,41 @@
+{
+  "priorProductionDeployment": "dpl_FPK9fbhYs6uPQphGpUxYJGJtoMvv",
+  "publicUrl": "https://www.intiba.co.uk/kosebasi/strateji/",
+  "sourceFileCount": 1615,
+  "changedFiles": [
+    "vercel.json",
+    "public/kosebasi/strateji/assets/bulusma.jpg",
+    "public/kosebasi/strateji/assets/bulusma.mp4",
+    "public/kosebasi/strateji/assets/closing.jpg",
+    "public/kosebasi/strateji/assets/favicon.svg",
+    "public/kosebasi/strateji/assets/film.mp4",
+    "public/kosebasi/strateji/assets/hero.jpg",
+    "public/kosebasi/strateji/assets/hero.mp4",
+    "public/kosebasi/strateji/assets/sofra.jpg",
+    "public/kosebasi/strateji/assets/sofra.mp4",
+    "public/kosebasi/strateji/assets/ustalik.jpg",
+    "public/kosebasi/strateji/assets/ustalik.mp4",
+    "public/kosebasi/strateji/index.html",
+    "public/kosebasi/strateji/page.js",
+    "public/kosebasi/strateji/scene.bundle.js",
+    "public/kosebasi/strateji/style.css",
+    "scripts/build-kosebasi-showcase.mjs",
+    "scripts/kosebasi/scene.js",
+    "scripts/kosebasi/prepare-media.mjs"
+  ],
+  "retainedUnchangedFiles": 1614,
+  "promoted": true,
+  "createdAt": "2026-09-17T09:11:46.664Z",
+  "newProductionDeployment": "dpl_DxThVK1vWtfLFQ82UVoBKAPjfhdR",
+  "stagingUrl": "https://v0-intiba-website-ln9l17ry9-info-intibacouks-projects.vercel.app",
+  "buildStatus": "READY",
+  "sourceIsolationVerified": true,
+  "liveHtmlCssJsMatchLocal": true,
+  "productionBrowserChecksPassed": 13,
+  "productionBrowserReport": "production-browser.json",
+  "preservedExistingPageHashes": [
+    "/kosebasi/index.html",
+    "/odagi/",
+    "/ihracat/"
+  ]
+}

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Loader2, CheckCircle, Upload, Star } from 'lucide-react';
 import type { WorkflowNodeTemplate } from '@/shared/types/workflow/template';
-import { completeStep } from '@/shared/services/workflowEngineService';
+import { completeWorkflowStep } from '@/shared/services/workflowApi';
 import { useTenantId } from '@/shared/hooks/useTenant';
 
 interface DynamicStepFormProps {
@@ -48,7 +48,7 @@ const DynamicStepForm: React.FC<DynamicStepFormProps> = ({
     setSubmitting(true);
     setError(null);
     try {
-      await completeStep(tenantId, instanceId, nodeId, formData, undefined, formData);
+      await completeWorkflowStep(instanceId, nodeId, formData);
       onCompleted();
     } catch (err: any) {
       setError(err.message || 'Form gönderilemedi');
@@ -56,8 +56,6 @@ const DynamicStepForm: React.FC<DynamicStepFormProps> = ({
       setSubmitting(false);
     }
   };
-
-  if (fields.length === 0) return null;
 
   return (
     <div className="space-y-4">

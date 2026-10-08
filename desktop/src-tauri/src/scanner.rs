@@ -9,9 +9,11 @@
 
 use base64::Engine;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::Mutex;
 use std::time::UNIX_EPOCH;
 use tauri::Manager;
 use walkdir::WalkDir;
@@ -51,8 +53,38 @@ fn volume_uuid(_mount_path: &str) -> Option<String> {
     None
 }
 
+// mount_path → Volume UUID önbelleği. diskutil yavaş (özellikle uyumakta olan
+// mekanik disklerde saniyeler sürebilir); UUID mount başına sabittir, bu yüzden
+// her pollingde tekrar çağırmak yerine bir kez çözüp saklarız.
+static UUID_CACHE: Mutex<Option<HashMap<String, String>>> = Mutex::new(None);
+
+fn cached_uuid(mount_path: &str) -> Option<String> {
+    if let Ok(guard) = UUID_CACHE.lock() {
+        if let Some(map) = guard.as_ref() {
+            if let Some(u) = map.get(mount_path) {
+                return Some(u.clone());
+            }
+        }
+    }
+    let uuid = volume_uuid(mount_path)?;
+    if let Ok(mut guard) = UUID_CACHE.lock() {
+        guard
+            .get_or_insert_with(HashMap::new)
+            .insert(mount_path.to_string(), uuid.clone());
+    }
+    Some(uuid)
+}
+
+// Tauri komutu: diski/diskutil'i bloklayan işi arka iş parçacığında çalıştır,
+// IPC/UI iş parçacığını dondurma.
 #[tauri::command]
-pub fn list_volumes() -> Vec<VolumeInfo> {
+pub async fn list_volumes() -> Vec<VolumeInfo> {
+    tauri::async_runtime::spawn_blocking(list_volumes_blocking)
+        .await
+        .unwrap_or_default()
+}
+
+fn list_volumes_blocking() -> Vec<VolumeInfo> {
     use sysinfo::Disks;
     let disks = Disks::new_with_refreshed_list();
     let mut out = Vec::new();
@@ -78,7 +110,7 @@ pub fn list_volumes() -> Vec<VolumeInfo> {
                 l
             }
         };
-        let id = volume_uuid(&mount).unwrap_or_else(|| mount.clone());
+        let id = cached_uuid(&mount).unwrap_or_else(|| mount.clone());
         out.push(VolumeInfo {
             id,
             label,
@@ -93,7 +125,7 @@ pub fn list_volumes() -> Vec<VolumeInfo> {
 
 #[tauri::command]
 pub fn volume_connected(volume_id: String) -> bool {
-    list_volumes().iter().any(|v| v.id == volume_id)
+    list_volumes_blocking().iter().any(|v| v.id == volume_id)
 }
 
 #[derive(Serialize)]
@@ -106,7 +138,7 @@ pub struct DirEntryInfo {
     pub modified_ms: u64,
 }
 
-fn classify(name: &str, is_dir: bool) -> String {
+pub fn classify(name: &str, is_dir: bool) -> String {
     if is_dir {
         return "folder".into();
     }
@@ -169,6 +201,26 @@ pub fn list_dir(path: String) -> Result<Vec<DirEntryInfo>, String> {
         _ => a.name.to_lowercase().cmp(&b.name.to_lowercase()),
     });
     Ok(out)
+}
+
+// Standart proje iskeletini oluştur: verilen disk kökü altında rel_dirs'teki
+// her klasörü (idempotent) açar. `..` içeren yollar güvenlik için reddedilir.
+#[tauri::command]
+pub fn create_scaffold(mount_path: String, rel_dirs: Vec<String>) -> Result<u32, String> {
+    let base = PathBuf::from(&mount_path);
+    if !base.exists() {
+        return Err("Disk bağlı değil".into());
+    }
+    let mut made = 0u32;
+    for rel in rel_dirs {
+        if rel.contains("..") || rel.starts_with('/') {
+            continue; // path traversal koruması
+        }
+        let p = base.join(&rel);
+        fs::create_dir_all(&p).map_err(|e| format!("{}: {e}", p.display()))?;
+        made += 1;
+    }
+    Ok(made)
 }
 
 #[tauri::command]

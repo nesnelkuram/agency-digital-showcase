@@ -1,0 +1,5 @@
+{
+  "path": "/admin/odagi/applications",
+  "unauthenticatedRedirect": "https://www.intiba.co.uk/admin/login",
+  "passed": true
+}

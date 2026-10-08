@@ -1,0 +1,131 @@
+// The API is intercepted: this repeatable UI check never submits a real application.
+const { chromium } = require('/Users/intiba/Documents/AIprojects/dome/node_modules/playwright');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const base = process.env.ODAGI_TEST_BASE || 'http://127.0.0.1:4178';
+const report = { base, checkedAt: new Date().toISOString(), checks: [], accessibility: [], errors: [], externalFormRequests: [], realApplicationsSubmitted: 0, realEmailsSent: 0 };
+const check = name => report.checks.push({ name, passed: true });
+(async () => {
+  const browser = await chromium.launch({ channel: 'chrome', headless: true });
+  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' });
+  const page = await context.newPage();
+  const submissions = [];
+  page.on('pageerror', error => report.errors.push(error.message));
+  await context.route('https://docs.google.com/forms/**', route => { report.externalFormRequests.push(route.request().url()); return route.abort(); });
+  await context.route('**/api/odagi/applications', async route => {
+    submissions.push(route.request().postDataJSON());
+    if (submissions.length === 1) return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Teknik test: bağlantı yeniden denenebilir.' }) });
+    await new Promise(resolve => setTimeout(resolve, 150));
+    return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ reference: 'ODG-A1B2C3D4E5F6' }) });
+  });
+  const currentStep = async index => assert.equal(await page.locator(`.wizard-step[data-step="${index}"]`).isVisible(), true);
+  async function audit(state) {
+    for (const width of [320, 390, 768, 1440]) {
+      await page.setViewportSize({ width, height: 1000 });
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), width, `${state} overflow at ${width}`);
+      if (width === 390 || width === 1440) {
+        const violations = await page.evaluate(async () => (await axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] } })).violations.map(v => ({ id: v.id, impact: v.impact, targets: v.nodes.map(n => n.target) })));
+        report.accessibility.push({ state, width, violations });
+        assert.deepEqual(violations, [], `${state} accessibility at ${width}`);
+      }
+    }
+  }
+  try {
+    assert.equal((await page.goto(base + '/odagi/', { waitUntil: 'networkidle' })).status(), 200);
+    const initialURL = page.url();
+    await page.addScriptTag({ path: '/Users/intiba/Documents/AIprojects/dome/node_modules/axe-core/axe.js' });
+    assert.equal(await page.locator('img').evaluateAll(images => images.every(img => img.complete && img.naturalWidth > 0)), true);
+    await page.locator('#continue-application').click();
+    assert.equal(await page.locator('#application-wizard').isVisible(), false);
+    for (const [id, value] of Object.entries({ city: 'İstanbul', district: 'Kadıköy', area: '12.5' })) await page.locator('#' + id).fill(value);
+    await page.locator('#continue-application').click();
+    await currentStep(0);
+    assert.equal(page.url(), initialURL);
+    assert.equal(context.pages().length, 1);
+    assert.match(await page.locator('#wizard-location').textContent(), /İstanbul · Kadıköy · 12.5 m²/);
+    await page.locator('#application-next').click();
+    await currentStep(0);
+    check('continues_inside_site_and_blocks_empty_fields');
+    for (const [name, value] of Object.entries({ name: 'D', email: 'test@example.invalid', neighborhood: 'Caferağa', occupation: 'Tasarımcı' })) await page.locator(`[name="${name}"]`).fill(value);
+    await page.locator('[name="employed"][value="yes"]').check();
+    await page.locator('[name="company"][value="considering"]').check();
+    await page.locator('#application-next').click();
+    await currentStep(0);
+    await page.locator('[name="name"]').fill('Deneme Başvurusu');
+    await audit('contact');
+    await page.locator('#application-next').click();
+    await currentStep(1);
+    await page.locator('[name="ownsSpace"][value="yes"]').check();
+    await page.locator('[name="packingSpace"][value="yes"]').check();
+    await page.locator('[name="roomInfo"]').fill('Düzenli bir oda. <img src=x onerror=alert(1)>');
+    await page.locator('#application-next').click();
+    await currentStep(1);
+    await page.locator('[name="petSmoke"][value="pets"]').check();
+    await page.locator('[name="petSmoke"][value="smoking"]').check();
+    await page.locator('[name="petSmoke"][value="clear"]').check();
+    assert.equal(await page.locator('[name="petSmoke"]:checked').count(), 1);
+    await page.locator('[name="roomConditions"][value="sunlight"]').check();
+    await page.locator('[name="roomConditions"][value="clear"]').check();
+    assert.equal(await page.locator('[name="roomConditions"]:checked').count(), 1);
+    await page.locator('#application-back').click();
+    await currentStep(0);
+    assert.equal(await page.locator('[name="name"]').inputValue(), 'Deneme Başvurusu');
+    await page.locator('#application-next').click();
+    assert.equal(await page.locator('[name="petSmoke"][value="clear"]').isChecked(), true);
+    await audit('room');
+    check('minimum_length_choice_validation_exclusive_options_and_back_navigation');
+    await page.locator('#application-next').click();
+    await currentStep(2);
+    await page.locator('[name="daytimeAvailable"][value="yes"]').check();
+    await page.locator('[name="couriers"]').fill('Yakındaki kargo şubesine her gün teslim edebilirim.');
+    await page.locator('[name="investment"][value="no"]').check();
+    await page.locator('[name="income"][value="5-25"]').check();
+    await audit('plan');
+    await page.locator('#application-next').click();
+    await currentStep(3);
+    assert.equal(await page.locator('#application-review>div').count(), 18);
+    assert.match(await page.locator('#application-review').textContent(), /12.5/);
+    assert.match(await page.locator('#application-review').textContent(), /<img src=x onerror=alert\(1\)>/);
+    assert.equal(await page.locator('#application-review img').count(), 0);
+    assert.equal(await page.locator('[name="applicationConsent"]').isChecked(), false);
+    await page.locator('#application-next').click();
+    await currentStep(3);
+    assert.equal(submissions.length, 0);
+    await audit('review');
+    await page.locator('#application-wizard').screenshot({ path: '/tmp/odagi-native-review-desktop.png' });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.locator('#application-wizard').screenshot({ path: '/tmp/odagi-native-review-mobile.png' });
+    check('full_review_escapes_content_and_requires_explicit_consent');
+    await page.locator('[name="applicationConsent"]').check();
+    await page.locator('#application-next').click();
+    await page.locator('#application-error').waitFor({ state: 'visible' });
+    assert.equal(await page.locator('#application-success').isVisible(), false);
+    assert.equal(await page.locator('[name="email"]').inputValue(), 'test@example.invalid');
+    assert.equal(await page.locator('[name="applicationConsent"]').isChecked(), true);
+    await audit('recoverable_error');
+    await page.evaluate(() => { const form = document.querySelector('#application-form'); form.requestSubmit(); form.requestSubmit(); });
+    await page.locator('#application-success').waitFor({ state: 'visible' });
+    assert.equal(submissions.length, 2);
+    assert.equal(submissions[0].requestId, submissions[1].requestId);
+    assert.deepEqual(submissions[0], submissions[1]);
+    assert.equal(submissions[1].city, 'İstanbul');
+    assert.equal(submissions[1].area, 12.5);
+    assert.equal(submissions[1].applicationConsent, true);
+    assert.deepEqual(submissions[1].petSmoke, ['clear']);
+    assert.match(submissions[1].requestId, /^[a-f0-9-]{36}$/);
+    assert.equal((await page.locator('#application-reference').textContent()).trim(), 'ODG-A1B2C3D4E5F6');
+    assert.equal(await page.locator('[name="email"]').inputValue(), '');
+    assert.equal(page.url(), initialURL);
+    assert.equal(context.pages().length, 1);
+    await audit('success');
+    await page.locator('#application-wizard').screenshot({ path: '/tmp/odagi-native-success-desktop.png' });
+    check('failure_preserves_answers_retry_reuses_id_and_success_stays_inside_site');
+    assert.deepEqual(report.errors, []);
+    assert.deepEqual(report.externalFormRequests, []);
+    check('no_browser_exceptions_or_external_form_requests');
+    console.log(JSON.stringify(report, null, 2));
+  } finally {
+    fs.writeFileSync('/tmp/odagi-native-browser-' + (base.startsWith('https:') ? 'production' : 'local') + '.json', JSON.stringify(report, null, 2));
+    await browser.close();
+  }
+})().catch(error => { console.error(error); process.exitCode = 1; });

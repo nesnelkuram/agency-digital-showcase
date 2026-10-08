@@ -59,6 +59,8 @@ const OperationalBriefPage = React.lazy(() => import('./operations/OperationalBr
 
 // Marketing Pages
 const MarketingDashboard = React.lazy(() => import('./marketing/MarketingDashboard'));
+const ExportAudiencePage = React.lazy(() => import('./marketing/ExportAudiencePage'));
+const OdagiApplicationsPage = React.lazy(() => import('./odagi/OdagiApplicationsPage'));
 const CampaignsPage = React.lazy(() => import('./marketing/CampaignsPage'));
 const CampaignDetailPage = React.lazy(() => import('./marketing/CampaignDetailPage'));
 const ProposalsPage = React.lazy(() => import('./marketing/ProposalsPage'));
@@ -184,6 +186,26 @@ const AdminApp: React.FC = () => {
         />
         <Route element={<AdminLayout />}>
           <Route index element={<DashboardPage />} />
+          <Route
+            path="odagi/applications"
+            element={
+              <PermissionGuard blockedRoles={['account_manager', 'editor', 'staff', 'client', 'freelancer']} showDenied>
+                <React.Suspense fallback={<PageLoader />}>
+                  <OdagiApplicationsPage />
+                </React.Suspense>
+              </PermissionGuard>
+            }
+          />
+          <Route
+            path="marketing/export-audience"
+            element={
+              <PermissionGuard blockedRoles={['account_manager', 'editor', 'staff', 'client', 'freelancer']} showDenied>
+                <React.Suspense fallback={<PageLoader />}>
+                  <ExportAudiencePage />
+                </React.Suspense>
+              </PermissionGuard>
+            }
+          />
           <Route
             path="team"
             element={

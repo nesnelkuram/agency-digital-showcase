@@ -1,8 +1,9 @@
 import { initializeApp, getApps, FirebaseApp } from "firebase/app";
 import {
   getAuth,
+  initializeAuth,
   Auth,
-  setPersistence,
+  indexedDBLocalPersistence,
   browserLocalPersistence,
 } from "firebase/auth";
 import { getFirestore, Firestore } from "firebase/firestore";
@@ -30,11 +31,27 @@ let auth: Auth | null = null;
 let db: Firestore | null = null;
 
 if (isFirebaseConfigured) {
-  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-  auth = getAuth(app);
-  db = getFirestore(app);
+  const isNew = getApps().length === 0;
+  app = isNew ? initializeApp(firebaseConfig) : getApps()[0];
   // Oturum diskte kalsın — companion her açılışta tekrar login istemesin.
-  setPersistence(auth, browserLocalPersistence).catch(() => {});
+  //
+  // getAuth() + asenkron setPersistence() yerine initializeAuth() kullanıyoruz:
+  // getAuth oturumu okumaya hemen başlar, setPersistence ise sonradan çalışır;
+  // bu yarış WKWebView'de (Tauri macOS) kalıcılığın in-memory'ye düşmesine ve
+  // oturumun her açılışta kaybolmasına yol açıyordu. initializeAuth ile
+  // kalıcılık başlangıçta deterministik veriliyor. IndexedDB öncelikli çünkü
+  // WebKit localStorage'ı agresif temizleyebiliyor; IndexedDB daha kalıcı.
+  try {
+    auth = isNew
+      ? initializeAuth(app, {
+          persistence: [indexedDBLocalPersistence, browserLocalPersistence],
+        })
+      : getAuth(app);
+  } catch {
+    // initializeAuth aynı app için ikinci kez çağrılırsa hata verir — fallback.
+    auth = getAuth(app);
+  }
+  db = getFirestore(app);
 } else {
   console.warn(
     "[Firebase] VITE_FIREBASE_* eksik. Ana repodaki .env.local'i kontrol et."

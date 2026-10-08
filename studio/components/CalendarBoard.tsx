@@ -1,12 +1,29 @@
-import React, { useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, ChevronDown, Plus, Instagram, Facebook, Linkedin, Twitter, Music2, Film, Image as ImageIcon } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight, ChevronDown, Plus, Instagram, Facebook, Linkedin, Twitter, Music2, Film, Image as ImageIcon, Globe } from 'lucide-react';
 import type { PostType, SocialMediaPost, SocialPlatform } from '@/shared/types/socialMedia';
 import { POST_TYPE_LABELS, SOCIAL_PLATFORM_LABELS } from '@/shared/types/socialMedia';
 import { STUDIO_STATUS_COLOR, STUDIO_STATUS_LABEL, postThumb } from '../studioData';
+import {
+  DEFAULT_STUDIO_TIME_ZONE,
+  addCivilDays,
+  civilKey,
+  civilOf,
+  compareCivil,
+  sameCivil,
+  startOfCivilWeek,
+  timeZoneLabel,
+  zonedParts,
+  zonedToUtc,
+  type CivilDate,
+} from '@/shared/time/zonedTime';
 
 export type CalendarMode = 'week' | 'month';
 
-const PLATFORM_ICON: Record<string, React.ElementType> = {
+/** Sürükle-bırak veri türleri */
+export const DND_POST = 'text/post-id';
+export const DND_LIBRARY_ASSET = 'text/library-asset-id';
+
+const PLATFORM_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
   instagram: Instagram,
   facebook: Facebook,
   linkedin: Linkedin,
@@ -18,26 +35,29 @@ const DAY_SHORT = ['Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts', 'Paz'];
 const DAY_LONG = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
 const MONTH_SHORT = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
 const MONTH_LONG = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+const HOURS = Array.from({ length: 24 }, (_, h) => h);
+const pad = (n: number) => String(n).padStart(2, '0');
 
-const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
-const addDays = (d: Date, n: number) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
-/** Pazartesi başlangıçlı hafta */
-const startOfWeek = (d: Date) => addDays(startOfDay(d), -((d.getDay() + 6) % 7));
-const sameDay = (a: Date, b: Date) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-const dayKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-const postDate = (p: SocialMediaPost): Date | null => (p.scheduledAt as any)?.toDate?.() || null;
-const hhmm = (d: Date) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-
-/** Sürüklenebilir: firmaya gönderilmemiş ya da onaylı (yayınlanmamış) içerikler — kurallar yalnızca tarih değişimine izin verir */
-const DRAGGABLE = new Set(['draft', 'internal_review', 'revision_requested_internal', 'revision_requested', 'pending_approval', 'approved']);
+/**
+ * Sürüklenebilir: yayınlanmamış içerikler. Firmada bekleyen/onaylı içeriğin zamanı onayın parçasıdır;
+ * taşıma sunucu 'reschedule' işlemiyle yapılır ve yeniden onay gerektirir (çağıran yönetir).
+ */
+const DRAGGABLE = new Set(['draft', 'internal_review', 'revision_requested_internal', 'revision_requested', 'pending_approval', 'approved', 'scheduled']);
 
 interface Props {
   posts: SocialMediaPost[];
   onPostClick: (post: SocialMediaPost) => void;
-  onCreate: (date: Date) => void;
+  /** Boş hücre/gün tıklaması veya kütüphane dosyası bırakma (libraryAssetId) — o zamanla yeni içerik */
+  onCreate: (date: Date, libraryAssetId?: string) => void;
   onReschedule: (post: SocialMediaPost, date: Date) => void;
   sidebar?: React.ReactNode;
   toolbarLeft?: React.ReactNode;
+  /** Markanın saat dilimi; tüm gün/saat hesapları buna göre */
+  timeZone?: string;
+  /** Saat dilimi tenant ayarından değil varsayılandan geliyorsa etikette belirtilir */
+  timeZoneIsDefault?: boolean;
+  /** Test için şimdiki zaman */
+  now?: Date;
 }
 
 /** Filtre açılır menüsü (Meta Business Suite tarzı) */
@@ -80,8 +100,9 @@ const FilterMenu: React.FC<{
 };
 
 /** Takvimdeki içerik kartı */
-const PostTile: React.FC<{ post: SocialMediaPost; compact?: boolean; onClick: () => void }> = ({ post, compact, onClick }) => {
-  const d = postDate(post);
+const PostTile: React.FC<{ post: SocialMediaPost; timeZone: string; compact?: boolean; onClick: () => void }> = ({ post, timeZone, compact, onClick }) => {
+  const d: Date | null = (post.scheduledAt as any)?.toDate?.() || null;
+  const parts = d ? zonedParts(d, timeZone) : null;
   const thumb = postThumb(post);
   const isVideo = post.media?.[0]?.type === 'video' || post.postType === 'reels' || post.postType === 'video';
   const draggable = DRAGGABLE.has(post.status);
@@ -90,17 +111,18 @@ const PostTile: React.FC<{ post: SocialMediaPost; compact?: boolean; onClick: ()
   return (
     <div
       draggable={draggable}
-      onDragStart={(e) => e.dataTransfer.setData('text/post-id', post.id)}
+      onDragStart={(e) => {
+        e.stopPropagation();
+        e.dataTransfer.setData(DND_POST, post.id);
+      }}
       onClick={(e) => {
         e.stopPropagation();
         onClick();
       }}
-      className={`group glass-tile hover:bg-white transition-all cursor-pointer ${
-        compact ? 'px-2 py-1 !rounded-xl' : 'p-2.5'
-      }`}
+      className={`group glass-tile hover:bg-white transition-all cursor-pointer ${compact ? 'px-2 py-1 !rounded-xl' : 'p-2.5'}`}
     >
       <div className="flex items-center gap-1.5">
-        {d && <span className="font-grotesk text-[11px] font-semibold text-[#171717]">{hhmm(d)}</span>}
+        {parts && <span className="font-grotesk text-[11px] font-semibold text-[#171717]">{`${pad(parts.hour)}:${pad(parts.minute)}`}</span>}
         <span className="ml-auto flex items-center gap-0.5 text-neutral-500">
           {icons.map((Icon, i) => (
             <Icon key={i} className="w-3.5 h-3.5" />
@@ -108,7 +130,10 @@ const PostTile: React.FC<{ post: SocialMediaPost; compact?: boolean; onClick: ()
         </span>
       </div>
       {compact ? (
-        <p className="font-grotesk text-[11px] text-neutral-700 truncate">{post.title || post.caption || POST_TYPE_LABELS[post.postType]}</p>
+        <div className="flex items-center gap-1.5">
+          {thumb && <img src={thumb} alt="" className="w-6 h-6 rounded object-cover shrink-0" loading="lazy" />}
+          <p className="font-grotesk text-[11px] text-neutral-700 truncate">{post.title || post.caption || POST_TYPE_LABELS[post.postType]}</p>
+        </div>
       ) : (
         <>
           <div className="mt-1.5 aspect-square rounded-xl bg-slate-200/60 overflow-hidden flex items-center justify-center">
@@ -123,7 +148,7 @@ const PostTile: React.FC<{ post: SocialMediaPost; compact?: boolean; onClick: ()
           <p className="mt-1.5 font-grotesk text-[11px] text-neutral-700 line-clamp-3">{post.caption || post.title || ''}</p>
         </>
       )}
-      <span className={`mt-1.5 inline-block px-2 py-px rounded-full font-grotesk text-[10px] ${STUDIO_STATUS_COLOR[post.status] || 'bg-neutral-100'}`}>
+      <span className={`mt-1 inline-block px-2 py-px rounded-full font-grotesk text-[10px] ${STUDIO_STATUS_COLOR[post.status] || 'bg-neutral-100'}`}>
         {STUDIO_STATUS_LABEL[post.status] || post.status}
       </span>
     </div>
@@ -131,11 +156,26 @@ const PostTile: React.FC<{ post: SocialMediaPost; compact?: boolean; onClick: ()
 };
 
 /**
- * Studio takvimi — Meta Business Suite mantığında: hafta/ay görünümü, Bugün ve ileri/geri gezinme,
- * içerik türü ve platform filtreleri, gün sütunlarında saatli içerik kartları, boş güne tıklayınca oluşturma,
- * kartı başka güne sürükleyerek tarih değiştirme ve sağda yan panel.
+ * Studio takvimi — Meta Business Suite mantığında: haftalık GÜN + SAAT ızgarası ve ay görünümü,
+ * Bugün ve ileri/geri gezinme, içerik türü ve platform filtreleri.
+ * - Boş saat hücresine tıklama → o gün/saatle yeni içerik
+ * - Kütüphane dosyasını hücreye bırakma → o gün/saatle, dosya ekli yeni içerik
+ * - İçeriği başka gün/saate sürükleme → onReschedule (onaylı içerikte yeniden onay, çağıran yönetir)
+ * Tüm hesaplar markanın saat dilimindedir; geçmiş saatlere oluşturma/taşıma yapılmaz.
  */
-const CalendarBoard: React.FC<Props> = ({ posts, onPostClick, onCreate, onReschedule, sidebar, toolbarLeft }) => {
+const CalendarBoard: React.FC<Props> = ({
+  posts,
+  onPostClick,
+  onCreate,
+  onReschedule,
+  sidebar,
+  toolbarLeft,
+  timeZone = DEFAULT_STUDIO_TIME_ZONE,
+  timeZoneIsDefault = false,
+  now: nowProp,
+}) => {
+  const now = nowProp || new Date();
+  const today = civilOf(now, timeZone);
   const [mode, setMode] = useState<CalendarMode>(() => {
     try {
       return (localStorage.getItem('studio.calendarMode') as CalendarMode) || 'week';
@@ -143,11 +183,11 @@ const CalendarBoard: React.FC<Props> = ({ posts, onPostClick, onCreate, onResche
       return 'week';
     }
   });
-  const [anchor, setAnchor] = useState(() => startOfDay(new Date()));
+  const [anchor, setAnchor] = useState<CivilDate>(today);
   const [typeFilter, setTypeFilter] = useState('all');
   const [platformFilter, setPlatformFilter] = useState('all');
   const [dragOver, setDragOver] = useState<string | null>(null);
-  const today = startOfDay(new Date());
+  const scroller = useRef<HTMLDivElement>(null);
 
   const switchMode = (m: CalendarMode) => {
     setMode(m);
@@ -157,6 +197,11 @@ const CalendarBoard: React.FC<Props> = ({ posts, onPostClick, onCreate, onResche
       // yok say
     }
   };
+
+  // Hafta ızgarası sabah 07:00'den görünür başlar
+  useEffect(() => {
+    if (mode === 'week' && scroller.current) scroller.current.scrollTop = 7 * 64;
+  }, [mode]);
 
   const filtered = useMemo(
     () =>
@@ -168,63 +213,92 @@ const CalendarBoard: React.FC<Props> = ({ posts, onPostClick, onCreate, onResche
     [posts, typeFilter, platformFilter]
   );
 
-  const byDay = useMemo(() => {
-    const m = new Map<string, SocialMediaPost[]>();
-    for (const p of filtered) {
-      const d = postDate(p);
+  /** gün → saat → içerikler (markanın saat diliminde) */
+  const { byDay, bySlot } = useMemo(() => {
+    const day = new Map<string, SocialMediaPost[]>();
+    const slot = new Map<string, SocialMediaPost[]>();
+    const ms = (p: SocialMediaPost) => (p.scheduledAt as any)?.toDate?.()?.getTime?.() ?? 0;
+    for (const p of [...filtered].sort((a, b) => ms(a) - ms(b))) {
+      const d: Date | undefined = (p.scheduledAt as any)?.toDate?.();
       if (!d) continue;
-      const k = dayKey(d);
-      m.set(k, [...(m.get(k) || []), p]);
+      const z = zonedParts(d, timeZone);
+      const dk = civilKey(z);
+      day.set(dk, [...(day.get(dk) || []), p]);
+      const sk = `${dk}@${z.hour}`;
+      slot.set(sk, [...(slot.get(sk) || []), p]);
     }
-    for (const list of m.values()) list.sort((a, b) => (postDate(a)!.getTime() - postDate(b)!.getTime()));
-    return m;
-  }, [filtered]);
+    return { byDay: day, bySlot: slot };
+  }, [filtered, timeZone]);
 
-  const weekStart = startOfWeek(anchor);
-  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-  const monthStart = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
-  const gridStart = startOfWeek(monthStart);
-  const monthDays = Array.from({ length: 42 }, (_, i) => addDays(gridStart, i));
-  const monthRows = monthDays[35].getMonth() === anchor.getMonth() ? 6 : 5;
+  const weekStart = startOfCivilWeek(anchor);
+  const weekDays = Array.from({ length: 7 }, (_, i) => addCivilDays(weekStart, i));
+  const monthStart: CivilDate = { year: anchor.year, month: anchor.month, day: 1 };
+  const gridStart = startOfCivilWeek(monthStart);
+  const monthDays = Array.from({ length: 42 }, (_, i) => addCivilDays(gridStart, i));
+  const monthRows = monthDays[35].month === anchor.month ? 6 : 5;
 
   const title =
     mode === 'month'
-      ? `${MONTH_LONG[anchor.getMonth()]} ${anchor.getFullYear()}`
-      : weekDays[0].getMonth() === weekDays[6].getMonth()
-        ? `${MONTH_LONG[weekDays[0].getMonth()]} ${weekDays[0].getFullYear()}`
-        : `${MONTH_SHORT[weekDays[0].getMonth()]} – ${MONTH_SHORT[weekDays[6].getMonth()]} ${weekDays[6].getFullYear()}`;
+      ? `${MONTH_LONG[anchor.month - 1]} ${anchor.year}`
+      : weekDays[0].month === weekDays[6].month
+        ? `${MONTH_LONG[weekDays[0].month - 1]} ${weekDays[0].year}`
+        : `${MONTH_SHORT[weekDays[0].month - 1]} – ${MONTH_SHORT[weekDays[6].month - 1]} ${weekDays[6].year}`;
 
   const shift = (dir: number) =>
-    setAnchor((a) => (mode === 'week' ? addDays(a, 7 * dir) : new Date(a.getFullYear(), a.getMonth() + dir, 1)));
+    setAnchor((a) => (mode === 'week' ? addCivilDays(a, 7 * dir) : { year: a.month + dir > 12 ? a.year + 1 : a.month + dir < 1 ? a.year - 1 : a.year, month: ((a.month - 1 + dir + 12) % 12) + 1, day: 1 }));
 
-  /** Boş güne tıklama: o gün 10:00 (bugünse bir sonraki tam saat) */
-  const createOn = (day: Date) => {
-    const d = new Date(day);
-    if (sameDay(day, today)) d.setHours(Math.min(new Date().getHours() + 1, 23), 0, 0, 0);
-    else d.setHours(10, 0, 0, 0);
-    onCreate(d);
+  /** Hücre başlangıcı; yaz saati geçişinde var olmayan saat → null */
+  const slotStart = (day: CivilDate, hour: number) => zonedToUtc(day, hour, 0, timeZone);
+  /** Saat hücresi tamamen geçmişte mi (var olmayan saat de kullanılamaz sayılır) */
+  const slotPast = (day: CivilDate, hour: number) => {
+    const s = slotStart(day, hour);
+    return !s || s.getTime() + 3_600_000 <= now.getTime();
   };
+  const dayPast = (day: CivilDate) => compareCivil(day, today) < 0;
 
-  const dropOn = (day: Date) => (e: React.DragEvent) => {
+  /** Gün (ay görünümü) için varsayılan saat: 10:00, bugünse bir sonraki tam saat */
+  const defaultTimeOn = (day: CivilDate): Date | null => {
+    const first = sameCivil(day, today) ? Math.min(zonedParts(now, timeZone).hour + 1, 23) : 10;
+    for (let h = first; h < 24; h++) {
+      const s = slotStart(day, h);
+      if (s && s.getTime() >= now.getTime()) return s;
+    }
+    return null;
+  };
+  /** Geçmiş veya var olmayan zaman kullanılmaz */
+  const notPast = (d: Date | null) => (!d || d.getTime() < now.getTime() ? null : d);
+
+  const handleDrop = (e: React.DragEvent, target: { day: CivilDate; hour?: number }) => {
     e.preventDefault();
     setDragOver(null);
-    const id = e.dataTransfer.getData('text/post-id');
+    const assetId = e.dataTransfer.getData(DND_LIBRARY_ASSET);
+    if (assetId) {
+      const at = target.hour === undefined ? defaultTimeOn(target.day) : notPast(slotStart(target.day, target.hour));
+      if (at) onCreate(at, assetId);
+      return;
+    }
+    const id = e.dataTransfer.getData(DND_POST);
     const post = posts.find((p) => p.id === id);
     if (!post) return;
-    const old = postDate(post);
-    const next = new Date(day);
-    next.setHours(old?.getHours() ?? 10, old?.getMinutes() ?? 0, 0, 0);
-    if (old && sameDay(old, next)) return;
+    const old: Date | null = (post.scheduledAt as any)?.toDate?.() || null;
+    const oldParts = old ? zonedParts(old, timeZone) : null;
+    const hour = target.hour ?? oldParts?.hour ?? 10;
+    const minute = oldParts?.minute ?? 0;
+    const next = zonedToUtc(target.day, hour, minute, timeZone);
+    if (!next) return; // yaz saati geçişinde var olmayan saat
+    if (old && old.getTime() === next.getTime()) return;
+    if (next.getTime() < now.getTime()) return; // geçmişe taşınmaz
     onReschedule(post, next);
   };
 
-  const dropProps = (day: Date) => ({
+  const dropProps = (key: string, target: { day: CivilDate; hour?: number }, past: boolean) => ({
     onDragOver: (e: React.DragEvent) => {
+      if (past) return;
       e.preventDefault();
-      setDragOver(dayKey(day));
+      setDragOver(key);
     },
     onDragLeave: () => setDragOver(null),
-    onDrop: dropOn(day),
+    onDrop: (e: React.DragEvent) => (past ? undefined : handleDrop(e, target)),
   });
 
   const typeOptions = [{ value: 'all', label: 'Tümü' }, ...(Object.keys(POST_TYPE_LABELS) as PostType[]).map((t) => ({ value: t, label: POST_TYPE_LABELS[t] }))];
@@ -249,7 +323,7 @@ const CalendarBoard: React.FC<Props> = ({ posts, onPostClick, onCreate, onResche
           <button onClick={() => shift(-1)} className="glass-chip p-2" aria-label="Önceki">
             <ChevronLeft className="w-5 h-5" />
           </button>
-          <button onClick={() => setAnchor(startOfDay(new Date()))} className="glass-chip px-4 py-2 font-grotesk text-sm font-medium">
+          <button onClick={() => setAnchor(today)} className="glass-chip px-4 py-2 font-grotesk text-sm font-medium">
             Bugün
           </button>
           <button onClick={() => shift(1)} className="glass-chip p-2" aria-label="Sonraki">
@@ -261,49 +335,67 @@ const CalendarBoard: React.FC<Props> = ({ posts, onPostClick, onCreate, onResche
         <FilterMenu label="İçerik Türü" value={typeFilter} options={typeOptions} onChange={setTypeFilter} />
         <FilterMenu label="Paylaşıldığı yer" value={platformFilter} options={platformOptions} onChange={setPlatformFilter} />
       </div>
+      <p className="px-5 py-1.5 border-b border-white/50 flex items-center gap-1.5 font-grotesk text-[11px] text-neutral-600" data-testid="calendar-timezone">
+        <Globe className="w-3.5 h-3.5" /> Saat dilimi: {timeZoneLabel(timeZone, now)}
+        {timeZoneIsDefault && ' — varsayılan (marka/ajans ayarında saat dilimi yok)'}
+      </p>
 
       <div className="flex">
         {/* Takvim gövdesi */}
         <div className="flex-1 min-w-0 overflow-x-auto">
           {mode === 'week' ? (
-            <div className="min-w-[840px]">
-              <div className="grid grid-cols-7 border-b border-white/60">
+            <div className="min-w-[900px]">
+              <div className="grid grid-cols-[56px_repeat(7,minmax(0,1fr))] border-b border-white/60">
+                <div />
                 {weekDays.map((d, i) => (
                   <div key={i} className="py-2 flex justify-center">
-                    <span
-                      className={`px-3.5 py-1 rounded-full font-grotesk text-sm ${
-                        sameDay(d, today) ? 'bg-[#111] text-white font-semibold' : 'text-neutral-500'
-                      }`}
-                    >
-                      {DAY_SHORT[i]} {d.getDate()}
+                    <span className={`px-3.5 py-1 rounded-full font-grotesk text-sm ${sameCivil(d, today) ? 'bg-[#111] text-white font-semibold' : 'text-neutral-500'}`}>
+                      {DAY_SHORT[i]} {d.day}
                     </span>
                   </div>
                 ))}
               </div>
-              <div className="grid grid-cols-7 min-h-[560px]">
-                {weekDays.map((d, i) => {
-                  const list = byDay.get(dayKey(d)) || [];
-                  const past = d < today;
-                  return (
-                    <div
-                      key={i}
-                      {...dropProps(d)}
-                      onClick={() => !past && createOn(d)}
-                      className={`group/day relative border-r border-white/50 last:border-r-0 p-2 space-y-2 ${
-                        sameDay(d, today) ? 'bg-white/35' : ''
-                      } ${dragOver === dayKey(d) ? 'bg-amber-100/50' : ''} ${past ? 'bg-slate-300/15' : 'cursor-pointer'}`}
-                    >
-                      {list.map((p) => (
-                        <PostTile key={p.id} post={p} onClick={() => onPostClick(p)} />
-                      ))}
-                      {!past && (
-                        <div className="hidden group-hover/day:flex items-center justify-center gap-1 py-2 rounded-2xl border border-dashed border-slate-400/50 bg-white/30 font-grotesk text-xs text-neutral-600">
-                          <Plus className="w-3.5 h-3.5" /> Oluştur
-                        </div>
-                      )}
+              <div ref={scroller} className="max-h-[640px] overflow-y-auto">
+                {HOURS.map((h) => (
+                  <div key={h} className="grid grid-cols-[56px_repeat(7,minmax(0,1fr))] border-b border-white/40 min-h-[64px]">
+                    <div className="pr-2 pt-1 text-right font-grotesk text-[11px] text-neutral-500" title={`${pad(h)}:00`}>
+                      {pad(h)}
                     </div>
-                  );
-                })}
+                    {weekDays.map((d, i) => {
+                      const key = `${civilKey(d)}@${h}`;
+                      const list = bySlot.get(key) || [];
+                      const missing = !slotStart(d, h);
+                      const past = slotPast(d, h);
+                      return (
+                        <div
+                          key={i}
+                          data-testid={`slot-${d.year}-${pad(d.month)}-${pad(d.day)}-${pad(h)}`}
+                          aria-label={`${DAY_LONG[i]} ${d.day} ${MONTH_LONG[d.month - 1]} ${pad(h)}:00`}
+                          {...dropProps(key, { day: d, hour: h }, past)}
+                          onClick={() => {
+                            const at = slotStart(d, h);
+                            if (!past && at) onCreate(at);
+                          }}
+                          title={missing ? 'Bu saat, yaz saati geçişi nedeniyle bu saat diliminde yok' : undefined}
+                          data-missing={missing ? 'true' : undefined}
+                          className={`group/slot relative border-l border-white/50 p-1 space-y-1 ${sameCivil(d, today) ? 'bg-white/30' : ''} ${
+                            dragOver === key ? 'bg-amber-100/60' : ''
+                          } ${past ? 'bg-slate-300/15' : 'cursor-pointer hover:bg-white/40'}`}
+                        >
+                          {list.map((p) => (
+                            <PostTile key={p.id} post={p} timeZone={timeZone} compact onClick={() => onPostClick(p)} />
+                          ))}
+                          {missing && <span className="block text-center font-grotesk text-[10px] text-neutral-400">Bu saat yok (yaz saati)</span>}
+                          {!past && list.length === 0 && (
+                            <span className="hidden group-hover/slot:flex items-center justify-center h-full min-h-[48px] font-grotesk text-[11px] text-neutral-500">
+                              <Plus className="w-3 h-3 mr-0.5" /> Oluştur
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
               </div>
             </div>
           ) : (
@@ -317,34 +409,34 @@ const CalendarBoard: React.FC<Props> = ({ posts, onPostClick, onCreate, onResche
               </div>
               <div className="grid grid-cols-7">
                 {monthDays.slice(0, monthRows * 7).map((d, i) => {
-                  const list = byDay.get(dayKey(d)) || [];
-                  const inMonth = d.getMonth() === anchor.getMonth();
-                  const past = d < today;
+                  const key = civilKey(d);
+                  const list = byDay.get(key) || [];
+                  const inMonth = d.month === anchor.month;
+                  const past = dayPast(d);
                   return (
                     <div
                       key={i}
-                      {...dropProps(d)}
-                      onClick={() => !past && createOn(d)}
-                      className={`group/day min-h-[128px] border-r border-b border-white/50 p-1.5 space-y-1 ${
-                        inMonth ? '' : 'bg-slate-300/15'
-                      } ${dragOver === dayKey(d) ? 'bg-amber-100/50' : ''} ${past ? '' : 'cursor-pointer'}`}
+                      {...dropProps(key, { day: d }, past)}
+                      onClick={() => {
+                        const at = defaultTimeOn(d);
+                        if (!past && at) onCreate(at);
+                      }}
+                      className={`group/day min-h-[128px] border-r border-b border-white/50 p-1.5 space-y-1 ${inMonth ? '' : 'bg-slate-300/15'} ${
+                        dragOver === key ? 'bg-amber-100/50' : ''
+                      } ${past ? '' : 'cursor-pointer'}`}
                     >
                       <div className="flex items-center justify-between">
                         <span
                           className={`font-grotesk text-sm ${
-                            sameDay(d, today)
-                              ? 'bg-[#111] text-white rounded-full px-2 font-semibold'
-                              : inMonth
-                                ? 'text-[#171717]'
-                                : 'text-neutral-400'
+                            sameCivil(d, today) ? 'bg-[#111] text-white rounded-full px-2 font-semibold' : inMonth ? 'text-[#171717]' : 'text-neutral-400'
                           }`}
                         >
-                          {d.getDate()}
+                          {d.day}
                         </span>
                         {!past && <Plus className="w-3.5 h-3.5 text-neutral-400 hidden group-hover/day:block" />}
                       </div>
                       {list.slice(0, 3).map((p) => (
-                        <PostTile key={p.id} post={p} compact onClick={() => onPostClick(p)} />
+                        <PostTile key={p.id} post={p} timeZone={timeZone} compact onClick={() => onPostClick(p)} />
                       ))}
                       {list.length > 3 && (
                         <button

@@ -1,0 +1,80 @@
+.hero-surface {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 100svh;
+  overflow: hidden;
+  isolation: isolate;
+  z-index: 10;
+  background: #ebeef8;
+}
+
+.hero-logo { top: 48px; }
+.hero-phone-stage { position: absolute; inset: 0; }
+.hero-copy { position: relative; width: 62%; max-width: 896px; padding: 64px 5.5%; transition-duration: 300ms; }
+
+.hero-header[data-viewing] .hero-surface {
+  position: fixed;
+  inset: 0;
+  height: 100dvh;
+  z-index: 60;
+}
+
+.hero-close {
+  position: absolute;
+  top: max(24px, env(safe-area-inset-top));
+  right: 24px;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid #33333326;
+  border-radius: 999px;
+  background: #fffceb;
+  color: #333;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.hero-close:focus-visible { outline: 2px solid #333; outline-offset: 4px; }
+.hero-close:hover { background: white; }
+
+.hero-project-details {
+  position: absolute;
+  top: 100px;
+  bottom: 48px;
+  left: 4.5%;
+  width: 42%;
+  display: flex;
+  align-items: center;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 639px) {
+  .hero-surface { position: relative; height: auto; min-height: 100svh; display: block; }
+  .hero-logo { top: 24px; }
+  .hero-click-hint { top: 66px !important; transform-origin: top left; scale: .7; }
+  .hero-phone-stage { position: relative; inset: auto; height: 50svh; min-height: 300px; max-height: 460px; width: 100%; }
+  .hero-copy { width: 100%; padding: 24px 24px calc(88px + env(safe-area-inset-bottom)); }
+  .hero-copy h1 { margin-bottom: 16px; }
+  .hero-copy p { font-size: 17px !important; margin-bottom: 16px; }
+  .hero-header[data-viewing] .hero-phone-stage { position: absolute; inset: 0; height: 100%; min-height: 0; max-height: none; }
+  .hero-header[data-viewing] .hero-copy { visibility: hidden; }
+  .hero-project-details { top: auto; bottom: max(20px, env(safe-area-inset-bottom)); left: 24px; right: 24px; width: auto; height: 156px; align-items: flex-start; }
+  .hero-project-details h2 { font-size: 24px; }
+  .hero-project-details h3 { font-size: 16px; margin-bottom: 8px; }
+  .hero-project-details p { font-size: 14px; margin-bottom: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-surface *, .hero-surface *::before, .hero-surface *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .hero-cta { opacity: 1 !important; }
+}

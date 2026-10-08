@@ -45,7 +45,7 @@ const WebGLFallback: React.FC<WebGLFallbackProps> = ({
             {col.map((video, rowIdx) => (
               <FallbackPhone
                 key={`${colIdx}-${rowIdx}`}
-                videoSrc={video.preview}
+                videoSrc={video.preview || video.fullVideo || ''}
               />
             ))}
           </div>

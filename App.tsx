@@ -28,6 +28,7 @@ const LoginPage = lazy(() => import('./admin/auth/LoginPage'));
 const JoinPage = lazy(() => import('./admin/auth/JoinPage'));
 const PortalApp = lazy(() => import('./portal/PortalApp'));
 const StudioApp = lazy(() => import('./studio/StudioApp'));
+const StudioLandingPage = lazy(() => import('./studio/landing/StudioLandingPage'));
 const AgentOfficeSimulator = lazy(() => import('./components/AgentOfficeSimulator'));
 const FeedbackSharePage = lazy(() => import('./components/FeedbackSharePage'));
 const AnalysisReportPage = lazy(() => import('./components/AnalysisReportPage'));
@@ -339,6 +340,16 @@ const App: React.FC = () => {
           element={
             <Suspense fallback={<div className="min-h-screen bg-neutral-50" />}>
               <JoinPage />
+            </Suspense>
+          }
+        />
+
+        {/* Studio tanıtım sayfası - Public */}
+        <Route
+          path="/studio/intro"
+          element={
+            <Suspense fallback={<div className="min-h-screen" style={{ backgroundColor: '#e9ecf3' }} />}>
+              <StudioLandingPage />
             </Suspense>
           }
         />

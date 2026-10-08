@@ -1,0 +1,54 @@
+{
+  "date": "2026-09-11",
+  "tests": {
+    "total": 41,
+    "passed": 41,
+    "integration": 11,
+    "unit_and_api": 30,
+    "real_emails_sent": 0
+  },
+  "browser": {
+    "viewports": [
+      320,
+      375,
+      390,
+      768,
+      1024,
+      1440
+    ],
+    "horizontal_overflow": false,
+    "javascript_errors": [],
+    "flows": [
+      "report-only request",
+      "optional opt-in",
+      "failed API response",
+      "successful API response",
+      "manufacturer and sector fields",
+      "UTM source and campaign",
+      "scenario selector",
+      "privacy page"
+    ]
+  },
+  "cloud_database": {
+    "project": "intiba-ab4bd",
+    "database": "export-audience",
+    "region": "europe-west3",
+    "anonymous_read_status": 403,
+    "ttl_policies": "ACTIVE",
+    "contacts_at_check": 0
+  },
+  "build": {
+    "vite": "passed",
+    "api_bundles": "passed",
+    "api_typecheck": "passed",
+    "preexisting_full_project_tsc_diagnostic_lines": 2717
+  },
+  "deployment": {
+    "id": "dpl_49qYzGo72ZtMA22WePcLdcvDEog8",
+    "status": "Ready",
+    "target": "preview",
+    "url": "https://v0-intiba-website-4w8olhd8f-info-intibacouks-projects.vercel.app/ihracat",
+    "public_pdf_runtime_check": "passed",
+    "admin_access_check": "passed"
+  }
+}

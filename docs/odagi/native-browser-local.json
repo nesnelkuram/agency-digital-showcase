@@ -1,0 +1,92 @@
+{
+  "base": "http://127.0.0.1:4178",
+  "checkedAt": "2026-09-12T08:34:39.025Z",
+  "checks": [
+    {
+      "name": "continues_inside_site_and_blocks_empty_fields",
+      "passed": true
+    },
+    {
+      "name": "minimum_length_choice_validation_exclusive_options_and_back_navigation",
+      "passed": true
+    },
+    {
+      "name": "full_review_escapes_content_and_requires_explicit_consent",
+      "passed": true
+    },
+    {
+      "name": "failure_preserves_answers_retry_reuses_id_and_success_stays_inside_site",
+      "passed": true
+    },
+    {
+      "name": "no_browser_exceptions_or_external_form_requests",
+      "passed": true
+    }
+  ],
+  "accessibility": [
+    {
+      "state": "contact",
+      "width": 390,
+      "violations": []
+    },
+    {
+      "state": "contact",
+      "width": 1440,
+      "violations": []
+    },
+    {
+      "state": "room",
+      "width": 390,
+      "violations": []
+    },
+    {
+      "state": "room",
+      "width": 1440,
+      "violations": []
+    },
+    {
+      "state": "plan",
+      "width": 390,
+      "violations": []
+    },
+    {
+      "state": "plan",
+      "width": 1440,
+      "violations": []
+    },
+    {
+      "state": "review",
+      "width": 390,
+      "violations": []
+    },
+    {
+      "state": "review",
+      "width": 1440,
+      "violations": []
+    },
+    {
+      "state": "recoverable_error",
+      "width": 390,
+      "violations": []
+    },
+    {
+      "state": "recoverable_error",
+      "width": 1440,
+      "violations": []
+    },
+    {
+      "state": "success",
+      "width": 390,
+      "violations": []
+    },
+    {
+      "state": "success",
+      "width": 1440,
+      "violations": []
+    }
+  ],
+  "errors": [],
+  "externalFormRequests": [],
+  "realApplicationsSubmitted": 0,
+  "realEmailsSent": 0
+}

@@ -1,0 +1,14 @@
+{
+  "verifiedAt": "2026-09-12T08:46:38.976350+00:00",
+  "vitest": {
+    "passedFiles": 2,
+    "passedTests": 36,
+    "durationSeconds": 4.81,
+    "emulatorProject": "demo-odagi",
+    "command": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8099 ODAGI_REQUIRE_EMULATOR=1 node node_modules/vitest/vitest.mjs run tests/odagiApplications.test.ts tests/odagiApplications.integration.test.ts"
+  },
+  "apiTypeScript": "passed",
+  "adminPageTypeScript": "passed",
+  "adminPageEsbuild": "passed",
+  "javascriptSyntax": "passed"
+}

@@ -18,9 +18,10 @@
     "scripts/kalis/verify.mjs"
   ],
   "retainedUnchangedFiles": 3993,
-  "promoted": false,
-  "createdAt": "2026-10-06T15:01:13.263Z",
-  "newProductionDeployment": "dpl_52ykA72NHcAEQxLXXBHgXkTNses6",
-  "stagingUrl": "https://v0-intiba-website-eceivhpq7-info-intibacouks-projects.vercel.app",
-  "buildStatus": "INITIALIZING"
+  "promoted": true,
+  "createdAt": "2026-10-06T15:08:29.987Z",
+  "newProductionDeployment": "dpl_6QaBrY3yjfXZcd4apYuYLV1ZshFz",
+  "stagingUrl": "https://v0-intiba-website-q41nlyhvu-info-intibacouks-projects.vercel.app",
+  "buildStatus": "INITIALIZING",
+  "promotedAt": "2026-10-06T15:14:14.610Z"
 }

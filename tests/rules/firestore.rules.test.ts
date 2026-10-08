@@ -192,10 +192,12 @@ describe.skipIf(!HAS_EMULATOR)('firestore.rules', () => {
       await assertFails(as('bm1').collection('social_media_posts').add({ tenantId: 't1', projectId: 'projA', status: 'approved', caption: 'x' }));
       await assertFails(as('bm1').collection('social_media_posts').add({ tenantId: 't1', projectId: 'projB', status: 'draft', caption: 'x' }));
     });
-    it('müşteriye gönderilmiş içeriği düzenleyemez, takvim yerini değiştirebilir', async () => {
+    it('müşteriye gönderilmiş içeriğin metni ve zamanı değişmez (zaman: sunucu reschedule); ızgara sırası değişebilir', async () => {
       await assertSucceeds(as('bm1').doc('social_media_posts/postA').update({ caption: 'yeni' }));
+      await assertSucceeds(as('bm1').doc('social_media_posts/postA').update({ scheduledAt: new Date() }));
       await assertFails(as('bm1').doc('social_media_posts/postA2').update({ caption: 'gizlice' }));
-      await assertSucceeds(as('bm1').doc('social_media_posts/postA2').update({ scheduledAt: new Date() }));
+      await assertFails(as('bm1').doc('social_media_posts/postA2').update({ scheduledAt: new Date() }));
+      await assertSucceeds(as('bm1').doc('social_media_posts/postA2').update({ gridPosition: 3 }));
     });
   });
 

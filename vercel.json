@@ -2,6 +2,10 @@
   "framework": "vite",
   "buildCommand": "node scripts/build-blog-kb.mjs && node scripts/build-api.mjs && vite build",
   "functions": {
+    "api/export-research/*.ts": {
+      "maxDuration": 30,
+      "includeFiles": "private-reports/abd-tekne-aksesuarlari.pdf"
+    },
     "api/analyze-start.ts": { "maxDuration": 60 },
     "api/analyze-continue.ts": { "maxDuration": 300 },
     "api/transcribe-video.ts": { "maxDuration": 120 },
@@ -83,6 +87,13 @@
     }
   ],
   "rewrites": [
+    { "source": "/kosebasi/strateji", "destination": "/kosebasi/strateji/index.html" },
+    { "source": "/kosebasi/strateji/", "destination": "/kosebasi/strateji/index.html" },
+    { "source": "/odagi", "destination": "/odagi/index.html" },
+    { "source": "/odagi/", "destination": "/odagi/index.html" },
+    { "source": "/ihracat", "destination": "/ihracat/index.html" },
+    { "source": "/ihracat/", "destination": "/ihracat/index.html" },
+    { "source": "/ihracat/gizlilik", "destination": "/ihracat/gizlilik.html" },
     { "source": "/api/(.*)", "destination": "/api/$1" },
     {
       "source": "/fatura/:token",
@@ -98,6 +109,13 @@
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
   "headers": [
+    {
+      "source": "/ihracat(.*)",
+      "headers": [
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; img-src 'self' data:; font-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+      ]
+    },
     {
       "source": "/fonts/(.*)",
       "headers": [

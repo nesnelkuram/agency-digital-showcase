@@ -1,0 +1,61 @@
+{
+  "base": "https://v0-intiba-website-ln9l17ry9-info-intibacouks-projects.vercel.app",
+  "checkedAt": "2026-09-17T09:19:10.253Z",
+  "checks": [
+    {
+      "name": "all_three_route_variants_load_the_showcase_with_scripts_and_styles",
+      "passed": true
+    },
+    {
+      "name": "valid_anchor_targets_unique_ids_named_controls_and_aria_references",
+      "passed": true
+    },
+    {
+      "name": "muted_inline_autoplay_and_global_pause_resume",
+      "passed": true
+    },
+    {
+      "name": "film_opens_plays_closes_with_escape_and_restores_focus",
+      "passed": true
+    },
+    {
+      "name": "threejs_scene_six_map_layers_and_keyboard_navigation",
+      "passed": true
+    },
+    {
+      "name": "no_horizontal_overflow_at_1440_1024_768_390_320",
+      "passed": true
+    },
+    {
+      "name": "mobile_menu_opens_navigates_and_closes",
+      "passed": true
+    },
+    {
+      "name": "all_poster_and_logo_images_load",
+      "passed": true
+    },
+    {
+      "name": "reduced_motion_has_no_autoplay_or_webgl_but_map_still_works",
+      "passed": true
+    },
+    {
+      "name": "no_javascript_keeps_all_strategy_content_readable",
+      "passed": true
+    },
+    {
+      "name": "unavailable_threejs_keeps_css_orbit_and_interactive_map",
+      "passed": true
+    },
+    {
+      "name": "data_saver_does_not_download_ambient_video_or_threejs",
+      "passed": true
+    },
+    {
+      "name": "no_javascript_exceptions_or_failed_first_party_assets",
+      "passed": true
+    }
+  ],
+  "consoleErrors": [],
+  "failedAssets": [],
+  "passed": true
+}

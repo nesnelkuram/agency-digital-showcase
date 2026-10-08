@@ -1,0 +1,26 @@
+{
+  "priorProductionDeployment": "dpl_CGyp9qnnR5UBbuR779XdXq37kn5b",
+  "newProductionDeployment": "dpl_FPK9fbhYs6uPQphGpUxYJGJtoMvv",
+  "sourceSnapshot": "/tmp/odagi-native-production-20260912",
+  "publicUrl": "https://www.intiba.co.uk/odagi",
+  "adminUrl": "https://www.intiba.co.uk/admin/odagi/applications",
+  "buildStatus": "READY",
+  "promoted": true,
+  "verifiedAt": "2026-09-12T08:46:38.976350+00:00",
+  "scope": [
+    "admin/AdminApp.tsx",
+    "admin/AdminLayout.tsx",
+    "api/odagi/applications.ts",
+    "api/_lib/odagiApplications.ts",
+    "public/odagi/index.html",
+    "public/odagi/style.css",
+    "public/odagi/application.js",
+    "public/odagi/app.js",
+    "shared/types/odagi.ts",
+    "admin/odagi/OdagiApplicationsPage.tsx"
+  ],
+  "productionConfigUnchanged": true,
+  "syntheticApplicationsSubmitted": 1,
+  "syntheticApplicationCleanupVerified": true,
+  "realEmailsSent": 0
+}

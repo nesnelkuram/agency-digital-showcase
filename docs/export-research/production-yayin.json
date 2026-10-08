@@ -1,0 +1,16 @@
+{
+  "publishedAt": "2026-09-11T12:23:43.119350+00:00",
+  "publicUrl": "https://www.intiba.co.uk/ihracat",
+  "adminUrl": "https://www.intiba.co.uk/admin/marketing/export-audience",
+  "project": "v0-intiba-website",
+  "deploymentId": "dpl_6q7CrtdUgy2Bi6JfDLLJBuFe4TZS",
+  "target": "production",
+  "state": "READY",
+  "previousProductionDeploymentId": "dpl_DLutHrSjGiyq1cYy5EG4v1BdCQfG",
+  "productionPublicUrlSetting": "https://www.intiba.co.uk",
+  "existingPublicFilesPreserved": 618,
+  "apiAndUnitTestsPassed": 30,
+  "runtimeProof": "production-kontrol.json",
+  "browserProof": "production-tarayici.json",
+  "realEmailsSent": 0
+}

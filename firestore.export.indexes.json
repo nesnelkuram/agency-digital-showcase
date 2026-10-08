@@ -1,0 +1,23 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "contacts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "consentStatus", "order": "ASCENDING" },
+        { "fieldPath": "expiresAt", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": [
+    { "collectionGroup": "contacts", "fieldPath": "expiresAt", "ttl": true, "indexes": [
+      { "order": "ASCENDING", "queryScope": "COLLECTION" },
+      { "order": "DESCENDING", "queryScope": "COLLECTION" }
+    ] },
+    { "collectionGroup": "requests", "fieldPath": "expiresAt", "ttl": true, "indexes": [] },
+    { "collectionGroup": "consent_events", "fieldPath": "expiresAt", "ttl": true, "indexes": [] },
+    { "collectionGroup": "rate_limits", "fieldPath": "expiresAt", "ttl": true, "indexes": [] },
+    { "collectionGroup": "contacts", "fieldPath": "unsubscribeKey", "indexes": [] },
+    { "collectionGroup": "requests", "fieldPath": "tokenHash", "indexes": [] }
+  ]
+}

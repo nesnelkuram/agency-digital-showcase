@@ -14,6 +14,11 @@ import {
 } from "./scannerApi";
 import { getPreview } from "./previews";
 import { CompareView } from "./CompareView";
+import { SearchView } from "./SearchView";
+import { IngestPanel } from "./IngestPanel";
+import { ProjectsView } from "./ProjectsView";
+import { ClientsView } from "./ClientsView";
+import { DriveView } from "./DriveView";
 import { useAuthUser } from "./hooks";
 import {
   AssetLink,
@@ -72,6 +77,19 @@ interface ActiveDrive {
   connected: boolean;
   removable: boolean;
 }
+
+// Kamera kartı işaret klasörleri — kök dizinde biri varsa "Karttan Aktar" çıkar.
+const CARD_MARKERS = new Set([
+  "DCIM",
+  "PRIVATE",
+  "CONTENTS",
+  "XDROOT",
+  "CLIP",
+  "CLIPS",
+  "AVCHD",
+]);
+const looksLikeCard = (items: { name: string; isDir: boolean }[]) =>
+  items.some((e) => e.isDir && CARD_MARKERS.has(e.name.toUpperCase()));
 
 const relOf = (abs: string, mount: string) =>
   abs.slice(mount.replace(/\/$/, "").length).replace(/^\/+/, "");
@@ -200,8 +218,13 @@ export function FilesView() {
   const [projects, setProjects] = useState<ProjectLite[]>([]);
   const [links, setLinks] = useState<AssetLink[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [view, setView] = useState<"browse" | "compare">("browse");
+  const [rootIsCard, setRootIsCard] = useState(false);
+  const [ingestOpen, setIngestOpen] = useState(false);
+  const [view, setView] = useState<
+    "clients" | "projects" | "browse" | "search" | "compare" | "drive"
+  >("clients");
   const mountRef = useRef<string | null>(null);
+  const volKeyRef = useRef<string>("");
 
   // Firestore: projeler + eşlemeler
   useEffect(() => {
@@ -229,6 +252,11 @@ export function FilesView() {
     try {
       const vols = await listVolumes();
       setVolumes(vols);
+      // Disk KÜMESİ değişmediyse (sadece boş alan güncellemesi) ağır işleri
+      // atla: Firestore yazımı + indeks taraması yalnızca disk takılınca/çıkınca.
+      const key = vols.map((v) => v.id).sort().join(",");
+      if (key === volKeyRef.current) return;
+      volKeyRef.current = key;
       setSeen((prev) => {
         const map = new Map(prev.map((s) => [s.id, s]));
         for (const v of vols)
@@ -253,7 +281,7 @@ export function FilesView() {
 
   useEffect(() => {
     refreshVolumes();
-    const id = setInterval(refreshVolumes, 5000);
+    const id = setInterval(refreshVolumes, 8000);
     return () => clearInterval(id);
   }, [refreshVolumes]);
 
@@ -273,6 +301,8 @@ export function FilesView() {
           abs: e.path,
         }))
       );
+      // Kök dizindeysek kamera kartı mı diye bak (işaret klasörleri).
+      if (rel === "") setRootIsCard(looksLikeCard(items.map((e) => ({ name: e.name, isDir: e.is_dir }))));
       setCurrentRel(rel);
     } catch (e: any) {
       setError(String(e));
@@ -301,6 +331,7 @@ export function FilesView() {
       try {
         const doc = await loadIndex(v.id);
         setIndexDoc(doc);
+        setRootIsCard(false);
         mountRef.current = null;
         setActive({
           id: v.id,
@@ -315,6 +346,48 @@ export function FilesView() {
       }
     }
   };
+
+  // Projeler ekranından bir konuma atla: Gözat'ı aç + ilgili diske/klasöre git.
+  const openAt = useCallback(
+    async (driveId: string, relPath: string) => {
+      setView("browse");
+      const live = volumes.find((x) => x.id === driveId);
+      if (live) {
+        mountRef.current = live.mount_path;
+        setIndexDoc(null);
+        setActive({
+          id: live.id,
+          label: live.label,
+          mountPath: live.mount_path,
+          connected: true,
+          removable: live.is_removable,
+        });
+        await browseLive(live.mount_path, relPath);
+      } else if (indexMap[driveId]) {
+        try {
+          const doc = await loadIndex(driveId);
+          const label =
+            seen.find((s) => s.id === driveId)?.label ||
+            links.find((l) => l.driveId === driveId)?.driveLabel ||
+            driveId;
+          setIndexDoc(doc);
+          setRootIsCard(false);
+          mountRef.current = null;
+          setActive({
+            id: driveId,
+            label,
+            mountPath: null,
+            connected: false,
+            removable: true,
+          });
+          setCurrentRel(relPath);
+        } catch (e: any) {
+          setError(String(e));
+        }
+      }
+    },
+    [volumes, indexMap, seen, links, browseLive]
+  );
 
   const enterFolder = (e: DisplayEntry) => {
     if (!e.isDir || !active) return;
@@ -403,14 +476,41 @@ export function FilesView() {
     return Array.from(m.entries()).map(([id, label]) => ({ id, label }));
   }, [volumes, seen, indexMap]);
 
+  // Arama sonuçlarını açabilmek için bağlı disklerin mount yolları.
+  const connectedMounts = useMemo(
+    () => new Map(volumes.map((v) => [v.id, v.mount_path])),
+    [volumes]
+  );
+
   return (
     <div className="files-root">
       <div className="files-tabs" data-tauri-drag-region>
+        <button
+          className={`ftab${view === "clients" ? " active" : ""}`}
+          onClick={() => setView("clients")}
+        >
+          👥 Müşteriler
+        </button>
+        <button
+          className={`ftab${view === "projects" ? " active" : ""}`}
+          onClick={() => setView("projects")}
+        >
+          📁 Projeler
+        </button>
         <button
           className={`ftab${view === "browse" ? " active" : ""}`}
           onClick={() => setView("browse")}
         >
           📂 Gözat
+        </button>
+        <button
+          className={`ftab${view === "search" ? " active" : ""}`}
+          onClick={() => setView("search")}
+        >
+          🔍 Ara
+          {indexedDrives.length > 0 && (
+            <span className="ftab-badge">{indexedDrives.length}</span>
+          )}
         </button>
         <button
           className={`ftab${view === "compare" ? " active" : ""}`}
@@ -421,10 +521,40 @@ export function FilesView() {
             <span className="ftab-badge">{indexedDrives.length}</span>
           )}
         </button>
+        <button
+          className={`ftab${view === "drive" ? " active" : ""}`}
+          onClick={() => setView("drive")}
+        >
+          ☁️ Drive
+        </button>
       </div>
 
-      {view === "compare" ? (
+      {view === "clients" ? (
+        <ClientsView
+          indexedDrives={indexedDrives}
+          onlineDriveIds={connectedIds}
+          links={links}
+          onOpen={openAt}
+        />
+      ) : view === "projects" ? (
+        <ProjectsView
+          projects={projects}
+          links={links}
+          indexedDrives={indexedDrives}
+          connectedDrives={volumes.map((v) => ({
+            id: v.id,
+            label: v.label,
+            mountPath: v.mount_path,
+          }))}
+          onlineDriveIds={connectedIds}
+          onOpen={openAt}
+        />
+      ) : view === "drive" ? (
+        <DriveView />
+      ) : view === "compare" ? (
         <CompareView drives={indexedDrives} />
+      ) : view === "search" ? (
+        <SearchView drives={indexedDrives} connectedMounts={connectedMounts} />
       ) : (
     <div className="files">
       <aside className="files-side">
@@ -503,6 +633,17 @@ export function FilesView() {
               <span className="crumb muted">Soldan bir disk seç</span>
             )}
           </div>
+
+          {/* Karttan Aktar — kök dizinde kamera kartı algılanınca */}
+          {active?.connected && active.removable && rootIsCard && active.mountPath && (
+            <button
+              className="nav-btn ingest-trigger"
+              onClick={() => setIngestOpen(true)}
+              title="Kamera kartını doğrulanmış kopyayla aktar"
+            >
+              🎬 Karttan Aktar
+            </button>
+          )}
 
           {/* Tara — sadece bağlı harici diskler */}
           {active?.connected && isExternal(active.mountPath || "") && (
@@ -613,6 +754,14 @@ export function FilesView() {
           projects={projects}
           onPick={doLink}
           onClose={() => setPickerOpen(false)}
+        />
+      )}
+
+      {ingestOpen && active?.mountPath && (
+        <IngestPanel
+          mount={active.mountPath}
+          label={active.label}
+          onClose={() => setIngestOpen(false)}
         />
       )}
     </div>

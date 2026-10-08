@@ -1,0 +1,35 @@
+{
+  "base": "https://www.intiba.co.uk",
+  "checkedAt": "2026-09-11T12:22:28.986Z",
+  "realEmailsSent": 0,
+  "checks": [
+    {
+      "name": "custom_domain_page_and_links",
+      "passed": true
+    },
+    {
+      "name": "interactive_chart",
+      "passed": true
+    },
+    {
+      "name": "required_email_and_optional_marketing",
+      "passed": true
+    },
+    {
+      "name": "mobile_layout",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "privacy_page",
+      "passed": true
+    },
+    {
+      "name": "admin_requires_login",
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "pageErrors": [],
+  "failedRequests": []
+}

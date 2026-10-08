@@ -7,6 +7,16 @@ import { collection, doc, getDoc, getDocs, limit, orderBy, query, where } from '
 import { db } from '@/lib/firebase/config';
 import { authenticatedFetch } from '@/lib/firebase/apiClient';
 import type { ContentPlan, SocialMediaPost } from '@/shared/types/socialMedia';
+import { DEFAULT_STUDIO_TIME_ZONE } from '@/shared/time/zonedTime';
+
+/** Studio genelinde tarih gösterimi markanın saat diliminde (StudioLayout ayarlar) */
+let studioTimeZone = DEFAULT_STUDIO_TIME_ZONE;
+export function setStudioTimeZone(tz: string) {
+  studioTimeZone = tz;
+}
+export function getStudioTimeZone(): string {
+  return studioTimeZone;
+}
 
 export interface StudioProject {
   id: string;
@@ -175,10 +185,11 @@ export function postThumb(post: SocialMediaPost): string | null {
 export function formatDate(ts: any, withTime = false): string {
   const d: Date | undefined = ts?.toDate?.();
   if (!d) return '';
-  return d.toLocaleDateString('tr-TR', {
+  return d.toLocaleString('tr-TR', {
+    timeZone: studioTimeZone,
     day: 'numeric',
     month: 'short',
-    ...(withTime ? { hour: '2-digit', minute: '2-digit' } : {}),
+    ...(withTime ? { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' } : {}),
   });
 }
 

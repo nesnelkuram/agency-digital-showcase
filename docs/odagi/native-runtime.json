@@ -1,0 +1,29 @@
+{
+  "base": "https://v0-intiba-website-46wfa9zu2-info-intibacouks-projects.vercel.app",
+  "checkedAt": "2026-09-12T08:43:31.784Z",
+  "checks": [
+    {
+      "name": "live_mobile_form_completes_inside_site_with_server_receipt",
+      "passed": true
+    },
+    {
+      "name": "complete_application_and_consent_are_durably_stored",
+      "passed": true
+    },
+    {
+      "name": "live_retry_returns_same_reference_without_duplicate_record",
+      "passed": true
+    },
+    {
+      "name": "anonymous_api_and_direct_database_reads_are_denied",
+      "passed": true
+    },
+    {
+      "name": "no_javascript_exceptions",
+      "passed": true
+    }
+  ],
+  "syntheticApplicationCount": 1,
+  "cleanupVerified": true,
+  "realEmailsSent": 0
+}

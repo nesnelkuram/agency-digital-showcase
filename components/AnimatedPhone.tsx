@@ -1,9 +1,10 @@
-import React, { Suspense, useMemo, useEffect, memo, useRef } from 'react';
+import React, { Suspense, useMemo, memo } from 'react';
 import { animated, useSpring } from '@react-spring/three';
-import { useFrame, useThree } from '@react-three/fiber';
+import { useThree } from '@react-three/fiber';
 import { Text } from '@react-three/drei';
+import { PerspectiveCamera } from 'three';
 import IPhone3D from './IPhone3D';
-import { smartVideoManager } from '../utils/smartVideoManager';
+import { getPhonePresentation } from '../utils/phonePresentation';
 
 interface AnimatedPhoneProps {
   videoSrc: string;
@@ -20,6 +21,8 @@ interface AnimatedPhoneProps {
   mobileRotation?: [number, number, number];  // Mobil için özel rotasyon
   mobileScale?: number;  // Mobil için özel scale
   isMobile?: boolean;  // Mobil cihaz mı
+  parentScale?: number;
+  reducedMotion?: boolean;
   /** Controlled by usePlaybackOrchestrator — when false, video is paused to save decoder slots */
   playbackAllowed?: boolean;
 }
@@ -39,8 +42,12 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
   mobileRotation,
   mobileScale = 1,
   isMobile = false,
+  parentScale = 1,
+  reducedMotion = false,
   playbackAllowed = true
 }) => {
+  const { camera, size, invalidate } = useThree();
+  const presentation = getPhonePresentation(camera as PerspectiveCamera, size.width, size.height, parentScale, isMobile);
   // Generate random delays and rotation direction (only calculated once)
   const rotationStartDelay = useMemo(() => Math.random() * 2000 + 200, []); // 200-2200ms random delay
   const rotationDirection = useMemo(() => Math.random() > 0.5 ? 1 : -1, []); // Random rotation direction
@@ -48,16 +55,7 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
   // Initial position for entrance animation (phones start very close)
   const initialPosition = hasEntered ? position : [position[0], position[1] - 0.5, position[2] - 3];
   
-  // Kamera FOV'u ve rotation'ı dikkate alarak telefonu viewport'ta tut
-  const targetPosition = isSelected ? (isMobile ? {
-    x: 1.5,         // Mobilde ortada
-    y: 0,         // Mobilde biraz yukarıda
-    z: 2          // Mobilde kameraya yakın
-  } : {
-    x: 3.4,       // Desktop: Kamera rotation'ı nedeniyle sağa kaydır
-    y: -2,        // Desktop: Kamera rotation'ı ve FOV için aşağıda tut
-    z: 5          // Desktop: Kameraya yakın ama tamamı görünecek mesafede
-  }) : shouldFall ? {
+  const targetPosition = isSelected ? presentation.position : shouldFall ? {
     x: position[0],
     y: position[1],  // Keep same height
     z: position[2] - 35  // Fall backward away from camera (closer than before)
@@ -74,9 +72,10 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
   // X ekseni: Üstten öne doğru eğilme
   // Y ekseni: Soldan sağa dönüş
   const targetRotation = isSelected ? {
-    x: Math.PI / 4,      // Eğim yok, düz duracak
-    y: Math.PI * 2.12,      // 360 derece Y ekseninde dönüş
-    z: 0
+    ...presentation.rotation,
+    // Make one complete turn before settling square to the camera. Adding a
+    // full revolution preserves the final upright orientation on every screen.
+    y: presentation.rotation.y + Math.PI * 2,
   } : shouldFall ? {
     x: 0,                // No tilt
     y: Math.PI * 2 * rotationDirection,      // 360 degrees - one full rotation (random direction)
@@ -118,8 +117,10 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
     posX: targetPosition.x,
     posY: targetPosition.y,
     posZ: targetPosition.z,
-    scale: shouldFall ? 0.8 : (hasEntered ? mobileScale : 0.5),
-    config: positionConfig
+    scale: isSelected ? presentation.scale : shouldFall ? 0.8 : (hasEntered ? mobileScale : 0.5),
+    config: positionConfig,
+    immediate: reducedMotion,
+    onChange: () => invalidate(),
   });
 
   // Optimized rotation animation
@@ -132,52 +133,18 @@ const AnimatedPhone: React.FC<AnimatedPhoneProps> = ({
     rotX: targetRotation.x,
     rotY: targetRotation.y,
     rotZ: targetRotation.z,
-    config: rotationConfig
+    config: rotationConfig,
+    immediate: reducedMotion,
+    onChange: () => invalidate(),
   });
-
-  // Track animation state for invalidation
-  const isAnimating = useRef(true);
-  const { invalidate } = useThree();
-
-  // Invalidate frame only when animations are running
-  useFrame(() => {
-    if (isAnimating.current) {
-      invalidate();
-    }
-  });
-
-  // Mark animating on state changes, stop after spring settles (~1.5s)
-  useEffect(() => {
-    isAnimating.current = true;
-    const timer = setTimeout(() => {
-      isAnimating.current = false;
-    }, 1500);
-    return () => clearTimeout(timer);
-  }, [hasEntered, isSelected, shouldFall]);
 
   // LOD - viewport dışındaki telefonları optimize et
   // During entrance animation, always render the phone (no culling)
-  const isInViewport = !hasEntered || Math.abs(position[1]) < 10;  // Restored to original
+  const isInViewport = isSelected || !hasEntered || Math.abs(position[1]) < 10;
 
   // Don't play videos on non-selected phones when one is selected
   // Videos only play when near camera, not during initial load
-  const isNearCamera = Math.abs(position[1]) < 6 && !shouldFall;   // Restored to original
-  
-  // Handle video with smart manager
-  useEffect(() => {
-    if (isSelected && videoSrc) {
-      smartVideoManager.playSelected(videoSrc);
-    } else if (isNearCamera && videoSrc) {
-      // Just prepare thumbnail, don't play
-      smartVideoManager.getThumbnail(videoSrc);
-    }
-    
-    return () => {
-      if (videoSrc) {
-        smartVideoManager.stopSelected(videoSrc);
-      }
-    };
-  }, [isSelected, isNearCamera, videoSrc]);
+  const isNearCamera = isSelected || (Math.abs(position[1]) < 6 && !shouldFall);
 
   return (
     <animated.group 

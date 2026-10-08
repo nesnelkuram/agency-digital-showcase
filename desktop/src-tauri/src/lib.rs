@@ -1,3 +1,5 @@
+mod drive;
+mod offload;
 mod scanner;
 
 use tauri::{
@@ -47,6 +49,7 @@ pub fn run() {
     let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_positioner::init());
 
     #[cfg(desktop)]
@@ -62,6 +65,7 @@ pub fn run() {
             scanner::list_volumes,
             scanner::volume_connected,
             scanner::list_dir,
+            scanner::create_scaffold,
             scanner::reveal_in_finder,
             scanner::open_path,
             scanner::generate_preview,
@@ -69,6 +73,15 @@ pub fn run() {
             scanner::index_status,
             scanner::load_index,
             scanner::get_thumb,
+            offload::detect_card,
+            offload::offload_card,
+            drive::drive_status,
+            drive::drive_set_credentials,
+            drive::drive_connect,
+            drive::drive_disconnect,
+            drive::drive_list_shared_drives,
+            drive::drive_list_folders,
+            drive::drive_upload,
         ])
         .setup(|app| {
             // Gerçek uygulama: dock'ta görün (Regular). Popover skipTaskbar olduğu

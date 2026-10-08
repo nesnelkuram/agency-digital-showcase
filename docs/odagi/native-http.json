@@ -1,0 +1,74 @@
+{
+  "base": "https://www.intiba.co.uk",
+  "checkedAt": "2026-09-12T08:45:31.343Z",
+  "checks": [
+    {
+      "path": "/odagi",
+      "status": 200,
+      "localMatch": true
+    },
+    {
+      "path": "/odagi/",
+      "status": 200,
+      "localMatch": true
+    },
+    {
+      "path": "/odagi/style.css",
+      "status": 200,
+      "localMatch": true
+    },
+    {
+      "path": "/odagi/app.js",
+      "status": 200,
+      "localMatch": true
+    },
+    {
+      "path": "/odagi/application.js",
+      "status": 200,
+      "localMatch": true
+    },
+    {
+      "path": "/odagi/assets/oda-hero.webp",
+      "status": 200,
+      "localMatch": true
+    },
+    {
+      "path": "/odagi/assets/paketleme.webp",
+      "status": 200,
+      "localMatch": true
+    },
+    {
+      "path": "/",
+      "status": 200
+    },
+    {
+      "path": "/ihracat",
+      "status": 200,
+      "previousProductionMatch": true
+    },
+    {
+      "path": "/ihracat/gizlilik",
+      "status": 200,
+      "previousProductionMatch": true
+    },
+    {
+      "path": "/kosebasi/index.html",
+      "status": 200,
+      "previousProductionMatch": true
+    },
+    {
+      "path": "/admin/login",
+      "status": 200
+    },
+    {
+      "path": "/api/odagi/applications",
+      "check": "rejects_incomplete_application",
+      "status": 400
+    },
+    {
+      "path": "/api/odagi/applications",
+      "check": "denies_anonymous_list",
+      "status": 401
+    }
+  ]
+}

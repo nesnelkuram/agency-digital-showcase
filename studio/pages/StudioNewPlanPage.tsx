@@ -8,29 +8,42 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useStudio } from '../StudioLayout';
 import StudioPostCard from '../components/StudioPostCard';
 import { getProjectPosts } from '../studioData';
+import {
+  addCivilDays,
+  civilOf,
+  civilToInput,
+  parseDateInput,
+  startOfCivilWeek,
+  timeZoneLabel,
+  zonedWeekRange,
+} from '@/shared/time/zonedTime';
 
-/** Pazartesi başlangıçlı hafta (yerel saat) */
-function mondayOf(d: Date): Date {
-  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  const day = (x.getDay() + 6) % 7;
-  x.setDate(x.getDate() - day);
-  return x;
+/** Varsayılan: marka saat diliminde bir sonraki haftanın Pazartesi'si (iki onay turuna zaman kalsın) */
+export function defaultPlanWeekInput(now: Date, tz: string): string {
+  return civilToInput(addCivilDays(startOfCivilWeek(civilOf(now, tz)), 7));
 }
-const toInput = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+/** Seçilen herhangi bir gün → o haftanın Pazartesi'si (marka saat diliminde takvim günü) */
+export function normalizePlanWeekInput(value: string): string | null {
+  const c = parseDateInput(value);
+  return c ? civilToInput(startOfCivilWeek(c)) : null;
+}
+
+/** Hafta aralığı (marka saat diliminde Pazartesi ilk an – Pazar son an) */
+export function planWeekRange(weekStartInput: string, tz: string): { start: Date; end: Date } {
+  const c = parseDateInput(weekStartInput) || civilOf(new Date(), tz);
+  const { start, end } = zonedWeekRange(c, tz);
+  return { start, end };
+}
 
 /** Yeni haftalık plan: hafta seç → henüz plana bağlanmamış taslakları seç → oluştur */
 const StudioNewPlanPage: React.FC = () => {
-  const { project, tenantId } = useStudio();
+  const { project, tenantId, timeZone, timeZoneIsDefault } = useStudio();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [posts, setPosts] = useState<SocialMediaPost[]>([]);
   const [loading, setLoading] = useState(true);
-  // Varsayılan: bir sonraki hafta (iki onay turuna zaman kalsın)
-  const [weekStart, setWeekStart] = useState(() => {
-    const next = mondayOf(new Date());
-    next.setDate(next.getDate() + 7);
-    return toInput(next);
-  });
+  const [weekStart, setWeekStart] = useState(() => defaultPlanWeekInput(new Date(), timeZone));
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,13 +56,9 @@ const StudioNewPlanPage: React.FC = () => {
       .finally(() => setLoading(false));
   }, [project?.id, tenantId]);
 
-  const range = useMemo(() => {
-    const start = new Date(`${weekStart}T00:00:00`);
-    const end = new Date(start);
-    end.setDate(end.getDate() + 6);
-    end.setHours(23, 59, 59, 999);
-    return { start, end };
-  }, [weekStart]);
+  const range = useMemo(() => planWeekRange(weekStart, timeZone), [weekStart, timeZone]);
+  /** Tarih gösterimi marka saat diliminde */
+  const dayLabel = (d: Date, month: 'short' | 'long') => d.toLocaleDateString('tr-TR', { timeZone, day: 'numeric', month });
 
   // Hafta içine düşen taslakları varsayılan seç
   useEffect(() => {
@@ -76,7 +85,7 @@ const StudioNewPlanPage: React.FC = () => {
       const counts = new Map<string, number>();
       chosen.forEach((p) => (p.platforms || []).forEach((pl) => counts.set(pl, (counts.get(pl) || 0) + 1)));
       const platform = (Array.from(counts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || 'instagram') as SocialPlatform;
-      const fmt = (d: Date) => d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+      const fmt = (d: Date) => dayLabel(d, 'short');
       const planId = await createContentPlan(
         tenantId,
         {
@@ -116,12 +125,19 @@ const StudioNewPlanPage: React.FC = () => {
           <input
             type="date"
             value={weekStart}
-            onChange={(e) => e.target.value && setWeekStart(toInput(mondayOf(new Date(`${e.target.value}T00:00:00`))))}
+            onChange={(e) => {
+              const monday = normalizePlanWeekInput(e.target.value);
+              if (monday) setWeekStart(monday);
+            }}
             className="block mt-1 px-3 py-2 border border-neutral-200 rounded-lg font-grotesk text-sm"
           />
         </label>
-        <p className="font-grotesk text-xs text-neutral-500 pb-2">
-          {range.start.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })} – {range.end.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}
+        <p className="font-grotesk text-xs text-neutral-500 pb-2" data-testid="plan-week-range">
+          {dayLabel(range.start, 'long')} – {dayLabel(range.end, 'long')}
+          <span className="block text-[11px] text-neutral-400">
+            Saat dilimi: {timeZoneLabel(timeZone, range.start)}
+            {timeZoneIsDefault && ' — varsayılan'}
+          </span>
         </p>
       </div>
 

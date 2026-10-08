@@ -1,0 +1,40 @@
+{
+  "base": "https://v0-intiba-website-4w8olhd8f-info-intibacouks-projects.vercel.app",
+  "realEmailsSent": 0,
+  "checks": [
+    {
+      "name": "landing",
+      "status": 200,
+      "hasReport": true
+    },
+    {
+      "name": "unauthenticated_contacts",
+      "status": 401,
+      "body": {
+        "error": "Yönetici girişi gerekli."
+      }
+    },
+    {
+      "name": "invalid_email",
+      "status": 400
+    },
+    {
+      "name": "private_pdf_download",
+      "status": 200,
+      "contentType": "application/pdf",
+      "bytes": 137226,
+      "exactMatch": true,
+      "cacheControl": "private, no-store"
+    },
+    {
+      "name": "report_only_cannot_grant_marketing",
+      "status": 400
+    },
+    {
+      "name": "privacy_page",
+      "status": 200
+    }
+  ],
+  "passed": true,
+  "fixtureRemoved": true
+}

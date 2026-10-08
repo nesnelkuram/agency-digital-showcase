@@ -11,10 +11,11 @@
     "preview": "vite preview",
     "build:vercel": "node scripts/build-blog-kb.mjs && node scripts/build-api.mjs && vite build",
     "test": "vitest run",
+    "test:export": "node scripts/test-export-research.mjs",
     "test:watch": "vitest",
     "map": "node scripts/build-system-map.mjs && node scripts/enrich-system-map.mjs",
-    "emulators:rules": "firebase emulators:start --only firestore,storage --project demo-rules-test",
-    "test:rules": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 FIREBASE_STORAGE_EMULATOR_HOST=127.0.0.1:9199 vitest run tests/rules --no-file-parallelism"
+    "test:rules": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 FIREBASE_STORAGE_EMULATOR_HOST=127.0.0.1:9199 vitest run tests/rules --no-file-parallelism",
+    "emulators:rules": "firebase emulators:start --only firestore,storage --project demo-rules-test"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

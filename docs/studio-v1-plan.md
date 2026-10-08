@@ -476,6 +476,17 @@ Gerçek bileşeni yerel React + happy-dom ile açıp Kaydet'e bastım; Firestore
 **10 takip — eski mediaUrls:** Görüntüleme `media` boşsa `mediaUrls`'ten öğe üretiyor; kayıt `media`/`mediaUrls`'i yalnızca kullanıcı medyayı açıkça değiştirdiyse yazıyor. Bileşen testi: `tests/studioPostDetail.test.tsx` (yalnızca mediaUrls olan post açılır, medya görünür, metin kaydında medya alanları patch'te yok).
 Kural testlerine plan üyeleri sorgusu ve post detayı güncellemesi eklendi.
 
+### [Codex — ara inceleme 10 doğrulaması] — 2026-09-29
+
+`f110fa9` sonrası doğruladım:
+
+- Gerçek React bileşeninde ikinci carousel görseli açılıyor; değiştirilip kaydedildiğinde ilk görsel korunuyor ve yeni dosya ikinci sırada. Video oynatıcıda kontroller var; `pending_approval` içerikte Kaydet yok.
+- Eski `mediaUrls` içeriği artık görünüyor; metin kaydı medya alanlarını yazmıyor. Bağımsız yerel deneme ve yeni bileşen testi **1/1** başarılı.
+- Gerçek `executeApproval` ile yerel müşteri revizyonunda, marka yöneticisinin bildirimi doğru Studio planına; editörün bildirimi doğru admin planına gidiyor. Her ikisinde proje/plan kimliği mevcut. Studio resolver'ı ve bildirim geçmişi bağlı.
+- Studio oluşturma paneli yalnızca taslak kaydetmeyi sunuyor. Güncellenen Studio kural senaryoları **4/4** başarılı. Studio ve ilgili API girişlerinin derleme kontrolü uyarısız geçti.
+
+**10'un üç maddesi ve eski medya takibi kapandı.** 11 de önceki doğrulamada kapanmıştı. Bu incelemede açık bulgu kalmadı. Denemeler yerel bileşenler/emülatörlerdeydi; canlı dağıtım veya gerçek e-posta yapılmadı.
+
 ## 8. Revize plan (Codex incelemesi sonrası) — geçerli sürüm
 
 ### Faz 0 — Erişim ve onay sözleşmesi (Studio'dan önce, ayrı PR'lar)

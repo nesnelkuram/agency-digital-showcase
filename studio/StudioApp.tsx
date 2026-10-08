@@ -1,7 +1,6 @@
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useRef } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
-import AuthGuard from '@/admin/auth/AuthGuard';
 import { useAuth } from '@/contexts/AuthContext';
 import StudioLayout from './StudioLayout';
 
@@ -11,7 +10,9 @@ const StudioPlansPage = lazy(() => import('./pages/StudioPlansPage'));
 const StudioNewPlanPage = lazy(() => import('./pages/StudioNewPlanPage'));
 const StudioPlanPage = lazy(() => import('./pages/StudioPlanPage'));
 const StudioBrandKitPage = lazy(() => import('./pages/StudioBrandKitPage'));
+const StudioLibraryPage = lazy(() => import('./pages/StudioLibraryPage'));
 const StudioNotificationsPage = lazy(() => import('./pages/StudioNotificationsPage'));
+const StudioLandingPage = lazy(() => import('./landing/StudioLandingPage'));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-[300px]">
@@ -30,8 +31,28 @@ const StudioRoleGate: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
 const page = (el: React.ReactNode) => <Suspense fallback={<PageLoader />}>{el}</Suspense>;
 
+/**
+ * Oturum yoksa /studio tanıtım sayfasını gösterir; giriş o sayfadaki pencereden yapılır.
+ * Giriş sırasında AuthContext loading=true olsa da tanıtım sayfası açık kalır (pencere kapanmasın).
+ */
+const StudioAuthGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, loading } = useAuth();
+  const resolved = useRef(false);
+  if (!loading) resolved.current = true;
+
+  if (!resolved.current) return <div className="min-h-screen" style={{ backgroundColor: '#e9ecf3' }} />;
+  if (!user) {
+    return (
+      <Suspense fallback={<div className="min-h-screen" style={{ backgroundColor: '#e9ecf3' }} />}>
+        <StudioLandingPage />
+      </Suspense>
+    );
+  }
+  return <>{children}</>;
+};
+
 const StudioApp: React.FC = () => (
-  <AuthGuard>
+  <StudioAuthGate>
     <StudioRoleGate>
       <Routes>
         <Route element={<StudioLayout />}>
@@ -42,12 +63,13 @@ const StudioApp: React.FC = () => (
           <Route path=":projectId/planlar/yeni" element={page(<StudioNewPlanPage />)} />
           <Route path=":projectId/planlar/:planId" element={page(<StudioPlanPage />)} />
           <Route path=":projectId/takvim" element={<Navigate to=".." relative="path" replace />} />
+          <Route path=":projectId/kutuphane" element={page(<StudioLibraryPage />)} />
           <Route path=":projectId/marka" element={page(<StudioBrandKitPage />)} />
           <Route path="*" element={<Navigate to="/studio" replace />} />
         </Route>
       </Routes>
     </StudioRoleGate>
-  </AuthGuard>
+  </StudioAuthGate>
 );
 
 export default StudioApp;

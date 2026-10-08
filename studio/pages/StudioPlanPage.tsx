@@ -332,7 +332,7 @@ const StudioPlanPage: React.FC = () => {
         <ApprovalAuditTrail planId={plan.id} compact />
       </div>
 
-      <StudioPostDetail post={detail} onClose={() => setDetail(null)} onSaved={load} />
+      <StudioPostDetail post={detail} tenantId={tenantId} onClose={() => setDetail(null)} onSaved={load} />
 
       {/* Yorum gerektiren işlem */}
       {commentFor && (

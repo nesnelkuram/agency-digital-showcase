@@ -64,17 +64,12 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
     const cloned = cloneScene(scene);
     
     // First, let's find the bounding box to understand the model size
-    const box = new THREE.Box3().setFromObject(cloned);
-    const size = box.getSize(new THREE.Vector3());
-    const center = box.getCenter(new THREE.Vector3());
-    
-    // Model size and center calculated
-    
-    // Center the model
-    cloned.position.sub(center);
-    
     // Rotate 180 degrees around Y axis to show front
     cloned.rotation.set(0, Math.PI, 0);
+    // Center after rotation so camera-relative placement fits the actual model.
+    const box = new THREE.Box3().setFromObject(cloned);
+    cloned.position.sub(box.getCenter(new THREE.Vector3()));
+    cloned.updateMatrixWorld(true);
     
     return cloned;
   }, [scene]);
@@ -145,8 +140,8 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
       }
     });
 
-    const trackMaterial = (m: THREE.Material) => { createdMaterials.current.push(m); return m; };
-    const trackTexture = (t: THREE.Texture) => { createdTextures.current.push(t); return t; };
+    const trackMaterial = <T extends THREE.Material>(m: T): T => { createdMaterials.current.push(m); return m; };
+    const trackTexture = <T extends THREE.Texture>(t: T): T => { createdTextures.current.push(t); return t; };
 
     // First, let's analyze the model structure
     // Analyze model structure
@@ -488,7 +483,6 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
       }
       mesh.__video = previewVideo;
       previewVideo.muted = true;
-      previewVideo.play().catch(() => {});
 
       // Dispose the full texture + element.
       if (mesh.__fullTexture) { mesh.__fullTexture.dispose(); mesh.__fullTexture = null; }
@@ -512,11 +506,12 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
       }
     });
 
+    let playbackTimer: ReturnType<typeof setTimeout> | undefined;
     if (screenMesh && screenMesh.__video) {
       const video = screenMesh.__video;
 
       // Small delay to ensure video element is ready
-      setTimeout(() => {
+      playbackTimer = setTimeout(() => {
         // Orchestrator override: if playback is not allowed, always pause
         if (!playbackAllowed && !isSelected) {
           if (!video.paused) {
@@ -564,6 +559,7 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
     }
 
     return () => {
+      clearTimeout(playbackTimer);
       // Cleanup on unmount
       if (screenMesh && screenMesh.__video) {
         screenMesh.__video.pause();
@@ -614,12 +610,14 @@ const IPhone3D: React.FC<IPhone3DProps> = ({
     <group 
       position={position} 
       rotation={rotation}
-      onClick={onClick}
+      onClick={event => {
+        event.stopPropagation();
+        onClick?.();
+      }}
     >
-      <primitive 
-        object={clonedScene} 
-        scale={calculatedScale}
-      />
+      <group scale={calculatedScale}>
+        <primitive object={clonedScene} />
+      </group>
     </group>
   );
 };

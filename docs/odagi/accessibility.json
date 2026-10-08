@@ -1,0 +1,14 @@
+[
+  {
+    "mode": "desktop",
+    "violations": []
+  },
+  {
+    "mode": "mobile",
+    "violations": []
+  },
+  {
+    "mode": "dialog",
+    "violations": []
+  }
+]

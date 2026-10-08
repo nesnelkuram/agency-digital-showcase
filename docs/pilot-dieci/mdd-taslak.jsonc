@@ -1,0 +1,132 @@
+// Dieci — Marka Dili Dokümanı (MDD) taslağı · pilot aktarımı · 2026-09-30
+// Durum: TASLAK. İnsan incelemesi yapılmadı, yayınlanmadı.
+// Kaynaklar: repo köküne göre ../Dieci/Dieci_Marka_Personasi.md (P), ../Dieci/Dieci_Dil_Rehberi.md (R), ../Dieci/AGENTS.md (A)
+// "_src" alanları sourceRefs'in kısaltmasıdır. "_proposal" yorumları ilk aktarımın tarihçesidir;
+// bu genel uzantılar artık marka-dili-motoru.md §4.2'de tanımlıdır, pilot alanları henüz tümüyle hizalanmadı.
+// Codex incelemesi ve açık kaynak/kapsam çelişkileri: ../pilot-dieci-marka-dili.md §7 (2026-09-30).
+{
+  "schemaVersion": 1,
+  "brandId": "TBD",                                   // Açık soru §6.1
+  "defaultLocale": "tr-TR",
+
+  "identity": {
+    "locked": true,
+    "oneLiner": "Kadıköy'ün herkesle iyi geçinen restoranı değil; standartları olan, seni biraz zorlayan ama en iyi hissettiren tutkulu İtalyan sevgili.",
+    "positioning": "Pazarlamada serseri, mutfakta beyefendi. Red Flag Marketing, Green Flag Dining. Dışarıda kışkırtıcı ve flörtöz, içeride kusursuz ve zanaatkâr; çelişki değil gerilim.",
+    "archetype": "Toxic Lover × Outlaw; iç pusula 'Indomita' (boyun eğmez)",
+    "values": ["Zanaat ve disiplin", "Otoriter sıcaklık", "Filtresiz dürüstlük", "Sprezzatura", "İstisnailik"],
+    "audience": [
+      { "id": "primary", "description": "25–45, kariyer sahibi, kendine güvenli, sosyal medyada aktif; toksik ilişki mizahını kendi dili gibi konuşan genç yetişkin", "needs": ["hikâyenin parçası olmak", "Instagramlanabilir deneyim"] },
+      { "id": "secondary", "description": "Plaza profesyoneli / perfezionista; kontrol ihtiyacına mola arayan", "needs": ["karar yorgunluğundan kurtulmak", "standartları yüksek bir otoriteye teslim olmak"] }
+    ],
+    "notFor": ["Sürekli onay ve iyi davranılma bekleyenler", "Her şeyi seçmek isteyenler", "Pembe-çiçekli klişe romantizm arayanlar"],
+    "_src": ["P§0", "P§1", "P§2", "P§4"]
+  },
+
+  "voice": {
+    "locked": true,
+    "personality": ["Küstah ama zarif", "Flörtöz ama mesafeli", "Otoriter ama koruyucu", "Mizahi ama kaliteden taviz vermeyen", "Asi ama disiplinli", "Lüks ama umursamaz (menefreghista)"],
+    "summary": "Zevkinden emin, ürününü bilen, ayrıntıyı yakalayan ve yerinde ince ironi kullanan tek bir karakter. Keskinlik markanın kendisidir; yumuşatma, kibarlaştırma bir düzeltme değildir.",
+    "principles": [
+      { "principle": "Kanıtsız cümle yazılmaz", "do": "Doğrulanmış özellik, gerçekten olmuş bir an ya da markanın kayıtlı kanaatinden yaz", "avoid": "Söyleyecek şey yokken betimleme; o zaman kare metinsiz geçer", "_src": ["R§1"] },
+      { "principle": "Her metinde bir iddia, bilgi ya da emir vardır", "do": "Kanaatle ya da emirle kapat", "avoid": "Salt betimleme, altyazı", "_src": ["A", "R§2B"] },
+      { "principle": "Mizah zorunlu değil, tekrar yasak", "do": "Her ürün ayrı fikir; mizah ince bir gözlemden doğsun", "avoid": "Aynı hamleyi (ör. ilişki esprisi) her ürüne giydirmek", "_src": ["R§5", "P§3 kalibrasyon"] },
+      { "principle": "Sprezzatura", "do": "Çabayı gizle, sonucu fısılda", "avoid": "Aşırı açıklama, menü mühendisliği gevezeliği", "_src": ["P§2", "P§8"] }
+    ],
+    "weAre": ["Otorite kuran: 'biz çoktan seçtik'", "Negasyonla açıp FOMO ile kapatan", "Filtresiz dürüst"],
+    "weAreNot": ["Kötü hizmeti şaka yapan (Karen's Diner değil)", "Gimmick", "Yalvaran, amatör dil"],
+
+    // İlk öneri: pilot §3.1; artık genel şema §4.2'de var. Seri boyunca seçim kapsamı incelemede.
+    "registers": [
+      { "id": "harry-dry", "name": "Çıplak gerçek", "whenToUse": ["duyuru", "kampanya", "doluluk", "fine-dining", "keskin ürün iddiası"],
+        "recipe": ["Sayılabilir bir şeyi say", "Yanına zıddını koy", "Üçüncü satıra kanaati koy"],
+        "closingTest": "Rakam ya da zıtlık var mı; sıfat yerine kanıt mı?",
+        "examples": ["3 MALZEME. SIFIR FİLTRE. %100 GIYBET.", "0 BOŞ KOLTUK. %100 MICHELIN DİSİPLİNİ."], "_src": ["R§2A", "P§3"] },
+      { "id": "gastro-sairane", "name": "Duyusal otorite", "whenToUse": ["ürün hikâyesi", "zanaat"],
+        "recipe": ["Malzemeyi adıyla an", "Doku ve karşıtlık üzerinden yaz", "Uzun cümleden kısa vuruşa geç", "İddiayla ya da emirle kapat"],
+        "closingTest": "Kapanış iddia ya da emir mi? Değilse altyazıya düşmüştür.",
+        "examples": ["Grana Padano'nun ipeksi yoğunluğu ve taze karabiberin tokat gibi çarpan keskinliği. Sade görünür, aklını başından alır. Standartlarını düşürme."], "_src": ["R§2B", "P§3"] },
+      { "id": "menefreghista", "name": "Umursamaz otorite", "whenToUse": ["marka tavrı", "davet", "kapanış"],
+        "recipe": ["Kısa ve kibirli", "Parantez içi geri alma"],
+        "closingTest": "Umursamazlık kibir mi, yoksa küçümseme mi? Müşteriyi değil durumu hafife al.",
+        "examples": ["Geç kalanlar için üzgünüz (aslında değiliz).", "Biz çoktan seçtik. Siz sadece masaya oturun."], "_src": ["R§2C", "P§3"] }
+    ],
+    "registerPolicy": { "required": true, "mixing": "forbidden", "_src": ["A", "R§2"] }
+  },
+
+  "localeProfiles": {
+    "tr-TR": {
+      "address": { "style": "mixed", "notes": "Kaynak metinlerde hem 'sen' hem 'siz' var (ör. 'İradeni kapıda bırak' / 'Siz sadece masaya oturun'). Kural belirlenmedi.", "allowMixing": null },  // needs_input
+      "selfReference": "biz",
+      "lexicon": {
+        "preferred": [
+          { "term": "Sözünüzü balla kesebiliriz.", "when": "imza söz" },
+          { "term": "Biz susacağız, tabaklar konuşacak.", "when": "Beyefendi modu" },
+          { "term": "Tesadüflere inanmıyoruz.", "when": "davet / rezervasyon" }
+        ],
+        "brandTerms": [{ "term": "Dieci", "casing": "Dieci" }, { "term": "Dieci Moda", "casing": "Dieci Moda" }],
+        "_note": "Copy bankasının aynen tekrar kullanımı açık soru (pilot §6.3)"
+      }
+    }
+  },
+
+  "rules": [
+    { "id": "no-begging-cta", "type": "forbidden_phrase", "level": "required", "check": "deterministic", "params": { "phrases": ["takipte kalın", "çok yakında"] }, "reason": "Amatör, yalvaran dil", "_src": ["P§8"] },
+    { "id": "no-alcohol-brand", "type": "claim_restriction", "level": "required", "check": "semantic", "params": { "topic": "alkol markası adı" }, "reason": "Yasal kalkan; 'botanik' dili kullanılır", "_src": ["P§8", "R§7"] },
+    { "id": "no-pink-romance", "type": "tone_restriction", "level": "advisory", "check": "semantic", "params": { "contexts": ["14 Şubat", "8 Mart"] }, "reason": "Anti-klişe tavır", "_src": ["P§8"] },
+    { "id": "closing-not-modal", "type": "closing_pattern", "level": "required", "check": "deterministic", "params": { "forbidSuffixes": ["-abilir", "-ebilir"], "position": "last_sentence" }, "reason": "Yeterlilik kapısı: kanaat kipi", "_src": ["R§4.7"] },
+    { "id": "no-empty-adjectives", "type": "forbidden_phrase", "level": "required", "check": "deterministic", "params": { "phrases": ["enfes", "eşsiz", "özenle"] }, "reason": "Sıfat kapısı: kanıtsız sıfat", "_src": ["R§4.8"] },
+    { "id": "gate-not-caption", "type": "semantic_gate", "level": "required", "check": "semantic", "params": { "test": "Fotoğrafı görmeyen biri bu metinden kareyi tarif edebiliyor mu? Evetse başarısız." }, "_src": ["R§4.1"] },
+    { "id": "gate-specificity", "type": "semantic_gate", "level": "required", "check": "semantic", "params": { "test": "Özel ad, rakam, saat, teknik ya da duyulmuş söz var mı?" }, "_src": ["R§4.2"] },
+    { "id": "gate-product-swap", "type": "semantic_gate", "level": "required", "check": "semantic", "params": { "test": "Ürün adı başka ürünle değişince cümle hâlâ çalışıyor mu? Evetse başarısız." }, "_src": ["R§4.3"] },
+    { "id": "gate-speakable", "type": "semantic_gate", "level": "required", "check": "semantic", "params": { "test": "Bir masada sesli söylenir mi?" }, "_src": ["R§4.4"] },
+    { "id": "gate-arguable", "type": "semantic_gate", "level": "required", "check": "semantic", "params": { "test": "'Katılmıyorum' denebilir mi? Denemiyorsa iddia yoktur." }, "_src": ["R§4.5"] },
+    { "id": "gate-no-announcing", "type": "semantic_gate", "level": "required", "check": "semantic", "params": { "test": "Espriyi/iddiayı yapıyor mu, yoksa yapacağını mı duyuruyor?" }, "_src": ["R§4.6"] },
+    { "id": "gate-register", "type": "semantic_gate", "level": "required", "check": "semantic", "params": { "test": "Üç register'dan hangisi? Cevap yoksa başarısız." }, "_src": ["R§4.9"] },
+    // _proposal: pilot §3.5 — anyOf
+    { "id": "sentence-architecture", "type": "semantic_gate", "level": "required", "check": "semantic", "params": { "anyOf": ["negasyon ya da iddiayla açılış", "otorite/zanaat gövdesi", "emir, FOMO ya da geri almayla kapanış"] }, "_src": ["R§3", "P§3"] },
+    { "id": "series-title-first-only", "type": "format_rule", "level": "required", "check": "deterministic", "scope": { "formats": ["story_series"] }, "params": { "titleOnlyOnFirstFrame": true }, "_src": ["A"] }
+  ],
+
+  // _proposal: pilot §3.3 — seri düzeyinde kurallar
+  "setRules": [
+    { "id": "adjacent-register", "rule": "İki komşu seri aynı register'ı kullanamaz", "check": "deterministic" },
+    { "id": "one-liners", "rule": "10 serilik partide en az 2 seri tek cümlelik", "check": "deterministic", "params": { "min": 2, "per": 10 } },
+    { "id": "numbers", "rule": "10 serilik partide en az 2 seride rakam ya da çıplak gerçek", "check": "semantic", "params": { "min": 2, "per": 10 } },
+    { "id": "skeleton-repeat", "rule": "İki metin aynı cümle iskeletini kullanamaz", "check": "semantic" },
+    { "id": "parallel-triplet", "rule": "Fiilsiz isim öbeklerinden kurulu paralel üçleme sette en fazla bir kez", "check": "semantic", "params": { "max": 1 } }
+  ],                                                   // kaynak: R§6
+
+  // _proposal: pilot §3.2 ve §3.4
+  "generationPolicy": { "overgenerate": 3, "onFail": "discard_and_regenerate", "allowNoText": true, "_src": ["R§1", "R§4", "A"] },
+
+  "contextAdaptations": [
+    { "when": { "intent": "hype", "channels": ["instagram"] }, "toneNotes": "Serseri modu: küstah, flörtöz, pasif-agresif, mizahi. Toksik/ilişki mizahı kullanılabilir; tekrar edilmez.", "_src": ["P§1", "P§8", "R§5"] },
+    { "when": { "intent": "craft" }, "toneNotes": "Beyefendi modu: kusursuz, disiplinli, sıcak, zanaatkâr. Detay ve eller öne çıkar, şefin yüzü değil.", "_src": ["P§1", "P§7"] },
+    { "when": { "intent": "event" }, "toneNotes": "Fine-dining / takeover: ürün odaklı sadelik; Harry Dry register'ı uygun.", "_src": ["P§7", "R§2A"] }
+  ],
+
+  "claimsPolicy": { "requireEvidence": true, "notes": "Persona'daki ifade tek başına doğrulanmış bilgi değildir. İçerik, pişirme süresi, menşe, fermantasyon, ödül ve menü adı uydurulmaz.", "_src": ["R§7"] },
+  "techniquePolicy": { "preferred": ["karşıtlık", "somut sayı", "negasyonla açılış"], "disallowed": [], "notes": "Kişileştirme bir seçenektir, varsayılan değildir.", "_src": ["R§5", "P§10"] },
+
+  "emojiAndHashtag": {
+    "emojiPreferred": ["🚩", "🔪", "🤫", "🔥", "🍯", "🍕", "⭐️", "🖤", "🌊", "🍷"],
+    "hashtagSets": {
+      "signature": ["#APerfect10Italian"],
+      "brand": ["#dieci", "#moda", "#ristorante", "#italiano"],
+      "place": ["#kadıköy", "#istanbul"],
+      "concept": ["#italianchaos", "#ToxicLove", "#AntiValentine", "#RedFlag", "#kitchentakeover", "#michelinstar"]
+    },
+    "emojiLimit": null,                                 // needs_input: kaynakta sayı sınırı yok
+    "_src": ["P§5", "P§10C"]
+  },
+
+  "visual": { "notes": "Görsel kurallar Dieci_Paylasim_Stilleri.md ve AGENTS.md'de; metin motorunun kapsamı dışında.", "_src": ["P§5", "A"] },
+
+  "needsInput": [
+    "Hitap: sen mi, siz mi, karışık mı? (kaynak metinler karışık)",
+    "Emoji sayı sınırı",
+    "Bilgi kayıtları: pilot-dieci-marka-dili.md §2.3 listesinin doğrulanması",
+    "Copy bankasının aynen kullanımı serbest mi?"
+  ]
+}

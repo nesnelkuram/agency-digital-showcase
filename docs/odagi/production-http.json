@@ -1,0 +1,34 @@
+{
+  "publicUrl": "https://www.intiba.co.uk/odagi",
+  "httpStatus": 200,
+  "contentMatchesSource": true,
+  "apexRedirect": 307,
+  "existingPages": [
+    {
+      "path": "/",
+      "status": 200,
+      "unchanged": true
+    },
+    {
+      "path": "/ihracat",
+      "status": 200,
+      "unchanged": true
+    },
+    {
+      "path": "/ihracat/gizlilik",
+      "status": 200,
+      "unchanged": true
+    },
+    {
+      "path": "/kosebasi/index.html",
+      "status": 200,
+      "unchanged": true
+    },
+    {
+      "path": "/admin/login",
+      "status": 200,
+      "unchanged": true
+    }
+  ],
+  "checkedAt": "2026-09-11T22:28:54.410Z"
+}

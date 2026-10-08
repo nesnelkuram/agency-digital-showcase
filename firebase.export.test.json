@@ -1,0 +1,10 @@
+{
+  "firestore": [
+    { "database": "export-audience", "rules": "firestore.export.rules", "indexes": "firestore.export.indexes.json" }
+  ],
+  "emulators": {
+    "firestore": { "host": "127.0.0.1", "port": 8096 },
+    "ui": { "enabled": false },
+    "singleProjectMode": true
+  }
+}

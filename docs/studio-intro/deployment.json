@@ -1,0 +1,20 @@
+{
+  "priorProductionDeployment": "dpl_6QaBrY3yjfXZcd4apYuYLV1ZshFz",
+  "publicUrl": "https://www.intiba.co.uk/studio",
+  "sourceFileCount": 4005,
+  "changedFiles": [
+    "App.tsx",
+    "studio/StudioApp.tsx",
+    "studio/landing/CoreScene.tsx",
+    "studio/landing/SignInDialog.tsx",
+    "studio/landing/StudioLandingPage.tsx",
+    "studio/landing/studioLanding.css"
+  ],
+  "retainedUnchangedFiles": 4003,
+  "promoted": true,
+  "createdAt": "2026-10-07T06:16:54.532Z",
+  "newProductionDeployment": "dpl_FzUFdoCTzCnDoaDZvCaXDqshWL5D",
+  "stagingUrl": "https://v0-intiba-website-2whm70wep-info-intibacouks-projects.vercel.app",
+  "buildStatus": "INITIALIZING",
+  "promotedAt": "2026-10-07T06:24:04.905Z"
+}

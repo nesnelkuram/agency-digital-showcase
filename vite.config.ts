@@ -51,6 +51,33 @@ export default defineConfig(({ mode }) => {
       },
       plugins: [
         react(),
+        {
+          name: 'kosebasi-showcase-static-route',
+          configureServer(server) {
+            server.middlewares.use((req, _res, next) => {
+              const [pathname, query] = (req.url || '').split('?');
+              if (pathname === '/kosebasi/strateji' || pathname === '/kosebasi/strateji/') {
+                req.url = '/kosebasi/strateji/index.html' + (query ? `?${query}` : '');
+              }
+              next();
+            });
+          },
+        },
+        {
+          name: 'export-research-static-routes',
+          configureServer(server) {
+            server.middlewares.use((req, _res, next) => {
+              const [pathname, query] = (req.url || '').split('?');
+              const routes: Record<string, string> = {
+                '/ihracat': '/ihracat/index.html',
+                '/ihracat/': '/ihracat/index.html',
+                '/ihracat/gizlilik': '/ihracat/gizlilik.html',
+              };
+              if (routes[pathname]) req.url = routes[pathname] + (query ? `?${query}` : '');
+              next();
+            });
+          },
+        },
       ],
       optimizeDeps: {
         include: ['three', '@react-three/fiber', '@react-three/drei', 'firebase/app', 'firebase/auth', 'firebase/firestore'],

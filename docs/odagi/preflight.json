@@ -1,0 +1,78 @@
+{
+  "newPage": [
+    {
+      "path": "/odagi",
+      "status": 200,
+      "bytes": 22189,
+      "sha256": "24fe8b7ad1e871f0db2ee694e51003ef5a446705ef2b1d530c76dd8ea11b1d90",
+      "sourceMatches": true
+    },
+    {
+      "path": "/odagi/",
+      "status": 200,
+      "bytes": 22189,
+      "sha256": "24fe8b7ad1e871f0db2ee694e51003ef5a446705ef2b1d530c76dd8ea11b1d90",
+      "sourceMatches": true
+    },
+    {
+      "path": "/odagi/style.css",
+      "status": 200,
+      "bytes": 29913,
+      "sha256": "4f5587c313058d40f099485876cf5dcba2308b07dd09cca4b54ecc126d8a4e65",
+      "sourceMatches": true
+    },
+    {
+      "path": "/odagi/app.js",
+      "status": 200,
+      "bytes": 6615,
+      "sha256": "f836d1663349b0494bf408a185601fa010b2b254990b5bda912bac8ce7afdf0a",
+      "sourceMatches": true
+    },
+    {
+      "path": "/odagi/assets/oda-hero.webp",
+      "status": 200,
+      "bytes": 197252,
+      "sha256": "93db176da41040425fb82d8f5f4e17624380c66f00509de986e72f3ce6a2e4cd",
+      "sourceMatches": true
+    },
+    {
+      "path": "/odagi/assets/paketleme.webp",
+      "status": 200,
+      "bytes": 173662,
+      "sha256": "29253e869e9aa0b4b9c9871bf678d81f304ba155d68a24d33df4b31e69854fbe",
+      "sourceMatches": true
+    }
+  ],
+  "existingPages": [
+    {
+      "path": "/",
+      "status": 200,
+      "contentUnchanged": true,
+      "bytes": 8241
+    },
+    {
+      "path": "/ihracat",
+      "status": 200,
+      "contentUnchanged": true,
+      "bytes": 23773
+    },
+    {
+      "path": "/ihracat/gizlilik",
+      "status": 200,
+      "contentUnchanged": true,
+      "bytes": 5224
+    },
+    {
+      "path": "/kosebasi/index.html",
+      "status": 200,
+      "contentUnchanged": true,
+      "bytes": 36469
+    },
+    {
+      "path": "/admin/login",
+      "status": 200,
+      "contentUnchanged": true,
+      "bytes": 8241
+    }
+  ]
+}

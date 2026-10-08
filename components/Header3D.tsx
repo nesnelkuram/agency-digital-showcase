@@ -1,13 +1,22 @@
 import React, { useMemo, useState, useEffect, useRef, Suspense, useCallback, Component, ErrorInfo, ReactNode } from 'react';
-import { Canvas, useThree } from '@react-three/fiber';
+import { Canvas } from '@react-three/fiber';
+import './Header3D.css';
 import AnimatedPhone from './AnimatedPhone';
-import { ALL_MEDIA_CONTENT } from '../constants';
 import { useBreakpoint } from '../hooks/useMediaQuery';
 import { getVideosByCategory } from '../videoUtils';
 import WebGLFallback from './WebGLFallback';
 import { useDeviceCapability } from '../hooks/useDeviceCapability';
 import { usePlaybackOrchestrator } from '../hooks/usePlaybackOrchestrator';
-import { MediaContent } from '../types';
+import { MediaContent, VideoInfo } from '../types';
+
+interface PhoneConfig {
+  key: string;
+  videoSrc: string;
+  fullVideoSrc?: string;
+  altText: string;
+  videoData: VideoInfo | null;
+  hasVideo: boolean;
+}
 
 // WebGL availability probe — cached at module level
 let _webglSupported: boolean | null = null;
@@ -75,6 +84,8 @@ const Header3D: React.FC<Header3DProps> = ({
   const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
   const [isClosing, setIsClosing] = useState(false);
   const [lastSelectedPhone, setLastSelectedPhone] = useState<string | null>(null);
+  const [viewingPhones, setViewingPhones] = useState<PhoneConfig[] | null>(null);
+  const phonesRef = useRef<PhoneConfig[]>([]);
   const [hasEntered, setHasEntered] = useState(false); // Start false for entrance animation
   const [showContent, setShowContent] = useState(false); // Content animations wait for reveal
 
@@ -91,9 +102,10 @@ const Header3D: React.FC<Header3DProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>(defaultCategory);
   const [isCategoryChanging, setIsCategoryChanging] = useState(false);
   const [phonesShouldFall, setPhonesShouldFall] = useState(false);
-  const [carouselIndex, setCarouselIndex] = useState(0);
-  const [touchStartX, setTouchStartX] = useState(0);
-  const [mobileScrollProgress, setMobileScrollProgress] = useState(0);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const [headerHeight, setHeaderHeight] = useState<number>();
+  const presentationOpen = !!selectedPhone || isClosing;
   const headerRef = useRef<HTMLElement | null>(null);
   const animationFrameRef = useRef<number | undefined>(undefined);
   
@@ -132,21 +144,54 @@ const Header3D: React.FC<Header3DProps> = ({
     }, 1000);  // Longer wait for fall animation to complete
   }, [selectedCategory, isCategoryChanging, selectedPhone]);
 
-  // Handle phone click - memoized for performance
+  const closePhone = useCallback(() => {
+    if (!selectedPhone) return;
+    setIsClosing(true);
+    setLastSelectedPhone(selectedPhone);
+    setSelectedPhone(null);
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = setTimeout(() => {
+      setIsClosing(false);
+      setLastSelectedPhone(null);
+      setViewingPhones(null);
+    }, 800);
+  }, [selectedPhone]);
+
   const handlePhoneClick = useCallback((phoneKey: string, isCurrentlySelected: boolean) => {
     if (isCurrentlySelected) {
-      setIsClosing(true);
-      setLastSelectedPhone(selectedPhone);
-      setSelectedPhone(null);
-      setTimeout(() => {
-        setIsClosing(false);
-        setLastSelectedPhone(null);
-      }, 800);
-    } else {
+      closePhone();
+    } else if (!isClosing) {
+      setHeaderHeight(headerRef.current?.offsetHeight);
+      setViewingPhones(phonesRef.current);
       setSelectedPhone(phoneKey);
       setLastSelectedPhone(phoneKey);
     }
-  }, [selectedPhone]);
+  }, [closePhone, isClosing]);
+
+  useEffect(() => () => {
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+  }, []);
+
+  useEffect(() => {
+    if (!selectedPhone) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closePhone();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [selectedPhone, closePhone]);
+
+  useEffect(() => {
+    if (!presentationOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    const previousFocus = document.activeElement as HTMLElement | null;
+    document.body.style.overflow = 'hidden';
+    closeButtonRef.current?.focus({ preventScroll: true });
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      previousFocus?.focus({ preventScroll: true });
+    };
+  }, [presentationOpen]);
 
   // Don't trigger entrance animation until videos are loaded
   // (This is now handled in the preload effect above)
@@ -240,12 +285,7 @@ const Header3D: React.FC<Header3DProps> = ({
   // How many viewport-heights to scroll before parallax ends
   const PARALLAX_DURATION_VIEWPORTS = isMobile ? 3.5 : 5; // Mobilde daha kısa, daha erken aşağı in
 
-  // Mobile: No scroll animation, phones visible immediately
-  useEffect(() => {
-    setMobileScrollProgress(1); // Always complete - no scroll animation
-  }, []);
-
-  const phoneConfigs = useMemo(() => {
+  const sampledPhoneConfigs = useMemo(() => {
     // Kategoriye göre videoları filtrele
     let filteredVideos;
     
@@ -272,6 +312,7 @@ const Header3D: React.FC<Header3DProps> = ({
       filteredVideos = source.map(video => ({
         id: video.id,
         src: video.preview || video.fullVideo || '',
+        fullVideoSrc: video.fullVideo,
         alt: video.alt || video.title || '',
         title: video.title,
         description: video.description,
@@ -311,6 +352,7 @@ const Header3D: React.FC<Header3DProps> = ({
       filteredVideos = reorderedVideos.map(video => ({
         id: video.id,
         src: video.preview || video.fullVideo || '',
+        fullVideoSrc: video.fullVideo,
         alt: video.alt || video.title || '',
         title: video.title,
         description: video.description,
@@ -328,6 +370,7 @@ const Header3D: React.FC<Header3DProps> = ({
       filteredVideos = shuffledVideos.map(video => ({
         id: video.id,
         src: video.preview || video.fullVideo || '',
+        fullVideoSrc: video.fullVideo,
         alt: video.alt || video.title || '',
         title: video.title,
         description: video.description,
@@ -342,6 +385,7 @@ const Header3D: React.FC<Header3DProps> = ({
       filteredVideos = categoryVideos.map(video => ({
         id: video.id,
         src: video.preview || video.fullVideo || '',
+        fullVideoSrc: video.fullVideo,
         alt: video.alt || video.title || '',
         title: video.title,
         description: video.description,
@@ -363,6 +407,7 @@ const Header3D: React.FC<Header3DProps> = ({
         return {
           key: `phone-${idx}`,
           videoSrc: video.src,
+          fullVideoSrc: video.fullVideoSrc,
           altText: video.alt,
           videoData: video,
           hasVideo: true
@@ -372,6 +417,7 @@ const Header3D: React.FC<Header3DProps> = ({
         return {
           key: `phone-${idx}`,
           videoSrc: '',
+          fullVideoSrc: undefined,
           altText: 'Empty',
           videoData: null,
           hasVideo: false
@@ -380,14 +426,15 @@ const Header3D: React.FC<Header3DProps> = ({
     });
   }, [isMobile, isTablet, selectedCategory, initialVideos]);
 
+  // Resizing/rotating the device must keep the same film open, even if the
+  // responsive grid or the asynchronously loaded catalogue changes underneath.
+  const phoneConfigs = viewingPhones ?? sampledPhoneConfigs;
+  phonesRef.current = phoneConfigs;
+
   // Pre-compute grid positions for orchestrator registration
   const phoneGridPositions = useMemo(() => {
     const columns = 3;
-    const phonesPerColumn = isMobile
-      ? [4, 4, 3]
-      : isTablet
-        ? [3, 2, 2]
-        : [4, 3, 3];
+    const phonesPerColumn = [Math.ceil(phoneConfigs.length / 3), Math.ceil((phoneConfigs.length - 1) / 3), Math.floor(phoneConfigs.length / 3)];
     const spacingY = 2.0;
 
     const positions: { key: string; worldY: number; column: number }[] = [];
@@ -426,34 +473,42 @@ const Header3D: React.FC<Header3DProps> = ({
     };
   }, [phoneGridPositions, registerPhone, unregisterPhone, recomputeOrchestrator]);
 
-  // Touch handlers for mobile carousel
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    if (!isMobile || selectedPhone) return;
-    setTouchStartX(e.touches[0].clientX);
-  }, [isMobile, selectedPhone]);
-
-  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (!isMobile || selectedPhone) return;
-    const diff = touchStartX - e.changedTouches[0].clientX;
-    const threshold = 50;
-
-    if (diff > threshold && carouselIndex < phoneConfigs.length - 1) {
-      setCarouselIndex(prev => prev + 1);
-    } else if (diff < -threshold && carouselIndex > 0) {
-      setCarouselIndex(prev => prev - 1);
-    }
-  }, [isMobile, selectedPhone, touchStartX, carouselIndex, phoneConfigs.length]);
-
   return (
     <header 
       ref={headerRef} 
-      className="relative w-full block" 
-      style={{ height: `${PARALLAX_DURATION_VIEWPORTS * 100}vh` }}
+      className="hero-header relative w-full block"
+      data-viewing={presentationOpen || undefined}
+      style={{ height: isMobile ? undefined : `${PARALLAX_DURATION_VIEWPORTS * 100}vh`, minHeight: isMobile && presentationOpen ? headerHeight : undefined }}
     >
-      <div className={`sticky top-0 h-screen w-full overflow-hidden z-10 ${isMobile ? 'flex flex-col' : 'flex items-center'}`} style={{ backgroundColor: 'rgba(235, 238, 248, 0.85)' }}>
-        
+      <div
+        className="hero-surface"
+        role={presentationOpen ? 'dialog' : undefined}
+        aria-modal={presentationOpen ? true : undefined}
+        aria-labelledby={presentationOpen ? 'selected-project-title' : undefined}
+        onKeyDown={event => {
+          if (presentationOpen && event.key === 'Tab') {
+            event.preventDefault();
+            closeButtonRef.current?.focus();
+          }
+        }}
+      >
+        {presentationOpen && (
+          <button
+            ref={closeButtonRef}
+            type="button"
+            className="hero-close"
+            aria-label="Close video"
+            onClick={closePhone}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+              <path d="m6 6 12 12M18 6 6 18" />
+            </svg>
+            <span>Close</span>
+          </button>
+        )}
+
         {/* Logo */}
-        <div className="absolute top-12 z-50" style={{ left: '5.5%' }}>
+        <div className="hero-logo absolute z-50" style={{ left: '5.5%' }}>
           <img 
             src="/images/intibalogo.svg" 
             alt="Intiba Production - Bodrum Video Prodüksiyon Ajansı Logo" 
@@ -466,7 +521,8 @@ const Header3D: React.FC<Header3DProps> = ({
         
         {/* Static cursor indicator - animated entrance and hide when phone is selected */}
         <div
-          className="absolute z-50"
+          className="hero-click-hint absolute z-50"
+          aria-hidden="true"
           style={{
             ...(isMobile
               ? { left: '5%', top: '8%' }
@@ -578,14 +634,7 @@ const Header3D: React.FC<Header3DProps> = ({
 
         {/* 3D Phone Grid Layer */}
         <div
-          className={`z-40 flex justify-center items-center pointer-events-none ${isMobile ? 'relative' : 'absolute inset-0'}`}
-          style={{
-            perspective: '1000px',
-            perspectiveOrigin: '60% 40%',
-            ...(isMobile ? { height: '75vh', width: '100%' } : {})
-          }}
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
+          className="hero-phone-stage z-40 pointer-events-none"
         >
           {!isWebGLSupported() ? (
             <WebGLFallback category={selectedCategory} parallaxOffset={parallaxOffset} />
@@ -598,6 +647,7 @@ const Header3D: React.FC<Header3DProps> = ({
               // Mobil: Desktop gibi yan açıdan bakış (FOV artırıldı tüm telefonlar görünsün)
               position: isMobile ? [12, -6, 18] : [20, -12, 24.5],
               fov: isMobile ? 25 : 6.5,
+              rotation: isMobile ? [0.60, 0.55, 0.4] : [0.5, 0.7, 0.4],
               near: 0.1,
               far: 100,
             }}
@@ -624,10 +674,6 @@ const Header3D: React.FC<Header3DProps> = ({
               pointerEvents: 'auto'
             }}
           >
-            <CameraController
-              lookAt={[0, 0, 0]}
-              rotation={isMobile ? [0.60, 0.55, 0.4] : [0.5, 0.7, 0.4]}  // Desktop ile aynı açı
-            />
             {/* Removed <Environment preset="city" /> — was pulling a 1MB HDRI
                 from a remote CDN on every page load (huge mobile penalty).
                 Compensating with slightly stronger directional/ambient lights. */}
@@ -642,11 +688,7 @@ const Header3D: React.FC<Header3DProps> = ({
                   // Telefon sayısını ayarla: Sütun bazlı düzenleme
                   // Desktop: 3 sütun (4+3+3), Mobile: 3x3 diyagonal
                   const columns = 3;  // Hepsi 3 sütun
-                  const phonesPerColumn = isMobile
-                    ? [4, 4, 3]  // Mobile: 4+4+3 = 11 telefon
-                    : isTablet
-                      ? [3, 2, 2]  // Tablet: 3 sütun (3+2+2 = 7 telefon)
-                      : [4, 3, 3];  // Desktop: 3 sütun (4+3+3 = 10 telefon)
+                  const phonesPerColumn = [Math.ceil(phoneConfigs.length / 3), Math.ceil((phoneConfigs.length - 1) / 3), Math.floor(phoneConfigs.length / 3)];
                   
                   let phoneIndex = 0;
                   const allPhones = [];
@@ -750,7 +792,7 @@ const Header3D: React.FC<Header3DProps> = ({
                             <AnimatedPhone
                               key={cfg.key}
                               videoSrc={cfg.videoSrc}
-                              fullVideoSrc={cfg.videoSrc?.replace('/preview/', '/full/')}
+                              fullVideoSrc={cfg.fullVideoSrc || cfg.videoSrc?.replace('/preview/', '/full/')}
                               position={[x, y, z]}
                               isSelected={isSelected}
                               shouldFall={shouldFall}
@@ -761,8 +803,9 @@ const Header3D: React.FC<Header3DProps> = ({
                               debugNumber={phoneNumber}
                               onClick={() => handlePhoneClick(cfg.key, isSelected)}
                               isMobile={isMobile}
-                              phoneIndex={index}
-                              playbackAllowed={isPhoneActive(cfg.key)}
+                              parentScale={isMobile ? 2.5 : isTablet ? 1.3 : 1.1}
+                              reducedMotion={deviceCapability.reducedMotion}
+                              playbackAllowed={!selectedPhone && !isClosing && isPhoneActive(cfg.key)}
                             />
                           );
                   });
@@ -773,21 +816,6 @@ const Header3D: React.FC<Header3DProps> = ({
           </WebGLErrorBoundary>
           )}
         </div>
-
-        {/* Carousel dots - sadece mobilde ve telefon seçili değilken */}
-        {isMobile && !selectedPhone && (
-          <div className="absolute bottom-8 left-0 right-0 z-50 flex justify-center gap-2 pointer-events-auto">
-            {phoneConfigs.map((_, i) => (
-              <button
-                key={i}
-                className={`h-2 rounded-full transition-all duration-300 ${
-                  i === carouselIndex ? 'bg-neutral-900 w-4' : 'bg-neutral-400 w-2'
-                }`}
-                onClick={() => setCarouselIndex(i)}
-              />
-            ))}
-          </div>
-        )}
 
         {/* Expanding circle background - only in header section */}
         <div
@@ -809,17 +837,7 @@ const Header3D: React.FC<Header3DProps> = ({
               ? 'cubic-bezier(0.4, 0, 0.2, 1)' // smooth contraction
               : 'cubic-bezier(0.25, 0.46, 0.45, 0.94)', // smooth expansion
           }}
-          onClick={() => {
-            if (selectedPhone) {
-              setIsClosing(true);
-              setLastSelectedPhone(selectedPhone);
-              setSelectedPhone(null);  // Phone moves immediately
-              setTimeout(() => {
-                setIsClosing(false);
-                setLastSelectedPhone(null);
-              }, 800);
-            }
-          }}
+          onClick={closePhone}
         />
         
         {/* Blue expanding circle background - between yellow bg and phone */}
@@ -841,29 +859,13 @@ const Header3D: React.FC<Header3DProps> = ({
               ? 'cubic-bezier(0.4, 0, 0.2, 1)' // smooth contraction
               : 'cubic-bezier(0.25, 0.46, 0.45, 0.94)', // smooth expansion
           }}
-          onClick={() => {
-            if (selectedPhone) {
-              setIsClosing(true);
-              setLastSelectedPhone(selectedPhone);
-              setSelectedPhone(null);  // Phone moves immediately
-              setTimeout(() => {
-                setIsClosing(false);
-                setLastSelectedPhone(null);
-              }, 800);
-            }
-          }}
+          onClick={closePhone}
         />
         
         {/* Project details - shown when phone is selected */}
         {(selectedPhone || isClosing) && (
-          <div className="absolute inset-0 z-40 pointer-events-none flex flex-col md:flex-row h-full">
-            {/* Mobile: Top area - clickable to close */}
-            <div
-              className="md:hidden flex-1 pointer-events-auto"
-              onClick={() => selectedPhone && handlePhoneClick(selectedPhone, true)}
-            />
-            {/* Left side (desktop) / Bottom side (mobile) - Project details */}
-            <div className={`w-full md:w-1/2 p-4 sm:p-8 md:p-12 lg:p-16 flex flex-col justify-center md:justify-center pointer-events-auto bg-gradient-to-t from-white/95 via-white/80 to-transparent md:bg-none`}>
+          <div className="hero-project-details z-40">
+            <div>
               {(() => {
                 const phoneKey = isClosing ? lastSelectedPhone : selectedPhone;
                 const selectedConfig = phoneConfigs.find(cfg => cfg.key === phoneKey);
@@ -875,7 +877,7 @@ const Header3D: React.FC<Header3DProps> = ({
                 
                 return (
                   <>
-                    <h2 className="font-ramillas text-2xl sm:text-3xl md:text-4xl lg:text-5xl mb-2 text-neutral-900 transition-all duration-700"
+                    <h2 id="selected-project-title" className="font-ramillas text-2xl sm:text-3xl md:text-4xl lg:text-5xl mb-2 text-neutral-900 transition-all duration-700"
                         style={{
                           opacity: isClosing ? 0 : (selectedPhone ? 1 : 0),
                           transform: isClosing ? 'translateY(30px)' : (selectedPhone ? 'translateY(0)' : 'translateY(30px)'),
@@ -929,25 +931,21 @@ const Header3D: React.FC<Header3DProps> = ({
               })()}
             </div>
             
-            {/* Right side - Empty for phone */}
-            <div className="hidden md:block md:w-1/2" />
           </div>
         )}
 
         {/* Content Layer */}
-        <div className={`z-50 text-left transition-opacity ${selectedPhone ? 'opacity-0' : 'opacity-100'} ${isMobile ? 'relative w-full px-4 pt-8 pb-4' : 'relative max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-4xl p-6 sm:p-8 md:p-12 lg:p-16 xl:p-20'}`}
-             style={{
-               transform: selectedPhone ? 'translateY(12px)' : 'translateY(0)',
-               transitionDuration: selectedPhone ? '800ms' : '1000ms',
-               transitionDelay: selectedPhone ? '0ms' : '200ms',
-               transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)',
-               ...(isMobile ? { height: '25vh', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' } : {})
-             }}>
+        <div
+          className="hero-copy z-50 text-left transition-opacity"
+          inert={presentationOpen ? true : undefined}
+          aria-hidden={presentationOpen ? true : undefined}
+          style={{ opacity: presentationOpen ? 0 : 1, pointerEvents: presentationOpen ? 'none' : undefined }}
+        >
           <div >
             <h1
               className="font-ramillas text-neutral-900 mb-4 md:mb-6"
               style={{
-                fontSize: 'clamp(32px, 4.5vw, 58px)',
+                fontSize: isMobile ? 'clamp(27px, 7vw, 34px)' : 'clamp(32px, 4.5vw, 58px)',
                 lineHeight: '1.15',
                 letterSpacing: '-0.02em',
                 opacity: showContent ? 1 : 0,
@@ -1060,7 +1058,7 @@ const Header3D: React.FC<Header3DProps> = ({
             
             {/* Call to Action Button */}
             <div
-              className="mt-8 md:mt-10"
+              className="hero-cta mt-8 md:mt-10"
               style={{ 
                 opacity: 0, 
                 animation: showContent ? 'fade-in-left 0.8s ease-out 0.8s forwards' : 'none',
@@ -1127,29 +1125,5 @@ const Header3D: React.FC<Header3DProps> = ({
     </header>
   );
 };
-
-// Camera Controller Component
-function CameraController({
-  lookAt,
-  rotation = [0, 0, 0] 
-}: { 
-  lookAt?: [number, number, number];
-  rotation?: [number, number, number]; // [x, y, z] Euler angles in radians
-}) {
-  const { camera } = useThree();
-
-  useEffect(() => {
-    if (lookAt) {
-      camera.lookAt(...lookAt);
-    }
-    
-    // Apply rotation
-    camera.rotation.set(...rotation);
-    
-    camera.updateProjectionMatrix();
-  }, [camera, lookAt, rotation]);
-  
-  return null;
-}
 
 export default Header3D;

@@ -410,30 +410,52 @@ service cloud.firestore {
     // =============================================
     match /social_media_posts/{postId} {
       // Durum ve onay alanları yalnızca sunucudan (api/content-approval) değişir.
-      // Müşteriye gönderilmiş/onaylanmış içerik kilitli: yalnızca takvim yeri (scheduledAt, gridPosition) değişebilir.
+      // Müşteriye gönderilmiş/onaylanmış içerik kilitli: metin, medya VE zaman (scheduledAt) dahil.
+      // Zaman onayın parçasıdır; değişikliği sunucu 'reschedule' işlemiyle yapılır (iç incelemeye döner,
+      // yeni inceleme turu). Yalnız Instagram ızgara sırası (gridPosition) değişebilir.
       function isContentEditable() {
         return resource.data.status in ['draft', 'internal_review', 'revision_requested_internal', 'revision_requested'];
       }
       function validContentUpdate() {
         return keepsIdentity()
           && (!('contentPlanId' in request.resource.data.diff(resource.data).affectedKeys()) || validPlanLink(request.resource.data))
-          && onlyChanges(['title', 'caption', 'hashtags', 'mediaUrls', 'media', 'aiGeneratedCaption', 'captionChatHistory', 'postType', 'platforms', 'tags', 'contentPlanId', 'gridPosition', 'scheduledAt', 'updatedAt'])
-          && (isContentEditable() || onlyChanges(['gridPosition', 'scheduledAt', 'updatedAt']));
+          && validLibraryAssetIds(request.resource.data)
+          && onlyChanges(['title', 'caption', 'hashtags', 'mediaUrls', 'media', 'libraryAssetIds', 'aiGeneratedCaption', 'captionChatHistory', 'postType', 'platforms', 'tags', 'contentPlanId', 'gridPosition', 'scheduledAt', 'updatedAt'])
+          && (isContentEditable() || onlyChanges(['gridPosition', 'updatedAt']));
+      }
+      // Kütüphane kaynak kimlikleri (medyadan türetilir): liste, en fazla 10 (Instagram carousel)
+      function validLibraryAssetIds(data) {
+        return !('libraryAssetIds' in data)
+          || (data.libraryAssetIds is list && data.libraryAssetIds.size() <= 10);
       }
       function validNewPost() {
         return request.resource.data.status == 'draft'
+          && validLibraryAssetIds(request.resource.data)
           && validPlanLink(request.resource.data)
           && !('approvedBy' in request.resource.data)
           && !('internalReviewedBy' in request.resource.data);
       }
 
+      // super_admin genel yetkisini korur, ancak onay güvenliği onun için de geçerli:
+      // durum/onay/tur alanları yalnız sunucudan; firmadaki/onaylı içeriğin metni, medyası ve zamanı değişmez.
+      function superAdminPostUpdateOk() {
+        return !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+                 'status', 'approvedBy', 'approvedByName', 'approvedAt', 'internalReviewedBy', 'internalReviewedByName',
+                 'internalReviewedAt', 'reviewRequestId', 'revisionCount', 'lastRevisionComment', 'lastRevisionCommentSource',
+                 'lastInternalRevisionComment'])
+          && (isContentEditable()
+              || !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+                   'title', 'caption', 'hashtags', 'mediaUrls', 'media', 'libraryAssetIds', 'postType', 'platforms',
+                   'scheduledAt', 'contentPlanId', 'tenantId', 'projectId']));
+      }
+
       allow read: if isSuperAdmin()
                   || hasTenantWideProjectAccess(resource.data.tenantId)
                   || brandManagerOwnsProject(resource.data.tenantId, resource.data.projectId);
-      allow create: if isSuperAdmin()
+      allow create: if (isSuperAdmin() && validNewPost())
                     || (hasTenantWideProjectAccess(request.resource.data.tenantId) && validNewPost())
                     || (brandManagerOwnsProject(request.resource.data.tenantId, request.resource.data.projectId) && validNewPost());
-      allow update: if isSuperAdmin()
+      allow update: if (isSuperAdmin() && superAdminPostUpdateOk())
                     || (hasTenantWideProjectAccess(resource.data.tenantId) && validContentUpdate())
                     || (brandManagerOwnsProject(resource.data.tenantId, resource.data.projectId) && validContentUpdate());
       allow delete: if isSuperAdmin()
@@ -484,6 +506,78 @@ service cloud.firestore {
       allow read: if isSuperAdmin() || belongsToTenant();
       allow create: if isSuperAdmin() || creatingForOwnTenant();
       allow update, delete: if isSuperAdmin() || belongsToTenant();
+    }
+
+    // =============================================
+    // Marka medya kütüphanesi — paylaşılmaya hazır FINAL fotoğraf/video kataloğu
+    // (docs/studio-media-library.md). Dosya: Storage brand-media/{tenantId}/{projectId}/{assetId}/…
+    // Erişim: tenant genelindeki iç roller (freelancer HARİÇ) + atanmış projesinde brand_manager.
+    // Müşteri erişmez (yalnız kendisine açılmış post medyasını portal/onay API'sinden görür).
+    // Proje gerçekten var ve aynı tenant'a ait olmalı. Silme yok; arşivlenir.
+    // =============================================
+    match /brand_media/{assetId} {
+      function libraryProjectOk(tenantId, projectId) {
+        return projectId is string
+          && exists(/databases/$(database)/documents/projects/$(projectId))
+          && get(/databases/$(database)/documents/projects/$(projectId)).data.tenantId == tenantId;
+      }
+      function canUseLibrary(tenantId, projectId) {
+        return isAuthenticated()
+          && tenantId == getUserTenantId()
+          && (getUserRole() in ['super_admin', 'admin', 'account_manager', 'staff', 'editor']
+              || (getUserRole() == 'brand_manager' && projectId in getAssignedProjectIds()))
+          && libraryProjectOk(tenantId, projectId);
+      }
+      function validLibraryMeta(d) {
+        return d.title is string && d.title.size() <= 200
+          && d.tags is list && d.tags.size() <= 20
+          && d.status in ['active', 'archived'];
+      }
+      // Katalog ↔ dosya tutarlılığı: yol ve indirme URL'si (resmi HTTPS Storage host'u) bu varlığın klasörünü gösterir.
+      // Bucket adı kurallarda bilinemez: istemci seçicisi ve onay sunucusu bucket + nesne varlığını ayrıca doğrular.
+      // Panel yükleme sınırı: 1 GB = 1000000000 bayt (shared/types/brandMedia.ts LIBRARY_MAX_FILE_BYTES).
+      function validLibraryStorage(d, id) {
+        let st = d.storage;
+        let folder = 'brand-media/' + d.tenantId + '/' + d.projectId + '/' + id;
+        let enc = 'brand-media%2F' + d.tenantId + '%2F' + d.projectId + '%2F' + id + '%2F';
+        return st is map
+          && st.keys().hasOnly(['path', 'downloadUrl', 'contentType', 'size', 'width', 'height', 'duration', 'thumbPath', 'thumbUrl'])
+          && st.keys().hasAll(['path', 'downloadUrl', 'contentType', 'size'])
+          && st.path is string && st.path.matches('^' + folder + '/[^/]+$') && !st.path.matches('^.*/thumb[.]jpg$')
+          && !st.path.matches('^.*[.][.].*$')
+          && st.downloadUrl is string && st.downloadUrl.matches('^https://firebasestorage[.]googleapis[.]com/v0/b/[^/]+/o/' + enc + '[^/?]+[?].*$')
+          && st.size is int && st.size > 0 && st.size <= 1000000000
+          && st.contentType is string
+          && ((d.kind == 'photo' && st.contentType.matches('^image/.+$')) || (d.kind == 'video' && st.contentType.matches('^video/.+$')))
+          && (!('thumbPath' in st) || st.thumbPath == folder + '/thumb.jpg')
+          && (('thumbPath' in st) == ('thumbUrl' in st))
+          && (!('thumbUrl' in st) || (st.thumbUrl is string && st.thumbUrl.matches('^https://firebasestorage[.]googleapis[.]com/v0/b/[^/]+/o/' + enc + 'thumb[.]jpg[?].*$')));
+      }
+      function validNewLibraryAsset() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['tenantId', 'projectId', 'kind', 'title', 'fileName', 'tags', 'status', 'storage', 'createdBy', 'createdByName', 'createdAt', 'updatedAt'])
+          && d.keys().hasAll(['tenantId', 'projectId', 'kind', 'title', 'fileName', 'tags', 'status', 'storage', 'createdBy', 'createdAt', 'updatedAt'])
+          && d.tenantId is string && d.tenantId.matches('^[A-Za-z0-9_-]{1,128}$')
+          && d.projectId is string && d.projectId.matches('^[A-Za-z0-9_-]{1,128}$')
+          && assetId.matches('^[A-Za-z0-9_-]{1,128}$')
+          && d.kind in ['photo', 'video']
+          && d.status == 'active'
+          && d.fileName is string && d.fileName.size() <= 255
+          && d.createdBy == request.auth.uid
+          && d.createdAt == request.time && d.updatedAt == request.time
+          && validLibraryMeta(d)
+          && validLibraryStorage(d, assetId);
+      }
+
+      // super_admin dahil herkes aynı tenant/proje kapsamından geçer (Storage canUseBrandLibrary ile tutarlı)
+      allow read: if canUseLibrary(resource.data.tenantId, resource.data.projectId);
+      allow create: if canUseLibrary(request.resource.data.tenantId, request.resource.data.projectId) && validNewLibraryAsset();
+      allow update: if canUseLibrary(resource.data.tenantId, resource.data.projectId)
+                    && keepsIdentity()
+                    && onlyChanges(['title', 'tags', 'status', 'archivedAt', 'updatedAt'])
+                    && validLibraryMeta(request.resource.data)
+                    && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
     }
 
     // =============================================
@@ -577,14 +671,21 @@ service cloud.firestore {
         return keepsIdentity()
           && onlyChanges(['title', 'description', 'postIds', 'weekStartDate', 'weekEndDate', 'updatedAt']);
       }
+      // super_admin için de onay/tur/atama alanları yalnız sunucudan (eski müşteri turu geçersizleşmesi korunur)
+      function superAdminPlanUpdateOk() {
+        return !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'status', 'reviewRequestId', 'approvalConfig', 'approvedBy', 'approvedByName', 'approvedAt',
+          'internalReviewedBy', 'internalReviewedByName', 'internalReviewedAt', 'assignedClientId',
+          'assignedClientEmail', 'assignedClientName', 'sentToClientAt', 'sentToClientBy', 'sentToClientByName']);
+      }
 
       allow read: if isSuperAdmin()
                   || hasTenantWideProjectAccess(resource.data.tenantId)
                   || brandManagerOwnsProject(resource.data.tenantId, resource.data.projectId);
-      allow create: if isSuperAdmin()
+      allow create: if (isSuperAdmin() && validNewPlan())
                     || (hasTenantWideProjectAccess(request.resource.data.tenantId) && validNewPlan())
                     || (brandManagerOwnsProject(request.resource.data.tenantId, request.resource.data.projectId) && validNewPlan());
-      allow update: if isSuperAdmin()
+      allow update: if (isSuperAdmin() && superAdminPlanUpdateOk())
                     || (hasTenantWideProjectAccess(resource.data.tenantId) && validPlanUpdate())
                     || (brandManagerOwnsProject(resource.data.tenantId, resource.data.projectId) && validPlanUpdate());
       allow delete: if isSuperAdmin()

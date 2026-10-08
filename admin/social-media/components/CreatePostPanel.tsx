@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Loader2, Save, CalendarCheck, Plus, Trash2 } from 'lucide-react';
+import { X, Loader2, Save, CalendarCheck, Plus, Trash2, Library } from 'lucide-react';
 import { Timestamp } from 'firebase/firestore';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTenantId } from '@/shared/hooks/useTenant';
@@ -18,6 +18,10 @@ import MediaDropZone from './MediaDropZone';
 import PostTypeDropdown from './PostTypeDropdown';
 import CaptionField from './CaptionField';
 import LivePreviewSidebar from './LivePreviewSidebar';
+import { POST_MAX_LIBRARY_ASSETS, assetToMediaItem, deriveLibraryAssetIds, type BrandMediaAsset } from '@/shared/types/brandMedia';
+import LibraryPicker from '@/studio/components/LibraryPicker';
+import ReadinessNotice, { readinessFor } from '@/studio/components/ReadinessNotice';
+import { fromInputs, timeZoneLabel, toDateInput, toTimeInput } from '@/shared/time/zonedTime';
 
 interface CreatePostPanelProps {
   open: boolean;
@@ -28,8 +32,14 @@ interface CreatePostPanelProps {
   /**
    * Studio modu: yayın zamanlaması yok. Tarih yalnızca "planlanan tarih" olarak taslağa yazılır
    * (haftalık plana eklemek için); tek aksiyon "Taslak olarak kaydet".
+   * Studio ilk sürümü yalnız Instagram'dır: platform sabit, içerik türleri Instagram'ınkiler;
+   * medya marka kütüphanesinden de seçilebilir.
    */
   studioMode?: boolean;
+  /** Studio: tarih/saat bu saat diliminde girilir ve gösterilir (markanın saat dilimi) */
+  timeZone?: string;
+  /** Studio: takvime sürüklenen kütüphane dosyaları — panel açılınca medya olarak eklenir (kaydedilene kadar yazılmaz) */
+  initialLibraryAssets?: BrandMediaAsset[];
 }
 
 interface StoryFrame {
@@ -51,6 +61,13 @@ function detectPostType(media: MediaItem[], platforms: SocialPlatform[]): { type
     return { type: 'video', auto: true };
   }
   return { type: 'static', auto: true };
+}
+
+/** Studio: Instagram'da olmayan türler Instagram karşılığına çevrilir (yatay/dikey video → Reels, medyasız → tekli) */
+function toInstagramType(type: PostType): PostType {
+  if (type === 'video') return 'reels';
+  if (type === 'text') return 'static';
+  return type;
 }
 
 function getAvailableTypes(platforms: SocialPlatform[]): PostType[] {
@@ -82,12 +99,15 @@ const CreatePostPanel: React.FC<CreatePostPanelProps> = ({
   projectId,
   prefilledDate,
   studioMode = false,
+  timeZone,
+  initialLibraryAssets,
 }) => {
   const { user } = useAuth();
   const tenantId = useTenantId();
 
   // Form state
-  const [platforms, setPlatforms] = useState<SocialPlatform[]>([]);
+  const [platforms, setPlatforms] = useState<SocialPlatform[]>(studioMode ? ['instagram'] : []);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [postType, setPostType] = useState<PostType>('static');
   const [autoDetected, setAutoDetected] = useState(true);
@@ -109,18 +129,28 @@ const CreatePostPanel: React.FC<CreatePostPanelProps> = ({
 
   // Prefill date
   useEffect(() => {
-    if (prefilledDate) {
+    if (prefilledDate && timeZone) {
+      setScheduleDate(toDateInput(prefilledDate, timeZone));
+      setScheduleTime(toTimeInput(prefilledDate, timeZone));
+    } else if (prefilledDate) {
       setScheduleDate(formatDateForInput(prefilledDate));
       if (prefilledDate.getHours() || prefilledDate.getMinutes()) {
         setScheduleTime(`${String(prefilledDate.getHours()).padStart(2, '0')}:${String(prefilledDate.getMinutes()).padStart(2, '0')}`);
       }
     }
-  }, [prefilledDate]);
+  }, [prefilledDate, timeZone]);
+
+  // Studio: takvime bırakılan kütüphane dosyası panel açılınca medyaya eklenir
+  useEffect(() => {
+    if (!open || !studioMode || !initialLibraryAssets || initialLibraryAssets.length === 0) return;
+    setMedia(initialLibraryAssets.slice(0, POST_MAX_LIBRARY_ASSETS).map((a, i) => assetToMediaItem(a, i)));
+  }, [open, studioMode, initialLibraryAssets]);
 
   // Reset when panel closes
   useEffect(() => {
     if (!open) {
-      setPlatforms([]);
+      setPlatforms(studioMode ? ['instagram'] : []);
+      setPickerOpen(false);
       setMedia([]);
       setPostType('static');
       setAutoDetected(true);
@@ -132,15 +162,26 @@ const CreatePostPanel: React.FC<CreatePostPanelProps> = ({
     }
   }, [open]);
 
+  // Studio: marka değişince önceki markanın medyası/seçimi yeni markaya taşınmaz
+  useEffect(() => {
+    if (!studioMode) return;
+    setMedia([]);
+    setStoryFrames([{ id: crypto.randomUUID(), media: [], caption: '' }]);
+    setPickerOpen(false);
+  }, [projectId, studioMode]);
+
   // Auto-detect post type when media changes
   useEffect(() => {
     if (autoDetected && !isStoryMode) {
       const detected = detectPostType(media, platforms);
-      setPostType(detected.type);
+      setPostType(studioMode ? toInstagramType(detected.type) : detected.type);
     }
-  }, [media, platforms, autoDetected, isStoryMode]);
+  }, [media, platforms, autoDetected, isStoryMode, studioMode]);
 
-  const availableTypes = useMemo(() => getAvailableTypes(platforms), [platforms]);
+  const availableTypes = useMemo(
+    () => (studioMode ? [...PLATFORM_POST_TYPES.instagram] : getAvailableTypes(platforms)),
+    [platforms, studioMode]
+  );
 
   const handlePostTypeChange = (type: PostType) => {
     setPostType(type);
@@ -171,6 +212,11 @@ const CreatePostPanel: React.FC<CreatePostPanelProps> = ({
       updated.splice(toIndex, 0, item);
       return updated.map((m, i) => ({ ...m, order: i }));
     });
+  }, []);
+
+  // Kütüphaneden seçim: yalnız bu paneldeki medyaya eklenir; post kaydedilmeden kullanım geçmişine girmez
+  const handleLibrarySelected = useCallback((assets: BrandMediaAsset[]) => {
+    setMedia((prev) => [...prev, ...assets.map((a, i) => assetToMediaItem(a, prev.length + i))].map((m, i) => ({ ...m, order: i })));
   }, []);
 
   // Story frame handlers
@@ -216,6 +262,10 @@ const CreatePostPanel: React.FC<CreatePostPanelProps> = ({
 
   const buildScheduledAt = (): Timestamp | undefined => {
     if (!scheduleDate) return undefined;
+    if (timeZone) {
+      const d = fromInputs(scheduleDate, scheduleTime, timeZone);
+      return d ? Timestamp.fromDate(d) : undefined;
+    }
     const [y, m, d] = scheduleDate.split('-').map(Number);
     const [h, min] = scheduleTime.split(':').map(Number);
     return Timestamp.fromDate(new Date(y, m - 1, d, h, min));
@@ -240,6 +290,12 @@ const CreatePostPanel: React.FC<CreatePostPanelProps> = ({
       return;
     }
 
+    // Studio: girilen tarih/saat markanın saat diliminde gerçek bir an olmalı (yaz saati geçişinde olmayan saat reddedilir)
+    if (timeZone && scheduleDate && !fromInputs(scheduleDate, scheduleTime, timeZone)) {
+      setError(`Bu tarih/saat ${timeZone} saat diliminde geçerli değil (ör. yaz saati geçişinde atlanan saat). Başka bir saat seçin.`);
+      return;
+    }
+
     setError(null);
     setSubmitting(true);
 
@@ -253,6 +309,7 @@ const CreatePostPanel: React.FC<CreatePostPanelProps> = ({
           caption: frame.caption || caption,
           media: frame.media.length > 0 ? frame.media : undefined,
           mediaUrls: frame.media.length > 0 ? frame.media.map((m) => m.url) : undefined,
+          libraryAssetIds: deriveLibraryAssetIds(frame.media),
           postType: 'story' as PostType,
           platforms,
           scheduledAt,
@@ -270,6 +327,7 @@ const CreatePostPanel: React.FC<CreatePostPanelProps> = ({
           caption: caption.trim() || undefined,
           media: media.length > 0 ? media : undefined,
           mediaUrls: media.length > 0 ? media.map((m) => m.url) : undefined,
+          libraryAssetIds: deriveLibraryAssetIds(media),
           postType,
           platforms,
           scheduledAt,
@@ -291,10 +349,11 @@ const CreatePostPanel: React.FC<CreatePostPanelProps> = ({
   // Compute scheduledAt as Date for preview
   const previewScheduledAt = useMemo(() => {
     if (!scheduleDate) return undefined;
+    if (timeZone) return fromInputs(scheduleDate, scheduleTime, timeZone) || undefined;
     const [y, m, d] = scheduleDate.split('-').map(Number);
     const [h, min] = scheduleTime.split(':').map(Number);
     return new Date(y, m - 1, d, h, min);
-  }, [scheduleDate, scheduleTime]);
+  }, [scheduleDate, scheduleTime, timeZone]);
 
   return (
     <AnimatePresence>
@@ -340,7 +399,11 @@ const CreatePostPanel: React.FC<CreatePostPanelProps> = ({
                   <label className="block font-grotesk text-xs font-medium text-neutral-500 uppercase tracking-wider mb-2">
                     Platformlar
                   </label>
-                  <PlatformPills selected={platforms} onChange={setPlatforms} />
+                  {studioMode ? (
+                    <p className="font-grotesk text-sm text-[#171717]">Instagram</p>
+                  ) : (
+                    <PlatformPills selected={platforms} onChange={setPlatforms} />
+                  )}
                 </div>
 
                 {/* 2. Media Upload */}
@@ -397,15 +460,32 @@ const CreatePostPanel: React.FC<CreatePostPanelProps> = ({
                       </button>
                     </div>
                   ) : (
-                    <MediaDropZone
-                      onFilesSelected={handleFilesSelected}
-                      maxFiles={10}
-                      existingMedia={media}
-                      onRemoveMedia={handleRemoveMedia}
-                      onReorderMedia={handleReorderMedia}
-                      uploading={uploading}
-                      fileProgress={fileProgress}
-                    />
+                    <>
+                      <MediaDropZone
+                        onFilesSelected={handleFilesSelected}
+                        maxFiles={10}
+                        existingMedia={media}
+                        onRemoveMedia={handleRemoveMedia}
+                        onReorderMedia={handleReorderMedia}
+                        uploading={uploading}
+                        fileProgress={fileProgress}
+                      />
+                      {studioMode && (
+                        <button
+                          type="button"
+                          onClick={() => setPickerOpen(true)}
+                          disabled={uploading || media.length >= POST_MAX_LIBRARY_ASSETS}
+                          className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 border border-neutral-200 rounded-lg font-grotesk text-xs disabled:opacity-50"
+                        >
+                          <Library className="w-3.5 h-3.5" /> Kütüphaneden seç
+                        </button>
+                      )}
+                    </>
+                  )}
+                  {studioMode && (media.length > 0 || isStoryMode) && (
+                    <div className="mt-3">
+                      <ReadinessNotice result={readinessFor(postType, isStoryMode ? storyFrames.flatMap((f) => f.media) : media)} />
+                    </div>
                   )}
                 </div>
 
@@ -444,6 +524,7 @@ const CreatePostPanel: React.FC<CreatePostPanelProps> = ({
                   {studioMode && (
                     <p className="font-grotesk text-[11px] text-neutral-400 -mt-1 mb-2">
                       Yayın zamanlaması değildir; içerik taslak olarak kaydedilir ve haftalık plana bu tarihle eklenir.
+                      {timeZone && ` Saat dilimi: ${timeZoneLabel(timeZone)}.`}
                     </p>
                   )}
                   <div className="flex gap-3">
@@ -522,6 +603,17 @@ const CreatePostPanel: React.FC<CreatePostPanelProps> = ({
                 )}
               </div>
             </div>
+            {studioMode && (
+              <LibraryPicker
+                open={pickerOpen}
+                tenantId={tenantId}
+                projectId={projectId}
+                excludeAssetIds={deriveLibraryAssetIds(media)}
+                maxSelect={POST_MAX_LIBRARY_ASSETS - media.length}
+                onClose={() => setPickerOpen(false)}
+                onConfirm={handleLibrarySelected}
+              />
+            )}
           </motion.div>
         </>
       )}

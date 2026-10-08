@@ -13,6 +13,7 @@ import { useTenantId } from '@/shared/hooks/useTenant';
 import { useAuth } from '@/contexts/AuthContext';
 import type { WorkflowNodeTemplate } from '@/shared/types/workflow/template';
 import DynamicStepForm from './components/instance/DynamicStepForm';
+import { reviewWorkflowOutput } from '@/shared/services/workflowApi';
 
 const stepStatusColors: Record<string, { bg: string; text: string; label: string }> = {
   pending:          { bg: 'bg-neutral-100',  text: 'text-neutral-500',  label: 'Bekliyor' },
@@ -62,11 +63,26 @@ const StepDrawer: React.FC<StepDrawerProps> = ({
   const { user } = useAuth();
   const [starting, setStarting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [reviewing, setReviewing] = useState(false);
+  const [revisionReason, setRevisionReason] = useState('');
 
   const statusInfo = stepStatusColors[step?.status] || stepStatusColors.pending;
   const hasForm = (node?.formSchema?.fields?.length ?? 0) > 0;
   const hasInputSchema = (node?.inputSchema?.length ?? 0) > 0;
   const lastAiExec = step?.aiExecutions?.[step.aiExecutions.length - 1];
+
+  const handleReview = async (decision: 'approved' | 'rejected' | 'retry') => {
+    if (!lastAiExec?.executionId) return;
+    setReviewing(true);
+    setActionError(null);
+    try {
+      await reviewWorkflowOutput(instanceId, nodeId, lastAiExec.executionId, decision, revisionReason);
+      onActionDone();
+      onClose();
+    } catch (err: any) {
+      setActionError(err.message || 'İnceleme kaydedilemedi.');
+    } finally { setReviewing(false); }
+  };
 
   const handleStart = async () => {
     if (!tenantId || !user) return;
@@ -214,7 +230,7 @@ const StepDrawer: React.FC<StepDrawerProps> = ({
                     />
                   </div>
                   <span className="font-commons text-[10px] text-violet-700">
-                    {Math.round(lastAiExec.confidenceScore * 100)}% güven
+                    {Math.round(lastAiExec.confidenceScore * 100)}% alan doluluğu
                   </span>
                 </div>
               )}
@@ -237,8 +253,26 @@ const StepDrawer: React.FC<StepDrawerProps> = ({
           </div>
         )}
 
+        {step?.status === 'ai_review' && lastAiExec && (
+          <div className="space-y-3">
+            <p className="text-xs text-neutral-600">Alan doluluğu yaratıcı kalite puanı değildir. Çıktıyı brief ve marka kurallarına göre inceleyin.</p>
+            <textarea aria-label="Revizyon nedeni" value={revisionReason} onChange={e => setRevisionReason(e.target.value)}
+              placeholder="Revizyon gerekiyorsa nedenini yazın" className="w-full rounded border p-2 text-sm" />
+            <div className="flex gap-2">
+              <button disabled={reviewing} onClick={() => handleReview('approved')} className="rounded bg-green-700 px-3 py-2 text-sm text-white disabled:opacity-50">Onayla ve devam et</button>
+              <button disabled={reviewing || !revisionReason.trim()} onClick={() => handleReview('rejected')} className="rounded border px-3 py-2 text-sm disabled:opacity-50">Revizyon iste</button>
+            </div>
+          </div>
+        )}
+        {node?.type === 'ai_task' && step?.status === 'revision_needed' && lastAiExec && (
+          <div className="space-y-2">
+            <p className="text-sm text-neutral-600">{step.revisions?.at(-1)?.reason}</p>
+            <button disabled={reviewing} onClick={() => handleReview('retry')} className="rounded bg-indigo-700 px-3 py-2 text-sm text-white disabled:opacity-50">Geri bildirimle yeniden üret</button>
+          </div>
+        )}
+
         {/* Form — only show if step is in_progress or revision_needed */}
-        {hasForm && (step?.status === 'in_progress' || step?.status === 'revision_needed') && (
+        {node?.type !== 'ai_task' && hasForm && (step?.status === 'in_progress' || step?.status === 'revision_needed') && (
           <div>
             <div className="flex items-center gap-1.5 mb-3">
               <Info className="w-3.5 h-3.5 text-indigo-500" />
@@ -294,6 +328,7 @@ const StepDrawer: React.FC<StepDrawerProps> = ({
             <p className="font-commons text-xs text-red-700">{actionError}</p>
           </div>
         )}
+        {step?.blockedReason && <p className="font-commons text-xs text-red-700">{step.blockedReason}</p>}
       </div>
 
       {/* Footer actions */}

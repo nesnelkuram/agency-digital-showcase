@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, FilePlus2, Inbox, Clock, MessageSquareWarning, Loader2, CalendarOff } from 'lucide-react';
+import { Plus, FilePlus2, Inbox, Clock, MessageSquareWarning, Loader2, CalendarOff, AlertTriangle } from 'lucide-react';
 import { Timestamp, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import type { ContentPlan, SocialMediaPost } from '@/shared/types/socialMedia';
@@ -8,18 +8,30 @@ import CreatePostPanel from '@/admin/social-media/components/CreatePostPanel';
 import { useStudio } from '../StudioLayout';
 import CalendarBoard from '../components/CalendarBoard';
 import StudioPostCard from '../components/StudioPostCard';
-import StudioPostDetail from '../components/StudioPostDetail';
+import StudioPostDetail, { EDITABLE_STATUSES } from '../components/StudioPostDetail';
+import LibraryDrawer from '../components/LibraryDrawer';
+import { isConsistentAsset, type BrandMediaAsset } from '@/shared/types/brandMedia';
+import { getClientMediaPolicy } from '../library/mediaPolicy';
+import { runApprovalAction } from '@/shared/services/contentApprovalApi';
 import { LAST_PROJECT_KEY } from './StudioHomePage';
-import { NEEDS_ME, WITH_CLIENT, daysSince, getProjectPlans, getProjectPosts } from '../studioData';
+import { NEEDS_ME, WITH_CLIENT, STUDIO_STATUS_LABEL, daysSince, formatDate, getProjectPlans, getProjectPosts } from '../studioData';
 
-type SideTab = 'todo' | 'undated';
+type SideTab = 'todo' | 'undated' | 'library';
+
+/** Onaylı/firmadaki içeriğin taşınması: kullanıcıya yeniden onay sonucu açıkça sorulur */
+interface PendingMove {
+  post: SocialMediaPost;
+  date: Date;
+}
 
 /**
  * Studio açılış sayfası: markanın içerik takvimi (Meta Business Suite mantığında)
  * + sağ panelde yapılacaklar (senden bekleyenler, firma revizyonları, firmada bekleyen planlar).
  */
-const StudioCalendarHome: React.FC = () => {
-  const { project, tenantId } = useStudio();
+const StudioCalendarHomeInner: React.FC = () => {
+  const { project, tenantId, timeZone, timeZoneIsDefault } = useStudio();
+  /** Bu bileşen marka (tenant+proje) anahtarıyla kurulur; yine de geç gelen yanıtlar nesille elenir */
+  const generation = useRef(0);
   const navigate = useNavigate();
   const [posts, setPosts] = useState<SocialMediaPost[]>([]);
   const [plans, setPlans] = useState<ContentPlan[]>([]);
@@ -29,21 +41,35 @@ const StudioCalendarHome: React.FC = () => {
   const [createDate, setCreateDate] = useState<Date | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [tab, setTab] = useState<SideTab>('todo');
+  const [libraryAssets, setLibraryAssets] = useState<BrandMediaAsset[]>([]);
+  const [createAssets, setCreateAssets] = useState<BrandMediaAsset[] | undefined>(undefined);
+  const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
+  const [moving, setMoving] = useState(false);
 
   const load = useCallback(async () => {
     if (!project) return;
+    const gen = ++generation.current;
     setError(null);
     try {
       const [ps, pl] = await Promise.all([getProjectPosts(tenantId, project.id), getProjectPlans(tenantId, project.id)]);
-      setPosts(ps);
-      setPlans(pl);
+      if (gen !== generation.current) return;
+      setPosts(ps.filter((p) => p.projectId === project.id));
+      setPlans(pl.filter((p) => p.projectId === project.id));
     } catch (err) {
       console.error('[Studio] Takvim yüklenemedi:', err);
-      setError('İçerikler yüklenemedi.');
+      if (gen === generation.current) setError('İçerikler yüklenemedi.');
     } finally {
-      setLoading(false);
+      if (gen === generation.current) setLoading(false);
     }
   }, [project?.id, tenantId]);
+
+  // Unmount (marka değişimi dahil): bekleyen tüm yanıtlar yok sayılır
+  useEffect(
+    () => () => {
+      generation.current++;
+    },
+    []
+  );
 
   useEffect(() => {
     setLoading(true);
@@ -57,7 +83,8 @@ const StudioCalendarHome: React.FC = () => {
     }
   }, [load]);
 
-  const reschedule = async (post: SocialMediaPost, date: Date) => {
+  /** Henüz onaya gitmemiş içerik: yalnız zaman (istemci, kurallar izin verir) */
+  const rescheduleDraft = async (post: SocialMediaPost, date: Date) => {
     if (!db) return;
     const prev = posts;
     setPosts((list) => list.map((p) => (p.id === post.id ? { ...p, scheduledAt: Timestamp.fromDate(date) } : p)));
@@ -68,6 +95,60 @@ const StudioCalendarHome: React.FC = () => {
       setPosts(prev);
       setError('Tarih değiştirilemedi.');
     }
+  };
+
+  /** Firmadaki/onaylı içerik: zaman onayın parçası → sunucu 'reschedule' (iç incelemeye döner, yeni tur) */
+  const reschedule = (post: SocialMediaPost, date: Date) => {
+    if (!project || post.projectId !== project.id) return;
+    if (EDITABLE_STATUSES.has(post.status)) return rescheduleDraft(post, date);
+    if (!post.contentPlanId) {
+      setError('Bu içerik bir plana bağlı değil; zamanı değiştirilemez.');
+      return;
+    }
+    setPendingMove({ post, date });
+  };
+
+  const confirmMove = async () => {
+    if (!pendingMove?.post.contentPlanId || !project) return;
+    // Savunma: taşıma yalnız açık markanın içeriği ve onun planı için
+    const plan = plans.find((p) => p.id === pendingMove.post.contentPlanId);
+    if (pendingMove.post.projectId !== project.id || !plan || plan.projectId !== project.id) {
+      setPendingMove(null);
+      setError('Bu içerik açık markaya ait değil.');
+      return;
+    }
+    setMoving(true);
+    setError(null);
+    try {
+      await runApprovalAction({
+        planId: pendingMove.post.contentPlanId,
+        action: 'reschedule',
+        postIds: [pendingMove.post.id],
+        scheduledAt: pendingMove.date.getTime(),
+      });
+      setPendingMove(null);
+      await load();
+    } catch (err: any) {
+      console.error('[Studio] Yeniden zamanlama başarısız:', err);
+      setError(err?.message || 'Zaman değiştirilemedi.');
+      setPendingMove(null);
+    } finally {
+      setMoving(false);
+    }
+  };
+
+  /** Hücreye tıklama veya kütüphane dosyası bırakma: o gün/saatle yeni içerik */
+  const createAt = (date: Date, libraryAssetId?: string) => {
+    const found = libraryAssetId ? libraryAssets.find((a) => a.id === libraryAssetId) : undefined;
+    // Savunma: bırakılan dosya bu tenant/projeye ait ve katalog–dosya tutarlı olmalı
+    const asset = found && project && isConsistentAsset(found, tenantId, project.id, getClientMediaPolicy()) ? found : undefined;
+    if (libraryAssetId && !asset) {
+      setError('Bırakılan dosya bu markanın kütüphanesinde bulunamadı.');
+      return;
+    }
+    setCreateDate(date);
+    setCreateAssets(asset ? [asset] : undefined);
+    setCreateOpen(true);
   };
 
   const needsMe = useMemo(() => posts.filter((p) => NEEDS_ME.has(p.status) && p.status !== 'revision_requested'), [posts]);
@@ -83,13 +164,13 @@ const StudioCalendarHome: React.FC = () => {
   const sidebar = (
     <div className="h-full flex flex-col">
       <div className="flex items-center gap-1 px-3 pt-3 pb-2 border-b border-neutral-200">
-        {(['todo', 'undated'] as SideTab[]).map((t) => (
+        {(['todo', 'undated', 'library'] as SideTab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`px-3 py-1.5 rounded-lg font-grotesk text-sm ${tab === t ? 'bg-neutral-100 text-[#171717] font-medium' : 'text-neutral-500'}`}
           >
-            {t === 'todo' ? 'Yapılacaklar' : `Tarihsiz (${undated.length})`}
+            {t === 'todo' ? 'Yapılacaklar' : t === 'undated' ? `Tarihsiz (${undated.length})` : 'Kütüphane'}
           </button>
         ))}
       </div>
@@ -99,6 +180,7 @@ const StudioCalendarHome: React.FC = () => {
           <button
             onClick={() => {
               setCreateDate(null);
+              setCreateAssets(undefined);
               setCreateOpen(true);
             }}
             className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-[#111] text-white rounded-full font-grotesk text-sm hover:bg-neutral-800"
@@ -113,7 +195,9 @@ const StudioCalendarHome: React.FC = () => {
           </Link>
         </div>
 
-        {tab === 'todo' ? (
+        {tab === 'library' ? (
+          <LibraryDrawer tenantId={tenantId} projectId={project.id} onAssets={setLibraryAssets} />
+        ) : tab === 'todo' ? (
           <>
             {clientRevisions.length > 0 && (
               <section className="space-y-2">
@@ -193,17 +277,17 @@ const StudioCalendarHome: React.FC = () => {
         <CalendarBoard
           posts={posts}
           onPostClick={setDetail}
-          onCreate={(d) => {
-            setCreateDate(d);
-            setCreateOpen(true);
-          }}
+          onCreate={createAt}
           onReschedule={reschedule}
           sidebar={sidebar}
+          timeZone={timeZone}
+          timeZoneIsDefault={timeZoneIsDefault}
         />
       )}
 
       <StudioPostDetail
         post={detail}
+        tenantId={tenantId}
         onClose={() => setDetail(null)}
         onSaved={load}
         onOpenPlan={
@@ -212,14 +296,47 @@ const StudioCalendarHome: React.FC = () => {
       />
       <CreatePostPanel
         open={createOpen}
-        onClose={() => setCreateOpen(false)}
+        onClose={() => {
+          setCreateOpen(false);
+          setCreateAssets(undefined);
+        }}
         onPostCreated={load}
         projectId={project.id}
         prefilledDate={createDate || undefined}
         studioMode
+        timeZone={timeZone}
+        initialLibraryAssets={createAssets}
       />
+      {pendingMove && (
+        <div className="fixed inset-0 z-[60] bg-black/40 flex items-center justify-center p-4" onClick={() => !moving && setPendingMove(null)}>
+          <div className="bg-white rounded-2xl max-w-md w-full p-5 space-y-3" role="dialog" aria-label="Yeniden onay gerekli" onClick={(e) => e.stopPropagation()}>
+            <p className="flex items-center gap-2 font-grotesk text-base font-semibold text-[#171717]">
+              <AlertTriangle className="w-5 h-5 text-amber-600" /> Yeniden onay gerekli
+            </p>
+            <p className="font-grotesk text-sm text-neutral-700">
+              Bu içerik şu an “{STUDIO_STATUS_LABEL[pendingMove.post.status] || pendingMove.post.status}”. Paylaşım zamanı onayın parçasıdır:
+              yeni zaman ({formatDate({ toDate: () => pendingMove.date }, true)}) kaydedilince içerik iç incelemeye döner, mevcut onaylar
+              temizlenir ve firmanın açık onay ekranı geçersiz olur. Firmaya yeniden göndermeniz gerekir.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button disabled={moving} onClick={() => setPendingMove(null)} className="px-4 py-2 border border-neutral-200 rounded-lg font-grotesk text-sm">
+                Vazgeç
+              </button>
+              <button disabled={moving} onClick={confirmMove} className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#111] text-white rounded-full font-grotesk text-sm disabled:opacity-50">
+                {moving && <Loader2 className="w-4 h-4 animate-spin" />} Zamanı değiştir ve iç incelemeye al
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
+};
+
+/** Marka değişince sayfa yeniden kurulur: açık editör, taşıma penceresi, seçimler ve eski yanıtlar taşınmaz */
+const StudioCalendarHome: React.FC = () => {
+  const { project, tenantId } = useStudio();
+  return <StudioCalendarHomeInner key={`${tenantId}:${project?.id || ''}`} />;
 };
 
 export default StudioCalendarHome;

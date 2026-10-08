@@ -1,0 +1,14 @@
+{
+  "base": "https://v0-intiba-website-4w8olhd8f-info-intibacouks-projects.vercel.app",
+  "publicPage": "passed",
+  "chartInteraction": "passed",
+  "mobileWidth": {
+    "width": 390,
+    "scroll": 390
+  },
+  "privacyPage": "passed",
+  "adminLoginGate": "passed",
+  "javascriptErrors": [],
+  "failedRequests": [],
+  "realEmailsSent": 0
+}

@@ -100,4 +100,48 @@ describe.skipIf(!HAS_EMULATOR)('contentApprovalServer (emülatör)', () => {
     expect(status).toBe(200);
     expect(JSON.stringify(body)).not.toContain('YALNIZCA EKİP');
   });
+
+  it('onaylı içeriğin zamanı değişince iç incelemeye döner, yeni tur açılır, eski müşteri ekranı reddedilir', async () => {
+    const db = admin.getAdminDb();
+    await db.doc('content_plans/planA').set({ tenantId: 't1', projectId: 'projA', status: 'approved', title: 'A', shareToken: 'tokA12345', postIds: [], reviewRequestId: 'round-A', approvedBy: 'client1' });
+    await db.doc('social_media_posts/r1').set({
+      tenantId: 't1', projectId: 'projA', contentPlanId: 'planA', status: 'approved', caption: 'x', media: [],
+      scheduledAt: new Date('2026-10-09T11:00:00Z'), approvedBy: 'client1', internalReviewedBy: 'bm1',
+    });
+    const at = Date.UTC(2026, 9, 10, 15, 0);
+    const r = await server.executeApproval({ planId: 'planA', actor: adminActor, request: { action: 'reschedule', postIds: ['r1'], scheduledAt: at } });
+    expect(r.ok).toBe(true);
+    const p = (await db.doc('social_media_posts/r1').get()).data();
+    expect(p.status).toBe('internal_review');
+    expect(p.scheduledAt.toDate().getTime()).toBe(at);
+    expect(p.approvedBy).toBeUndefined();
+    expect(p.internalReviewedBy).toBeUndefined();
+    const plan = (await db.doc('content_plans/planA').get()).data();
+    expect(plan.reviewRequestId).not.toBe('round-A');
+    expect(plan.approvedBy).toBeUndefined();
+    const events = await db.collection('content_plans/planA/approval_events').get();
+    expect(events.docs.some((d: any) => d.data().action === 'reschedule')).toBe(true);
+
+    // İç onaydan sonra firma eski ekrandan (round-A) onay veremez
+    await server.executeApproval({ planId: 'planA', actor: adminActor, request: { action: 'internal_approve' } });
+    const clientActor = { kind: 'user' as const, uid: 'client1', tenantId: 't1', role: 'client', displayName: 'Firma', assignedProjectIds: ['projA'] };
+    const stale = await server.executeApproval({ planId: 'planA', actor: clientActor, request: { action: 'client_approve', reviewRequestId: 'round-A' } });
+    expect(stale.ok).toBe(false);
+    if (!stale.ok) expect(stale.code).toBe('STALE_REVIEW');
+  });
+
+  it('kütüphane medyası (brand-media) müşteriye açılır; dosya yoksa reddedilir', { timeout: 30_000 }, async () => {
+    const storage = await admin.getAdminStorage();
+    const path = `brand-media/t1/projA/asset-${Date.now()}/final.png`;
+    await storage.bucket(BUCKET).file(path).save(Buffer.from([137, 80, 78, 71]), {
+      metadata: { contentType: 'image/png', metadata: { firebaseStorageDownloadTokens: 'libtok' } },
+    });
+    await seedPost('l1', 'internal_review', [mediaUrl(path, 'libtok')]);
+    const ok = await server.executeApproval({ planId: 'planA', actor: adminActor, request: { action: 'internal_approve', postIds: ['l1'] } });
+    expect(ok.ok).toBe(true);
+    await seedPost('l2', 'internal_review', [mediaUrl(`brand-media/t1/projA/missing-${Date.now()}/x.png`, 'libtok')]);
+    const missing = await server.executeApproval({ planId: 'planA', actor: adminActor, request: { action: 'internal_approve', postIds: ['l2'] } });
+    expect(missing.ok).toBe(false);
+    if (!missing.ok) expect(missing.code).toBe('MEDIA_SOURCE_INVALID');
+  });
 });

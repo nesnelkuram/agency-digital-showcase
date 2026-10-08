@@ -67,6 +67,7 @@ export async function createSocialPost(
     hashtags: data.hashtags || [],
     mediaUrls: data.mediaUrls || [],
     media: data.media || [],
+    ...(data.libraryAssetIds && data.libraryAssetIds.length > 0 ? { libraryAssetIds: data.libraryAssetIds } : {}),
     aiGeneratedCaption: data.aiGeneratedCaption,
     postType: data.postType,
     platforms: data.platforms,

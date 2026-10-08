@@ -1,11 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X, Loader2, Upload, Trash2, ArrowLeft, ArrowRight, MessageSquareWarning } from 'lucide-react';
+import { X, Loader2, Upload, Trash2, ArrowLeft, ArrowRight, MessageSquareWarning, Library } from 'lucide-react';
 import { doc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import type { MediaItem, SocialMediaPost } from '@/shared/types/socialMedia';
 import { POST_TYPE_LABELS, SOCIAL_PLATFORM_LABELS } from '@/shared/types/socialMedia';
 import { useMediaUpload } from '@/shared/hooks/useMediaUpload';
+import { POST_MAX_LIBRARY_ASSETS, assetToMediaItem, deriveLibraryAssetIds, type BrandMediaAsset } from '@/shared/types/brandMedia';
+import LibraryPicker from './LibraryPicker';
+import ReadinessNotice, { readinessFor } from './ReadinessNotice';
 import { STUDIO_STATUS_COLOR, STUDIO_STATUS_LABEL, formatDate } from '../studioData';
 
 /** Metni/medyası düzenlenebilir durumlar (firestore.rules ile aynı) */
@@ -26,6 +29,8 @@ interface Props {
   onSaved: () => void;
   /** İçerik bir plana bağlıysa plan ekranını açar (onay işlemleri orada) */
   onOpenPlan?: () => void;
+  /** Kütüphaneden seçim için marka tenant'ı (Studio bağlamından); yoksa seçim kapalı */
+  tenantId?: string;
 }
 
 /**
@@ -33,8 +38,9 @@ interface Props {
  * Düzenlenebilir durumda metin, etiketler ve medya (değiştir / ekle / çıkar / sırala) güncellenir.
  * Yeni medya yalnızca taslak alanına (write-once) yüklenir; müşteriye açılırken sunucu yeniden doğrular.
  */
-const StudioPostDetail: React.FC<Props> = ({ post, onClose, onSaved, onOpenPlan }) => {
+const StudioPostDetail: React.FC<Props> = ({ post, onClose, onSaved, onOpenPlan, tenantId }) => {
   const { uploadFiles, uploading, error: uploadError } = useMediaUpload();
+  const [pickerOpen, setPickerOpen] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [caption, setCaption] = useState('');
@@ -54,6 +60,8 @@ const StudioPostDetail: React.FC<Props> = ({ post, onClose, onSaved, onOpenPlan 
     setHashtags((post.hashtags || []).join(' '));
     setActive(0);
     setError(null);
+    setPickerOpen(false);
+    setReplaceIndex(undefined);
   }, [post?.id]);
 
   if (!post) return null;
@@ -95,6 +103,19 @@ const StudioPostDetail: React.FC<Props> = ({ post, onClose, onSaved, onOpenPlan 
     setActive(replaceIndex ?? next.length - uploaded.length);
   };
 
+  /** Kütüphaneden seçim yalnız düzenleyicideki medyayı değiştirir; post kaydedilene kadar hiçbir yere yazılmaz */
+  const addFromLibrary = (assets: BrandMediaAsset[]) => {
+    if (assets.length === 0) return;
+    const items = assets.map((a, i) => assetToMediaItem(a, i));
+    let next = [...media];
+    if (replaceIndex !== undefined) next.splice(replaceIndex, 1, ...items);
+    else next = [...next, ...items];
+    setMedia(next.map((m, i) => ({ ...m, order: i })));
+    setMediaDirty(true);
+    setActive(replaceIndex ?? next.length - items.length);
+    setReplaceIndex(undefined);
+  };
+
   const save = async () => {
     if (!db) return;
     setSaving(true);
@@ -107,7 +128,7 @@ const StudioPostDetail: React.FC<Props> = ({ post, onClose, onSaved, onOpenPlan 
           .map((h) => h.trim())
           .filter(Boolean)
           .map((h) => (h.startsWith('#') ? h : `#${h}`)),
-        ...(mediaDirty ? { media, mediaUrls: media.map((m) => m.url) } : {}),
+        ...(mediaDirty ? { media, mediaUrls: media.map((m) => m.url), libraryAssetIds: deriveLibraryAssetIds(media) } : {}),
         updatedAt: serverTimestamp(),
       });
       onSaved();
@@ -238,6 +259,16 @@ const StudioPostDetail: React.FC<Props> = ({ post, onClose, onSaved, onOpenPlan 
                 >
                   <Upload className="w-3.5 h-3.5" /> Medya ekle
                 </button>
+                <button
+                  onClick={() => {
+                    setReplaceIndex(undefined);
+                    setPickerOpen(true);
+                  }}
+                  disabled={uploading || !tenantId || media.length >= POST_MAX_LIBRARY_ASSETS}
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-neutral-200 rounded-lg font-grotesk text-xs disabled:opacity-50"
+                >
+                  <Library className="w-3.5 h-3.5" /> Kütüphaneden seç
+                </button>
                 {current && (
                   <>
                     <button onClick={() => move(active, active - 1)} className="px-2 py-1.5 border border-neutral-200 rounded-lg" aria-label="Sola taşı">
@@ -261,6 +292,8 @@ const StudioPostDetail: React.FC<Props> = ({ post, onClose, onSaved, onOpenPlan 
                 )}
               </div>
             )}
+
+            {(post.platforms || []).includes('instagram') && <ReadinessNotice result={readinessFor(post.postType, media)} />}
 
             <div>
               <p className="font-grotesk text-xs font-medium text-neutral-500 mb-1">Metin</p>
@@ -316,6 +349,15 @@ const StudioPostDetail: React.FC<Props> = ({ post, onClose, onSaved, onOpenPlan 
           </div>
         </motion.div>
       </motion.div>
+      <LibraryPicker
+        open={pickerOpen && editable && !!tenantId}
+        tenantId={tenantId || ''}
+        projectId={post.projectId}
+        excludeAssetIds={deriveLibraryAssetIds(media)}
+        maxSelect={POST_MAX_LIBRARY_ASSETS - media.length}
+        onClose={() => setPickerOpen(false)}
+        onConfirm={addFromLibrary}
+      />
     </AnimatePresence>
   );
 };

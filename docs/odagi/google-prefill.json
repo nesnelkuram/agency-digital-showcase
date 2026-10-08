@@ -1,0 +1,10 @@
+{
+  "httpStatus": 200,
+  "formTitle": "Depo Hizmet Sağlayıcı Bilgi Formu",
+  "formPrefill": {
+    "city": true,
+    "district": true,
+    "area": true
+  },
+  "realApplicationsSubmitted": 0
+}

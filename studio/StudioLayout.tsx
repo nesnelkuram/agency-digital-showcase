@@ -1,18 +1,22 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Outlet, Link, NavLink, useNavigate, useParams, useOutletContext } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CalendarDays, FileText, Palette, LogOut, ChevronDown, Loader2 } from 'lucide-react';
+import { CalendarDays, FileText, Palette, LogOut, ChevronDown, Loader2, Images } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useTenantId } from '@/shared/hooks/useTenant';
+import { useTenant, useTenantId } from '@/shared/hooks/useTenant';
+import { resolveStudioTimeZone } from '@/shared/time/zonedTime';
 import { NotificationsProvider } from '@/admin/contexts/NotificationsContext';
 import NotificationDropdown from '@/admin/components/NotificationDropdown';
-import { getStudioProjects, studioLinkFor, type StudioProject } from './studioData';
+import { getStudioProjects, setStudioTimeZone, studioLinkFor, type StudioProject } from './studioData';
 
 export interface StudioContext {
   projects: StudioProject[];
   project: StudioProject | null;
   tenantId: string;
   reloadProjects: () => Promise<void>;
+  /** Markanın saat dilimi (tenant ayarı; yoksa açıkça varsayılan) — takvim ve tarih gösterimi */
+  timeZone: string;
+  timeZoneIsDefault: boolean;
 }
 
 export function useStudio(): StudioContext {
@@ -22,12 +26,16 @@ export function useStudio(): StudioContext {
 const NAV = [
   { label: 'Takvim', to: '', icon: CalendarDays, end: true },
   { label: 'Planlar', to: 'planlar', icon: FileText, end: false },
+  { label: 'Kütüphane', to: 'kutuphane', icon: Images, end: false },
   { label: 'Marka Kiti', to: 'marka', icon: Palette, end: false },
 ];
 
 const StudioLayout: React.FC = () => {
   const { user, signOut } = useAuth();
   const tenantId = useTenantId();
+  const { tenant } = useTenant();
+  const { timeZone, isDefault: timeZoneIsDefault } = resolveStudioTimeZone(tenant?.settings?.timezone);
+  setStudioTimeZone(timeZone);
   const navigate = useNavigate();
   const { projectId } = useParams<{ projectId: string }>();
   const [projects, setProjects] = useState<StudioProject[]>([]);
@@ -175,7 +183,7 @@ const StudioLayout: React.FC = () => {
               </Link>
             </div>
           ) : (
-            <Outlet context={{ projects, project, tenantId, reloadProjects } satisfies StudioContext} />
+            <Outlet context={{ projects, project, tenantId, reloadProjects, timeZone, timeZoneIsDefault } satisfies StudioContext} />
           )}
         </main>
       </div>
