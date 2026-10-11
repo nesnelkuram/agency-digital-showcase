@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FilePlus2, Loader2, ArrowRight } from 'lucide-react';
 import type { ContentPlan } from '@/shared/types/socialMedia';
@@ -15,10 +15,14 @@ const PLAN_COLOR: Record<string, string> = {
   revision_requested: 'bg-red-100 text-red-700',
 };
 
+// Yalnız geliştirme: yerel Dieci taslağı aktarımı. Production derlemesinde import ve render elenir.
+const DevDraftImport = import.meta.env.DEV ? lazy(() => import('../components/DevDraftImport')) : null;
+
 const StudioPlansPage: React.FC = () => {
   const { project, tenantId } = useStudio();
   const [plans, setPlans] = useState<ContentPlan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (!project) return;
@@ -27,7 +31,7 @@ const StudioPlansPage: React.FC = () => {
       .then(setPlans)
       .catch((err) => console.error('[Studio] Planlar yüklenemedi:', err))
       .finally(() => setLoading(false));
-  }, [project?.id, tenantId]);
+  }, [project?.id, tenantId, reloadKey]);
 
   if (!project) return null;
 
@@ -42,6 +46,11 @@ const StudioPlansPage: React.FC = () => {
           <FilePlus2 className="w-4 h-4" /> Haftalık plan
         </Link>
       </div>
+      {import.meta.env.DEV && DevDraftImport ? (
+        <Suspense fallback={null}>
+          <DevDraftImport projectId={project.id} projectName={project.name || ''} tenantId={tenantId} onDone={() => setReloadKey((k) => k + 1)} />
+        </Suspense>
+      ) : null}
       {loading ? (
         <div className="flex justify-center py-12">
           <Loader2 className="w-6 h-6 animate-spin text-neutral-400" />

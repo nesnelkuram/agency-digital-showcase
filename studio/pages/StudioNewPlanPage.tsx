@@ -7,6 +7,7 @@ import { createContentPlan } from '@/shared/services/contentPlanService';
 import { useAuth } from '@/contexts/AuthContext';
 import { useStudio } from '../StudioLayout';
 import StudioPostCard from '../components/StudioPostCard';
+import PlanSuggestPanel from '../components/PlanSuggestPanel';
 import { getProjectPosts } from '../studioData';
 import {
   addCivilDays,
@@ -47,6 +48,7 @@ const StudioNewPlanPage: React.FC = () => {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (!project) return;
@@ -54,7 +56,7 @@ const StudioNewPlanPage: React.FC = () => {
       .then((all) => setPosts(all.filter((p) => !p.contentPlanId && ['draft', 'internal_review'].includes(p.status))))
       .catch((err) => console.error('[Studio] Taslaklar yüklenemedi:', err))
       .finally(() => setLoading(false));
-  }, [project?.id, tenantId]);
+  }, [project?.id, tenantId, reloadKey]);
 
   const range = useMemo(() => planWeekRange(weekStart, timeZone), [weekStart, timeZone]);
   /** Tarih gösterimi marka saat diliminde */
@@ -140,6 +142,18 @@ const StudioNewPlanPage: React.FC = () => {
           </span>
         </p>
       </div>
+
+      {user && (
+        <PlanSuggestPanel
+          tenantId={tenantId}
+          projectId={project.id}
+          weekStart={weekStart}
+          timeZone={timeZone}
+          uid={user.uid}
+          userName={user.displayName || user.email || 'Studio'}
+          onDraftsCreated={() => setReloadKey((k) => k + 1)}
+        />
+      )}
 
       {loading ? (
         <div className="flex justify-center py-10">

@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, ChevronDown, Plus, Instagram, Facebook, Link
 import type { PostType, SocialMediaPost, SocialPlatform } from '@/shared/types/socialMedia';
 import { POST_TYPE_LABELS, SOCIAL_PLATFORM_LABELS } from '@/shared/types/socialMedia';
 import { STUDIO_STATUS_COLOR, STUDIO_STATUS_LABEL, postThumb } from '../studioData';
+import { AuthStorageImage, mediaStoragePath } from './AuthStorageImage';
 import {
   DEFAULT_STUDIO_TIME_ZONE,
   addCivilDays,
@@ -99,11 +100,24 @@ const FilterMenu: React.FC<{
   );
 };
 
+/**
+ * Tarihsiz (scheduledAt yok) taslak için gün önerisi: içe aktarılan planın haftası + gün sırası (importRef).
+ * Saat üretmez; yalnız gün anahtarı döner. Öneri yoksa null (içerik takvimde gösterilmez).
+ */
+export function suggestedDayParts(post: SocialMediaPost): CivilDate | null {
+  const ref = (post as any).importRef as { planKey?: string; dayOrder?: number } | undefined;
+  if (!ref || typeof ref.dayOrder !== 'number' || ref.dayOrder < 1 || ref.dayOrder > 7) return null;
+  const m = /^[a-z0-9-]*?(\d{4})-(\d{2})-(\d{2})$/i.exec(ref.planKey || '');
+  if (!m) return null;
+  return addCivilDays({ year: Number(m[1]), month: Number(m[2]), day: Number(m[3]) }, ref.dayOrder - 1);
+}
+
 /** Takvimdeki içerik kartı */
 const PostTile: React.FC<{ post: SocialMediaPost; timeZone: string; compact?: boolean; onClick: () => void }> = ({ post, timeZone, compact, onClick }) => {
   const d: Date | null = (post.scheduledAt as any)?.toDate?.() || null;
   const parts = d ? zonedParts(d, timeZone) : null;
   const thumb = postThumb(post);
+  const authPath = !thumb ? mediaStoragePath(post.media?.[0]) : undefined;
   const isVideo = post.media?.[0]?.type === 'video' || post.postType === 'reels' || post.postType === 'video';
   const draggable = DRAGGABLE.has(post.status);
   const icons = (post.platforms || []).map((p) => PLATFORM_ICON[p]).filter(Boolean);
@@ -131,7 +145,11 @@ const PostTile: React.FC<{ post: SocialMediaPost; timeZone: string; compact?: bo
       </div>
       {compact ? (
         <div className="flex items-center gap-1.5">
-          {thumb && <img src={thumb} alt="" className="w-6 h-6 rounded object-cover shrink-0" loading="lazy" />}
+          {thumb ? (
+            <img src={thumb} alt="" className="w-6 h-6 rounded object-cover shrink-0" loading="lazy" />
+          ) : authPath ? (
+            <AuthStorageImage path={authPath} className="w-6 h-6 rounded object-cover shrink-0" />
+          ) : null}
           <p className="font-grotesk text-[11px] text-neutral-700 truncate">{post.title || post.caption || POST_TYPE_LABELS[post.postType]}</p>
         </div>
       ) : (
@@ -139,6 +157,8 @@ const PostTile: React.FC<{ post: SocialMediaPost; timeZone: string; compact?: bo
           <div className="mt-1.5 aspect-square rounded-xl bg-slate-200/60 overflow-hidden flex items-center justify-center">
             {thumb ? (
               <img src={thumb} alt="" className="w-full h-full object-cover" loading="lazy" />
+            ) : authPath ? (
+              <AuthStorageImage path={authPath} className="w-full h-full object-cover" />
             ) : isVideo ? (
               <Film className="w-6 h-6 text-neutral-400" />
             ) : (
@@ -214,20 +234,29 @@ const CalendarBoard: React.FC<Props> = ({
   );
 
   /** gün → saat → içerikler (markanın saat diliminde) */
-  const { byDay, bySlot } = useMemo(() => {
+  const { byDay, bySlot, undatedByDay } = useMemo(() => {
     const day = new Map<string, SocialMediaPost[]>();
     const slot = new Map<string, SocialMediaPost[]>();
+    const undated = new Map<string, SocialMediaPost[]>();
     const ms = (p: SocialMediaPost) => (p.scheduledAt as any)?.toDate?.()?.getTime?.() ?? 0;
     for (const p of [...filtered].sort((a, b) => ms(a) - ms(b))) {
       const d: Date | undefined = (p.scheduledAt as any)?.toDate?.();
-      if (!d) continue;
+      if (!d) {
+        const sd = suggestedDayParts(p);
+        if (sd) {
+          const dk = civilKey(sd);
+          day.set(dk, [...(day.get(dk) || []), p]);
+          undated.set(dk, [...(undated.get(dk) || []), p]);
+        }
+        continue;
+      }
       const z = zonedParts(d, timeZone);
       const dk = civilKey(z);
       day.set(dk, [...(day.get(dk) || []), p]);
       const sk = `${dk}@${z.hour}`;
       slot.set(sk, [...(slot.get(sk) || []), p]);
     }
-    return { byDay: day, bySlot: slot };
+    return { byDay: day, bySlot: slot, undatedByDay: undated };
   }, [filtered, timeZone]);
 
   const weekStart = startOfCivilWeek(anchor);
@@ -355,6 +384,20 @@ const CalendarBoard: React.FC<Props> = ({
                   </div>
                 ))}
               </div>
+              {weekDays.some((d) => undatedByDay.has(civilKey(d))) && (
+                <div className="grid grid-cols-[56px_repeat(7,minmax(0,1fr))] border-b border-white/60 bg-amber-50/50" data-testid="calendar-undated-row">
+                  <div className="pr-2 pt-1.5 text-right font-grotesk text-[10px] leading-tight text-neutral-500" title="Saat atanmamış taslaklar (gün önerisi)">
+                    Saatsiz
+                  </div>
+                  {weekDays.map((d, i) => (
+                    <div key={i} className="p-1 space-y-1 min-h-[40px]" data-testid={`undated-${civilKey(d)}`}>
+                      {(undatedByDay.get(civilKey(d)) || []).map((p) => (
+                        <PostTile key={p.id} post={p} timeZone={timeZone} compact onClick={() => onPostClick(p)} />
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              )}
               <div ref={scroller} className="max-h-[640px] overflow-y-auto">
                 {HOURS.map((h) => (
                   <div key={h} className="grid grid-cols-[56px_repeat(7,minmax(0,1fr))] border-b border-white/40 min-h-[64px]">

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Outlet, Link, NavLink, useNavigate, useParams, useOutletContext } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CalendarDays, FileText, Palette, LogOut, ChevronDown, Loader2, Images } from 'lucide-react';
+import { CalendarDays, FileText, Palette, LogOut, ChevronDown, Loader2, Images, LayoutGrid } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTenant, useTenantId } from '@/shared/hooks/useTenant';
 import { resolveStudioTimeZone } from '@/shared/time/zonedTime';
@@ -27,6 +27,7 @@ const NAV = [
   { label: 'Takvim', to: '', icon: CalendarDays, end: true },
   { label: 'Planlar', to: 'planlar', icon: FileText, end: false },
   { label: 'Kütüphane', to: 'kutuphane', icon: Images, end: false },
+  { label: 'Planlayıcı', to: 'planlayici', icon: LayoutGrid, end: false },
   { label: 'Marka Kiti', to: 'marka', icon: Palette, end: false },
 ];
 

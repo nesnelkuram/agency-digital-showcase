@@ -1,0 +1,245 @@
+/**
+ * Tek görsel kataloglama (Haiku 5.5) — tekrar önleme, durum, sınırlı yeniden deneme, usage/maliyet kaydı.
+ * Toplu/geçmiş analiz YOK: çağıran tek bir Studio varlığı için çalıştırır.
+ * Model çağrısı dışarıdan verilir (testte sahte; üretimde Anthropic SDK).
+ */
+
+import { createHash, randomUUID } from 'crypto';
+import {
+  ANALYSIS_MAX_DIMENSION,
+  ANALYSIS_MAX_RAW_BYTES,
+  ANALYSIS_MIME,
+  CATALOG_MODEL,
+  MEDIA_ANALYSIS_PROMPT_VERSION,
+  MEDIA_ANALYSIS_SCHEMA_VERSION,
+  analysisKey,
+  estimateCostUsd,
+  normalizeCatalog,
+  type ImageCatalog,
+  type SourceQuality,
+  type UsageLike,
+} from './spec';
+
+export const MAX_ANALYSIS_ATTEMPTS = 3;
+/** Model zaman aşımı (120 sn) + kaynak indirme/yazma payı: lease çağrı sürerken düşmez → ikinci çalıştırıcı aynı işi almaz */
+export const ANALYSIS_LEASE_MS = 180_000;
+
+export type AnalysisStatus = 'running' | 'done' | 'failed' | 'unsupported';
+
+export interface AnalysisRecord {
+  key: string;
+  tenantId: string;
+  projectId: string;
+  sourceKind: 'brand_media';
+  sourceId: string;
+  sourceQuality: SourceQuality;
+  sourcePath: string;
+  sourceSha256: string;
+  sourceWidth?: number;
+  sourceHeight?: number;
+  model: string;
+  promptVersion: string;
+  schemaVersion: string;
+  status: AnalysisStatus;
+  attempts: number;
+  retryable?: boolean;
+  leaseUntil?: number | null;
+  /** Bu denemeyi yürüten çalıştırıcı; sonuç yalnız onunla yazılır (fencing) */
+  leaseOwner?: string | null;
+  result?: ImageCatalog | null;
+  usage?: UsageLike | null;
+  estimatedCostUsd?: number | null;
+  pricingSnapshot?: unknown;
+  stopReason?: string | null;
+  responseId?: string | null;
+  durationMs?: number | null;
+  error?: { code: string; message: string } | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface BrandMediaLike {
+  id: string;
+  tenantId: string;
+  projectId: string;
+  kind: 'photo' | 'video';
+  status: string;
+  storage: { path: string; contentType: string; size: number; width?: number; height?: number; thumbPath?: string };
+}
+
+/**
+ * Hangi baytlar analiz edilecek? Orijinal API sınırına uyuyorsa orijinal; değilse Studio önizlemesi
+ * (thumb.jpg, ~480px) ve bu AÇIKÇA "studio_preview" olarak işaretlenir. Önizleme yoksa desteklenmez.
+ * (Sunucuda görüntü küçültme kütüphanesi yok; büyük orijinaller için türev üretimi ayrı karar.)
+ */
+export function selectAnalysisSource(a: BrandMediaLike): { quality: SourceQuality; path: string; contentType: string } | { unsupported: string } {
+  if (a.kind !== 'photo') return { unsupported: 'Yalnız fotoğraf analiz edilir' };
+  if (a.status !== 'active') return { unsupported: 'Arşivlenmiş dosya analiz edilmez' };
+  const s = a.storage;
+  const dimsKnown = !!s.width && !!s.height;
+  const fits = ANALYSIS_MIME.has(s.contentType) && s.size > 0 && s.size <= ANALYSIS_MAX_RAW_BYTES && dimsKnown && s.width! <= ANALYSIS_MAX_DIMENSION && s.height! <= ANALYSIS_MAX_DIMENSION;
+  if (fits) return { quality: 'original', path: s.path, contentType: s.contentType };
+  if (s.thumbPath) return { quality: 'studio_preview', path: s.thumbPath, contentType: 'image/jpeg' };
+  return { unsupported: 'Orijinal API sınırını aşıyor ve önizleme yok' };
+}
+
+export interface AnalysisStore {
+  get(key: string): Promise<AnalysisRecord | null>;
+  /** Transaction: koşul sağlanırsa yazar ve true döner */
+  claim(key: string, init: AnalysisRecord, now: number): Promise<{ claimed: boolean; record: AnalysisRecord }>;
+  /** Fenced: yalnız leaseOwner eşleşirse yazar; değilse false (eski çalıştırıcı sonucu yazamaz) */
+  update(key: string, owner: string, patch: Partial<AnalysisRecord>): Promise<boolean>;
+  setLatest(tenantId: string, projectId: string, sourceId: string, key: string): Promise<void>;
+}
+
+export interface ModelCallResult {
+  id: string;
+  stopReason: string | null;
+  usage: UsageLike;
+  parsed: ImageCatalog | null;
+}
+
+export type ModelCall = (p: { model: string; imageBase64: string; mediaType: string }) => Promise<ModelCallResult>;
+
+export interface AnalysisDeps {
+  store: AnalysisStore;
+  readBytes: (path: string) => Promise<Buffer>;
+  callModel: ModelCall;
+  now?: () => number;
+}
+
+/** Hata → yeniden denenebilir mi (429/5xx/bağlantı) */
+export function isRetryableModelError(e: any): boolean {
+  const status = typeof e?.status === 'number' ? e.status : null;
+  if (status === null) return true; // bağlantı/zaman aşımı
+  return status === 429 || status === 529 || status >= 500;
+}
+
+export async function analyzeBrandMedia(asset: BrandMediaLike, deps: AnalysisDeps, model = CATALOG_MODEL): Promise<AnalysisRecord> {
+  const now = deps.now || Date.now;
+  const sel = selectAnalysisSource(asset);
+  if ('unsupported' in sel) {
+    return {
+      key: '',
+      tenantId: asset.tenantId,
+      projectId: asset.projectId,
+      sourceKind: 'brand_media',
+      sourceId: asset.id,
+      sourceQuality: 'original',
+      sourcePath: asset.storage.path,
+      sourceSha256: '',
+      model,
+      promptVersion: MEDIA_ANALYSIS_PROMPT_VERSION,
+      schemaVersion: MEDIA_ANALYSIS_SCHEMA_VERSION,
+      status: 'unsupported',
+      attempts: 0,
+      error: { code: 'unsupported', message: sel.unsupported },
+      createdAt: now(),
+      updatedAt: now(),
+    };
+  }
+  const bytes = await deps.readBytes(sel.path);
+  const sha = createHash('sha256').update(bytes).digest('hex');
+  const key = analysisKey({ tenantId: asset.tenantId, projectId: asset.projectId, sourceKind: 'brand_media', sourceId: asset.id, sourceSha256: sha, sourceQuality: sel.quality, model });
+  const init: AnalysisRecord = {
+    key,
+    tenantId: asset.tenantId,
+    projectId: asset.projectId,
+    sourceKind: 'brand_media',
+    sourceId: asset.id,
+    sourceQuality: sel.quality,
+    sourcePath: sel.path,
+    sourceSha256: sha,
+    ...(sel.quality === 'original' ? { sourceWidth: asset.storage.width, sourceHeight: asset.storage.height } : {}),
+    model,
+    promptVersion: MEDIA_ANALYSIS_PROMPT_VERSION,
+    schemaVersion: MEDIA_ANALYSIS_SCHEMA_VERSION,
+    status: 'running',
+    attempts: 1,
+    leaseUntil: now() + ANALYSIS_LEASE_MS,
+    leaseOwner: randomUUID(),
+    createdAt: now(),
+    updatedAt: now(),
+  };
+  const { claimed, record } = await deps.store.claim(key, init, now());
+  if (!claimed) return record; // tamamlanmış, kalıcı hata, deneme sınırı veya başka çalıştırıcı
+  const owner = record.leaseOwner!;
+  await deps.store.setLatest(asset.tenantId, asset.projectId, asset.id, key);
+
+  const started = now();
+  try {
+    const res = await deps.callModel({ model, imageBase64: bytes.toString('base64'), mediaType: sel.contentType });
+    const cost = estimateCostUsd(model, res.usage);
+    const base = { usage: res.usage, estimatedCostUsd: cost.usd, pricingSnapshot: { ...cost.pricing, tier: cost.tier }, stopReason: res.stopReason, responseId: res.id, durationMs: now() - started, leaseUntil: null, leaseOwner: null, updatedAt: now() };
+    if (res.stopReason === 'refusal') {
+      await deps.store.update(key, owner, { ...base, status: 'failed', retryable: false, result: null, error: { code: 'refusal', message: 'Model bu görseli işlemeyi reddetti' } });
+    } else if (!res.parsed) {
+      await deps.store.update(key, owner, { ...base, status: 'failed', retryable: res.stopReason === 'max_tokens', result: null, error: { code: res.stopReason === 'max_tokens' ? 'truncated' : 'schema_invalid', message: 'Yapılandırılmış çıktı alınamadı' } });
+    } else {
+      await deps.store.update(key, owner, { ...base, status: 'done', retryable: false, result: normalizeCatalog(res.parsed), error: null });
+    }
+  } catch (e: any) {
+    await deps.store.update(key, owner, {
+      status: 'failed',
+      retryable: isRetryableModelError(e),
+      leaseUntil: null,
+      leaseOwner: null,
+      durationMs: now() - started,
+      error: { code: e?.status ? `http_${e.status}` : 'network', message: String(e?.message || e).slice(0, 300) },
+      updatedAt: now(),
+    });
+  }
+  return (await deps.store.get(key))!;
+}
+
+/**
+ * claim kararı (saf): ne zaman yeni bir ücretli çağrı başlatılabilir.
+ * 'exhaust': süresi geçmiş yarım deneme var ama deneme sınırı doldu → çağrı yok, kayıt failed yapılır.
+ */
+export function decideClaim(existing: AnalysisRecord | null, now: number): 'new' | 'retry' | 'skip' | 'exhaust' {
+  if (!existing) return 'new';
+  if (existing.status === 'done' || existing.status === 'unsupported') return 'skip';
+  if (existing.status === 'running') {
+    if ((existing.leaseUntil || 0) > now) return 'skip';
+    return existing.attempts < MAX_ANALYSIS_ATTEMPTS ? 'retry' : 'exhaust';
+  }
+  if (existing.status === 'failed') return existing.retryable && existing.attempts < MAX_ANALYSIS_ATTEMPTS ? 'retry' : 'skip';
+  return 'skip';
+}
+
+export function firestoreAnalysisStore(db: any): AnalysisStore {
+  const ref = (k: string) => db.collection('media_ai_analyses').doc(k);
+  return {
+    async get(k) {
+      const s = await ref(k).get();
+      return s.exists ? (s.data() as AnalysisRecord) : null;
+    },
+    async claim(k, init, now) {
+      return db.runTransaction(async (tx: any) => {
+        const s = await tx.get(ref(k));
+        const existing = s.exists ? (s.data() as AnalysisRecord) : null;
+        const d = decideClaim(existing, now);
+        if (d === 'skip') return { claimed: false, record: existing! };
+        if (d === 'exhaust') {
+          const closed = { ...existing!, status: 'failed' as const, retryable: false, leaseUntil: null, leaseOwner: null, error: { code: 'attempts_exhausted', message: 'Deneme sınırı doldu (yarım kalan çağrı)' }, updatedAt: now };
+          tx.set(ref(k), closed);
+          return { claimed: false, record: closed };
+        }
+        const rec = d === 'new' ? init : { ...existing!, status: 'running' as const, attempts: existing!.attempts + 1, leaseUntil: init.leaseUntil, leaseOwner: init.leaseOwner, error: null, updatedAt: now };
+        tx.set(ref(k), rec);
+        return { claimed: true, record: rec };
+      });
+    },
+    async update(k, owner, patch) {
+      return db.runTransaction(async (tx: any) => {
+        const s = await tx.get(ref(k));
+        if (!s.exists || s.data().leaseOwner !== owner) return false;
+        tx.update(ref(k), patch);
+        return true;
+      });
+    },
+    async setLatest(tenantId, projectId, sourceId, k) {
+      await db.collection('media_ai_analysis_latest').doc(`${tenantId}_${projectId}_${sourceId}`).set({ tenantId, projectId, sourceId, key: k, updatedAt: Date.now() });
+    },
+  };
+}

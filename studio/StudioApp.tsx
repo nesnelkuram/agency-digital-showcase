@@ -11,6 +11,7 @@ const StudioNewPlanPage = lazy(() => import('./pages/StudioNewPlanPage'));
 const StudioPlanPage = lazy(() => import('./pages/StudioPlanPage'));
 const StudioBrandKitPage = lazy(() => import('./pages/StudioBrandKitPage'));
 const StudioLibraryPage = lazy(() => import('./pages/StudioLibraryPage'));
+const StudioPlannerPage = lazy(() => import('./pages/StudioPlannerPage'));
 const StudioNotificationsPage = lazy(() => import('./pages/StudioNotificationsPage'));
 const StudioLandingPage = lazy(() => import('./landing/StudioLandingPage'));
 
@@ -64,6 +65,7 @@ const StudioApp: React.FC = () => (
           <Route path=":projectId/planlar/:planId" element={page(<StudioPlanPage />)} />
           <Route path=":projectId/takvim" element={<Navigate to=".." relative="path" replace />} />
           <Route path=":projectId/kutuphane" element={page(<StudioLibraryPage />)} />
+          <Route path=":projectId/planlayici" element={page(<StudioPlannerPage />)} />
           <Route path=":projectId/marka" element={page(<StudioBrandKitPage />)} />
           <Route path="*" element={<Navigate to="/studio" replace />} />
         </Route>

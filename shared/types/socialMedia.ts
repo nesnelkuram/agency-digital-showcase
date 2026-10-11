@@ -17,6 +17,10 @@ export interface MediaItem {
   order: number;
   /** Marka medya kütüphanesinden seçildiyse kaynak varlık (brand_media) */
   libraryAssetId?: string;
+  /** Özel depolama yolu (token'sız). url boşsa görüntü yetkili okumayla çözülür. */
+  storagePath?: string;
+  /** Önizleme (küçük türev) depolama yolu; yoksa storagePath kullanılır. */
+  previewStoragePath?: string;
 }
 
 // ============================================

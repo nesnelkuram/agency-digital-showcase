@@ -1,0 +1,225 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // =============================================
+    // Helper functions
+    // =============================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Yetki kaynağı: Firestore'daki kullanıcı dokümanı (cross-service rules).
+    // Custom claim kullanılmaz; kullanıcı rol/tenant/atamasını değiştiremez (firestore.rules users).
+    function userDoc() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // İç ekip, kendi tenant'ında (client ve brand_manager tenant genelindeki dosyalara erişmez)
+    function isSameTenant(tenantId) {
+      return isAuthenticated()
+        && userDoc().tenantId == tenantId
+        && userDoc().role in ['super_admin', 'admin', 'account_manager', 'staff', 'editor', 'freelancer'];
+    }
+
+    // Sosyal medya medyası: tenant genelinde erişen roller veya projeye atanmış kapsamlı roller
+    function canWriteProjectMedia(tenantId, projectId) {
+      return isAuthenticated()
+        && userDoc().tenantId == tenantId
+        && (userDoc().role in ['super_admin', 'admin', 'account_manager', 'staff', 'editor']
+            || (userDoc().role in ['brand_manager', 'freelancer']
+                && projectId in userDoc().get('profile', {}).get('assignedProjectIds', [])));
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && userDoc().role in ['admin', 'super_admin'];
+    }
+
+    // Marka medya kütüphanesi: tenant genelindeki iç roller (freelancer HARİÇ) + atanmış brand_manager.
+    // Proje Firestore'da var ve aynı tenant'a ait olmalı (istek başına ≤2 doküman: kullanıcı + proje).
+    function canUseBrandLibrary(tenantId, projectId) {
+      return isAuthenticated()
+        && userDoc().tenantId == tenantId
+        && (userDoc().role in ['super_admin', 'admin', 'account_manager', 'staff', 'editor']
+            || (userDoc().role == 'brand_manager'
+                && projectId in userDoc().get('profile', {}).get('assignedProjectIds', [])))
+        && firestore.get(/databases/(default)/documents/projects/$(projectId)).data.tenantId == tenantId;
+    }
+
+    // =============================================
+    // Feedback videos
+    // Public read (for shared video links)
+    // Write: owner only, tenant-scoped
+    // Path: /feedback/{tenantId}/{userId}/{allPaths}
+    // =============================================
+    match /feedback/{tenantId}/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated()
+                   && request.auth.uid == userId
+                   && isSameTenant(tenantId)
+                   && request.resource.size < 500 * 1024 * 1024;
+    }
+
+    // Legacy feedback path (without tenant) - read-only for backwards compatibility
+    match /feedback/{userId}/{allPaths=**} {
+      allow read: if true;
+    }
+
+    // =============================================
+    // Asset library
+    // Read: same tenant only
+    // Write: owner only, same tenant
+    // Path: /assets/{tenantId}/{userId}/{allPaths}
+    // =============================================
+    match /assets/{tenantId}/{userId}/{allPaths=**} {
+      allow read: if isSameTenant(tenantId);
+      allow write: if isAuthenticated()
+                   && request.auth.uid == userId
+                   && isSameTenant(tenantId)
+                   && request.resource.size < 100 * 1024 * 1024;
+    }
+
+    // Legacy assets path — read-only for backwards compatibility
+    match /assets/{userId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+    }
+
+    // =============================================
+    // Creatives
+    // Read: same tenant
+    // Write: owner only, same tenant
+    // Path: /creatives/{tenantId}/{userId}/{allPaths}
+    // =============================================
+    match /creatives/{tenantId}/{userId}/{allPaths=**} {
+      allow read: if isSameTenant(tenantId);
+      allow write: if isAuthenticated()
+                   && request.auth.uid == userId
+                   && isSameTenant(tenantId)
+                   && request.resource.size < 100 * 1024 * 1024;
+    }
+
+    // =============================================
+    // Project files
+    // Read: same tenant
+    // Write: same tenant authenticated users
+    // Path: /projects/{tenantId}/{allPaths}
+    // =============================================
+    match /projects/{tenantId}/{allPaths=**} {
+      allow read: if isSameTenant(tenantId);
+      allow write: if isSameTenant(tenantId)
+                   && request.resource.size < 100 * 1024 * 1024;
+    }
+
+    // =============================================
+    // Campaign media
+    // Read: same tenant
+    // Write: same tenant
+    // Path: /campaigns/{tenantId}/{allPaths}
+    // =============================================
+    match /campaigns/{tenantId}/{allPaths=**} {
+      allow read: if isSameTenant(tenantId);
+      allow write: if isSameTenant(tenantId)
+                   && request.resource.size < 100 * 1024 * 1024;
+    }
+
+    // =============================================
+    // Filing template files (Premiere Pro, AE, etc.)
+    // Read: same tenant
+    // Write: admin only, same tenant
+    // Path: /filing_templates/{tenantId}/{allPaths}
+    // =============================================
+    match /filing_templates/{tenantId}/{allPaths=**} {
+      allow read: if isSameTenant(tenantId);
+      allow write: if isSameTenant(tenantId)
+                   && request.resource.size < 500 * 1024 * 1024;
+    }
+
+    // =============================================
+    // Filing seed files (blank starters)
+    // Read: same tenant
+    // Write: admin or same tenant
+    // Path: /filing_seeds/{tenantId}/{allPaths}
+    // =============================================
+    match /filing_seeds/{tenantId}/{allPaths=**} {
+      allow read: if isSameTenant(tenantId);
+      allow write: if isSameTenant(tenantId)
+                   && request.resource.size < 500 * 1024 * 1024;
+    }
+
+    // =============================================
+    // Social media — taslak medya (yeni yüklemeler)
+    // Okuma/listeleme: yalnızca projeye yetkili ekip. Müşteri içerik gördüğünde medya, post'ta saklanan
+    // token'lı indirme URL'si ile gelir (URL yalnızca müşteriye açık post'larda paylaşım/portal API'sinden döner).
+    // Yazma: bir kez (write-once) — üzerine yazma ve istemciden silme yok. Böylece gönderilmiş/onaylanmış
+    // içeriğin medyası aynı yol üzerinden değiştirilemez; yeni içerik yeni dosyaya gider.
+    // Path: /social-media-drafts/{tenantId}/{projectId}/{file}
+    // =============================================
+    match /social-media-drafts/{tenantId}/{projectId}/{allPaths=**} {
+      allow get, list: if canWriteProjectMedia(tenantId, projectId);
+      allow create: if resource == null
+                    && canWriteProjectMedia(tenantId, projectId)
+                    && request.resource.size < 100 * 1024 * 1024
+                    && (request.resource.contentType.matches('image/.*') || request.resource.contentType.matches('video/.*'));
+      allow update, delete: if false;
+    }
+
+    // =============================================
+    // Marka medya kütüphanesi — paylaşılmaya hazır FINAL fotoğraf/video (docs/studio-media-library.md)
+    // Okuma/listeleme ve yazma: canUseBrandLibrary. Müşteri ve anonim erişemez; müşteri medyayı yalnız
+    // kendisine açılmış post'taki token'lı URL ile görür (paylaşım/portal API'si).
+    // Yazma bir kez (write-once); üzerine yazma ve istemciden silme yok.
+    // Panel yükleme sınırı: 1 GB = 1000000000 bayt (shared/types/brandMedia.ts LIBRARY_MAX_FILE_BYTES).
+    // Önizleme: aynı klasörde thumb.jpg, image/jpeg, ≤ 2000000 bayt.
+    // Path: /brand-media/{tenantId}/{projectId}/{assetId}/{fileName}
+    // =============================================
+    match /brand-media/{tenantId}/{projectId}/{assetId}/{fileName} {
+      allow get, list: if canUseBrandLibrary(tenantId, projectId);
+      allow create: if resource == null
+                    && canUseBrandLibrary(tenantId, projectId)
+                    && ((fileName == 'thumb.jpg'
+                         && request.resource.contentType == 'image/jpeg'
+                         && request.resource.size <= 2000000)
+                        || (fileName != 'thumb.jpg'
+                            && request.resource.size <= 1000000000
+                            && (request.resource.contentType.matches('image/.*') || request.resource.contentType.matches('video/.*'))));
+      allow update, delete: if false;
+    }
+
+    // Eski sosyal medya yolu — mevcut paylaşılmış URL'ler çalışmaya devam eder.
+    // Listeleme ve yeni yazma kapalı.
+    match /social-media/{tenantId}/{allPaths=**} {
+      allow get: if true;
+      allow list: if false;
+      allow write: if false;
+    }
+
+    // =============================================
+    // Invoices (Fatura PDF'leri)
+    // Public read (müşteri güvenli indirme linki — URL tahmin edilemez token içerir)
+    // Write: admin only, same tenant
+    // Path: /invoices/{tenantId}/{allPaths}
+    // =============================================
+    match /invoices/{tenantId}/{allPaths=**} {
+      allow read: if true;
+      // Tenant izolasyonu yeterli (custom claim role set edilmiyor; isAdmin() Storage'da çalışmaz).
+      // Admin kısıtlaması zaten UI + route guard + Firestore kuralları seviyesinde uygulanıyor.
+      allow write: if isSameTenant(tenantId)
+                   && request.resource.size < 25 * 1024 * 1024;
+    }
+
+    // =============================================
+    // User avatars / profile photos
+    // Read: authenticated (any tenant — avatars may appear cross-context)
+    // Write: owner only
+    // Path: /avatars/{userId}/{allPaths}
+    // =============================================
+    match /avatars/{userId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated()
+                   && request.auth.uid == userId
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+  }
+}

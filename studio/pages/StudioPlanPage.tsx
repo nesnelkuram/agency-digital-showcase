@@ -9,11 +9,16 @@ import { useStudio } from '../StudioLayout';
 import StudioPostCard from '../components/StudioPostCard';
 import StudioPostDetail, { EDITABLE_STATUSES } from '../components/StudioPostDetail';
 import { formatDate, getBrandKit, getPlan, getPlanPosts, STUDIO_STATUS_LABEL } from '../studioData';
+import FeedbackReasonFields, { EMPTY_REASON, type FeedbackReasonValue } from '../components/FeedbackReasonFields';
+import { newIdempotencyKey } from '../mediaIntegrationsApi';
+import { contentHashOf } from '@/shared/feedback/contentVersion';
 
 interface PostActionDef {
   action: ApprovalActionName;
   label: string;
   needsComment?: boolean;
+  /** Sebep (kategori + kapsam) sorulur; content_feedback'e yazılır. Durum geçişi mevcut onay akışında. */
+  needsReason?: boolean;
   tone: 'primary' | 'neutral' | 'danger';
 }
 
@@ -23,14 +28,14 @@ function actionsFor(status: string): PostActionDef[] {
     case 'draft':
       return [{ action: 'submit_for_review', label: 'Kontrole al', tone: 'neutral' }];
     case 'internal_review':
-      return [{ action: 'internal_reject', label: 'Düzeltilsin', needsComment: true, tone: 'danger' }];
+      return [{ action: 'internal_reject', label: 'Düzeltilsin', needsComment: true, needsReason: true, tone: 'danger' }];
     case 'revision_requested_internal':
       return [{ action: 'resubmit', label: 'Düzeltildi, kontrole al', tone: 'neutral' }];
     case 'revision_requested':
       return [{ action: 'resubmit', label: 'Düzenlendi, kontrole al', tone: 'neutral' }];
     case 'pending_approval':
     case 'approved':
-      return [{ action: 'reopen', label: 'Revizyona al', tone: 'neutral' }];
+      return [{ action: 'reopen', label: 'Revizyona al', needsReason: true, tone: 'neutral' }];
     default:
       return [];
   }
@@ -50,8 +55,56 @@ const StudioPlanPage: React.FC = () => {
   const [detail, setDetail] = useState<SocialMediaPost | null>(null);
 
   // Yorum isteyen işlem
-  const [commentFor, setCommentFor] = useState<{ postId: string; action: ApprovalActionName } | null>(null);
-  const [comment, setComment] = useState('');
+  const [commentFor, setCommentFor] = useState<{
+    postId: string;
+    action: ApprovalActionName;
+    needsComment: boolean;
+    /** Bu pencere için tek gönderim anahtarı (yeniden denemede aynı → mükerrer kayıt yok) */
+    key: string;
+    /** Kullanıcının pencereyi açarken GÖRDÜĞÜ içerik sürümü (sunucu doğrular) */
+    expectedContentHash: string;
+  } | null>(null);
+  const [reason, setReason] = useState<FeedbackReasonValue>(EMPTY_REASON);
+  const [reasonError, setReasonError] = useState<string | null>(null);
+
+  const openReason = async (postId: string, a: PostActionDef) => {
+    const seen = posts.find((p) => p.id === postId);
+    if (!seen) return;
+    setReason(EMPTY_REASON);
+    setReasonError(null);
+    setCommentFor({ postId, action: a.action, needsComment: !!a.needsComment, key: newIdempotencyKey(), expectedContentHash: await contentHashOf(seen) });
+  };
+
+  /** Geçiş + sebep TEK istekte (sunucuda tek transaction): kısmi sonuç yok; yeniden deneme aynı anahtarla */
+  const submitReason = async () => {
+    if (!commentFor || !plan) return;
+    const cf = commentFor;
+    setReasonError(null);
+    setBusy(`${cf.postId}:${cf.action}`);
+    try {
+      await runApprovalAction({
+        planId: plan.id,
+        action: cf.action,
+        postIds: [cf.postId],
+        comment: reason.note.trim() || undefined,
+        reviewRequestId: plan.reviewRequestId,
+        feedback: { category: reason.category, note: reason.note.trim(), scope: reason.scope, idempotencyKey: cf.key, expectedContentHash: cf.expectedContentHash },
+      });
+      setCommentFor(null);
+      setReason(EMPTY_REASON);
+      await load();
+    } catch (err) {
+      const code = err instanceof ApprovalApiError ? err.code : undefined;
+      if (code === 'CONTENT_VERSION_CHANGED' || code === 'NO_TRANSITION') {
+        setReasonError('İçerik siz incelerken değişmiş. Sayfa yenilendi; lütfen güncel hali inceleyip yeniden açın.');
+        await load();
+      } else {
+        setReasonError(`${err instanceof ApprovalApiError ? err.message : 'İşlem başarısız.'} "Gönder" aynı gönderimi güvenle yeniden dener.`);
+      }
+    } finally {
+      setBusy(null);
+    }
+  };
 
   // Firmaya gönderme
   const [sendOpen, setSendOpen] = useState(false);
@@ -307,7 +360,7 @@ const StudioPlanPage: React.FC = () => {
                   <button
                     key={a.action}
                     disabled={!!busy}
-                    onClick={() => (a.needsComment ? setCommentFor({ postId: post.id, action: a.action }) : postAction(post.id, a.action))}
+                    onClick={() => (a.needsComment || a.needsReason ? void openReason(post.id, a) : postAction(post.id, a.action))}
                     className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg font-grotesk text-[11px] disabled:opacity-50 ${
                       a.tone === 'danger'
                         ? 'border border-red-200 text-red-700 hover:bg-red-50'
@@ -334,31 +387,20 @@ const StudioPlanPage: React.FC = () => {
 
       <StudioPostDetail post={detail} tenantId={tenantId} onClose={() => setDetail(null)} onSaved={load} />
 
-      {/* Yorum gerektiren işlem */}
+      {/* Sebep gerektiren işlem (Düzeltilsin / Revizyona al) */}
       {commentFor && (
-        <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4" onClick={() => setCommentFor(null)}>
-          <div className="bg-white/95 backdrop-blur-xl rounded-3xl p-5 w-full max-w-md space-y-3 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-grotesk text-sm font-semibold">Ne düzeltilsin?</h3>
-            <textarea
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              rows={4}
-              placeholder="Ekip için not (firma görmez)"
-              className="w-full px-3 py-2 border border-neutral-200 rounded-lg font-grotesk text-sm"
-            />
+        <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4" onClick={() => !busy && setCommentFor(null)}>
+          <div className="bg-white/95 backdrop-blur-xl rounded-3xl p-5 w-full max-w-md space-y-3 shadow-2xl" onClick={(e) => e.stopPropagation()} data-testid="reason-modal">
+            <h3 className="font-grotesk text-sm font-semibold">{commentFor.action === 'reopen' ? 'Neden revizyona alınıyor?' : 'Ne düzeltilsin?'}</h3>
+            <FeedbackReasonFields value={reason} onChange={setReason} notePlaceholder="Ekip için not (firma görmez)" noteRequired={commentFor.needsComment} />
+            {reasonError && <p className="font-grotesk text-xs text-red-600">{reasonError}</p>}
             <div className="flex justify-end gap-2">
               <button onClick={() => setCommentFor(null)} className="px-3 py-1.5 border border-neutral-200 rounded-lg font-grotesk text-sm">
                 Vazgeç
               </button>
               <button
-                disabled={!comment.trim() || !!busy}
-                onClick={async () => {
-                  const ok = await postAction(commentFor.postId, commentFor.action, comment.trim());
-                  if (ok) {
-                    setCommentFor(null);
-                    setComment('');
-                  }
-                }}
+                disabled={!reason.category || (commentFor.needsComment && !reason.note.trim()) || !!busy}
+                onClick={submitReason}
                 className="px-3 py-1.5 bg-[#111] text-white rounded-full font-grotesk text-sm disabled:opacity-50"
               >
                 Gönder

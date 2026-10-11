@@ -25,6 +25,8 @@ import {
 } from '@/shared/types/brandMedia';
 import type { UploadItem } from '../library/uploadRunner';
 import ReadinessNotice from '../components/ReadinessNotice';
+import { AssetIntegrations, CanvaFolderPanel } from '../components/MediaIntegrations';
+import { notifyUploadComplete } from '../mediaIntegrationsApi';
 import { checkInstagramReadiness } from '@/shared/social/instagramReadiness';
 
 type KindFilter = 'all' | BrandMediaKind;
@@ -106,6 +108,7 @@ const AssetDetail: React.FC<{
   const [tags, setTags] = useState(asset.tags.join(', '));
   const [usage, setUsage] = useState<AssetUsage[] | null>(null);
   const [usageError, setUsageError] = useState(false);
+  const [showIntegrations, setShowIntegrations] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -207,6 +210,17 @@ const AssetDetail: React.FC<{
           </div>
 
           <div>
+            <button onClick={() => setShowIntegrations((v) => !v)} className="font-grotesk text-xs underline text-neutral-600">
+              {showIntegrations ? 'AI katalog ve Canva kopyasını gizle' : 'AI katalog ve Canva kopyası'}
+            </button>
+            {showIntegrations && (
+              <div className="mt-2">
+                <AssetIntegrations projectId={projectId} assetId={asset.id} kind={asset.kind} />
+              </div>
+            )}
+          </div>
+
+          <div>
             <p className="font-grotesk text-xs font-medium text-neutral-500 mb-1">Kullanım geçmişi (kaydedilmiş içerikler)</p>
             {usageError ? (
               <p className="font-grotesk text-sm text-amber-700">Kullanım geçmişi alınamadı; bu dosyanın kullanılıp kullanılmadığı şu an bilinmiyor.</p>
@@ -258,6 +272,7 @@ const StudioLibraryPage: React.FC = () => {
   const [uploadTags, setUploadTags] = useState('');
   const [uploadErrors, setUploadErrors] = useState<string[]>([]);
   const [detail, setDetail] = useState<BrandMediaAsset | null>(null);
+  const [showCanva, setShowCanva] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const request = useRef(0);
 
@@ -292,7 +307,15 @@ const StudioLibraryPage: React.FC = () => {
     load();
   }, [load]);
 
-  const upload = useLibraryUpload({ tenantId, projectId, onAssetCreated: load });
+  const upload = useLibraryUpload({
+    tenantId,
+    projectId,
+    onAssetCreated: (assetId) => {
+      load();
+      // Canva senkronu ve AI kataloglama ayrı, kalıcı işler: biri başarısız/kapalıysa diğeri ve yükleme etkilenmez
+      if (projectId) void notifyUploadComplete(projectId, assetId);
+    },
+  });
 
   const tagFilter = normalizeTag(tag);
   const visible = useMemo(
@@ -406,6 +429,17 @@ const StudioLibraryPage: React.FC = () => {
           placeholder="Etiket ara"
           className="ml-auto px-3 py-1.5 border border-neutral-200 rounded-lg font-grotesk text-sm"
         />
+      </div>
+
+      <div className="glass-tile p-3">
+        <button onClick={() => setShowCanva((v) => !v)} className="font-grotesk text-sm font-medium text-[#171717]">
+          {showCanva ? '▾' : '▸'} Canva klasörü (yalnız önizleme)
+        </button>
+        {showCanva && (
+          <div className="mt-3">
+            <CanvaFolderPanel projectId={project.id} />
+          </div>
+        )}
       </div>
 
       {error && <p className="bg-red-50 border border-red-200 rounded-xl px-4 py-2 font-grotesk text-sm text-red-700">{error}</p>}

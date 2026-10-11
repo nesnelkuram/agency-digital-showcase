@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { X, Loader2, Upload, Trash2, ArrowLeft, ArrowRight, MessageSquareWarning, Library } from 'lucide-react';
 import { doc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
+import { AuthStorageImage, mediaStoragePath } from './AuthStorageImage';
 import type { MediaItem, SocialMediaPost } from '@/shared/types/socialMedia';
 import { POST_TYPE_LABELS, SOCIAL_PLATFORM_LABELS } from '@/shared/types/socialMedia';
 import { useMediaUpload } from '@/shared/hooks/useMediaUpload';
@@ -197,7 +198,13 @@ const StudioPostDetail: React.FC<Props> = ({ post, onClose, onSaved, onOpenPlan,
                 current.type === 'video' ? (
                   <video key={current.id} src={current.url} controls playsInline className="max-h-full max-w-full" />
                 ) : (
-                  <img key={current.id} src={current.url} alt="" className="max-h-full max-w-full object-contain" />
+                  !current.url && current.thumbnailUrl ? (
+                    <img key={current.id} src={current.thumbnailUrl} alt="" className="max-h-full max-w-full object-contain" />
+                  ) : mediaStoragePath(current) ? (
+                    <AuthStorageImage key={current.id} path={mediaStoragePath(current)!} className="max-h-full max-w-full object-contain" />
+                  ) : (
+                    <img key={current.id} src={current.url} alt="" className="max-h-full max-w-full object-contain" />
+                  )
                 )
               ) : (
                 <p className="font-grotesk text-sm text-neutral-400">Medya yok</p>
@@ -213,7 +220,13 @@ const StudioPostDetail: React.FC<Props> = ({ post, onClose, onSaved, onOpenPlan,
                     className={`relative w-16 h-16 shrink-0 rounded-lg overflow-hidden border-2 ${i === active ? 'border-[#171717]' : 'border-transparent'}`}
                   >
                     {m.thumbnailUrl || m.type === 'image' ? (
-                      <img src={m.thumbnailUrl || m.url} alt="" className="w-full h-full object-cover" />
+                      !m.url && m.thumbnailUrl ? (
+                        <img src={m.thumbnailUrl} alt="" className="w-full h-full object-cover" />
+                      ) : mediaStoragePath(m) ? (
+                        <AuthStorageImage path={mediaStoragePath(m)!} className="w-full h-full object-cover" />
+                      ) : (
+                        <img src={m.thumbnailUrl || m.url} alt="" className="w-full h-full object-cover" />
+                      )
                     ) : (
                       <span className="w-full h-full bg-neutral-200 flex items-center justify-center font-grotesk text-[10px]">Video</span>
                     )}

@@ -1,0 +1,81 @@
+--- canli-taban/firestore.rules (987ed92)
++++ hotfix/firestore.rules
+@@ -484,6 +484,78 @@
+       allow read: if isSuperAdmin() || belongsToTenant();
+       allow create: if isSuperAdmin() || creatingForOwnTenant();
+       allow update, delete: if isSuperAdmin() || belongsToTenant();
++    }
++
++    // =============================================
++    // Marka medya kütüphanesi — paylaşılmaya hazır FINAL fotoğraf/video kataloğu
++    // (docs/studio-media-library.md). Dosya: Storage brand-media/{tenantId}/{projectId}/{assetId}/…
++    // Erişim: tenant genelindeki iç roller (freelancer HARİÇ) + atanmış projesinde brand_manager.
++    // Müşteri erişmez (yalnız kendisine açılmış post medyasını portal/onay API'sinden görür).
++    // Proje gerçekten var ve aynı tenant'a ait olmalı. Silme yok; arşivlenir.
++    // =============================================
++    match /brand_media/{assetId} {
++      function libraryProjectOk(tenantId, projectId) {
++        return projectId is string
++          && exists(/databases/$(database)/documents/projects/$(projectId))
++          && get(/databases/$(database)/documents/projects/$(projectId)).data.tenantId == tenantId;
++      }
++      function canUseLibrary(tenantId, projectId) {
++        return isAuthenticated()
++          && tenantId == getUserTenantId()
++          && (getUserRole() in ['super_admin', 'admin', 'account_manager', 'staff', 'editor']
++              || (getUserRole() == 'brand_manager' && projectId in getAssignedProjectIds()))
++          && libraryProjectOk(tenantId, projectId);
++      }
++      function validLibraryMeta(d) {
++        return d.title is string && d.title.size() <= 200
++          && d.tags is list && d.tags.size() <= 20
++          && d.status in ['active', 'archived'];
++      }
++      // Katalog ↔ dosya tutarlılığı: yol ve indirme URL'si (resmi HTTPS Storage host'u) bu varlığın klasörünü gösterir.
++      // Bucket adı kurallarda bilinemez: istemci seçicisi ve onay sunucusu bucket + nesne varlığını ayrıca doğrular.
++      // Panel yükleme sınırı: 1 GB = 1000000000 bayt (shared/types/brandMedia.ts LIBRARY_MAX_FILE_BYTES).
++      function validLibraryStorage(d, id) {
++        let st = d.storage;
++        let folder = 'brand-media/' + d.tenantId + '/' + d.projectId + '/' + id;
++        let enc = 'brand-media%2F' + d.tenantId + '%2F' + d.projectId + '%2F' + id + '%2F';
++        return st is map
++          && st.keys().hasOnly(['path', 'downloadUrl', 'contentType', 'size', 'width', 'height', 'duration', 'thumbPath', 'thumbUrl'])
++          && st.keys().hasAll(['path', 'downloadUrl', 'contentType', 'size'])
++          && st.path is string && st.path.matches('^' + folder + '/[^/]+$') && !st.path.matches('^.*/thumb[.]jpg$')
++          && !st.path.matches('^.*[.][.].*$')
++          && st.downloadUrl is string && st.downloadUrl.matches('^https://firebasestorage[.]googleapis[.]com/v0/b/[^/]+/o/' + enc + '[^/?]+[?].*$')
++          && st.size is int && st.size > 0 && st.size <= 1000000000
++          && st.contentType is string
++          && ((d.kind == 'photo' && st.contentType.matches('^image/.+$')) || (d.kind == 'video' && st.contentType.matches('^video/.+$')))
++          && (!('thumbPath' in st) || st.thumbPath == folder + '/thumb.jpg')
++          && (('thumbPath' in st) == ('thumbUrl' in st))
++          && (!('thumbUrl' in st) || (st.thumbUrl is string && st.thumbUrl.matches('^https://firebasestorage[.]googleapis[.]com/v0/b/[^/]+/o/' + enc + 'thumb[.]jpg[?].*$')));
++      }
++      function validNewLibraryAsset() {
++        let d = request.resource.data;
++        return d.keys().hasOnly(['tenantId', 'projectId', 'kind', 'title', 'fileName', 'tags', 'status', 'storage', 'createdBy', 'createdByName', 'createdAt', 'updatedAt'])
++          && d.keys().hasAll(['tenantId', 'projectId', 'kind', 'title', 'fileName', 'tags', 'status', 'storage', 'createdBy', 'createdAt', 'updatedAt'])
++          && d.tenantId is string && d.tenantId.matches('^[A-Za-z0-9_-]{1,128}$')
++          && d.projectId is string && d.projectId.matches('^[A-Za-z0-9_-]{1,128}$')
++          && assetId.matches('^[A-Za-z0-9_-]{1,128}$')
++          && d.kind in ['photo', 'video']
++          && d.status == 'active'
++          && d.fileName is string && d.fileName.size() <= 255
++          && d.createdBy == request.auth.uid
++          && d.createdAt == request.time && d.updatedAt == request.time
++          && validLibraryMeta(d)
++          && validLibraryStorage(d, assetId);
++      }
++
++      // super_admin dahil herkes aynı tenant/proje kapsamından geçer (Storage canUseBrandLibrary ile tutarlı)
++      allow read: if canUseLibrary(resource.data.tenantId, resource.data.projectId);
++      allow create: if canUseLibrary(request.resource.data.tenantId, request.resource.data.projectId) && validNewLibraryAsset();
++      allow update: if canUseLibrary(resource.data.tenantId, resource.data.projectId)
++                    && keepsIdentity()
++                    && onlyChanges(['title', 'tags', 'status', 'archivedAt', 'updatedAt'])
++                    && validLibraryMeta(request.resource.data)
++                    && request.resource.data.updatedAt == request.time;
++      allow delete: if false;
+     }
+ 
+     // =============================================

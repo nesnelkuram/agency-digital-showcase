@@ -54,7 +54,13 @@
     "api/tasks/score-delegation.ts": { "maxDuration": 30 },
     "api/approve-strategy.ts": { "maxDuration": 10 },
     "api/drive/sync.ts": { "maxDuration": 60 },
-    "api/drive/import.ts": { "maxDuration": 60 }
+    "api/drive/import.ts": { "maxDuration": 60 },
+    "api/cron/canva-sync.ts": { "maxDuration": 60 },
+    "api/canva/sync.ts": { "maxDuration": 60 },
+    "api/cron/media-analysis.ts": { "maxDuration": 300 },
+    "api/media/analyze.ts": { "maxDuration": 180 },
+    "api/studio/plan-suggest.ts": { "maxDuration": 180 },
+    "api/studio/plan-copy.ts": { "maxDuration": 120 }
   },
   "crons": [
     {
@@ -83,6 +89,14 @@
     },
     {
       "path": "/api/cron/task-reminders",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/canva-sync",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/media-analysis",
       "schedule": "*/30 * * * *"
     }
   ],

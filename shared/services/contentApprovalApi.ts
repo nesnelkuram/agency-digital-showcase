@@ -57,6 +57,8 @@ export async function runApprovalAction(params: {
   approvalConfig?: Partial<ApprovalConfig>;
   /** reschedule: yeni zaman (epoch ms) */
   scheduledAt?: number;
+  /** Düzeltilsin/Revizyona al sebebi — sunucuda geçişle aynı transaction'da yazılır */
+  feedback?: { category: string; note: string; scope: 'content_only' | 'brand_context'; idempotencyKey: string; expectedContentHash: string };
 }): Promise<ApprovalResponse> {
   const res = await authenticatedFetch('/api/content-approval/transition', {
     method: 'POST',

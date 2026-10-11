@@ -45,7 +45,8 @@ const ACTIVE = new Set(['queued', 'uploading', 'paused', 'saving']);
 export function useLibraryUpload(params: {
   tenantId: string;
   projectId: string | undefined;
-  onAssetCreated?: () => void;
+  /** Katalog kaydı yazıldıktan sonra (Studio yüklemesi tamamlandı) — assetId ile */
+  onAssetCreated?: (assetId: string) => void;
   deps?: UploadDeps;
   newId?: () => string;
 }) {
@@ -93,7 +94,7 @@ export function useLibraryUpload(params: {
             current.current = h ? { key: next.key, handle: h } : null;
           },
         });
-        if (result.status === 'done' && gen === generation.current) onCreatedRef.current?.();
+        if (result.status === 'done' && gen === generation.current) onCreatedRef.current?.(result.assetId);
       }
     } finally {
       running.current = false;

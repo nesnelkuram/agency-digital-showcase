@@ -1,0 +1,38 @@
+    // ÖNERİ — DAĞITILMADI, canlı firestore.rules'a EKLENMEDİ. ÜRETİME HAZIR DEĞİL, TAM GÜVENLİ KALICILIK DEĞİL:
+    // bu kural liste ELEMANLARINI doğrulayamaz (yalnız boyut/şekil); eleman denetimi zorunlu sunucu doğrulamasıyla yapılmalı
+    // veya belge biçimi kurallarda doğrulanabilir hâle getirilmeli (ör. her kilit/eleme ayrı alt belge). Yalnız emülatör testinde (tests/rules/plannerStateProposal.rules.test.ts)
+    // mevcut kurallarla birleştirilerek denenir. Kalıcı "Kalsın" ve "Ele" durumu için taslak.
+    // Erişim, içerik planıyla AYNI sınırdır: tenant geneli roller veya atanmış marka yöneticisi/freelancer.
+    // Güncelleme yalnız sürüm + 1 ile yapılır: eski/tekrarlı yazım reddedilir.
+    match /content_plan_planner_state/{stateId} {
+      function stateCanUse(tenantId, projectId) {
+        return hasTenantWideProjectAccess(tenantId) || brandManagerOwnsProject(tenantId, projectId);
+      }
+      function statePlanOk(d) {
+        return exists(/databases/$(database)/documents/content_plans/$(d.planId))
+          && get(/databases/$(database)/documents/content_plans/$(d.planId)).data.tenantId == d.tenantId
+          && get(/databases/$(database)/documents/content_plans/$(d.planId)).data.projectId == d.projectId;
+      }
+      function stateShapeOk(d) {
+        return d.keys().hasOnly(['tenantId', 'projectId', 'planId', 'version', 'locks', 'dismissed', 'updatedBy', 'updatedAt'])
+          && d.tenantId is string && d.projectId is string && d.planId is string
+          && stateId == d.tenantId + '_' + d.projectId + '_' + d.planId
+          && d.version is int
+          && d.locks is list && d.locks.size() <= 18
+          && d.dismissed is list && d.dismissed.size() <= 200
+          && d.updatedBy == request.auth.uid;
+      }
+      allow read: if isSuperAdmin() || stateCanUse(resource.data.tenantId, resource.data.projectId);
+      allow create: if (isSuperAdmin() || stateCanUse(request.resource.data.tenantId, request.resource.data.projectId))
+                    && stateShapeOk(request.resource.data)
+                    && request.resource.data.version == 1
+                    && statePlanOk(request.resource.data);
+      allow update: if (isSuperAdmin() || stateCanUse(resource.data.tenantId, resource.data.projectId))
+                    && stateShapeOk(request.resource.data)
+                    && request.resource.data.tenantId == resource.data.tenantId
+                    && request.resource.data.projectId == resource.data.projectId
+                    && request.resource.data.planId == resource.data.planId
+                    && request.resource.data.version == resource.data.version + 1;
+      allow delete: if isSuperAdmin() || hasTenantWideProjectAccess(resource.data.tenantId);
+    }
+

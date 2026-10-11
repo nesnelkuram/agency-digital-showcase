@@ -1,0 +1,49 @@
+--- canli-taban/storage.rules (987ed92)
++++ hotfix/storage.rules
+@@ -36,6 +36,17 @@
+       return isAuthenticated() && userDoc().role in ['admin', 'super_admin'];
+     }
+ 
++    // Marka medya kütüphanesi: tenant genelindeki iç roller (freelancer HARİÇ) + atanmış brand_manager.
++    // Proje Firestore'da var ve aynı tenant'a ait olmalı (istek başına ≤2 doküman: kullanıcı + proje).
++    function canUseBrandLibrary(tenantId, projectId) {
++      return isAuthenticated()
++        && userDoc().tenantId == tenantId
++        && (userDoc().role in ['super_admin', 'admin', 'account_manager', 'staff', 'editor']
++            || (userDoc().role == 'brand_manager'
++                && projectId in userDoc().get('profile', {}).get('assignedProjectIds', [])))
++        && firestore.get(/databases/(default)/documents/projects/$(projectId)).data.tenantId == tenantId;
++    }
++
+     // =============================================
+     // Feedback videos
+     // Public read (for shared video links)
+@@ -153,6 +164,28 @@
+       allow update, delete: if false;
+     }
+ 
++    // =============================================
++    // Marka medya kütüphanesi — paylaşılmaya hazır FINAL fotoğraf/video (docs/studio-media-library.md)
++    // Okuma/listeleme ve yazma: canUseBrandLibrary. Müşteri ve anonim erişemez; müşteri medyayı yalnız
++    // kendisine açılmış post'taki token'lı URL ile görür (paylaşım/portal API'si).
++    // Yazma bir kez (write-once); üzerine yazma ve istemciden silme yok.
++    // Panel yükleme sınırı: 1 GB = 1000000000 bayt (shared/types/brandMedia.ts LIBRARY_MAX_FILE_BYTES).
++    // Önizleme: aynı klasörde thumb.jpg, image/jpeg, ≤ 2000000 bayt.
++    // Path: /brand-media/{tenantId}/{projectId}/{assetId}/{fileName}
++    // =============================================
++    match /brand-media/{tenantId}/{projectId}/{assetId}/{fileName} {
++      allow get, list: if canUseBrandLibrary(tenantId, projectId);
++      allow create: if resource == null
++                    && canUseBrandLibrary(tenantId, projectId)
++                    && ((fileName == 'thumb.jpg'
++                         && request.resource.contentType == 'image/jpeg'
++                         && request.resource.size <= 2000000)
++                        || (fileName != 'thumb.jpg'
++                            && request.resource.size <= 1000000000
++                            && (request.resource.contentType.matches('image/.*') || request.resource.contentType.matches('video/.*'))));
++      allow update, delete: if false;
++    }
++
+     // Eski sosyal medya yolu — mevcut paylaşılmış URL'ler çalışmaya devam eder.
+     // Listeleme ve yeni yazma kapalı.
+     match /social-media/{tenantId}/{allPaths=**} {

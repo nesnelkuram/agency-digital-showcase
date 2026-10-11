@@ -4,6 +4,7 @@ import type { SocialMediaPost } from '@/shared/types/socialMedia';
 import { POST_TYPE_LABELS } from '@/shared/types/socialMedia';
 import { STUDIO_STATUS_COLOR, STUDIO_STATUS_LABEL, formatDate, postThumb } from '../studioData';
 import { readinessFor } from './ReadinessNotice';
+import { AuthStorageImage, mediaStoragePath } from './AuthStorageImage';
 
 interface Props {
   post: SocialMediaPost;
@@ -15,6 +16,7 @@ interface Props {
 /** Studio post kartı — görsel, metin özeti, durum ve varsa revizyon notu */
 const StudioPostCard: React.FC<Props> = ({ post, onClick, children, compact }) => {
   const thumb = postThumb(post);
+  const authPath = !thumb ? mediaStoragePath(post.media?.[0]) : undefined;
   const isVideo = post.media?.[0]?.type === 'video';
   // Plan ekranı (geniş kart): Instagram ön kontrol özeti — yalnız post.media üzerinden (eski mediaUrls kayıtlarında metadata yok)
   const readiness =
@@ -36,6 +38,8 @@ const StudioPostCard: React.FC<Props> = ({ post, onClick, children, compact }) =
         <div className={`${compact ? 'w-14 h-14' : 'w-20 h-20'} shrink-0 rounded-lg bg-neutral-100 overflow-hidden flex items-center justify-center`}>
           {thumb ? (
             <img src={thumb} alt="" className="w-full h-full object-cover" />
+          ) : authPath ? (
+            <AuthStorageImage path={authPath} className="w-full h-full object-cover" />
           ) : isVideo ? (
             <Film className="w-5 h-5 text-neutral-400" />
           ) : (

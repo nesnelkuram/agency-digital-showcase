@@ -1,6 +1,7 @@
 import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
+import { createDietiDraftMiddleware, draftOptionsFromEnv } from './studio/devDraft/dietiDraftDevServer';
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
@@ -51,6 +52,14 @@ export default defineConfig(({ mode }) => {
       },
       plugins: [
         react(),
+        {
+          // Yalnız geliştirme: yerel Dieci taslak kaynağı (salt okunur, loopback). Build'e girmez.
+          name: 'dieci-draft-dev-readonly',
+          apply: 'serve',
+          configureServer(server) {
+            server.middlewares.use(createDietiDraftMiddleware(draftOptionsFromEnv(process.env)) as any);
+          },
+        },
         {
           name: 'kosebasi-showcase-static-route',
           configureServer(server) {

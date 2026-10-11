@@ -5,6 +5,7 @@
  */
 
 import { randomUUID } from 'crypto';
+import { preparePostFeedback, POST_FEEDBACK_ACTIONS, type PostFeedbackInput } from './feedback/contentFeedback.js';
 import { getAdminDb, getFieldValue, getAdminStorage } from './firebaseAdmin.js';
 import {
   planApproval,
@@ -25,6 +26,8 @@ const POSTS = 'social_media_posts';
 
 export interface ApprovalSuccess {
   ok: true;
+  /** Geçişle aynı transaction'da yazılan ret/revizyon sebebi (duplicate = önceki gönderimin sonucu) */
+  feedback?: { id: string; duplicate: boolean };
   updatedPosts: { postId: string; fromStatus: string; newStatus: string }[];
   planStatus: string;
   postApprovalSummary: ReturnType<typeof computeApprovalSummary>;
@@ -178,10 +181,12 @@ export async function executeApproval(params: {
   planId: string;
   actor: ApprovalActor;
   request: ApprovalRequest;
+  /** İsteğe bağlı ret/revizyon sebebi: yalnız oturumlu kullanıcı, tek post, internal_reject/reopen */
+  feedback?: PostFeedbackInput;
 }): Promise<ApprovalSuccess | ApprovalFailure> {
   const db = getAdminDb();
   const FieldValue = getFieldValue();
-  const { planId, actor, request } = params;
+  const { planId, actor, request, feedback } = params;
 
   if (!planId || typeof planId !== 'string') {
     return { ok: false, httpStatus: 400, code: 'BAD_REQUEST', error: 'planId gerekli' };
@@ -192,6 +197,9 @@ export async function executeApproval(params: {
   }
   const explicitIds = postIdsCheck.ids ?? [];
   request.postIds = postIdsCheck.ids;
+  if (feedback && (actor.kind !== 'user' || explicitIds.length !== 1 || !POST_FEEDBACK_ACTIONS.has(request.action))) {
+    return { ok: false, httpStatus: 400, code: 'BAD_REQUEST', error: 'Sebep yalnız tek içerik için Düzeltilsin/Revizyona al işlemine eklenebilir' };
+  }
 
   const planRef = db.collection(PLANS).doc(planId);
   let notifyContext: { tenantId: string; title: string; recipients: string[]; projectId: string; planId: string } | null = null;
@@ -225,12 +233,20 @@ export async function executeApproval(params: {
     // Planın tüm post'ları: contentPlanId bağı + plan.postIds (eski kayıtlar)
     const linkedSnap = await tx.get(db.collection(POSTS).where('contentPlanId', '==', plan.id));
     const postsById = new Map<string, PostSnapshot | null>();
-    for (const d of linkedSnap.docs) postsById.set(d.id, toPostSnapshot(d.id, d.data()));
+    /** Ham post verisi (sebep kaydının içerik sürümü transaction içinde bundan hesaplanır) */
+    const rawById = new Map<string, any>();
+    for (const d of linkedSnap.docs) {
+      postsById.set(d.id, toPostSnapshot(d.id, d.data()));
+      rawById.set(d.id, d.data());
+    }
 
     const missingIds = uniqueStrings([...plan.postIds, ...explicitIds]).filter((id) => !postsById.has(id));
     if (missingIds.length > 0) {
       const docs = await tx.getAll(...missingIds.map((id) => db.collection(POSTS).doc(id)));
-      for (const d of docs) postsById.set(d.id, d.exists ? toPostSnapshot(d.id, d.data()) : null);
+      for (const d of docs) {
+        postsById.set(d.id, d.exists ? toPostSnapshot(d.id, d.data()) : null);
+        if (d.exists) rawById.set(d.id, d.data());
+      }
     }
 
     // Plan üyesi post'lar (durum hesabı için): gerçekten plana bağlı olanlar
@@ -241,6 +257,36 @@ export async function executeApproval(params: {
 
     const targetIds = explicitIds.length > 0 ? explicitIds : planPostIds;
     const targetPosts = targetIds.map((id) => postsById.get(id) ?? null);
+
+    // Ret/revizyon sebebi: önce aynı gönderimin sonucu aranır; yoksa sürüm + gerçek plan üyeliği doğrulanır
+    let feedbackWrite: { ref: any; record: any } | null = null;
+    if (feedback && actor.kind === 'user') {
+      const fp = await preparePostFeedback(tx, db, {
+        actor: { uid: actor.uid, name: actor.displayName || '', role: actor.role, tenantId: actor.tenantId },
+        input: feedback,
+        action: request.action,
+        planId: plan.id,
+        planProjectId: plan.projectId,
+        postId: explicitIds[0],
+        post: rawById.get(explicitIds[0]) ?? null,
+        isPlanMember: planPostIds.includes(explicitIds[0]),
+        now: Date.now(),
+      });
+      if ('ok' in fp) return { ok: false, httpStatus: fp.httpStatus, code: fp.code, error: fp.error } as ApprovalFailure;
+      if (fp.kind === 'duplicate') {
+        // Yanıtı kaybolmuş önceki gönderim: geçiş yeniden çalıştırılmaz, hiçbir yazma yapılmaz
+        const statuses = planPostIds.map((id) => postsById.get(id)!.status);
+        return {
+          ok: true,
+          updatedPosts: [],
+          planStatus: plan.status,
+          postApprovalSummary: computeApprovalSummary(statuses),
+          reviewRequestId: plan.reviewRequestId || null,
+          feedback: { id: fp.feedback.id, duplicate: true },
+        } as ApprovalSuccess;
+      }
+      feedbackWrite = fp;
+    }
 
     const grantUid = ['submit_to_client', 'internal_approve', 'assign_client'].includes(request.action)
       ? request.assignee?.clientId
@@ -288,8 +334,14 @@ export async function executeApproval(params: {
       }
     }
 
+    // Sebep varsa geçiş o içeriği gerçekten değiştirmeli (aksi halde sebep yalnız kalırdı)
+    if (feedbackWrite && !result.postChanges.some((c) => c.postId === explicitIds[0])) {
+      return { ok: false, httpStatus: 409, code: 'NO_TRANSITION', error: 'İçeriğin durumu değişmiş; sayfayı yenileyin' } as ApprovalFailure;
+    }
+
     // ── Yazmalar ──
     const now = new Date();
+    if (feedbackWrite) tx.set(feedbackWrite.ref, feedbackWrite.record);
 
     for (const change of result.postChanges) {
       tx.update(db.collection(POSTS).doc(change.postId), {
@@ -368,6 +420,7 @@ export async function executeApproval(params: {
       planStatus: result.postChanges.length > 0 ? planStatus : plan.status,
       postApprovalSummary: summary,
       reviewRequestId: (result.planFields.reviewRequestId as string) || plan.reviewRequestId || null,
+      ...(feedbackWrite ? { feedback: { id: feedbackWrite.record.id, duplicate: false } } : {}),
     } as ApprovalSuccess;
   });
 

@@ -43,7 +43,8 @@
     "contexts/**/*.tsx",
     "portal/**/*.ts",
     "portal/**/*.tsx",
-    "vite-env.d.ts"
+    "vite-env.d.ts",
+    "react-dom-client.d.ts"
   ],
   "exclude": ["node_modules", "dist", "api"],
   "ts-node": {
