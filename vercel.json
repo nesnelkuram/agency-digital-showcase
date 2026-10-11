@@ -6,22 +6,34 @@
       "maxDuration": 30,
       "includeFiles": "private-reports/abd-tekne-aksesuarlari.pdf"
     },
-    "{api/analyze-start.ts,api/persona/chat.ts,api/agents/generate-agent.ts,api/service-catalog/design-chat.ts,api/tasks/intake-chat.ts,api/workflow/{design-chat,builder-chat}.ts,api/cron/{spawn-recurring-workflows,spawn-recurring-tasks,task-digest,task-reminders,canva-sync}.ts,api/drive/{sync,import}.ts,api/canva/sync.ts}": {
+    "{api/agents/generate-agent.ts,api/analyze-start.ts,api/canva/sync.ts,api/cron/{canva-sync,spawn-recurring-tasks,spawn-recurring-workflows,task-digest,task-reminders}.ts,api/drive/{import,sync}.ts,api/persona/chat.ts}": {
       "maxDuration": 60
     },
-    "{api/analyze-continue.ts,api/workflow/execute-step-internal.ts,api/cron/{marketing-optimize,marketing-daily-report,sync-meta-campaigns,media-analysis}.ts,api/marketing/{optimize,generate-campaign,generate-ad-copy,generate-report,ai-optimize}.ts}": {
+    "{api/service-catalog/design-chat.ts,api/tasks/intake-chat.ts,api/workflow/{builder-chat,design-chat}.ts}": {
+      "maxDuration": 60
+    },
+    "{api/analyze-continue.ts,api/cron/{marketing-daily-report,marketing-optimize,media-analysis,sync-meta-campaigns}.ts,api/marketing/{ai-optimize,generate-ad-copy,generate-campaign,generate-report,optimize}.ts}": {
       "maxDuration": 300
     },
-    "{api/transcribe-video.ts,api/workflow/{complete-step,execute-agent}.ts,api/marketing/{sync-campaigns,sync-performance,sync-breakdowns,forecast-budget,analyze-competitor,analyze-campaign,agent-execute-action,agent-chat-v2}.ts,api/studio/plan-copy.ts}": {
+    "api/workflow/execute-step-internal.ts": {
+      "maxDuration": 300
+    },
+    "{api/marketing/{agent-chat-v2,agent-execute-action,analyze-campaign,analyze-competitor,forecast-budget,sync-breakdowns,sync-campaigns,sync-performance}.ts,api/studio/plan-copy.ts,api/transcribe-video.ts,api/workflow/complete-step.ts}": {
       "maxDuration": 120
     },
-    "{api/persona/start.ts,api/social-media/{generate-caption,iterate-caption}.ts,api/tasks/{analyze-task,breakdown-task,send-test-digest,score-delegation}.ts,api/workflow/review-output.ts,api/marketing/{approve-action,publish-plan}.ts,api/marketing/platforms/callback.ts,api/telegram/webhook.ts}": {
+    "api/workflow/execute-agent.ts": {
+      "maxDuration": 120
+    },
+    "{api/marketing/{approve-action,publish-plan}.ts,api/marketing/platforms/callback.ts,api/persona/start.ts,api/social-media/{generate-caption,iterate-caption}.ts,api/tasks/{analyze-task,breakdown-task,score-delegation,send-test-digest}.ts}": {
+      "maxDuration": 30
+    },
+    "{api/telegram/webhook.ts,api/workflow/review-output.ts}": {
       "maxDuration": 30
     },
     "api/social-media/client-review-post.ts": {
       "maxDuration": 15
     },
-    "{api/telegram/link.ts,api/approve-strategy.ts}": {
+    "{api/approve-strategy.ts,api/telegram/link.ts}": {
       "maxDuration": 10
     },
     "{api/media/analyze.ts,api/studio/plan-suggest.ts}": {
