@@ -26,7 +26,7 @@ const start = async () => {
   click('post-plan-btn');
   fireEvent.click(screen.getByLabelText('p1 incele'));
 };
-const approve = () => click('post-visual-done');
+const approve = () => {}; // görsel plan onay kutusu kaldırıldı: roller doğrudan açık
 const zoom = (v: string) => fireEvent.change(screen.getByLabelText('Yakınlaştırma'), { target: { value: v } });
 const enabled = (id: string) => waitFor(() => expect(btn(id).disabled).toBe(false));
 const runIdeas = async () => { await enabled('ideas-run'); click('ideas-run'); await waitFor(() => expect(q('idea-pick-i1')).toBeTruthy()); };
@@ -38,18 +38,16 @@ const editSel = (main: string) => { fireEvent.change(screen.getByTestId('sel-mai
 const btn = (id: string) => screen.getByTestId(id) as HTMLButtonElement;
 
 describe('akış: niyet → ÜÇ fikir → SEÇİM → caption → bağımsız kontrol (her adım tek, açık eylem)', () => {
-  it('planlama ve onay HİÇ model çağırmaz; onay olmadan fikir düğmesi kapalı; yaratıcı roller onaydan sonra tek tek açılır', async () => {
+  it('planlama HİÇ model çağırmaz; görsel plan onay kutusu yoktur (roller doğrudan açık); yaratıcı roller tek tek açılır', async () => {
     const port = mkPort();
     render(el(port));
     await start();
     expect(port.run).not.toHaveBeenCalled();
-    expect(btn('ideas-run').disabled).toBe(true);
-    expect(screen.getByTestId('creative-needs-approval')).toBeTruthy();
-    approve();
-    expect(port.run).not.toHaveBeenCalled();
-    expect(btn('ideas-run').disabled).toBe(false);
+    expect(q('post-visual-done')).toBeNull();
+    await enabled('ideas-run');
     expect(btn('caption-run').disabled).toBe(true);
     expect(btn('check-run').disabled).toBe(true);
+    expect(port.run).not.toHaveBeenCalled();
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 

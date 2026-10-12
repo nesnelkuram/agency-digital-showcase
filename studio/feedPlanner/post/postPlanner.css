@@ -1,0 +1,46 @@
+/* Post Planlayıcı düzeni: üstte tek ana eylem, solda kompakt post ızgarası, sağda yapışkan düzenleme paneli. */
+.planner-scope .post-planner { max-width: 1280px; }
+.planner-scope .post-planner .pp-top { align-items: center; margin-bottom: 8px; }
+.planner-scope .post-planner .pp-top h1 { font-size: 20px; }
+
+.planner-scope .post-planner .genbar { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin: 8px 0 12px; }
+.planner-scope .post-planner .genrow { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.planner-scope .post-planner .genrow .big { padding: 11px 18px; font-size: 15px; }
+.planner-scope .post-planner .pill { display: inline-block; padding: 3px 10px; border-radius: 99px; background: var(--bg); border: 1px solid var(--line); font-size: 12px; }
+.planner-scope .post-planner .tonedrop { position: relative; margin-left: auto; font-size: 13px; }
+.planner-scope .post-planner .tonedrop > summary { cursor: pointer; list-style: none; padding: 5px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+.planner-scope .post-planner .tonedrop > summary::-webkit-details-marker { display: none; }
+.planner-scope .post-planner .tonedrop[open] > summary { border-color: var(--accent); }
+.planner-scope .post-planner .tonedrop .tonebox { position: absolute; right: 0; top: calc(100% + 6px); z-index: 5; width: min(420px, 92vw); background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; box-shadow: 0 8px 28px rgba(0,0,0,.14); margin: 0; }
+.planner-scope .post-planner .bulkconfirm { margin-top: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
+.planner-scope .post-planner .bulkconfirm p { margin: 0 0 8px; }
+
+.planner-scope .post-planner .pp-cols { display: grid; grid-template-columns: minmax(0, 600px) minmax(360px, 1fr); gap: 16px; align-items: start; }
+.planner-scope .post-planner .pp-h { font-size: 13px; color: var(--muted); font-weight: 600; margin: 0 0 8px; }
+.planner-scope .post-planner .pp-feed { gap: 8px; }
+.planner-scope .post-planner .pp-feed .cell { border-radius: 8px; }
+.planner-scope .post-planner .pp-feed .cell.sel { box-shadow: 0 0 0 3px var(--accent); }
+.planner-scope .post-planner .pp-feed .cellbar { padding: 6px 7px 7px; gap: 3px; }
+.planner-scope .post-planner .pp-feed .cellbar > span { width: auto; }
+.planner-scope .post-planner .pp-feed .cellbar .meta { font-size: 10px; color: var(--muted); margin-right: 6px; }
+.planner-scope .post-planner .pp-feed .cellbar .caption { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; width: 100%; font-size: 12px; line-height: 1.35; font-style: normal; color: var(--ink); order: -1; }
+.planner-scope .post-planner .pp-feed .cellbar .caption.empty { color: var(--muted); font-style: italic; }
+.planner-scope .post-planner .pp-feed .cellbar .caption .tag { display: none; }
+.planner-scope .post-planner .pp-feed .cellbar .status { width: 100%; order: -1; }
+.planner-scope .post-planner .cellact { display: none; width: 100%; flex-wrap: wrap; gap: 3px; margin-top: 4px; }
+.planner-scope .post-planner .cell:hover .cellact, .planner-scope .post-planner .cell.sel .cellact, .planner-scope .post-planner .cell:focus-within .cellact { display: flex; }
+.planner-scope .post-planner .cellact button { padding: 2px 6px; font-size: 11px; }
+.planner-scope .post-planner .pp-emptystate { padding: 28px 12px; text-align: center; border: 1px dashed var(--line); border-radius: 12px; }
+
+.planner-scope .post-planner .pp-side { position: sticky; top: 8px; max-height: calc(100vh - 16px); overflow: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+.planner-scope .post-planner .pp-pickhint { color: var(--muted); padding: 24px 8px; text-align: center; }
+.planner-scope .post-planner .pp-sidehead { margin: 0 0 8px; font-size: 16px; }
+.planner-scope .post-planner .pp-textblock textarea { width: 100%; box-sizing: border-box; font: inherit; font-size: 14px; line-height: 1.45; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); resize: vertical; }
+.planner-scope .post-planner .pp-detail { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 8px; }
+.planner-scope .post-planner .pp-detail > summary { cursor: pointer; font-weight: 600; font-size: 13px; padding: 4px 0; }
+.planner-scope .post-planner .pp-more { margin-top: 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); padding: 8px 14px; }
+.planner-scope .post-planner .pp-more > summary { cursor: pointer; font-weight: 600; font-size: 13px; padding: 4px 0; }
+
+@media (max-width: 1000px) { .planner-scope .post-planner .pp-cols { grid-template-columns: minmax(0, 1fr); } .planner-scope .post-planner .pp-side { position: static; max-height: none; } }
+.planner-scope .post-planner .pp-side .cropbox { max-width: 440px; }
+.planner-scope .post-planner .pp-side .counts { margin: 4px 0; }
