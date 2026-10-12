@@ -125,17 +125,16 @@ describe('akış: niyet → ÜÇ fikir → SEÇİM → caption → bağımsız k
     expect((p2.calls[0] as any).tempTone).toBeUndefined();
   });
 
-  it('marka dili yok + ton yok → çağrı YAPILMAZ (ses_yok); ton seçilince çalışır', async () => {
+  it('marka dili yok + ton yok → çağrı YAPILIR (sade varsayılan ton, tempTone gönderilmez); ton seçilince tempTone gider', async () => {
     const port = mkPort();
     render(el(port, { voice: { approved: false } }));
     await start();
     approve();
-    click('ideas-run');
-    await waitFor(() => expect(screen.getByTestId('failure-ideas').getAttribute('data-kind')).toBe('ses_yok'));
-    expect(port.run).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByTestId('post-tone-chip-samimi'));
     await runIdeas();
     expect(port.count('ideas')).toBe(1);
+    expect((port.calls[0] as any).tempTone).toBeUndefined();
+    expect(screen.queryByTestId('failure-ideas')).toBeNull();
+    expect(screen.getByTestId('post-tone-default-note')).toBeTruthy();
   });
 });
 

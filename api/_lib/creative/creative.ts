@@ -62,6 +62,7 @@ function voiceInfo(v: ResolvedVoice, req: CreativeRequest): VoiceInfo {
   const assumptions: string[] = [];
   if (v.mode === 'tone') {
     assumptions.push('Marka rehberi yok: ton GEÇİCİ plan tonudur, onaylı marka hafızası değildir.');
+    if (!req.tempTone || (!req.tempTone.label && !req.tempTone.prompt)) assumptions.push('Ton seçilmedi: sade, tarafsız varsayılan üslup kullanıldı; marka kişiliği varsayılmadı.');
     assumptions.push('Fikir ve metin yalnız 4:5 kırpımda GÖRÜNÜR olduğu doğrulanan konu bilgisinden türetilir; ürün, içerik, fiyat ve saat doğrulanmadı.');
   }
   return { source: VOICE_SOURCE[v.mode], guideVersion: v.mode === 'guide' ? v.version : null, assumptions, tempToneIgnored: v.mode !== 'tone' && !!req.tempTone };
@@ -81,7 +82,7 @@ export async function runCreative(
   const { req } = p;
   if (!p.uid) throw new CopyError(401, 'uid_required', 'Yetkili kullanıcı kimliği yok.');
   if (req.projectId !== p.projectId) throw new CopyError(400, 'bad_request', 'Proje uyuşmuyor.');
-  const voice = await resolveVoice(db, p.tenantId, p.projectId, req.tempTone);
+  const voice = await resolveVoice(db, p.tenantId, p.projectId, req.tempTone, { neutralFallback: true });
   const { media, invalid, visuals, provenance } = await loadCopyMedia(db, { tenantId: p.tenantId, projectId: p.projectId, ids: [req.mediaId], policy: deps.policy, bundle: voice.bundle, keepUnnamedProducts: voice.mode !== 'bundle' });
   if (invalid.length) throw new CopyError(422, 'media_invalid', 'İstekteki medya bu marka kütüphanesinde geçerli değil.', invalid);
   const m = media.get(req.mediaId)!;

@@ -227,7 +227,6 @@ function PostPlannerInner({
     if (runningRef.current[postId]) return; // post başına aynı anda TEK rol
     if (doneRef.current === null || doneRef.current !== visualPlanSig(pl)) return fail({ kind: 'engellendi', message: 'Görsel plan onaylanmadı veya onaydan sonra değişti; yaratıcı roller başlatılmadı.' });
     if (!ports.creative.available) return fail({ kind: 'kapalı', message: ports.creative.unavailableReason ?? 'Yaratıcı roller bağlı değil.' });
-    if (voice.approved === false && !cleanTone()) return fail({ kind: 'ses_yok', message: 'Onaylı marka dili yok: bir plan tonu seçin veya marka dilini birlikte oluşturun.' });
     const entry = getEntry(postId);
     // MODEL ÇAĞRISINDAN ÖNCE sürüm/seçim/kilit/insan-metni koruması (sunucu ayrıca doğrular)
     const block = canRun(role, entry, cur, { text: post.text, locked: post.assetLock || post.posLock, overwriteHuman: !!overwriteRef.current[postId], ready: readyRef.current, refresh });
@@ -506,6 +505,7 @@ function PostPlannerInner({
                   <label className="field">Serbest ton tarifi (isteğe bağlı)
                     <input type="text" maxLength={MAX_TONE_PROMPT} value={tone.prompt ?? ''} onChange={(e) => setTone((cur) => ({ ...cur, prompt: e.target.value }))} data-testid="post-tone-prompt" />
                   </label>
+                  <p className="small muted" data-testid="post-tone-default-note">Ton seçmezseniz sade, tarafsız bir üslup kullanılır; marka kişiliği varsayılmaz.</p>
                   <p className="small muted">Ton GEÇİCİDİR; onaylı marka hafızası değildir. Fikir ve metin yalnız o 4:5 kırpımda GÖRÜNÜR olduğu doğrulanan olgulardan türetilir; kırpım dışında kalan ayrıntı görünen gerçek sayılmaz.</p>
                   {onStartGuide && <button onClick={onStartGuide} data-testid="post-start-guide">Marka dilini birlikte oluştur</button>}
                 </div>

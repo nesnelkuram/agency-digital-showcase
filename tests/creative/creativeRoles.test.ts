@@ -346,12 +346,13 @@ describe('Rol 3 — bağımsız kontrol', () => {
 });
 
 describe('ses kaynağı: onaylı paket / onaylı rehber / geçici ton', () => {
-  it('rehber/paket/ton YOK → 412 brand_voice_missing (model çağrılmaz); sağlayıcı kapalı bundan ayrı', async () => {
+  it('rehber/paket/ton YOK → sade varsayılan ton (mode tone, varsayım notu); model çağrılır, marka kişiliği uydurulmaz', async () => {
     const db = fresh();
     const m = mockDeps();
-    const e = await catchErr(run(db, m, ideasReq({ tempTone: undefined })));
-    expect(e).toMatchObject({ status: 412, code: 'brand_voice_missing' });
-    expect(m.total()).toBe(0);
+    const r = await run(db, m, ideasReq({ tempTone: undefined }));
+    expect(r.voice.source).toBe('temporary_tone');
+    expect(r.voice.assumptions.join(' ')).toMatch(/Ton seçilmedi/);
+    expect(m.total()).toBeGreaterThan(0);
   });
   it('ONAYLI REHBER her zaman geçici tona üstün: istemde <brand_guide> + G olguları, <tone> YOK, tempToneIgnored işaretli; rehber olgusu kanıt kimliği taşır', async () => {
     const db = fresh();

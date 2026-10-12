@@ -128,13 +128,17 @@ export type ResolvedVoice =
  * Ses kaynağı önceliği (onaylı olan HER ZAMAN öncelikli): 1) yüklü marka sesi paketi, 2) insan onaylı rehber,
  * 3) kullanıcının seçtiği GEÇİCİ ton. Hiçbiri yoksa 412 (model çağrılmaz). Sağlayıcı kapalı (503) bundan AYRIDIR.
  */
-export async function resolveVoice(db: Db, tenantId: string, projectId: string, tempTone?: TempTone): Promise<ResolvedVoice> {
+/** Marka dili de ton da yokken (yalnız yaratıcı akış): marka kimliği VARSAYILMAZ; sade, doğal, abartısız üslup. Onaylı hafıza değildir. */
+export const NEUTRAL_TONE_PROMPT = 'Sade, doğal ve anlaşılır Türkçe; abartısız ve kısa. Marka kişiliği, slogan, ödül, fiyat veya üstünlük iddiası uydurma.';
+
+export async function resolveVoice(db: Db, tenantId: string, projectId: string, tempTone?: TempTone, opts: { neutralFallback?: boolean } = {}): Promise<ResolvedVoice> {
   const bundle = await findBrandVoice(db, tenantId, projectId);
   if (bundle) return { mode: 'bundle', bundle };
   const approved = await findApprovedGuide(db, tenantId, projectId);
   if (approved) return { mode: 'guide', bundle: syntheticBundle(approved.guide.brandName), guide: approved.guide, version: approved.version };
   const tone: TempTone | null = tempTone ? { ...(tempTone.label ? { label: tempTone.label } : {}), ...(tempTone.prompt && cleanTonePrompt(tempTone.prompt) ? { prompt: cleanTonePrompt(tempTone.prompt) } : {}) } : null;
   if (tone && (tone.label || tone.prompt)) return { mode: 'tone', bundle: syntheticBundle('Marka'), tone };
+  if (opts.neutralFallback) return { mode: 'tone', bundle: syntheticBundle('Marka'), tone: { prompt: NEUTRAL_TONE_PROMPT } };
   throw new CopyError(412, 'brand_voice_missing', 'Bu marka için onaylı marka dili yok. Geçici bir ton seçin veya marka dilini birlikte oluşturun.', { needs: 'tone_or_guide' });
 }
 
