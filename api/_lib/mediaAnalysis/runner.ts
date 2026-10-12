@@ -1,7 +1,8 @@
 /**
- * Tek görsel kataloglama (Haiku 5.5) — tekrar önleme, durum, sınırlı yeniden deneme, usage/maliyet kaydı.
+ * Tek görsel analizi (OpenRouter: Haiku 5.5 / Sonnet 5.5) — tekrar önleme, durum, sınırlı yeniden deneme, usage/maliyet kaydı.
  * Toplu/geçmiş analiz YOK: çağıran tek bir Studio varlığı için çalıştırır.
- * Model çağrısı dışarıdan verilir (testte sahte; üretimde Anthropic SDK).
+ * Model çağrısı dışarıdan verilir (testte sahte; üretimde openrouterVisionCall).
+ * Tek yanıt iki AYRI alan taşır: konu kataloğu (`result`) ve kompozisyon kararı (`visual`); ikisi ayrı doğrulanır ve sürümlenir.
  */
 
 import { createHash, randomUUID } from 'crypto';
@@ -12,13 +13,18 @@ import {
   CATALOG_MODEL,
   MEDIA_ANALYSIS_PROMPT_VERSION,
   MEDIA_ANALYSIS_SCHEMA_VERSION,
+  CATALOG_FIELDS_SCHEMA_VERSION,
+  VISUAL_PROMPT_VERSION,
+  VISUAL_SCHEMA_VERSION,
   analysisKey,
-  estimateCostUsd,
   normalizeCatalog,
   type ImageCatalog,
   type SourceQuality,
   type UsageLike,
 } from './spec';
+import { parseAnalysisOutput } from './visualSpec';
+import type { VisualDecision } from '../../../shared/planner/visualDecision';
+import type { CopyUsage } from '../planCopy/planCopy';
 
 export const MAX_ANALYSIS_ATTEMPTS = 3;
 /** Model zaman aşımı (120 sn) + kaynak indirme/yazma payı: lease çağrı sürerken düşmez → ikinci çalıştırıcı aynı işi almaz */
@@ -41,12 +47,28 @@ export interface AnalysisRecord {
   promptVersion: string;
   schemaVersion: string;
   status: AnalysisStatus;
+  /** Alan bazında sürümler: katalog (konu/nesne) ve görsel karar (kompozisyon) AYRI sürümlenir */
+  catalogSchemaVersion?: string;
+  visualSchemaVersion?: string;
+  visualPromptVersion?: string;
   attempts: number;
   retryable?: boolean;
   leaseUntil?: number | null;
   /** Bu denemeyi yürüten çalıştırıcı; sonuç yalnız onunla yazılır (fencing) */
   leaseOwner?: string | null;
   result?: ImageCatalog | null;
+  /** Kompozisyon kararı (model gözlemi + kutu tahmini). ok: doğrulandı; partial: kutu bilinmiyor/bazı bölgeler düşürüldü, diğer alanlar geçerli (neden visualIssue); invalid: şema doğrulamadan geçmedi; absent: eski kayıt */
+  visual?: VisualDecision | null;
+  visualStatus?: 'ok' | 'partial' | 'invalid' | 'absent';
+  visualIssue?: string | null;
+  provider?: 'openrouter' | null;
+  /** Sağlayıcının GERÇEKTEN çalıştırdığı model (istenenden farklı olabilir) */
+  modelUsed?: string | null;
+  requestId?: string | null;
+  /** Sağlayıcının bildirdiği usage ve maliyet (USD). Yerel tahmin yoktur; bildirilmediyse null. */
+  usageDetail?: CopyUsage | null;
+  costUsd?: number | null;
+  /** Eski kayıtlar (doğrudan Anthropic) */
   usage?: UsageLike | null;
   estimatedCostUsd?: number | null;
   pricingSnapshot?: unknown;
@@ -95,8 +117,12 @@ export interface AnalysisStore {
 export interface ModelCallResult {
   id: string;
   stopReason: string | null;
-  usage: UsageLike;
-  parsed: ImageCatalog | null;
+  /** Modelin ham JSON çıktısı ({catalog, visual}); doğrulama runner'da (parseAnalysisOutput) */
+  parsed: unknown | null;
+  provider?: 'openrouter';
+  modelUsed?: string | null;
+  requestId?: string | null;
+  usageDetail?: CopyUsage | null;
 }
 
 export type ModelCall = (p: { model: string; imageBase64: string; mediaType: string }) => Promise<ModelCallResult>;
@@ -111,8 +137,8 @@ export interface AnalysisDeps {
 /** Hata → yeniden denenebilir mi (429/5xx/bağlantı) */
 export function isRetryableModelError(e: any): boolean {
   const status = typeof e?.status === 'number' ? e.status : null;
-  if (status === null) return true; // bağlantı/zaman aşımı
-  return status === 429 || status === 529 || status >= 500;
+  if (status === null) return e?.code !== 'no_api_key'; // bağlantı/zaman aşımı; anahtar yokluğu yeniden denemeyle düzelmez
+  return status === 408 || status === 429 || status === 529 || status >= 500;
 }
 
 export async function analyzeBrandMedia(asset: BrandMediaLike, deps: AnalysisDeps, model = CATALOG_MODEL): Promise<AnalysisRecord> {
@@ -154,6 +180,9 @@ export async function analyzeBrandMedia(asset: BrandMediaLike, deps: AnalysisDep
     model,
     promptVersion: MEDIA_ANALYSIS_PROMPT_VERSION,
     schemaVersion: MEDIA_ANALYSIS_SCHEMA_VERSION,
+    catalogSchemaVersion: CATALOG_FIELDS_SCHEMA_VERSION,
+    visualSchemaVersion: VISUAL_SCHEMA_VERSION,
+    visualPromptVersion: VISUAL_PROMPT_VERSION,
     status: 'running',
     attempts: 1,
     leaseUntil: now() + ANALYSIS_LEASE_MS,
@@ -169,14 +198,36 @@ export async function analyzeBrandMedia(asset: BrandMediaLike, deps: AnalysisDep
   const started = now();
   try {
     const res = await deps.callModel({ model, imageBase64: bytes.toString('base64'), mediaType: sel.contentType });
-    const cost = estimateCostUsd(model, res.usage);
-    const base = { usage: res.usage, estimatedCostUsd: cost.usd, pricingSnapshot: { ...cost.pricing, tier: cost.tier }, stopReason: res.stopReason, responseId: res.id, durationMs: now() - started, leaseUntil: null, leaseOwner: null, updatedAt: now() };
+    const base = {
+      usageDetail: res.usageDetail ?? null,
+      costUsd: res.usageDetail?.costUsd ?? null,
+      provider: res.provider ?? null,
+      modelUsed: res.modelUsed ?? null,
+      requestId: res.requestId ?? null,
+      stopReason: res.stopReason,
+      responseId: res.id,
+      durationMs: now() - started,
+      leaseUntil: null,
+      leaseOwner: null,
+      updatedAt: now(),
+    };
+    const out = res.parsed == null ? null : parseAnalysisOutput(res.parsed);
     if (res.stopReason === 'refusal') {
-      await deps.store.update(key, owner, { ...base, status: 'failed', retryable: false, result: null, error: { code: 'refusal', message: 'Model bu görseli işlemeyi reddetti' } });
-    } else if (!res.parsed) {
-      await deps.store.update(key, owner, { ...base, status: 'failed', retryable: res.stopReason === 'max_tokens', result: null, error: { code: res.stopReason === 'max_tokens' ? 'truncated' : 'schema_invalid', message: 'Yapılandırılmış çıktı alınamadı' } });
+      await deps.store.update(key, owner, { ...base, status: 'failed', retryable: false, result: null, visual: null, error: { code: 'refusal', message: 'Model bu görseli işlemeyi reddetti' } });
+    } else if (!out || !out.ok) {
+      const truncated = res.stopReason === 'max_tokens';
+      await deps.store.update(key, owner, { ...base, status: 'failed', retryable: truncated, result: null, visual: null, error: { code: truncated ? 'truncated' : 'schema_invalid', message: 'Yapılandırılmış çıktı alınamadı' } });
     } else {
-      await deps.store.update(key, owner, { ...base, status: 'done', retryable: false, result: normalizeCatalog(res.parsed), error: null });
+      await deps.store.update(key, owner, {
+        ...base,
+        status: 'done',
+        retryable: false,
+        result: normalizeCatalog(out.catalog),
+        visual: out.visual,
+        visualStatus: out.visualStatus,
+        visualIssue: out.visualIssue,
+        error: null,
+      });
     }
   } catch (e: any) {
     await deps.store.update(key, owner, {
@@ -185,7 +236,7 @@ export async function analyzeBrandMedia(asset: BrandMediaLike, deps: AnalysisDep
       leaseUntil: null,
       leaseOwner: null,
       durationMs: now() - started,
-      error: { code: e?.status ? `http_${e.status}` : 'network', message: String(e?.message || e).slice(0, 300) },
+      error: { code: e?.status ? `http_${e.status}` : e?.code === 'no_api_key' ? 'no_api_key' : 'network', message: String(e?.message || e).slice(0, 300) },
       updatedAt: now(),
     });
   }

@@ -121,3 +121,19 @@
   .planner-scope .home .cols.no-panels { grid-template-columns: minmax(0, 1fr); }
   .planner-scope .home .cols.with-panels { grid-template-columns: 1fr; }
 }
+.planner-scope .post-planner .minigrid { display: grid; grid-template-columns: repeat(3, 46px); gap: 2px; }
+.planner-scope .post-planner .minicell { position: relative; aspect-ratio: 4/5; background: #00000010; overflow: hidden; border-radius: 3px; font-size: 9px; }
+.planner-scope .post-planner .minicell img, .planner-scope .post-planner .minicell .imgph { width: 100%; height: 100%; object-fit: cover; display: block; min-height: 0; aspect-ratio: auto; }
+.planner-scope .post-planner .minicell .tag { position: absolute; left: 1px; bottom: 1px; background: rgba(255,255,255,.85); color: var(--ink); padding: 0 3px; border-radius: 3px; font-size: 8px; max-width: 95%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.planner-scope .post-planner .minicell.snap { opacity: .7; outline: 1px dashed var(--muted); }
+.planner-scope .post-planner .minicell.lockasset { outline: 2px dotted var(--accent); }
+.planner-scope .post-planner .minicell.lockpos { outline: 2px solid var(--accent); }
+.planner-scope .post-planner .previews { display: flex; gap: 16px; flex-wrap: wrap; margin: 6px 0; }
+.planner-scope .post-planner .chrono { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; }
+.planner-scope .post-planner .chrono .item { flex: 0 0 52px; font-size: 10px; text-align: center; }
+.planner-scope .post-planner .chrono .item img { width: 52px; height: 65px; object-fit: cover; border-radius: 4px; }
+.planner-scope .post-planner .cell.assetlocked { outline: 2px dotted var(--accent); }
+.planner-scope .post-planner .lastchange { margin-top: 12px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+.planner-scope .post-planner .cols.with-panels { grid-template-columns: minmax(0, 1fr) 340px; grid-template-areas: "center right"; }
+.planner-scope .post-planner .minicell .surface { width: 100%; height: 100%; aspect-ratio: auto !important; }
+.planner-scope .post-planner .chrono .item .surface { width: 52px; border-radius: 4px; }

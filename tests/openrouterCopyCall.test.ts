@@ -13,7 +13,7 @@ import { bundle, feedItem, req } from './planner/helpers';
 const KEY = 'or-test-anahtar-gercek-degil';
 const GOOD = 'Sofrada kuralları biz koyarız; siz sadece tabağa bakın ve masanın sakinliğini hissedin.';
 const output = (items: unknown[]) => ({ items, notes: [] });
-const item = (slotKey: string, caption: string | null, evidenceBasis = 'katalog_gozlem') => ({ slotKey, caption, headline: null, body: null, evidenceBasis, rationale: 'test' });
+const item = (slotKey: string, caption: string | null, evidenceBasis = 'katalog_gozlem') => ({ slotKey, caption, headline: null, body: null, evidenceBasis, observation: 'Satırdaki konu açıklamasından özet.', rationale: 'test' });
 
 interface Seen { url: string; init: any; body: any }
 const fakeFetch = (reply: { status?: number; body?: unknown; headers?: Record<string, string>; text?: string } | (() => Promise<never>)) => {
@@ -80,7 +80,7 @@ describe('istek: yalnız OpenRouter, yapılandırılmış çıktı, sessiz yedek
     expect(s.required.sort()).toEqual(['items', 'notes']);
     const it = s.properties.items.items;
     expect(it.additionalProperties).toBe(false);
-    expect(it.required.sort()).toEqual(['body', 'caption', 'evidenceBasis', 'headline', 'rationale', 'slotKey']);
+    expect(it.required.sort()).toEqual(['body', 'caption', 'evidenceBasis', 'headline', 'observation', 'rationale', 'slotKey']); // gözlem / caption / gerekçe AYRI alanlar
     expect(it.properties.evidenceBasis.enum).toEqual(['dogrulanmis_urun', 'katalog_gozlem', 'persona_kanaat', 'hesap_ornegi', 'olculen_gorsel', 'marka_rehberi', 'yok_metinsiz']);
     expect(CopyOutputSchema.safeParse(output([item('feed:0', GOOD)])).success).toBe(true);
   });

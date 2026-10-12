@@ -35,7 +35,7 @@ Canlı şemada seri kimliği/rolü yok; her Story ayrı posttur. Aynı yerel gü
 
 ## 3. Model erişimi ve maliyet
 
-- Canlı: `claude-sonnet-5-5`, resmi Anthropic SDK, `max_tokens 8000`, zaman aşımı 120 sn, envanter ≤ 200 satır. Katalog analizi `claude-haiku-5-5`.
+- Canlı: `claude-sonnet-5-5`, resmi Anthropic SDK, `max_tokens 8000`, zaman aşımı 120 sn, envanter ≤ 200 satır. Katalog analizi artık OpenRouter üzerinden `anthropic/claude-haiku-5.5` (bkz. `docs/media-visual-analysis.md`); eski doğrudan-Anthropic `claude-haiku-5-5` yolu kaldırıldı.
 - Fiyat sabitleri koddan (kontrol tarihi 2026-10-10): Sonnet 5.5 giriş 2 / çıkış 10 USD per milyon token; Haiku 5.5 giriş 0,1 / çıkış 0,5.
 - **TAHMİN** (gerçek usage ölçülmedi): 200 satır ≈ 24K giriş + ≤ 8K çıkış → plan çağrısı başına üst sınır ≈ **0,13 USD**. 447 görsel için katalog (görsel başına ~1.600 giriş + ~600 çıkış varsayımıyla) ≈ **0,21 USD**; fiyat katmanı istek başınadır. Satır/görsel token sayıları varsayımdır.
 

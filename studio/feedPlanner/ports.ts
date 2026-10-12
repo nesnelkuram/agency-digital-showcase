@@ -1,6 +1,7 @@
 import type { Candidate } from './types';
 import type { CopyRequest, CopyResult } from '../../shared/planner/copyContract';
 import type { PlannerDraft } from '../../shared/planner/plannerDraft';
+import type { CreativeRequest, CreativeResponse } from '../../shared/planner/creativeContract';
 
 /**
  * Planlayıcı çalışma alanının dış bağımlılıkları. Yerel inceleme (review) ve yetkili Studio aynı çalışma alanını
@@ -36,6 +37,16 @@ export interface CopyPort {
   generate(req: CopyRequest): Promise<CopyResponse>;
 }
 
+/**
+ * Aşama 3 yaratıcı roller (fikir → caption → kontrol; sunucu: /api/studio/plan-creative). Her çağrı TEK rol ve açık kullanıcı eylemidir.
+ * signal: kullanıcı iptali (yanıt yok sayılır; sağlayıcıda tamamlanmış olabilir).
+ */
+export interface CreativePort {
+  available: boolean;
+  unavailableReason?: string;
+  run(req: CreativeRequest, opts?: { signal?: AbortSignal }): Promise<CreativeResponse>;
+}
+
 export interface LoadedDraftInfo {
   version: number;
   draft: PlannerDraft;
@@ -52,6 +63,8 @@ export interface PlannerPorts {
   /** Aday görselinin gösterilebilir adresi (yerel: sunucu URL; Studio: yetkili Storage okumasıyla blob URL) */
   imageSrc: (c: Candidate) => string | Promise<string>;
   copy: CopyPort;
+  /** Post planlayıcının yaratıcı rolleri (Story'de kullanılmaz) */
+  creative: CreativePort;
   persistence: PersistencePort | null;
 }
 
@@ -64,11 +77,20 @@ export const unavailableCopyPort = (reason: string): CopyPort => ({
   },
 });
 
+export const unavailableCreativePort = (reason: string): CreativePort => ({
+  available: false,
+  unavailableReason: reason,
+  run: async () => {
+    throw new PortError(reason, 'model_unavailable');
+  },
+});
+export const REVIEW_CREATIVE_REASON = 'Yaratıcı fikir/metin/kontrol modelleri bağlı değil (yerel inceleme). Yalnız yetkili Studio\'daki gerçek model hattından gelir; şablonla doldurulmaz.';
 export const REVIEW_COPY_REASON = 'Metin üretim modeli bağlı değil (yerel inceleme). Metin yalnız yetkili Studio\'daki gerçek model hattından gelir; şablonla doldurulmaz.';
 
 export const reviewPorts = (): PlannerPorts => ({
   mode: 'review',
   imageSrc: (c) => `/__review/asset/${c.imageKey}`,
   copy: unavailableCopyPort(REVIEW_COPY_REASON),
+  creative: unavailableCreativePort(REVIEW_CREATIVE_REASON),
   persistence: null,
 });

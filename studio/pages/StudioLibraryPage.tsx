@@ -25,6 +25,7 @@ import {
 } from '@/shared/types/brandMedia';
 import ReadinessNotice from '../components/ReadinessNotice';
 import { AssetIntegrations, CanvaFolderPanel } from '../components/MediaIntegrations';
+import AssetDescription from '../components/AssetDescription';
 import { checkInstagramReadiness } from '@/shared/social/instagramReadiness';
 
 type KindFilter = 'all' | BrandMediaKind;
@@ -102,6 +103,12 @@ const AssetDetail: React.FC<{
             {s.duration ? ` · ${Math.round(s.duration)} sn` : ''}
             {asset.createdAt && ` · Eklendi: ${formatDate(asset.createdAt)}`}
           </p>
+
+          {asset.kind === 'photo' ? (
+            <AssetDescription tenantId={tenantId} projectId={projectId} assetId={asset.id} dims={asset.storage?.width && asset.storage?.height ? { w: asset.storage.width, h: asset.storage.height } : undefined} />
+          ) : (
+            <p data-testid="asset-description-video" className="font-grotesk text-xs text-neutral-500">Video için kayıtlı görsel tanımı gösterilmez (AI kataloglama yalnız fotoğraf içindir).</p>
+          )}
 
           <div className="space-y-2">
             <label className="block font-grotesk text-xs font-medium text-neutral-500">Başlık</label>

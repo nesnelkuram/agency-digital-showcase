@@ -66,7 +66,7 @@ describe('GERÇEK KATALOG: 447 kayıt, 200 sınırı, sayfalama yok', () => {
 describe('model erişimi ve maliyet (kod sabitlerinden; çağrı yok)', () => {
   it('fiyat sabitleri ve model adları (doküman bunlara dayanır; değişirse test kırılır)', () => {
     expect(PLAN_MODEL).toBe('claude-sonnet-5-5');
-    expect(CATALOG_MODEL).toBe('claude-haiku-5-5');
+    expect(CATALOG_MODEL).toBe('anthropic/claude-haiku-5.5'); // OpenRouter kimliği (resmi katalogdan doğrulandı)
     expect(PLAN_PROMPT_VERSION).toBe('weekly-draft-v2');
     expect(PRICING['claude-sonnet-5-5'].base).toMatchObject({ input: 2, output: 10 });
     expect(PRICING['claude-haiku-5-5'].base).toMatchObject({ input: 0.1, output: 0.5 });

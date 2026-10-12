@@ -3,7 +3,8 @@ import { getAdminDb, getAdminStorage } from '../_lib/firebaseAdmin.js';
 import { mediaAnalysisSinceMs, mediaAnalysisState } from '../_lib/integrations/config.js';
 import { processAnalysisQueue, reconcileNewMedia, RECONCILE_BUDGET_MS, WORK_START_DEADLINE_MS } from '../_lib/mediaAnalysis/autoQueue.js';
 import { firestoreAnalysisStore, type BrandMediaLike } from '../_lib/mediaAnalysis/runner.js';
-import { anthropicModelCall } from '../_lib/mediaAnalysis/anthropicCall.js';
+import { openrouterVisionCall } from '../_lib/mediaAnalysis/openrouterVisionCall.js';
+import { resolveMediaModel } from '../_lib/mediaAnalysis/spec.js';
 
 export const config = { maxDuration: 300 };
 
@@ -12,7 +13,7 @@ const { Timestamp } = await import('firebase-admin/firestore');
 
 /**
  * Medya AI kataloglama işçisi (kalıcı kuyruk). vercel.json cron: her 30 dk. MEDIA_AI_ANALYSIS_ENABLED="true"
- * ve ANTHROPIC_API_KEY yoksa hiçbir şey yapmaz (200 enabled:false). Kaybolan bildirimler için uzlaştırma yalnız
+ * ve OPENROUTER_API_KEY yoksa hiçbir şey yapmaz (200 enabled:false). Kaybolan bildirimler için uzlaştırma yalnız
  * MEDIA_AI_ANALYSIS_SINCE (açık aktivasyon anı) ayarlıysa çalışır; öncesi için backfill yok.
  * GET, Authorization: Bearer CRON_SECRET (dolu olmalı; aksi halde 401).
  */
@@ -23,6 +24,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!secret || req.headers['authorization'] !== `Bearer ${secret}`) return res.status(401).json({ error: 'Unauthorized' });
   const feature = mediaAnalysisState();
   if (!feature.enabled) return res.status(200).json({ enabled: false, reason: feature.reason });
+  const modelSel = resolveMediaModel();
+  if (!modelSel.ok) return res.status(200).json({ enabled: false, reason: modelSel.reason });
   try {
     const db = getAdminDb();
     const now = Date.now;
@@ -36,11 +39,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       timeValue: (ms) => Timestamp.fromMillis(ms),
     });
     const storage = await getAdminStorage();
-    const callModel = anthropicModelCall();
+    const callModel = openrouterVisionCall();
     const work = await processAnalysisQueue(
       db,
       {
         owner: `cron:${startedAt}`,
+        model: modelSel.model,
         now,
         analysisDeps: (asset: BrandMediaLike) => ({
           store: firestoreAnalysisStore(db),

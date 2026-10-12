@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect, vi } from 'vitest';
 import { analyzeBrandMedia, decideClaim, isRetryableModelError, selectAnalysisSource, type AnalysisRecord, type AnalysisStore, type BrandMediaLike, type ModelCall } from '@/api/_lib/mediaAnalysis/runner';
+import { analysisOutput, visual } from './helpers/visualFixture';
 import { CATALOG_MODEL, CATALOG_SYSTEM_PROMPT, ImageCatalogSchema, analysisKey, estimateCostUsd, normalizeCatalog, toPlannerLine, type ImageCatalog } from '@/api/_lib/mediaAnalysis/spec';
 
 const catalog: ImageCatalog = {
@@ -56,8 +57,8 @@ const asset = (over: Partial<BrandMediaLike['storage']> = {}, kind: 'photo' | 'v
   storage: { path: 'brand-media/t1/p1/a1/x.jpg', contentType: 'image/jpeg', size: 2_000_000, width: 3000, height: 4000, thumbPath: 'brand-media/t1/p1/a1/thumb.jpg', ...over },
 });
 
-const usage = { input_tokens: 5000, output_tokens: 600, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 };
-const okCall = () => vi.fn<ModelCall>(async () => ({ id: 'msg_1', stopReason: 'end_turn', usage, parsed: catalog }));
+const usageDetail = { inputTokens: 5000, outputTokens: 600, totalTokens: 5600, cachedTokens: 0, reasoningTokens: 120, costUsd: 0.0031 };
+const okCall = () => vi.fn<ModelCall>(async () => ({ id: 'gen-1', stopReason: 'end_turn', usageDetail, parsed: analysisOutput(catalog), provider: 'openrouter', modelUsed: 'anthropic/claude-haiku-5.5', requestId: 'rq-1' }));
 
 describe('kaynak seçimi (orijinal / önizleme açıkça)', () => {
   it('API sınırına uyan orijinal → original; büyük orijinal → studio_preview; boyut bilinmiyorsa önizleme', () => {
@@ -76,10 +77,14 @@ describe('analiz çalıştırıcısı', () => {
     const call = okCall();
     const r = await analyzeBrandMedia(asset(), { store, readBytes: async () => Buffer.from('jpegbytes'), callModel: call, now: () => 1000 });
     expect(call).toHaveBeenCalledTimes(1);
-    expect(call.mock.calls[0][0]).toMatchObject({ model: 'claude-haiku-5-5', mediaType: 'image/jpeg' });
-    expect(r).toMatchObject({ status: 'done', model: 'claude-haiku-5-5', promptVersion: 'media-catalog-v2', schemaVersion: '2', sourceQuality: 'original', responseId: 'msg_1' });
+    expect(call.mock.calls[0][0]).toMatchObject({ model: 'anthropic/claude-haiku-5.5', mediaType: 'image/jpeg' });
+    expect(r).toMatchObject({ status: 'done', model: 'anthropic/claude-haiku-5.5', modelUsed: 'anthropic/claude-haiku-5.5', provider: 'openrouter', requestId: 'rq-1', promptVersion: 'media-catalog-v3', schemaVersion: '3', catalogSchemaVersion: '2', visualSchemaVersion: 'visual-decision-3', visualPromptVersion: 'visual-decision-prompt-3', sourceQuality: 'original', responseId: 'gen-1', visualStatus: 'ok' });
     expect(r.sourceSha256).toMatch(/^[a-f0-9]{64}$/);
-    expect(r.estimatedCostUsd).toBeCloseTo((5000 * 0.1 + 600 * 0.5) / 1e6, 10);
+    // Maliyet SAĞLAYICININ bildirdiği değerdir; yerel tahmin yoktur
+    expect(r.costUsd).toBe(0.0031);
+    expect(r.estimatedCostUsd).toBeUndefined();
+    expect(r.usageDetail).toMatchObject({ inputTokens: 5000, outputTokens: 600, reasoningTokens: 120 });
+    expect(r.visual).toMatchObject({ density: 'sakin', subject: { scale: 'orta' } });
     expect(r.result!.tags).toEqual(['tatlı', 'kahve']); // normalize: küçük harf + tekil
   });
 
@@ -117,13 +122,13 @@ describe('analiz çalıştırıcısı', () => {
 
   it('refusal ve şema dışı yanıt "done" sayılmaz; refusal tekrar çağrılmaz', async () => {
     const store = memStore();
-    const call = vi.fn(async () => ({ id: 'm', stopReason: 'refusal', usage, parsed: null }));
+    const call = vi.fn(async () => ({ id: 'm', stopReason: 'refusal', parsed: null }));
     const deps = { store, readBytes: async () => Buffer.from('r'), callModel: call, now: () => 1 };
     expect((await analyzeBrandMedia(asset(), deps)).error?.code).toBe('refusal');
     await analyzeBrandMedia(asset(), deps);
     expect(call).toHaveBeenCalledTimes(1);
     const s2 = memStore();
-    const bad = vi.fn(async () => ({ id: 'm', stopReason: 'end_turn', usage, parsed: null }));
+    const bad = vi.fn(async () => ({ id: 'm', stopReason: 'end_turn', parsed: null }));
     expect((await analyzeBrandMedia(asset(), { store: s2, readBytes: async () => Buffer.from('q'), callModel: bad, now: () => 1 })).error?.code).toBe('schema_invalid');
   });
 
@@ -159,17 +164,17 @@ describe('analiz çalıştırıcısı', () => {
     const fresh = await analyzeBrandMedia(asset(), { store, readBytes: async () => Buffer.from('s'), callModel: okCall(), now: () => t });
     expect(fresh.status).toBe('done');
     expect(fresh.attempts).toBe(2);
-    releaseOld({ id: 'old', stopReason: 'end_turn', usage, parsed: { ...catalog, description: 'ESKİ SONUÇ' } });
+    releaseOld({ id: 'old', stopReason: 'end_turn', parsed: analysisOutput({ ...catalog, description: 'ESKİ SONUÇ' }) });
     await pOld;
     const k = [...store.recs.keys()][0];
     expect(store.recs.get(k)!.result!.description).not.toBe('ESKİ SONUÇ');
-    expect(store.recs.get(k)!.responseId).toBe('msg_1');
+    expect(store.recs.get(k)!.responseId).toBe('gen-1');
   });
 });
 
 describe('spesifikasyon', () => {
   it('model kimliği ve prompt kuralları (uydurma yok, kimlik tahmini yok)', () => {
-    expect(CATALOG_MODEL).toBe('claude-haiku-5-5');
+    expect(CATALOG_MODEL).toBe('anthropic/claude-haiku-5.5');
     expect(CATALOG_SYSTEM_PROMPT).toMatch(/UYDURMA/);
     expect(CATALOG_SYSTEM_PROMPT).toMatch(/isim, yaş, köken/);
     expect(ImageCatalogSchema.safeParse(catalog).success).toBe(true);

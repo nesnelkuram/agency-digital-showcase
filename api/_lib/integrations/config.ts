@@ -9,7 +9,8 @@ export type FeatureState = { enabled: true } | { enabled: false; reason: string;
 const has = (name: string) => typeof process.env[name] === 'string' && process.env[name]!.trim().length > 0;
 
 export const CANVA_REQUIRED_ENV = ['CANVA_CLIENT_ID', 'CANVA_CLIENT_SECRET', 'CANVA_REDIRECT_URI', 'INTEGRATION_TOKEN_KEY', 'FIREBASE_STORAGE_BUCKET'] as const;
-export const MEDIA_AI_REQUIRED_ENV = ['ANTHROPIC_API_KEY', 'FIREBASE_STORAGE_BUCKET'] as const;
+/** Medya analizi OpenRouter üzerinden çalışır (plan metin üretimiyle aynı sağlayıcı); ANTHROPIC_API_KEY ne gerekir ne yeterlidir, sessiz yedek yoktur */
+export const MEDIA_AI_REQUIRED_ENV = ['OPENROUTER_API_KEY', 'FIREBASE_STORAGE_BUCKET'] as const;
 
 export function canvaSyncState(): FeatureState {
   if (process.env.CANVA_SYNC_ENABLED !== 'true') return { enabled: false, reason: 'Canva senkronu kapalı (CANVA_SYNC_ENABLED).' };
@@ -22,8 +23,13 @@ export function mediaAnalysisState(): FeatureState {
   if (process.env.MEDIA_AI_ANALYSIS_ENABLED !== 'true') return { enabled: false, reason: 'Medya AI analizi kapalı (MEDIA_AI_ANALYSIS_ENABLED).' };
   const missing = MEDIA_AI_REQUIRED_ENV.filter((n) => !has(n));
   if (missing.length) return { enabled: false, reason: 'AI yapılandırması eksik.', missing: [...missing] };
+  const raw = process.env.MEDIA_AI_MODEL?.trim();
+  if (raw && !MEDIA_AI_ALLOWED_MODELS.includes(raw)) return { enabled: false, reason: `MEDIA_AI_MODEL geçersiz (izinli: ${MEDIA_AI_ALLOWED_MODELS.join(', ')}).` };
   return { enabled: true };
 }
+
+/** İzinli medya analizi modelleri (OpenRouter kimlikleri). spec.ALLOWED_MEDIA_MODELS ile aynı liste; testle eşitliği doğrulanır. */
+export const MEDIA_AI_ALLOWED_MODELS: string[] = ['anthropic/claude-haiku-5.5', 'anthropic/claude-sonnet-5.5'];
 
 /**
  * Otomatik analiz aktivasyon başlangıcı (ISO 8601, ör. 2026-10-12T09:00:00+03:00). Kalıcı uzlaştırma bu andan

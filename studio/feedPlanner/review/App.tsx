@@ -3,8 +3,10 @@ import type { Aesthetics, Candidate, FormatId, SlotText } from '../types';
 import { FORMATS } from '../types';
 import { cropRect, coverage, ratioOf, type Focus } from '../crop';
 import { hardCheck, scoreCandidate, PART_LABEL, HARD_LABEL, type PartKey } from '../scorer';
+import { defaultFocusOf } from '../compositionFit';
+import { CropEvalCache } from '../../../shared/planner/visualDecision';
 import {
-  emptyPlan, planFromIds, generate, toggleLock, proposeSlot, setSlotText, rejectItem, setSlotFormat, assignToSlot, dismissSlot, replaceSlot, restoreFromHistory, neighborSlots,
+  emptyPlan, planFromIds, generate, toggleLock, proposeSlot, setSlotText, rejectItem, setSlotFormat, assignToSlot, dismissSlot, replaceSlot, restoreFromHistory, neighborSlots, gridCtxFor,
   FEED_SLOTS, GRID_COLS, type Lane, type PlanState, type PlanCtx, type SlotMessage, type OpResult, type ProposeMode,
 } from '../planner';
 import { seriesFrames, validateHierarchy, LOCAL_FONT_NOTE, type SeriesFrame } from '../storyLayout';
@@ -40,6 +42,8 @@ export interface ReviewAppProps {
   ports?: PlannerPorts;
   /** Marka kapsamı (adaylar brand = projectId taşır). Yerel incelemede 'dieci'. */
   projectId?: string;
+  /** Açık tenant: kırpım önbelleği yalnız bu tenant+proje analizlerini kullanır (yoksa ilk doğrulanan analizin tenant'ı benimsenir). */
+  tenantId?: string;
   /** Planın haftası (YYYY-MM-DD, Pazartesi): model isteği ve kalıcı taslak anahtarı */
   weekStart?: string;
   /**
@@ -49,6 +53,11 @@ export interface ReviewAppProps {
   voice?: { approved: boolean | null };
   /** Marka dilini konuşarak oluşturma akışını açar (yoksa düğme gösterilmez) */
   onStartGuide?: () => void;
+  /**
+   * Gösterilen şeritler. Varsayılan: ikisi (yerel inceleme). Studio'da Post ve Story AYRI sekmelerdir: Story sekmesi yalnız ['story'] verir
+   * (feed şeridi ve "Post planı oluştur" gizlenir; post planı yeni Post Planlayıcı'dadır). Story davranışı DEĞİŞMEZ.
+   */
+  lanes?: Lane[];
 }
 
 interface SlotRef {
@@ -98,7 +107,8 @@ const observationOf = (c: Candidate | undefined): PixelObservation | undefined =
 const fitsRole = (t: SlotText | null, role: SeriesFrame['role']): boolean =>
   role === 'headline' ? !!t?.headline && !t.caption : role === 'body' ? !!t?.body && !t.headline && !t.caption : !t;
 
-export default function App({ data: injected, measure = measureImage, qa = null, ports = DEFAULT_PORTS, projectId, weekStart = '', voice = { approved: null }, onStartGuide }: ReviewAppProps) {
+export default function App({ data: injected, measure = measureImage, qa = null, ports = DEFAULT_PORTS, projectId, tenantId, weekStart = '', voice = { approved: null }, onStartGuide, lanes = ['feed', 'story'] }: ReviewAppProps) {
+  const showFeed = lanes.includes('feed');
   const brand = projectId ?? 'dieci';
   const prep = (d: ReviewData): ReviewData =>
     qa === 'exhausted' ? { ...d, title: `${d.title} · QA`, candidates: exhaustedPool(d.candidates, d.weeklyStory, brand) } : d;
@@ -211,8 +221,12 @@ export default function App({ data: injected, measure = measureImage, qa = null,
     if (lane === 'feed') { feedRef.current = st; setFeed(st); } else { storyRef.current = st; setStory(st); }
     markDirty();
   };
+  const cropCache = useMemo(() => new CropEvalCache({ tenantId, projectId: brand }), [tenantId, brand]);
   const ctxFor = (lane: Lane, seed?: number): PlanCtx => ({
     brand,
+    cropCache,
+    // Puanlama kullanıcının GÖRÜNEN/KİLİTLİ etkin kırpımını (manuel odak+zoom ya da varsayılan) kullanır; ref ile asenkron çağrılarda da güncel
+    cropOf: (c) => cropsRef.current[c.id] ?? defaultCrop(c),
     ...(seed !== undefined ? { seed } : {}),
     byId: byIdRef.current,
     storyIds: stateOf(lane === 'feed' ? 'story' : 'feed').slots.filter(Boolean) as string[],
@@ -226,7 +240,8 @@ export default function App({ data: injected, measure = measureImage, qa = null,
       : story.slots.includes(selected.id) ? { lane: 'story', i: story.slots.indexOf(selected.id) } : null
     : null;
   const format: FormatId = where ? (where.lane === 'feed' ? feed : story).formats[where.i] : localFormat;
-  const defaultCrop = (c: Candidate): CropState => ({ focus: FOCUS_BY_POS[c.semantic.subjectPos] ?? { x: 0.5, y: 0.5 }, zoom: 1 });
+  // Odak: kayıtlı konu kutusunun merkezi (kod hesabı) → yoksa semantik konum → merkez. Kırpımda konunun korunmasını önceler.
+  const defaultCrop = (c: Candidate): CropState => ({ focus: c.visual ? defaultFocusOf(c) : FOCUS_BY_POS[c.semantic.subjectPos] ?? { x: 0.5, y: 0.5 }, zoom: 1 });
   const cropOf = (c: Candidate): CropState => crops[c.id] ?? defaultCrop(c);
   const crop: CropState | null = selected ? cropOf(selected) : null;
   const frames = framesOf(story.slots);
@@ -369,20 +384,30 @@ export default function App({ data: injected, measure = measureImage, qa = null,
     if (notes.length) setMessages(notes.map((n) => ({ ...n, lane: lanes[0] })));
   };
 
-  /** Story'de rol değişince uymayan metni boşalt (hiyerarşi). Model ÇAĞRILMAZ; metin gereken kareler "henüz üretilmedi" olur. */
+  /**
+   * Story'de rol değişince uymayan metni boşalt (hiyerarşi). Model ÇAĞRILMAZ; metin gereken kareler "henüz üretilmedi" olur.
+   * Kalsın işaretli kareler DEĞİŞMEZ: metni silinmez, uyumsuzluk açıkça söylenir (işaret kalkınca yeniden üretilebilir).
+   */
   const reconcileStory = () => {
     const st = stateOf('story');
     const fr = framesOf(st.slots);
     let next = st;
     const need: number[] = [];
+    const keptLocked: number[] = [];
     st.slots.forEach((id, i) => {
       if (!id || fitsRole(st.texts[i], fr[i].role)) return;
+      if (st.locked[i]) { keptLocked.push(i); return; }
       next = { ...next, texts: next.texts.map((t, j) => (j === i ? null : t)), versions: next.versions.map((v, j) => (j === i ? v + 1 : v)) };
       if (fr[i].role !== 'none') need.push(i);
     });
-    if (next === st) return;
-    commit('story', next);
-    if (need.length) setMessages((m) => [...m, ...need.map((i) => ({ lane: 'story' as Lane, slot: i, text: 'Seri değişti: bu karenin metni yeniden üretilmeli (Metin üret).' }))]);
+    if (next !== st) commit('story', next);
+    if (need.length || keptLocked.length) {
+      setMessages((m) => [
+        ...m,
+        ...need.map((i) => ({ lane: 'story' as Lane, slot: i, text: 'Seri değişti: bu karenin metni yeniden üretilmeli (Metin üret).' })),
+        ...keptLocked.map((i) => ({ lane: 'story' as Lane, slot: i, text: 'Seri değişti ama Kalsın işaretli karenin metni korundu; yeni role uymayabilir. İşareti kaldırıp yeniden üretebilirsiniz.' })),
+      ]);
+    }
   };
 
   /** Plan oluştur / kalanları yeniden öner: YALNIZ görsel plan. İlk basış en iyi planı kurar; sonraki basışlar tohumla (sert kısıt, komşu uyumu, yayın geçmişi ve Kalsın korunarak) varyasyon verir. */
@@ -567,6 +592,7 @@ export default function App({ data: injected, measure = measureImage, qa = null,
         neighborSlots(where.i, where.lane).map((j) => (where.lane === 'feed' ? feed : story).slots[j]).map((id) => (id ? byId.get(id) : undefined)).filter((c): c is Candidate => !!c),
         (where.lane === 'feed' ? feed : story).slots.filter((id, j) => j !== where.i && id).map((id) => byId.get(id as string)).filter((c): c is Candidate => !!c),
         items.filter((c) => c.published && c.brand === brand),
+        gridCtxFor(where.i, where.lane === 'feed' ? feed : story, { byId, cropCache, cropOf }),
       )
     : null;
   const hard = selected
@@ -697,7 +723,11 @@ export default function App({ data: injected, measure = measureImage, qa = null,
             <p className="muted">{data.dateLabel} · <span className="badge">TASLAK{ports.mode === 'review' ? ' · yerel önizleme' : ''}</span></p>
           </div>
           <div className="actions">
-            <button className="primary big" onClick={() => onGenerate('feed', false)} disabled={!ready || anyBusy} title={ready ? undefined : 'Ölçümler tamamlanana kadar kapalı'} data-testid="make-plan">Post planı oluştur</button>
+            {showFeed ? (
+              <button className="primary big" onClick={() => onGenerate('feed', false)} disabled={!ready || anyBusy} title={ready ? undefined : 'Ölçümler tamamlanana kadar kapalı'} data-testid="make-plan">Post planı oluştur</button>
+            ) : (
+              <button className="primary big" onClick={() => onGenerate('story', false)} disabled={!ready || anyBusy} title={ready ? undefined : 'Ölçümler tamamlanana kadar kapalı'} data-testid="make-story-plan">Story oluştur</button>
+            )}
             {ports.persistence && <button onClick={() => void onSave()} disabled={persist.status === 'saving' || anyBusy || !persist.dirty} data-testid="save-draft">Taslağı kaydet</button>}
             <button onClick={() => setShowPanels(!showPanels)} aria-expanded={showPanels} data-testid="toggle-panels">Kütüphane ve inceleme</button>
           </div>
@@ -736,10 +766,14 @@ export default function App({ data: injected, measure = measureImage, qa = null,
               {Array.from({ length: FEED_SLOTS }, (_, i) => renderSlot('story', i))}
             </div>
 
-            <h2>Instagram feed · 3 sütun ({feedPlaced}/{FEED_SLOTS})</h2>
-            <div className="feed" style={{ gridTemplateColumns: `repeat(${GRID_COLS}, minmax(0, 1fr))` }}>
-              {Array.from({ length: FEED_SLOTS }, (_, i) => renderSlot('feed', i))}
-            </div>
+            {showFeed && (
+              <>
+                <h2>Instagram feed · 3 sütun ({feedPlaced}/{FEED_SLOTS})</h2>
+                <div className="feed" style={{ gridTemplateColumns: `repeat(${GRID_COLS}, minmax(0, 1fr))` }}>
+                  {Array.from({ length: FEED_SLOTS }, (_, i) => renderSlot('feed', i))}
+                </div>
+              </>
+            )}
 
             <section className="textpanel" aria-label="Metin" data-testid="text-panel">
               <div className="textrow">
@@ -776,8 +810,8 @@ export default function App({ data: injected, measure = measureImage, qa = null,
             <details className="advanced" data-testid="advanced">
               <summary>Gelişmiş ayarlar</summary>
               <div className="actions">
-                <button onClick={() => onGenerate('feed', true)} disabled={feedPlaced === 0 || !ready || anyBusy}>Kalanları yeniden öner</button>
-                <button onClick={() => onGenerate('story', false)} disabled={!ready || anyBusy}>Story oluştur</button>
+                {showFeed && <button onClick={() => onGenerate('feed', true)} disabled={feedPlaced === 0 || !ready || anyBusy}>Kalanları yeniden öner</button>}
+                {showFeed && <button onClick={() => onGenerate('story', false)} disabled={!ready || anyBusy}>Story oluştur</button>}
                 <button onClick={() => onGenerate('story', true)} disabled={!ready || anyBusy}>Story: kalanları yeniden öner</button>
                 {data.weeklyStory.length > 0 && <button onClick={() => { commit('story', initialStory ?? planFromIds(data.weeklyStory, 'story')); setMessages([]); }}>Haftalık plana dön</button>}
               </div>
@@ -896,7 +930,7 @@ export default function App({ data: injected, measure = measureImage, qa = null,
 
                 {scored && (
                   <details>
-                    <summary>Puan (sezgisel): {scored.total}/100{scored.known < 7 ? ` · kısmi ${scored.known}/7` : ''}</summary>
+                    <summary>Puan (sezgisel): {scored.total}/100{scored.known < Object.keys(PART_LABEL).length ? ` · kısmi ${scored.known}/${Object.keys(PART_LABEL).length}` : ''}</summary>
                     <p className="small">{scored.warnings.join(' · ')}</p>
                     {scored.missing.length > 0 && <p className="small muted">Ölçüm yok: {scored.missing.join(', ')}</p>}
                     <ul className="small">
@@ -905,6 +939,13 @@ export default function App({ data: injected, measure = measureImage, qa = null,
                       ))}
                     </ul>
                     {scored.repetitionNote && <p className="small">{scored.repetitionNote}</p>}
+                    {scored.compositionNotes.length > 0 && <p className="small" data-testid="composition-notes">Kompozisyon: {scored.compositionNotes.join(' · ')}</p>}
+                    {Object.keys(scored.compositionSources).length > 0 && (
+                      <p className="small muted" data-testid="composition-sources">
+                        Kompozisyon kaynakları: {Object.entries(scored.compositionSources).map(([k, v]) => `${k}=${v === 'code' ? 'kod hesabı' : v === 'model' ? 'model gözlemi' : 'model+kod'}`).join(', ')}
+                        {scored.compositionUnknown.length > 0 ? ` · bilinmiyor (puana katılmadı): ${scored.compositionUnknown.join(', ')}` : ''}
+                      </p>
+                    )}
                   </details>
                 )}
               </>

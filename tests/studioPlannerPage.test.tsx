@@ -6,16 +6,19 @@ import fs from 'node:fs';
 
 const fetchInv = vi.fn();
 let failInv: Error | null = null;
-vi.mock('@/studio/StudioLayout', () => ({ useStudio: () => ({ project: { id: 'p1', name: 'Dieci' }, tenantId: 't1' }) }));
+const studioCtx = vi.hoisted(() => ({ project: { id: 'p1', name: 'Dieci' }, tenantId: 't1' }));
+vi.mock('@/studio/StudioLayout', () => ({ useStudio: () => studioCtx }));
 vi.mock('@/studio/feedPlanner/live/livePorts', () => ({
   fetchInventory: (...a: any[]) => (failInv ? (async () => { throw failInv; })() : fetchInv(...a)),
   createBlobResolver: () => ({ resolve: () => Promise.resolve('blob:x'), dispose: vi.fn() }),
   createCopyPort: () => ({ available: true, generate: vi.fn() }),
+  createCreativePort: () => ({ available: true, run: vi.fn() }),
   createPersistencePort: () => ({ load: vi.fn(async () => null), save: vi.fn() }),
 }));
 const af = vi.hoisted(() => ({ fn: null as any }));
 vi.mock('@/lib/firebase/apiClient', () => ({ authenticatedFetch: (...a: any[]) => af.fn(...a) }));
-vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { uid: 'u1', role: 'admin' } }) }));
+const authCtx = vi.hoisted(() => ({ user: { uid: 'u1', role: 'admin' } }));
+vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => authCtx }));
 const okJson = (b: unknown) => ({ ok: true, status: 200, json: async () => b });
 /** URL'ye göre yanıt: marka sesi paketi ve konuşmalı rehber durumu */
 const voiceApi = (o: { bundle?: any; guide?: any; fail?: boolean } = {}) => {
@@ -26,12 +29,12 @@ const voiceApi = (o: { bundle?: any; guide?: any; fail?: boolean } = {}) => {
     return okJson({});
   });
 };
-vi.mock('@/studio/feedPlanner/review/loadPixels', () => ({ measureImage: async () => null }));
+vi.mock('@/studio/feedPlanner/review/loadPixels', () => ({ measureImage: async () => null, measureImageCrop: async () => null }));
 import StudioPlannerPage, { mondayOf } from '@/studio/pages/StudioPlannerPage';
 
 const readiness = { static: 'ok', carousel: 'ok', story: 'ok', reels: 'error' };
 const dto = (id: string, o: any = {}) => ({ id, kind: 'photo', width: 1080, height: 1350, path: `p/${id}.jpg`, thumbPath: null, catalog: null, verifiedProductIds: [], usage: { usedInPostCount: 0, approvedUseCount: 0, pendingUseCount: 0 }, readiness, ...o });
-beforeEach(() => { fetchInv.mockReset(); failInv = null; voiceApi(); });
+beforeEach(() => { fetchInv.mockReset(); failInv = null; voiceApi(); studioCtx.project = { id: 'p1', name: 'Dieci' }; studioCtx.tenantId = 't1'; authCtx.user = { uid: 'u1', role: 'admin' }; });
 afterEach(() => cleanup());
 
 describe('yetkili Studio planlayıcı sayfası', () => {
@@ -66,7 +69,7 @@ describe('yetkili Studio planlayıcı sayfası', () => {
     render(<StudioPlannerPage />);
     await waitFor(() => expect(screen.getByTestId('tone-panel')).toBeTruthy());
     expect(screen.getByTestId('tone-panel').textContent).toMatch(/onaylı marka dili yok/);
-    await waitFor(() => expect((screen.getByTestId('make-plan') as HTMLButtonElement).disabled).toBe(false));
+    await waitFor(() => expect((screen.getByTestId('make-story-plan') as HTMLButtonElement).disabled).toBe(false));
     expect(screen.getByTestId('brand-voice-missing').textContent).toMatch(/Plan akışı bloklanmaz/);
     expect(screen.queryByTestId('guide-chat')).toBeNull();
     fireEvent.click(screen.getByTestId('start-guide')); // planlayıcıdaki düğme
@@ -97,7 +100,62 @@ describe('yetkili Studio planlayıcı sayfası', () => {
     await waitFor(() => expect(screen.getByTestId('tone-panel')).toBeTruthy());
     expect(screen.getByTestId('tone-panel').textContent).toMatch(/\(isteğe bağlı\)/);
     expect(screen.getByTestId('tone-panel').textContent).not.toMatch(/onaylı marka dili yok/);
-    await waitFor(() => expect((screen.getByTestId('make-plan') as HTMLButtonElement).disabled).toBe(false));
+    await waitFor(() => expect((screen.getByTestId('make-story-plan') as HTMLButtonElement).disabled).toBe(false));
+  });
+
+  it('POST ve STORY AYRI SEKMELER: varsayılan Post Planlayıcı; Story sekmesi yalnız Story şeridini taşır (feed şeridi / "Post planı oluştur" yok); ikisi de bağlı kalır', async () => {
+    fetchInv.mockResolvedValue({ items: [dto('a1'), dto('a2')], excluded: [], pages: 1 });
+    render(<StudioPlannerPage />);
+    await waitFor(() => expect(screen.getByTestId('post-planner')).toBeTruthy());
+    expect(screen.getByTestId('tab-post').getAttribute('aria-selected')).toBe('true');
+    expect(screen.getByTestId('tab-story').getAttribute('aria-selected')).toBe('false');
+    expect(document.getElementById('panel-post')!.hidden).toBe(false);
+    expect(document.getElementById('panel-story')!.hidden).toBe(true);
+    expect(screen.getByTestId('post-plan-btn').textContent).toBe('Post planı oluştur');
+    // Story sekmesi: feed şeridi yok, eski "Post planı oluştur" yok
+    expect(screen.queryByTestId('make-plan')).toBeNull();
+    expect(screen.queryByTestId('feed-slot-0')).toBeNull();
+    expect(screen.getByTestId('story-slot-0')).toBeTruthy();
+    fireEvent.click(screen.getByTestId('tab-story'));
+    expect(screen.getByTestId('tab-story').getAttribute('aria-selected')).toBe('true');
+    expect(document.getElementById('panel-story')!.hidden).toBe(false);
+    expect(document.getElementById('panel-post')!.hidden).toBe(true);
+    // Post planlayıcı marka dili durumunu kendi (ayrı kimlikli) panelinde gösterir
+    await waitFor(() => expect(screen.getByTestId('post-tone-panel')).toBeTruthy());
+  });
+
+  it('KAPSAM GEÇİŞİ (tenant/proje): eski kapsamın GEÇ envanter yanıtı yeni kapsama yazılmaz; yeni kapsam kendi verisini yükler; eski veri hiçbir anda çizilmez', async () => {
+    const pending: Array<(v: any) => void> = [];
+    fetchInv.mockImplementation(() => new Promise((r) => pending.push(r)));
+    const { rerender } = render(<StudioPlannerPage />);
+    await waitFor(() => expect(pending.length).toBe(1));
+    studioCtx.project = { id: 'p2', name: 'Baska' };
+    studioCtx.tenantId = 't2';
+    rerender(<StudioPlannerPage />);
+    await waitFor(() => expect(pending.length).toBe(2));
+    pending[0]({ items: [dto('eski1'), dto('eski2')], excluded: [], pages: 1 }); // ESKİ kapsam geç döndü
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(screen.queryByTestId('counts')).toBeNull();
+    pending[1]({ items: [dto('yeni1')], excluded: [], pages: 1 });
+    await waitFor(() => expect(screen.getByTestId('counts').textContent).toMatch(/Aday havuzu 1/));
+    expect(document.body.textContent).not.toMatch(/eski1|eski2/);
+  });
+
+  it('KAPSAM GEÇİŞİ: yalnız tenant değişse bile (aynı proje kimliği) veri atılır ve yeniden yüklenir; eski kapsamın GEÇ HATASI yeni kapsamda hata göstermez', async () => {
+    const pending: Array<{ ok: (v: any) => void; no: (e: Error) => void }> = [];
+    fetchInv.mockImplementation(() => new Promise((ok, no) => pending.push({ ok, no })));
+    const { rerender } = render(<StudioPlannerPage />);
+    await waitFor(() => expect(pending.length).toBe(1));
+    studioCtx.tenantId = 't2';
+    rerender(<StudioPlannerPage />);
+    await waitFor(() => expect(pending.length).toBe(2));
+    pending[0].no(new Error('ESKİ KAPSAM HATASI'));
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(screen.queryByRole('alert')).toBeNull();
+    pending[1].ok({ items: [dto('a1')], excluded: [], pages: 1 });
+    await waitFor(() => expect(screen.getByTestId('counts').textContent).toMatch(/Aday havuzu 1/));
   });
 
   it('hafta her zaman Pazartesi\'ye yuvarlanır', () => {

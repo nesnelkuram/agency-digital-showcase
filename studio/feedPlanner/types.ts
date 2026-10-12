@@ -1,4 +1,5 @@
 import type { EvidenceBasis } from '../../shared/planner/copyContract';
+import type { CandidateVisual } from '../../shared/planner/visualDecision';
 
 /** Instagram feed + Story planlama çalışma alanı: ortak tipler (yalnız yerel inceleme). */
 
@@ -73,6 +74,13 @@ export interface Candidate {
   weekFrame?: { day: string; frame: number; copy: string; seriesKey?: string };
   /** Gerçek ürün kimliği (insan doğrulamalı); Story serisi kimliği kaynağı. Yok/null = seri yok. */
   productId?: string | null;
+  /**
+   * Kayıtlı kompozisyon kararı (model gözlemi + kutu tahmini; kapsam/sürüm doğrulamalı). Yok = BİLİNMİYOR: puanlamaya girmez,
+   * uydurulmaz. Plan motoru bunu kullanır; plan üretimi görsele yeniden model çağrısı yapmaz.
+   */
+  visual?: CandidateVisual;
+  /** Kayıtlı kullanım önerileri (feed/carousel/story/reels_kapak…) ve KAYNAĞI: human = insan düzeltmesi, ai = model gözlemi. Yok = bilinmiyor. */
+  useTags?: { values: string[]; source: 'human' | 'ai' };
 }
 
 export type VoiceSource = 'approved_bundle' | 'approved_guide' | 'temporary_tone';

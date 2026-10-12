@@ -1,6 +1,8 @@
 import type { Candidate, FormatId, SlotText, TextRole } from './types';
 import { FORMATS } from './types';
 import { hardCheck, scoreCandidate, explainShortage, HARD_LABEL, type HardReason } from './scorer';
+import type { CropEvalCache } from '../../shared/planner/visualDecision';
+import type { GridCtx, Placed } from './compositionFit';
 
 export const GRID_COLS = 3;
 export const FEED_SLOTS = 9;
@@ -52,6 +54,13 @@ export interface PlanCtx {
   byId: Map<string, Candidate>;
   /** Diğer şeridin kullandığı varlıklar: tekrar edilmez */
   storyIds: string[];
+  /** Kırpım değerlendirme önbelleği (tenant+proje+varlık+analiz anahtarı+şema/istem sürümü+kırpım anahtarlı). Yoksa her seferinde hesaplanır; görsel çağrısı hiçbir durumda yapılmaz. */
+  cropCache?: CropEvalCache;
+  /**
+   * Adayın ETKİN kırpımı (kullanıcının manuel odak+yakınlaştırması varsa o; yoksa varsayılan). Puanlama aday, komşu, satır ve ızgara
+   * için AYNI kırpımı kullanır; kilitli slotun görünen kırpımı da böyle sabit bağlamdır. Yoksa varsayılan odak, zoom 1.
+   */
+  cropOf?: (c: Candidate) => { focus: { x: number; y: number }; zoom: number } | null | undefined;
   /** Story serisi rolleri (konuma göre): başlık yalnız ilk karede. Yoksa 'headline'. */
   roleOf?: (i: number, slots: (string | null)[]) => TextRole;
   /**
@@ -129,6 +138,19 @@ export function neighborSlots(i: number, lane: Lane = 'feed'): number[] {
   return out;
 }
 
+/**
+ * Izgara bağlamı: yerleşmiş TÜM slotlar (Kalsın'lar dahil, sabit bağlam) — sütun, komşu ağırlık, satır üçlüsü, tüm ızgara dengesi.
+ * Slot i'nin kendisi dahil değildir (aday onun yerine konulacak).
+ */
+export function gridCtxFor(i: number, state: PlanState, ctx: Pick<PlanCtx, 'byId' | 'cropCache' | 'cropOf'>): GridCtx {
+  const placed = new Map<number, Placed>();
+  state.slots.forEach((id, j) => {
+    const pc = j !== i && id ? ctx.byId.get(id) : undefined;
+    if (pc) placed.set(j, { c: pc, format: state.formats[j] });
+  });
+  return { slot: i, lane: (state.lane ?? 'feed') as Lane, placed, neighborSlots: neighborSlots(i, state.lane), slotCount: FEED_SLOTS, cache: ctx.cropCache, cropFor: ctx.cropOf };
+}
+
 interface Evaluation {
   best: Candidate | null;
   eliminated: Partial<Record<HardReason, number>>;
@@ -154,6 +176,7 @@ function evaluate(i: number, state: PlanState, ctx: PlanCtx, exclude: Set<string
   const published = all.filter((c) => c.published);
   const pool = all.filter((c) => !c.published);
   const format = state.formats[i];
+  const grid = gridCtxFor(i, state, ctx);
   const eliminated: Partial<Record<HardReason, number>> = {};
   let best: Candidate | null = null;
   let bestScore = -1;
@@ -165,7 +188,7 @@ function evaluate(i: number, state: PlanState, ctx: PlanCtx, exclude: Set<string
       eliminated[r] = (eliminated[r] ?? 0) + 1;
       continue;
     }
-    const s = scoreCandidate(c, format, neighbors, planned, published).total;
+    const s = scoreCandidate(c, format, neighbors, planned, published, grid).total;
     scored.push({ c, s });
     if (!best || s > bestScore || (s === bestScore && c.id < best.id)) {
       best = c;
@@ -234,7 +257,12 @@ export function toggleLock(i: number, state: PlanState, desired?: boolean, expec
   if (isStale(state, i, expected)) return { state, message: STALE, stale: true };
   if (!state.slots[i]) return { state, message: 'Boş öğe kilitlenemez; önce plan oluşturun.' };
   const want = desired ?? !state.locked[i];
-  return { state: { ...state, locked: state.locked.map((l, j) => (j === i ? want : l)) } };
+  if (want === state.locked[i]) return { state };
+  // Kilit değişimi slot sürümünü artırır: kilitten ÖNCE başlamış bir metin isteği (kilit sonradan açılsa bile) geri yazamaz.
+  const next = clone(state);
+  next.locked[i] = want;
+  next.versions[i] = (next.versions[i] ?? 0) + 1;
+  return { state: next };
 }
 
 /** Kilitli değilse slottaki öneriyi başka gerçek bir adayla (ve metniyle) değiştirir. Geçmişe yazmaz. */
@@ -429,6 +457,8 @@ export function commitSuggestion(i: number, candidateId: string, text: SlotText 
 export function setSlotText(i: number, candidateId: string, text: SlotText | null, state: PlanState, expected?: number): OpResult {
   if (isStale(state, i, expected)) return { state, message: STALE, stale: true };
   if (state.slots[i] !== candidateId) return { state, message: 'Slot artık bu görseli tutmuyor; metin yok sayıldı.', stale: true };
+  // Kalsın işaretli görsel+metin çifti değişmez; kilitli ama metni henüz olmayan slota açık "Metin üret" yazabilir.
+  if (state.locked[i] && state.texts[i]) return { state, message: 'Kalsın işaretli metin değişmez; gelen metin yok sayıldı.', stale: true };
   const next = clone(state);
   next.texts[i] = text;
   next.versions[i] = (next.versions[i] ?? 0) + 1;

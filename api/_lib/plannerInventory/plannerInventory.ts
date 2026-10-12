@@ -6,6 +6,8 @@
 import { isConsistentAsset, type BrandMediaAsset, type MediaSourcePolicy } from '../../../shared/types/brandMedia.js';
 import type { CatalogLite } from '../../../shared/planner/copyContract.js';
 import { loadEffectiveCatalog } from '../mediaAnalysis/correctionStore.js';
+import { liteOfEffective } from '../mediaAnalysis/catalogLite.js';
+import type { CandidateVisual } from '../../../shared/planner/visualDecision.js';
 import { readinessFor, PLAN_POST_TYPES, APPROVED_POST_STATES, PENDING_POST_STATES, type Readiness } from '../planSuggest/planSuggest.js';
 import { assetToMediaItem } from '../../../shared/types/brandMedia.js';
 
@@ -35,9 +37,19 @@ export interface InventoryItemDTO {
   thumbPath: string | null;
   createdAtMs: number | null;
   catalog: CatalogLite | null;
+  /**
+   * Kayıtlı kompozisyon kararı (model gözlemi + kutu tahmini; kapsam/sürüm doğrulamalı). Yok/geçersiz/eski şema = null (bilinmiyor).
+   * Plan motoru bunu KULLANIR; plan üretiminde görsele yeniden model çağrısı yapılmaz.
+   */
+  visual: CandidateVisual | null;
   /** İnsan doğrulamalı ürün kimlikleri (gerçek ürün/seri kimliği kaynağı) */
   verifiedProductIds: string[];
-  usage: { usedInPostCount: number; approvedUseCount: number; pendingUseCount: number };
+  /**
+   * Kullanım sayaçları tüm kayıtlı post'lardan; `lastUsedAt` YALNIZ doğrulanmış YAYIN kaydından (bkz. validPublishedMs):
+   * status === 'published' ve geçerli publishedAt. Planlanmış/onaylı/inceleme tarihleri, katalog tarihleri veya güncel zaman ASLA kullanılmaz.
+   * Yayın tarihi yoksa null = BİLİNMİYOR (sıfır/şimdi değil). Kapsam: yalnız bu sistemde (Studio) kayıtlı post'lar; platformda doğrudan paylaşılanlar görünmez.
+   */
+  usage: { usedInPostCount: number; approvedUseCount: number; pendingUseCount: number; lastUsedAt: number | null };
   readiness: Record<'static' | 'carousel' | 'story' | 'reels', Readiness>;
 }
 
@@ -49,6 +61,15 @@ export interface InventoryPage {
 }
 
 const msOf = (v: any): number | null => (v == null ? null : typeof v === 'number' ? v : typeof v.toMillis === 'function' ? v.toMillis() : null);
+/** Yayın tarihi gelecekte olamaz (saat kayması payı 1 gün): hatalı kayıt son kullanım SAYILMAZ. Güncel zaman yalnız doğrulamada kullanılır, tarih türetmez. */
+export const PUBLISHED_FUTURE_SKEW_MS = 86_400_000;
+/** Post yayınlanmış ve tarihi doğrulanabiliyorsa publishedAt (ms), aksi halde null. scheduledAt/approvedAt/createdAt ASLA kullanılmaz. */
+export function validPublishedMs(post: any, now: number): number | null {
+  if (post?.status !== 'published') return null;
+  const ms = msOf(post.publishedAt);
+  if (ms === null || !Number.isFinite(ms) || ms <= 0 || ms > now + PUBLISHED_FUTURE_SKEW_MS) return null;
+  return ms;
+}
 const SAFE = /^[A-Za-z0-9_-]{1,128}$/;
 
 /** İmleç TAM zaman damgasını (saniye + nanosaniye) ve belge kimliğini taşır: milisaniyeye yuvarlama yok. */
@@ -78,22 +99,9 @@ function exactTime(v: any): { sec: number; nanos: number } | null {
   return Number.isSafeInteger(sec) && Number.isInteger(nanos) ? { sec, nanos } : null;
 }
 
-const toLite = (c: any): CatalogLite => ({
-  subject: String(c.subject ?? ''),
-  description: String(c.description ?? ''),
-  tags: Array.isArray(c.tags) ? c.tags : [],
-  foodCategories: Array.isArray(c.foodCategories) ? c.foodCategories : [],
-  visibleObjects: Array.isArray(c.visibleObjects) ? c.visibleObjects : [],
-  uncertainties: Array.isArray(c.uncertainties) ? c.uncertainties : [],
-  shotType: c.composition?.shotType,
-  subjectPlacement: c.composition?.subjectPlacement,
-  negativeSpace: !!c.composition?.negativeSpace,
-  peoplePresent: !!c.peoplePresent,
-});
-
 export async function listInventoryPage(
   db: Db,
-  p: { tenantId: string; projectId: string; policy: MediaSourcePolicy; cursor?: string | null; limit?: unknown; /** Timestamp üretici (üretimde Timestamp(sec, nanos)); sahte depoda ms sayısı */ makeCursorValue?: (sec: number, nanos: number) => unknown }
+  p: { tenantId: string; projectId: string; policy: MediaSourcePolicy; cursor?: string | null; limit?: unknown; /** Timestamp üretici (üretimde Timestamp(sec, nanos)); sahte depoda ms sayısı */ makeCursorValue?: (sec: number, nanos: number) => unknown; /** Test için; yalnız yayın tarihi doğrulamasında (gelecek tarih reddi) kullanılır */ now?: number }
 ): Promise<InventoryPage> {
   let limit = PAGE_DEFAULT;
   if (p.limit !== undefined) {
@@ -119,11 +127,15 @@ export async function listInventoryPage(
   const used = new Map<string, number>();
   const approved = new Map<string, number>();
   const pending = new Map<string, number>();
+  const lastPublished = new Map<string, number>();
+  const nowMs = p.now ?? Date.now();
   for (const d of postSnap.docs) {
     const post = d.data();
     if (post.tenantId !== p.tenantId || post.projectId !== p.projectId) continue;
+    const pubAt = validPublishedMs(post, nowMs);
     for (const id of new Set<string>(post.libraryAssetIds || [])) {
       used.set(id, (used.get(id) || 0) + 1);
+      if (pubAt !== null) lastPublished.set(id, Math.max(lastPublished.get(id) ?? 0, pubAt));
       if (APPROVED_POST_STATES.has(post.status)) approved.set(id, (approved.get(id) || 0) + 1);
       else if (PENDING_POST_STATES.has(post.status)) pending.set(id, (pending.get(id) || 0) + 1);
     }
@@ -159,9 +171,10 @@ export async function listInventoryPage(
         path: asset.storage.path,
         thumbPath: asset.storage.thumbPath ?? null,
         createdAtMs: msOf(asset.createdAt),
-        catalog: eff.catalog ? toLite(eff.catalog) : null,
+        catalog: liteOfEffective(eff),
+        visual: eff.visual,
         verifiedProductIds: eff.verifiedProductIds,
-        usage: { usedInPostCount: used.get(d.id) || 0, approvedUseCount: approved.get(d.id) || 0, pendingUseCount: pending.get(d.id) || 0 },
+        usage: { usedInPostCount: used.get(d.id) || 0, approvedUseCount: approved.get(d.id) || 0, pendingUseCount: pending.get(d.id) || 0, lastUsedAt: lastPublished.get(d.id) ?? null },
         readiness,
       });
     });

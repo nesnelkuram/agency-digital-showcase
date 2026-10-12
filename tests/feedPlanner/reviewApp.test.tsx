@@ -936,3 +936,116 @@ describe('kalıcı taslak (port): kaydet, yeniden yükle, çakışma', () => {
     expect(screen.getByTestId('persist-status').textContent).toMatch(/Kalıcılık yok/);
   });
 });
+
+describe('KALSIN YARIŞI: metin isteği sürerken kilitleme (async UI)', () => {
+  /** copy.generate'i bir kapıya bağlar: kapı açılana kadar yanıt gelmez */
+  const gateCopy = () => {
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    const real = (copy.generate as any).getMockImplementation();
+    (copy.generate as any).mockImplementation(async (req: CopyRequest) => { await gate; return real(req); });
+    return release;
+  };
+
+  it('metinsiz slot: istek sürerken Kalsın → geç yanıt kilitli slota YAZILMAZ; görsel, kilit korunur; neden söylenir', async () => {
+    renderApp();
+    await makePlan();
+    const release = gateCopy();
+    const image = feedIds()[0];
+    fireEvent.click(screen.getByTestId('gen-feed:0'));
+    await waitFor(() => expect(status('feed', 0).textContent).toMatch(/üretiliyor/));
+    fireEvent.click(screen.getByLabelText('feed slot 1 kalsın'));
+    expect(screen.getByLabelText('feed slot 1 kalsın işaretini kaldır').getAttribute('aria-pressed')).toBe('true');
+    release();
+    await waitFor(() => expect(screen.getByText(/Slot beklerken değişti, gelen metin yok sayıldı: Feed slot 1/)).toBeTruthy());
+    await settle();
+    expect(screen.queryByTestId('caption-0')).toBeNull();
+    expect(feedIds()[0]).toBe(image);
+    expect(screen.getByLabelText('feed slot 1 kalsın işaretini kaldır').getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('kilit istek sürerken AÇILIP KAPANSA bile eski yanıt geri yazamaz', async () => {
+    renderApp();
+    await makePlan();
+    const release = gateCopy();
+    fireEvent.click(screen.getByTestId('gen-feed:0'));
+    await waitFor(() => expect(status('feed', 0).textContent).toMatch(/üretiliyor/));
+    fireEvent.click(screen.getByLabelText('feed slot 1 kalsın'));
+    fireEvent.click(screen.getByLabelText('feed slot 1 kalsın işaretini kaldır'));
+    expect(screen.getByLabelText('feed slot 1 kalsın').getAttribute('aria-pressed')).toBe('false');
+    release();
+    await waitFor(() => expect(screen.getByText(/Slot beklerken değişti, gelen metin yok sayıldı: Feed slot 1/)).toBeTruthy());
+    await settle();
+    expect(screen.queryByTestId('caption-0')).toBeNull();
+  });
+
+  it('METİNLİ slot: "Metni yenile" sürerken Kalsın → geç yanıt mevcut kilitli metni EZMEZ', async () => {
+    renderApp();
+    await generate();
+    const cap = caption(0);
+    const release = gateCopy();
+    fireEvent.click(screen.getByTestId('gen-feed:0')); // "Metni yenile"
+    await waitFor(() => expect(status('feed', 0).textContent).toMatch(/üretiliyor/));
+    fireEvent.click(screen.getByLabelText('feed slot 1 kalsın'));
+    release();
+    await waitFor(() => expect(screen.getByText(/Slot beklerken değişti, gelen metin yok sayıldı: Feed slot 1/)).toBeTruthy());
+    await settle();
+    expect(caption(0)).toBe(cap);
+    expect(screen.getByLabelText('feed slot 1 kalsın işaretini kaldır')).toBeTruthy();
+  });
+
+  it('yarış yalnız kilitlenen slotu etkiler: aynı partideki kilitsiz slot metnini alır', async () => {
+    renderApp();
+    await makePlan();
+    const release = gateCopy();
+    fireEvent.click(screen.getByTestId('gen-text'));
+    await waitFor(() => expect(status('feed', 0).textContent).toMatch(/üretiliyor/));
+    fireEvent.click(screen.getByLabelText('feed slot 1 kalsın'));
+    release();
+    await settle();
+    expect(screen.queryByTestId('caption-0')).toBeNull();
+    await waitFor(() => expect(screen.getByTestId('caption-1')).toBeTruthy());
+    expect(screen.getByTestId('caption-8')).toBeTruthy();
+  });
+
+  it('kilit sonrası açık "Metin üret" (yeni sürümle) kilitli ama metinsiz slota yazar', async () => {
+    renderApp();
+    await makePlan();
+    fireEvent.click(screen.getByLabelText('feed slot 1 kalsın'));
+    fireEvent.click(screen.getByTestId('gen-feed:0'));
+    await settle();
+    await waitFor(() => expect(screen.getByTestId('caption-0')).toBeTruthy());
+    expect(screen.getByLabelText('feed slot 1 kalsın işaretini kaldır').getAttribute('aria-pressed')).toBe('true');
+  });
+});
+
+describe('Story: seri değişimi Kalsın işaretli karenin metnini SİLMEZ', () => {
+  const storyText = (n: number) => screen.getByTestId(`story-slot-${n}`).querySelector('.storytext')?.textContent ?? '';
+
+  it('kilitsiz kare: rol uymayınca metni boşalır (mevcut davranış korunur)', async () => {
+    renderApp();
+    await waitFor(() => expect(screen.getByTestId('story-slot-0')).toBeTruthy());
+    expect(storyText(1)).toMatch(/Devam/);
+    await waitFor(() => expect((screen.getByTestId('make-plan') as HTMLButtonElement).disabled).toBe(false));
+    openMenu('story', 1);
+    choose('Başka adayla değiştir');
+    expect(roleOf(1)).toBe('headline');
+    expect(storyText(1)).not.toMatch(/Devam/);
+  });
+
+  it('Kalsın işaretli kare: seri değişse de metni KORUNUR ve uyumsuzluk açıkça söylenir; kilitsiz komşu etkilenmez', async () => {
+    renderApp();
+    await waitFor(() => expect(screen.getByTestId('story-slot-0')).toBeTruthy());
+    await waitFor(() => expect((screen.getByTestId('make-plan') as HTMLButtonElement).disabled).toBe(false));
+    const before = storyText(1);
+    expect(before).toMatch(/Devam/);
+    fireEvent.click(screen.getByLabelText('story slot 2 kalsın'));
+    openMenu('story', 1);
+    choose('Başka adayla değiştir');
+    expect(roleOf(1)).toBe('headline');
+    expect(storyText(1)).toBe(before);
+    expect(screen.getByText(/Kalsın işaretli karenin metni korundu/)).toBeTruthy();
+    expect(screen.getByLabelText('story slot 2 kalsın işaretini kaldır').getAttribute('aria-pressed')).toBe('true');
+    expect(copy.calls).toHaveLength(0);
+  });
+});

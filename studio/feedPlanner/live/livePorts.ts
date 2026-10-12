@@ -2,7 +2,8 @@ import { getBlob, ref } from 'firebase/storage';
 import { authenticatedFetch } from '@/lib/firebase/apiClient';
 import { storage } from '@/lib/firebase/config';
 import type { Candidate } from '../types';
-import { PortError, type CopyPort, type CopyResponse, type PersistencePort } from '../ports';
+import { PortError, type CopyPort, type CopyResponse, type CreativePort, type PersistencePort } from '../ports';
+import type { CreativeRequest, CreativeResponse } from '../../../shared/planner/creativeContract';
 import type { CopyRequest } from '../../../shared/planner/copyContract';
 import type { InventoryDTO } from '../integration/fromInventory';
 
@@ -26,6 +27,12 @@ export const createCopyPort = (): CopyPort => ({
     const b = await call('/api/studio/plan-copy', { method: 'POST', body: JSON.stringify(req) });
     return { accepted: b.accepted ?? [], rejected: b.rejected ?? [], notes: b.notes ?? [], model: b.model, promptVersion: b.promptVersion, responseId: b.responseId ?? null, provider: b.provider ?? null, requestedModel: b.requestedModel, requestId: b.requestId ?? null, usage: b.usage, voice: b.voice };
   },
+});
+
+/** Aşama 3 yaratıcı roller: /api/studio/plan-creative (tek rol/çağrı). Şablon fallback YOK; iptal sinyali fetch'e iletilir. */
+export const createCreativePort = (): CreativePort => ({
+  available: true,
+  run: async (req: CreativeRequest, opts?: { signal?: AbortSignal }): Promise<CreativeResponse> => call('/api/studio/plan-creative', { method: 'POST', body: JSON.stringify(req), ...(opts?.signal ? { signal: opts.signal } : {}) }),
 });
 
 /** Kalıcı taslak: /api/studio/planner-draft (sürüm + idempotency sunucuda doğrulanır). */

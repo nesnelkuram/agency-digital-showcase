@@ -21,7 +21,8 @@ import {
   parseActivationSince,
 } from '@/api/_lib/mediaAnalysis/autoQueue';
 import { ANALYSIS_LEASE_MS, firestoreAnalysisStore, type BrandMediaLike, type ModelCall } from '@/api/_lib/mediaAnalysis/runner';
-import { CATALOG_TIMEOUT_MS } from '@/api/_lib/mediaAnalysis/anthropicCall';
+import { CATALOG_TIMEOUT_MS } from '@/api/_lib/mediaAnalysis/openrouterVisionCall';
+import { analysisOutput } from './helpers/visualFixture';
 import { PLAN_TIMEOUT_MS } from '@/api/_lib/planSuggest/anthropicPlanCall';
 import { buildInventory, suggestWeeklyPlan, validateSuggestion, PLAN_MODEL, type PlanModelCall } from '@/api/_lib/planSuggest/planSuggest';
 import { notifyUploadComplete } from '@/studio/mediaIntegrationsApi';
@@ -62,7 +63,7 @@ const CATALOG: ImageCatalog = {
 };
 
 const haiku = (catalog: ImageCatalog = CATALOG) =>
-  vi.fn<ModelCall>(async () => ({ id: 'msg', stopReason: 'end_turn', usage: { input_tokens: 10, output_tokens: 10 }, parsed: catalog }));
+  vi.fn<ModelCall>(async () => ({ id: 'msg', stopReason: 'end_turn', parsed: analysisOutput(catalog) }));
 
 const workerDeps = (db: any, callModel: ModelCall, t = { v: 10_000 }) => ({
   owner: 'w1',
@@ -162,7 +163,7 @@ describe('yükleme → kalıcı analiz kuyruğu (Canva\'dan bağımsız)', () =>
     let n = 0;
     const flaky = vi.fn<ModelCall>(async () => {
       if (n++ === 0) throw Object.assign(new Error('overloaded'), { status: 529 });
-      return { id: 'm', stopReason: 'end_turn', usage: { input_tokens: 1, output_tokens: 1 }, parsed: CATALOG };
+      return { id: 'm', stopReason: 'end_turn', parsed: analysisOutput(CATALOG) };
     });
     const t = { v: 10_000 };
     await processAnalysisQueue(db, workerDeps(db, flaky, t), { featureEnabled: true });

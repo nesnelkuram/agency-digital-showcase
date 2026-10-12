@@ -7,12 +7,14 @@ import { z } from 'zod/v4';
 import { isConsistentAsset, type BrandMediaAsset, type MediaSourcePolicy } from '../../../shared/types/brandMedia.js';
 import { validateBrandVoiceBundle, type BrandVoiceBundle } from '../../../shared/planner/brandVoice.js';
 import {
-  buildCopyPrompt, buildFallbackPrompt, validateCopyOutput, describePixels, cleanTonePrompt, EVIDENCE_BASES, COPY_MODEL, COPY_PROMPT_VERSION,
+  buildCopyPrompt, buildFallbackPrompt, validateCopyOutput, cleanTonePrompt, EVIDENCE_BASES, COPY_MODEL, COPY_PROMPT_VERSION,
   type CopyMedia, type CopyRequest, type CopyValidation, type CatalogLite, type TempTone, type VoiceMode,
 } from '../../../shared/planner/copyContract.js';
 import { validateBrandGuide, type BrandGuide } from '../../../shared/planner/brandGuide.js';
 import { sha256Hex } from '../../../shared/planner/sha256.js';
 import { loadEffectiveCatalog } from '../mediaAnalysis/correctionStore.js';
+import { cropVisibility, type VisualDecision } from '../../../shared/planner/visualDecision.js';
+import { liteOfEffective } from '../mediaAnalysis/catalogLite.js';
 
 type Db = any;
 
@@ -38,6 +40,8 @@ export const CopyOutputSchema = z.object({
       headline: z.string().nullable(),
       body: z.string().nullable(),
       evidenceBasis: z.enum(EVIDENCE_BASES),
+      /** Satırdaki olgulardan sade özet; caption ve rationale'dan AYRI */
+      observation: z.string(),
       rationale: z.string(),
     })
   ),
@@ -134,25 +138,14 @@ export async function resolveVoice(db: Db, tenantId: string, projectId: string, 
   throw new CopyError(412, 'brand_voice_missing', 'Bu marka için onaylı marka dili yok. Geçici bir ton seçin veya marka dilini birlikte oluşturun.', { needs: 'tone_or_guide' });
 }
 
-const toLite = (c: any): CatalogLite => ({
-  subject: String(c.subject ?? ''),
-  description: String(c.description ?? ''),
-  tags: Array.isArray(c.tags) ? c.tags : [],
-  foodCategories: Array.isArray(c.foodCategories) ? c.foodCategories : [],
-  visibleObjects: Array.isArray(c.visibleObjects) ? c.visibleObjects : [],
-  uncertainties: Array.isArray(c.uncertainties) ? c.uncertainties : [],
-  shotType: c.composition?.shotType,
-  subjectPlacement: c.composition?.subjectPlacement,
-  negativeSpace: !!c.composition?.negativeSpace,
-  peoplePresent: !!c.peoplePresent,
-});
-
 /** Yalnız bu tenant+proje, aktif, depolama tutarlı medya. Katalog ve doğrulanmış ürün bağlantısı SUNUCUDA yüklenir. */
 export async function loadCopyMedia(
   db: Db,
   p: { tenantId: string; projectId: string; ids: string[]; policy: MediaSourcePolicy; bundle: BrandVoiceBundle; /** Rehber/ton modunda paket ürün listesi yoktur: insan bağlantıları ADSIZ kimlik olarak korunur (seri doğrulaması için) */ keepUnnamedProducts?: boolean }
-): Promise<{ media: Map<string, CopyMedia>; invalid: Array<{ id: string; reason: string }> }> {
+): Promise<{ media: Map<string, CopyMedia>; invalid: Array<{ id: string; reason: string }>; visuals: Map<string, VisualDecision | null>; /** Kaynak içerik kimliği (SHA-256) ve analiz anahtarı; analiz yoksa null (önbellek/bayatlık için) */ provenance: Map<string, { analysisKey: string | null; sourceSha256: string | null }> }> {
   const media = new Map<string, CopyMedia>();
+  const visuals = new Map<string, VisualDecision | null>();
+  const provenance = new Map<string, { analysisKey: string | null; sourceSha256: string | null }>();
   const invalid: Array<{ id: string; reason: string }> = [];
   const known = new Set(p.bundle.verifiedProducts.map((v) => v.id));
   for (let i = 0; i < p.ids.length; i += 10) {
@@ -165,18 +158,52 @@ export async function loadCopyMedia(
         if (asset.status !== 'active') return void invalid.push({ id, reason: 'archived' });
         if (!isConsistentAsset(asset, p.tenantId, p.projectId, p.policy)) return void invalid.push({ id, reason: 'inconsistent_asset' });
         const eff = await loadEffectiveCatalog(db, p.tenantId, p.projectId, id);
+        visuals.set(id, eff.visual?.decision ?? null);
+        provenance.set(id, { analysisKey: eff.analysisKey ?? null, sourceSha256: eff.sourceSha256 ?? (eff.visual?.provenance?.sourceSha256 || null) });
         media.set(id, {
           mediaId: id,
           kind: asset.kind,
           width: asset.storage.width,
           height: asset.storage.height,
-          catalog: eff.catalog ? toLite(eff.catalog) : null,
+          catalog: liteOfEffective(eff),
           verifiedProductIds: p.keepUnnamedProducts ? eff.verifiedProductIds : eff.verifiedProductIds.filter((v: string) => known.has(v)),
         });
       })
     );
   }
-  return { media, invalid };
+  return { media, invalid, visuals, provenance };
+}
+
+/** Post (4:5) oranı: 1080×1350 */
+export const POST_RATIO = 4 / 5;
+
+/**
+ * Kırpımda GÖRÜNÜR olgu sınırı (sunucu hesabı; istemci iddiasına güvenilmez). Kırpılmış öğede katalog, kırpımda doğrulanan ana konuya daraltılır;
+ * ana konu kırpımda doğrulanamıyorsa katalog ve doğrulanmış ürün bağlantısı düşer (görünür olgu yok). Kırpılmamışsa (tam kare) değişmez.
+ * Dönüş: kırpımdan dolayı görünür olgusu KALMAYAN (facts='yok') TÜM mediaId'ler — katalog hiç olmasa da (bilinmeyen kırpım olgusu engellenir;
+ * doğrulanmış ürün bağlantısı da düşer). Hangi nedenle (katalog yok / kırpımda görünmüyor) reddedileceğine çağıran karar verir.
+ */
+export function applyCropVisibility(media: Map<string, CopyMedia>, visuals: Map<string, VisualDecision | null>, items: CopyRequest['items']): Set<string> {
+  const blocked = new Set<string>();
+  for (const it of items) {
+    if (!it.crop) continue;
+    const m = media.get(it.mediaId);
+    if (!m) continue;
+    const dims = m.width && m.height ? { w: m.width, h: m.height } : null;
+    const vis = dims ? cropVisibility(visuals.get(it.mediaId) ?? null, dims, POST_RATIO, it.crop.focus, it.crop.zoom) : { cropped: true, windowShare: 0, subject: 'unknown' as const, facts: 'yok' as const };
+    m.visibility = { cropped: vis.cropped, facts: vis.facts };
+    if (vis.facts === 'yalnız_konu' && m.catalog) {
+      m.catalog = {
+        ...m.catalog, description: '', tags: [], foodCategories: [], visibleObjects: [],
+        uncertainties: [...m.catalog.uncertainties, 'Kırpımda yalnız ana konunun görünür olduğu doğrulandı; diğer nesne/ayrıntıların görünürlüğü doğrulanmadı'],
+      };
+    } else if (vis.facts === 'yok') {
+      blocked.add(it.mediaId);
+      m.catalog = null;
+      m.verifiedProductIds = [];
+    }
+  }
+  return blocked;
 }
 
 /** Sunucunun ürettiği metinlerin kaydı: taslak kaydederken `source:'model'` iddiası bu kayda karşı doğrulanır (yalnız Admin SDK yazar). */
@@ -207,23 +234,37 @@ export async function generateCopy(
   const bundle = voice.bundle;
   const mode: VoiceMode = voice.mode;
   const ids = p.req.items.map((i) => i.mediaId);
-  const { media, invalid } = await loadCopyMedia(db, { tenantId: p.tenantId, projectId: p.projectId, ids, policy: deps.policy, bundle, keepUnnamedProducts: mode !== 'bundle' });
+  const { media, invalid, visuals } = await loadCopyMedia(db, { tenantId: p.tenantId, projectId: p.projectId, ids, policy: deps.policy, bundle, keepUnnamedProducts: mode !== 'bundle' });
   if (invalid.length) throw new CopyError(422, 'media_invalid', 'İstekteki medya bu marka kütüphanesinde geçerli değil.', invalid);
   // Story serisi yalnız GERÇEK (insan doğrulamalı) ürün kimliğiyle kurulur; aynı gün olmak seri değildir.
   const unverified = p.req.items.filter((i) => i.lane === 'story' && i.seriesKey && !media.get(i.mediaId)?.verifiedProductIds.includes(i.seriesKey)).map((i) => i.slotKey);
   if (unverified.length) throw new CopyError(422, 'series_unverified', 'Seri kimliği medyanın doğrulanmış ürün bağlantısıyla eşleşmiyor.', unverified);
 
-  // Rehber/ton modunda: gözlem = katalog ve/veya ölçülen görsel özellik. İkisi de yoksa slot modele GİTMEZ (uydurma yerine dürüst ret).
+  // Post kırpımı: kırpım dışında kalan / görünürlüğü doğrulanamayan olgular katalogdan DÜŞER (görünen gerçek diye taşınmaz)
+  const hadCatalog = new Set([...media.values()].filter((m) => m.catalog).map((m) => m.mediaId));
+  const cropBlocked = applyCropVisibility(media, visuals, p.req.items);
+  /** Ret nedeni: konu açıklaması hiç yoksa semantik, vardı ama kırpımda görünmüyorsa kırpım */
+  const blockReason = (id: string) => (hadCatalog.has(id) ? 'kirpimda_gorunur_olgu_yok' : 'semantik_aciklama_yok');
+  // Rehber/ton modunda: tek kanıt GERÇEK konu açıklamasıdır (AI gözlemi veya insanın yazdığı açıklama). Ölçülen renk/ışık/kadraj
+  // caption kanıtı DEĞİLDİR; semantik açıklama yoksa slot modele GİTMEZ (uydurma yerine dürüst ret, ücret yok).
   const preRejected: Array<{ slotKey: string; reasons: string[] }> = [];
   let modelReq: CopyRequest = p.req;
   let noCatalog = 0;
+  const measurementIgnored = p.req.items.some((i) => i.observed);
   if (mode !== 'bundle') {
     const keep: CopyRequest['items'] = [];
     for (const it of p.req.items) {
       const m = media.get(it.mediaId)!;
-      if (it.observed) m.observation = describePixels(it.observed, { width: m.width, height: m.height });
-      if (!m.catalog && !m.observation) { preRejected.push({ slotKey: it.slotKey, reasons: ['gorsel_gozlem_yok'] }); continue; }
-      if (!m.catalog) noCatalog++;
+      if (!m.catalog) { if (!hadCatalog.has(it.mediaId)) noCatalog++; preRejected.push({ slotKey: it.slotKey, reasons: [blockReason(it.mediaId)] }); continue; }
+      keep.push(it);
+    }
+    modelReq = { ...p.req, items: keep };
+  } else if (p.req.items.some((i) => i.crop)) {
+    // Paket modunda da: post (kırpımlı) öğede görünür olgu yoksa slot modele GİTMEZ (persona/hesap tonuyla görünmeyeni "görünen" diye yazma riski yok)
+    const keep: CopyRequest['items'] = [];
+    for (const it of p.req.items) {
+      if (cropBlocked.has(it.mediaId)) { preRejected.push({ slotKey: it.slotKey, reasons: [blockReason(it.mediaId)] }); continue; }
+      if (it.crop && !media.get(it.mediaId)!.catalog) { preRejected.push({ slotKey: it.slotKey, reasons: ['semantik_aciklama_yok'] }); continue; }
       keep.push(it);
     }
     modelReq = { ...p.req, items: keep };
@@ -232,10 +273,13 @@ export async function generateCopy(
   const assumptions: string[] = [];
   if (mode === 'tone') {
     assumptions.push('Marka rehberi yok: ton GEÇİCİ plan tonudur, onaylı marka hafızası değildir.');
-    assumptions.push('Metin yalnız katalog gözleminden ve ölçülen görsel özelliklerden (renk, ışık, kadraj, boşluk) türetilir; ürün, içerik, fiyat ve saat doğrulanmadı.');
+    assumptions.push('Metin yalnız görselin gerçek konu açıklamasından (AI gözlemi veya insan açıklaması) türetilir; ürün, içerik, fiyat ve saat doğrulanmadı.');
   }
-  if (mode !== 'bundle' && noCatalog) assumptions.push(`${noCatalog} görselde katalog gözlemi yok; yalnız ölçülen görsel özellikler kullanıldı.`);
-  if (preRejected.length) assumptions.push(`${preRejected.length} görselde ne katalog gözlemi ne de ölçüm var; bunlar için metin üretilmedi.`);
+  if (mode !== 'bundle' && noCatalog) assumptions.push(`${noCatalog} görselde konu açıklaması yok (analiz bekliyor/yok); bunlar için metin üretilmedi. Renk/ışık ölçümü caption kanıtı sayılmaz.`);
+  const blockedWithCatalog = [...cropBlocked].filter((id) => hadCatalog.has(id)).length;
+  if (blockedWithCatalog) assumptions.push(`${blockedWithCatalog} görselde kırpımda ana konunun görünürlüğü doğrulanamadı; kırpım dışında kalan ayrıntılar görünen gerçek sayılmadı ve bu görseller için metin üretilmedi.`);
+  if (p.req.items.some((i) => i.crop && media.get(i.mediaId)?.visibility?.facts === 'yalnız_konu')) assumptions.push('4:5 kırpımda yalnız ana konunun görünürlüğü doğrulandı; nesne/ayrıntı görünürlüğü doğrulanmadığı için metne taşınmadı.');
+  if (measurementIgnored) assumptions.push('İstemcinin ölçtüğü görsel özellikler (renk, ışık, kadraj) caption kanıtı olarak kullanılmadı.');
   const voiceInfo: GenerateResult['voice'] = {
     source: VOICE_SOURCE[mode], tone, guideVersion: voice.mode === 'guide' ? voice.version : null, assumptions,
     tempToneIgnored: mode !== 'tone' && !!p.req.tempTone,
@@ -243,7 +287,7 @@ export async function generateCopy(
   const requestedModel = deps.model ?? COPY_MODEL;
   const zeroUsage: CopyUsage = { inputTokens: null, outputTokens: null, totalTokens: null, cachedTokens: null, reasoningTokens: null, costUsd: null };
   if (modelReq.items.length === 0) {
-    // Hiçbir slot gözlemlenemiyor: model çağrılmaz (ücret yok)
+    // Hiçbir slotun konu açıklaması yok: model çağrılmaz (ücret yok)
     return {
       accepted: [], rejected: preRejected, notes: [], model: requestedModel, provider: null, requestedModel, modelUsed: null, requestId: null,
       promptVersion: mode === 'bundle' ? COPY_PROMPT_VERSION : mode === 'tone' ? 'plan-copy-v2-tone' : 'plan-copy-v2-guide', responseId: null, usage: zeroUsage, voice: voiceInfo,

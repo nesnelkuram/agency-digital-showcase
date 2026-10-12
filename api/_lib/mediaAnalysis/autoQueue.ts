@@ -158,8 +158,51 @@ function toMs(v: any): number | null {
   return null;
 }
 
+/** Panelin gördüğü SALT OKUNUR kuyruk görünümü (leaseOwner gibi iç alanlar yok). */
+export interface QueueJobView {
+  state: QueueState;
+  attempts: number;
+  maxAttempts: number;
+  nextAttemptAt: number | null;
+  /** Lease şu anda geçerli mi (sunucu saatine göre) */
+  leaseActive: boolean;
+  leaseUntil: number | null;
+  lastError: { code: string; message: string } | null;
+  analysisKey: string | null;
+  createdAt: number | null;
+  updatedAt: number | null;
+}
+
+/**
+ * Tek varlığın kuyruk işini YALNIZ OKUR (tek doc get; enqueue/claim/process/yazma yok). Belge başka kapsama aitse yok sayılır.
+ * Okuma hatası fırlatır: çağıran bunu "iş yok" diye göstermemelidir.
+ */
+export async function readQueueView(db: Db, tenantId: string, projectId: string, assetId: string, now: number): Promise<QueueJobView | null> {
+  const snap = await db.collection(ANALYSIS_QUEUE).doc(queueJobId(tenantId, projectId, assetId)).get();
+  if (!snap.exists) return null;
+  const j = snap.data() as Partial<AnalysisQueueJob> & Record<string, any>;
+  if (!j || j.tenantId !== tenantId || j.projectId !== projectId || j.assetId !== assetId) return null;
+  const state: QueueState = j.state === 'pending' || j.state === 'done' || j.state === 'skipped' || j.state === 'failed' ? j.state : 'failed';
+  const leaseUntil = toMs(j.leaseUntil);
+  const err = j.lastError && typeof j.lastError === 'object' ? { code: String(j.lastError.code ?? '').slice(0, 60), message: String(j.lastError.message ?? '').slice(0, 300) } : null;
+  return {
+    state,
+    attempts: typeof j.attempts === 'number' ? j.attempts : 0,
+    maxAttempts: QUEUE_MAX_ATTEMPTS,
+    nextAttemptAt: toMs(j.nextAttemptAt),
+    leaseActive: !!j.leaseOwner && leaseUntil !== null && leaseUntil > now,
+    leaseUntil,
+    lastError: err,
+    analysisKey: typeof j.analysisKey === 'string' ? j.analysisKey : null,
+    createdAt: toMs(j.createdAt),
+    updatedAt: toMs(j.updatedAt),
+  };
+}
+
 export interface QueueWorkerDeps {
   analysisDeps: (asset: BrandMediaLike) => AnalysisDeps;
+  /** İstenen OpenRouter model kimliği (yoksa runner varsayılanı). Sessiz model değişimi yok: yapılandırma hatası çağıranda durur. */
+  model?: string;
   owner: string;
   now: () => number;
 }
@@ -202,7 +245,7 @@ export async function processAnalysisJob(db: Db, id: string, deps: QueueWorkerDe
     return 'skipped';
   }
   try {
-    const rec = await analyzeBrandMedia(asset!, deps.analysisDeps(asset!));
+    const rec = await analyzeBrandMedia(asset!, deps.analysisDeps(asset!), deps.model);
     const patch: Partial<AnalysisQueueJob> = { analysisKey: rec.key || null, updatedAt: deps.now() };
     if (rec.status === 'done') return (await finishJob(db, id, deps.owner, { ...patch, state: 'done', lastError: null }), 'done');
     if (rec.status === 'unsupported') return (await finishJob(db, id, deps.owner, { ...patch, state: 'skipped', lastError: rec.error || null }), 'skipped');

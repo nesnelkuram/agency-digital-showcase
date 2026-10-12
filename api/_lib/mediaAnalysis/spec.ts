@@ -10,12 +10,34 @@
 
 import { createHash } from 'crypto';
 import { z } from 'zod/v4';
+import { VISUAL_PROMPT_VERSION, VISUAL_SCHEMA_VERSION } from '../../../shared/planner/visualDecision.js';
 
-/** v2: konu, ürün kimliği belirsizliği, kadraj ayrıntısı, kullanım önerisi (v1 kayıtları geçerli kalır; anahtar sürümü içerir) */
-export const MEDIA_ANALYSIS_PROMPT_VERSION = 'media-catalog-v2';
-export const MEDIA_ANALYSIS_SCHEMA_VERSION = '2';
-/** Üretim kataloglama modeli (kullanıcı adıyla seçti); karşılaştırma ikinci modeli ayrıca belirtir */
-export const CATALOG_MODEL = 'claude-haiku-5-5';
+/**
+ * v3: OpenRouter üzerinden TEK çağrıda iki ayrı alan — `catalog` (konu/nesne/kimlik belirsizliği; ImageCatalog şema 2) ve
+ * `visual` (kompozisyon kararı; shared/planner/visualDecision). Her alan kendi sürümünü kayıtta taşır.
+ * v1/v2 kayıtları (doğrudan Anthropic) geçerli kalır ve gösterilir; anahtar sürümü içerdiği için YENİDEN analiz tetiklemez.
+ */
+export const MEDIA_ANALYSIS_PROMPT_VERSION = 'media-catalog-v3';
+export const MEDIA_ANALYSIS_SCHEMA_VERSION = '3';
+/** ImageCatalog alan şeması sürümü (v2'den beri değişmedi); görsel karar sürümü shared/planner/visualDecision'da */
+export const CATALOG_FIELDS_SCHEMA_VERSION = '2';
+export { VISUAL_PROMPT_VERSION, VISUAL_SCHEMA_VERSION };
+
+/**
+ * Üretim kataloglama modeli — OpenRouter model kimliği (sağlayıcı/model, noktalı sürüm). Resmi katalogdan (openrouter.ai/api/v1/models,
+ * okunma 2026-10-12) doğrulandı: `anthropic/claude-haiku-5.5` ve `anthropic/claude-sonnet-5.5` giriş=[text,image,file],
+ * supported_parameters ⊇ [response_format, structured_outputs, max_tokens]. Kullanıcı yalnız bu ikisine izin verdi.
+ * Haiku 5.5 'claude-haiku-5-5' (tireli) kimliği OpenRouter'da GEÇERSİZDİR.
+ */
+export const CATALOG_MODEL = 'anthropic/claude-haiku-5.5';
+export const ALLOWED_MEDIA_MODELS = ['anthropic/claude-haiku-5.5', 'anthropic/claude-sonnet-5.5'] as const;
+export function resolveMediaModel(env: Record<string, string | undefined> = process.env): { ok: true; model: string } | { ok: false; reason: string } {
+  const raw = env.MEDIA_AI_MODEL?.trim();
+  if (!raw) return { ok: true, model: CATALOG_MODEL };
+  return (ALLOWED_MEDIA_MODELS as readonly string[]).includes(raw)
+    ? { ok: true, model: raw }
+    : { ok: false, reason: `MEDIA_AI_MODEL geçersiz (izinli: ${ALLOWED_MEDIA_MODELS.join(', ')}). Başka modele sessiz geçiş yapılmaz.` };
+}
 
 export const USAGE_SUGGESTIONS = ['feed', 'carousel', 'story', 'reels_kapak', 'ürün_tanıtımı', 'mekan_tanıtımı', 'atmosfer', 'arka_plan'] as const;
 export const PRODUCT_IDENTITY_STATUS = ['ürün_yok', 'belirsiz', 'genel_kategori', 'okunaklı_etiket'] as const;
@@ -147,9 +169,11 @@ export function analysisKey(p: {
   sourceSha256: string;
   sourceQuality: SourceQuality;
   model: string;
+  /** Analiz edilen kırpım. Model tam kareyi görür ('full'); kırpıma özel analiz eklenirse anahtar ayrışır. */
+  crop?: string;
 }): string {
   return createHash('sha256')
-    .update([p.tenantId, p.projectId, p.sourceKind, p.sourceId, p.sourceSha256, p.sourceQuality, p.model, MEDIA_ANALYSIS_PROMPT_VERSION, MEDIA_ANALYSIS_SCHEMA_VERSION].join('|'))
+    .update([p.tenantId, p.projectId, p.sourceKind, p.sourceId, p.sourceSha256, p.sourceQuality, p.crop ?? 'full', p.model, MEDIA_ANALYSIS_PROMPT_VERSION, MEDIA_ANALYSIS_SCHEMA_VERSION, VISUAL_PROMPT_VERSION, VISUAL_SCHEMA_VERSION].join('|'))
     .digest('hex')
     .slice(0, 40);
 }

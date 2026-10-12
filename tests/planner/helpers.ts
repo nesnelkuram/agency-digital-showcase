@@ -40,4 +40,4 @@ export const ctx = (ids: string[], over: Partial<ValidateCtx> = {}, mediaOver: R
   bundle: bundle(),
   ...over,
 });
-export const out = (items: Array<Record<string, unknown>>) => ({ items: items.map((i) => ({ evidenceBasis: 'persona_kanaat', rationale: 'Persona kanaati.', ...i })), notes: [] });
+export const out = (items: Array<Record<string, unknown>>) => ({ items: items.map((i) => ({ evidenceBasis: 'persona_kanaat', observation: 'Satırdaki olgulardan sade özet.', rationale: 'Persona kanaati.', ...i })), notes: [] });

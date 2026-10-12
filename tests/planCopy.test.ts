@@ -299,12 +299,14 @@ describe('POST /api/studio/plan-copy', () => {
     expect(none).toMatchObject({ statusCode: 412, body: { code: 'brand_voice_missing', details: { needs: 'tone_or_guide' } } });
     expect(endpointModel.current).not.toHaveBeenCalled();
     const obs = { brightness: 0.6, warmth: 0.1, contrast: 0.2, density: 0.2, negativeSpace: 0.3, negativeZone: 'üst', palette: ['#aa8855'] };
-    endpointModel.current = model(out([{ slotKey: 'feed:0', caption: 'Işık yumuşak, tonlar sıcak ve üstteki boşluk cümleye yer açıyor; sakin bir kadraj.', evidenceBasis: 'olculen_gorsel' }]));
+    // a1 için KAYITLI konu açıklaması (katalog) var: geçici tonla taslak üretilebilir; ölçüm (observed) kanıt DEĞİLDİR
+    endpointModel.current = model(out([{ slotKey: 'feed:0', caption: 'Tabakta makarna, masada sakin bir sofra kurulmuş.', evidenceBasis: 'katalog_gozlem' }]));
     const items = [{ ...feedItem(0, 'a1'), observed: obs }];
     const ok = await call({ ...req(items), tempTone: { label: 'zarif' } });
     expect(ok.statusCode).toBe(200);
-    expect(ok.body).toMatchObject({ draftOnly: true, voice: { source: 'temporary_tone', tone: { label: 'zarif' }, tempToneIgnored: false }, accepted: [{ slotKey: 'feed:0', evidenceBasis: 'olculen_gorsel' }] });
+    expect(ok.body).toMatchObject({ draftOnly: true, voice: { source: 'temporary_tone', tone: { label: 'zarif' }, tempToneIgnored: false }, accepted: [{ slotKey: 'feed:0', evidenceBasis: 'katalog_gozlem' }] });
     expect(ok.body.voice.assumptions.join(' ')).toMatch(/onaylı marka hafızası değildir/);
+    expect(ok.body.voice.assumptions.join(' ')).toMatch(/ölçtüğü görsel özellikler.*caption kanıtı olarak kullanılmadı/);
     // sağlayıcı kapalı: 503, ton/rehber ne olursa olsun; model çağrılmaz
     delete process.env.PLAN_COPY_AI_ENABLED;
     (endpointModel.current as any).mockClear();

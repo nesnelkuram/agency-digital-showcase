@@ -2,6 +2,9 @@
   "framework": "vite",
   "buildCommand": "node scripts/build-blog-kb.mjs && node scripts/build-api.mjs && vite build",
   "functions": {
+    "api/studio/plan-creative.ts": {
+      "maxDuration": 120
+    },
     "api/export-research/*.ts": {
       "maxDuration": 30,
       "includeFiles": "private-reports/abd-tekne-aksesuarlari.pdf"

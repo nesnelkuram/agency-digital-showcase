@@ -2,16 +2,22 @@ import type { VercelResponse } from '@vercel/node';
 import { withAuth, AuthenticatedRequest } from '../_lib/withAuth.js';
 import { getAdminDb, getAdminStorage } from '../_lib/firebaseAdmin.js';
 import { mediaAnalysisState } from '../_lib/integrations/config.js';
-import { enqueueAnalysis, processAnalysisJob, queueJobId } from '../_lib/mediaAnalysis/autoQueue.js';
-import { loadEffectiveCatalog, loadLatestCatalog, saveCorrection } from '../_lib/mediaAnalysis/correctionStore.js';
-import { CatalogCorrectionInputSchema } from '../_lib/mediaAnalysis/spec.js';
+import { enqueueAnalysis, processAnalysisJob, queueJobId, readQueueView } from '../_lib/mediaAnalysis/autoQueue.js';
+import { loadEffectiveCatalog, loadCorrection, loadLatestCatalog, saveCorrection, toCorrectionView } from '../_lib/mediaAnalysis/correctionStore.js';
+import { resolveVerifiedProductNames } from '../_lib/mediaAnalysis/productNames.js';
+import { CatalogCorrectionInputSchema, effectiveCatalog } from '../_lib/mediaAnalysis/spec.js';
 import { checkLibraryAccess } from '../_lib/integrations/libraryAccess.js';
 import { analyzeBrandMedia, firestoreAnalysisStore, type BrandMediaLike } from '../_lib/mediaAnalysis/runner.js';
-import { anthropicModelCall } from '../_lib/mediaAnalysis/anthropicCall.js';
+import { openrouterVisionCall } from '../_lib/mediaAnalysis/openrouterVisionCall.js';
+import { resolveMediaModel } from '../_lib/mediaAnalysis/spec.js';
 
 /**
- * Tek Studio görseli için AI kataloglama (Haiku 5.5). Varsayılan KAPALI.
- * GET  ?projectId&assetId → son analiz kaydı + insan düzeltmesi + etkin katalog (çağrı yok)
+ * Tek Studio görseli için AI analizi (OpenRouter: konu kataloğu + kompozisyon kararı; varsayılan Haiku 5.5). Varsayılan KAPALI.
+ * Yapılandırma eksikse (OPENROUTER_API_KEY, geçersiz MEDIA_AI_MODEL) dürüstçe devre dışı; başka sağlayıcıya sessiz yedek yoktur.
+ * GET  ?projectId&assetId → SALT OKUNUR: son analiz kaydı, kuyruk işi görünümü (media_ai_queue), insan düzeltmesi (güvenli alanlar),
+ *      etkin katalog ve insan doğrulamalı ürün adları. Önce yetki + brand_media aidiyeti (tenant+proje) doğrulanır, sonra metadata
+ *      okunur. Hiçbir enqueue/process/retry/yazma/model/Canva çağrısı yoktur. İkincil okumalar (kuyruk, düzeltme, ürün adı)
+ *      ayrı ayrı hata verebilir: hata `state:'unavailable'` olarak döner, "kayıt yok" anlamına GELMEZ.
  * POST { projectId, assetId } → tamamlanmış analiz varsa onu döndürür (ücretli çağrı yok); yoksa tek çağrı
  * POST { projectId, assetId, trigger: 'upload_complete' } → kalıcı analiz işi (kapalıysa yazma/çağrı yok);
  *      Canva senkronundan bağımsız. Bildirim kaybolsa da cron uzlaştırır.
@@ -34,11 +40,43 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
 
     const pid = projectId as string;
     if (req.method === 'GET') {
+      // Aidiyet: varlık bu tenant+projeye ait değilse hiçbir metadata (analiz, kuyruk, düzeltme, ürün adı) okunmaz/sızmaz
+      const own = await db.collection('brand_media').doc(assetId).get();
+      const o = own.exists ? own.data() : null;
+      if (!o || o.tenantId !== req.tenantId || o.projectId !== pid) return res.status(404).json({ error: 'Medya bulunamadı' });
+      const now = Date.now();
       const latest = await db.collection('media_ai_analysis_latest').doc(`${req.tenantId}_${pid}_${assetId}`).get();
       const rec = latest.exists ? await db.collection('media_ai_analyses').doc(latest.data().key).get() : null;
       const analysis = rec?.exists && rec.data().tenantId === req.tenantId && rec.data().projectId === pid ? rec.data() : null;
-      const effective = await loadEffectiveCatalog(db, req.tenantId, pid, assetId);
-      return res.status(200).json({ enabled: feature.enabled, analysis, effective });
+      const [queueR, corrR] = await Promise.allSettled([readQueueView(db, req.tenantId, pid, assetId, now), loadCorrection(db, req.tenantId, pid, assetId)]);
+      const queue = queueR.status === 'fulfilled' ? { state: 'ok' as const, job: queueR.value } : { state: 'unavailable' as const };
+      if (queueR.status === 'rejected') console.error('media/analyze queue read error:', (queueR.reason as any)?.message);
+      let correction: { state: 'ok'; value: ReturnType<typeof toCorrectionView> } | { state: 'unavailable' };
+      let effective: any = null;
+      let products: { state: string; items: Array<{ id: string; name: string | null }> } = { state: 'none', items: [] };
+      if (corrR.status === 'fulfilled') {
+        const view = toCorrectionView(corrR.value);
+        correction = { state: 'ok', value: view };
+        // Etkin katalog: AI sonucu + insan alanları. AI yoksa catalog:null kalır (insan alanlarından tam katalog UYDURULMAZ)
+        effective = { ...effectiveCatalog(analysis?.status === 'done' ? analysis.result || null : null, corrR.value), analysisKey: analysis?.key || null, sourceQuality: analysis?.sourceQuality || null };
+        if (view && view.verifiedProductIds.length) {
+          const r = await resolveVerifiedProductNames(db, req.tenantId, pid, view.verifiedProductIds);
+          products = { state: r.source, items: r.items };
+        }
+      } else {
+        console.error('media/analyze correction read error:', (corrR.reason as any)?.message);
+        correction = { state: 'unavailable' };
+      }
+      return res.status(200).json({
+        enabled: feature.enabled,
+        scope: { tenantId: req.tenantId, projectId: pid, assetId },
+        serverNow: now,
+        analysis,
+        queue,
+        correction,
+        effective,
+        products,
+      });
     }
 
     const isCorrection = req.body?.correction !== undefined;
@@ -67,6 +105,8 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
       if (!q.queued) return res.status(200).json({ enabled: true, queued: false, reason: q.reason });
     }
 
+    const modelSel = resolveMediaModel();
+    if (!modelSel.ok) return res.status(503).json({ error: modelSel.reason, code: 'model_config_invalid' });
     const storage = await getAdminStorage();
     const analysisDeps = (asset: BrandMediaLike) => ({
       store: firestoreAnalysisStore(db),
@@ -76,15 +116,15 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
         const [buf] = await storage.bucket(process.env.FIREBASE_STORAGE_BUCKET).file(path).download();
         return buf;
       },
-      callModel: anthropicModelCall(),
+      callModel: openrouterVisionCall(),
     });
     if (autoTrigger) {
       // Hızlı yol: işi hemen ilerlet (kuyruk lease/fencing ile); kesilirse cron sürdürür
-      const state = await processAnalysisJob(db, queueJobId(req.tenantId, pid, assetId), { analysisDeps, owner: `req:${req.userId}:${Date.now()}`, now: Date.now });
+      const state = await processAnalysisJob(db, queueJobId(req.tenantId, pid, assetId), { analysisDeps, model: modelSel.model, owner: `req:${req.userId}:${Date.now()}`, now: Date.now });
       return res.status(200).json({ enabled: true, queued: true, state });
     }
     const asset: BrandMediaLike = { id: assetId, tenantId: a.tenantId, projectId: a.projectId, kind: a.kind, status: a.status, storage: a.storage };
-    const record = await analyzeBrandMedia(asset, analysisDeps(asset));
+    const record = await analyzeBrandMedia(asset, analysisDeps(asset), modelSel.model);
     return res.status(200).json({ enabled: true, analysis: record });
   } catch (error: any) {
     console.error('media/analyze error:', error?.message);
