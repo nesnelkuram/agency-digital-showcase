@@ -24,7 +24,7 @@ export const createCopyPort = (): CopyPort => ({
   available: true,
   generate: async (req: CopyRequest): Promise<CopyResponse> => {
     const b = await call('/api/studio/plan-copy', { method: 'POST', body: JSON.stringify(req) });
-    return { accepted: b.accepted ?? [], rejected: b.rejected ?? [], notes: b.notes ?? [], model: b.model, promptVersion: b.promptVersion, responseId: b.responseId ?? null, provider: b.provider ?? null, requestedModel: b.requestedModel, requestId: b.requestId ?? null, usage: b.usage };
+    return { accepted: b.accepted ?? [], rejected: b.rejected ?? [], notes: b.notes ?? [], model: b.model, promptVersion: b.promptVersion, responseId: b.responseId ?? null, provider: b.provider ?? null, requestedModel: b.requestedModel, requestId: b.requestId ?? null, usage: b.usage, voice: b.voice };
   },
 });
 

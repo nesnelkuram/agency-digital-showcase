@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useStudio } from '../StudioLayout';
 import PlannerApp, { type ReviewData } from '../feedPlanner/review/App';
@@ -7,6 +7,8 @@ import { candidateFromInventory } from '../feedPlanner/integration/fromInventory
 import { createBlobResolver, createCopyPort, createPersistencePort, fetchInventory } from '../feedPlanner/live/livePorts';
 import type { PlannerPorts } from '../feedPlanner/ports';
 import BrandVoiceCard from '../components/BrandVoiceCard';
+import BrandGuideChat from '../components/BrandGuideChat';
+import { loadVoiceState, type VoiceState } from '../brandGuideApi';
 
 /** Verilen tarihin haftasının Pazartesi'si (yerel), YYYY-MM-DD */
 export function mondayOf(d: Date): string {
@@ -23,6 +25,13 @@ const StudioPlannerPage: React.FC = () => {
   const [data, setData] = useState<ReviewData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<{ loaded: number; pages: number } | null>(null);
+  const [voice, setVoice] = useState<VoiceState>({ approved: null, bundle: false, guideVersion: null, loading: true });
+  const [guideOpen, setGuideOpen] = useState(false);
+  const refreshVoice = useCallback(() => {
+    if (!project) return;
+    loadVoiceState(project.id).then(setVoice).catch(() => setVoice({ approved: null, bundle: false, guideVersion: null, loading: false, error: 'Marka dili durumu okunamadı.' }));
+  }, [project?.id]);
+  useEffect(() => { setVoice({ approved: null, bundle: false, guideVersion: null, loading: true }); setGuideOpen(false); refreshVoice(); }, [refreshVoice]);
   const blobs = useMemo(() => createBlobResolver(), []);
   useEffect(() => () => blobs.dispose(), [blobs]);
 
@@ -72,12 +81,13 @@ const StudioPlannerPage: React.FC = () => {
           <input type="date" value={week} onChange={(e) => e.target.value && setWeek(mondayOf(new Date(`${e.target.value}T12:00:00`)))} />
         </label>
       </div>
-      <BrandVoiceCard projectId={project.id} />
+      <BrandVoiceCard projectId={project.id} guideVersion={voice.guideVersion} onStartGuide={() => setGuideOpen(true)} />
+      {guideOpen && <div style={{ margin: '0 16px 12px' }}><BrandGuideChat projectId={project.id} onClose={() => setGuideOpen(false)} onApproved={refreshVoice} /></div>}
       {progress && (
         <p className="counts" role="status" style={{ padding: '0 16px' }}><Loader2 className="inline w-3.5 h-3.5 animate-spin" /> Katalog yükleniyor: {progress.loaded} kayıt · {progress.pages} sayfa</p>
       )}
       {error && <p className="err shell" role="alert">Katalog yüklenemedi: {error}. Liste eksik olabileceği için planlayıcı açılmadı.</p>}
-      {data && <PlannerApp key={week} data={data} ports={ports} projectId={project.id} weekStart={week} />}
+      {data && <PlannerApp key={week} data={data} ports={ports} projectId={project.id} weekStart={week} voice={{ approved: voice.loading ? null : voice.approved }} onStartGuide={() => setGuideOpen(true)} />}
     </div>
   );
 };

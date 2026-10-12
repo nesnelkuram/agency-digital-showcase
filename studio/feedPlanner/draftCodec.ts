@@ -31,6 +31,7 @@ const toDraftText = (t: SlotText | null, where: string, errors: string[]): Draft
   if (t.body) out.body = t.body;
   if (t.caption) out.caption = t.caption;
   if (modelOnly && t.evidenceBasis) out.evidenceBasis = t.evidenceBasis;
+  if (modelOnly && t.voiceSource) out.voiceSource = t.voiceSource;
   if (modelOnly && t.contentHash) out.contentHash = t.contentHash;
   if (modelOnly && t.responseId) out.responseId = t.responseId;
   if (modelOnly && t.promptVersion) out.promptVersion = t.promptVersion;

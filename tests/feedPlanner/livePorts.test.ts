@@ -26,6 +26,16 @@ describe('kopya portu (/api/studio/plan-copy)', () => {
     expect(e).toBeInstanceOf(PortError);
     expect(e).toMatchObject({ message: error, code, status, details: ['x'] });
   });
+  it('geçici ton, ölçülen gözlem ve sunucunun SES KAYNAĞI bilgisi aynen taşınır', async () => {
+    const voice = { source: 'temporary_tone', tone: { label: 'zarif' }, guideVersion: null, assumptions: ['Geçici ton.'], tempToneIgnored: false };
+    af.mockResolvedValue(ok({ accepted: [], rejected: [{ slotKey: 'feed:0', reasons: ['gorsel_gozlem_yok'] }], notes: [], model: 'm', promptVersion: 'plan-copy-v2-tone', responseId: null, voice }));
+    const req = { projectId: 'p1', weekStart: '2026-10-12', tempTone: { label: 'zarif' }, items: [{ slotKey: 'feed:0', mediaId: 'a1', lane: 'feed', role: 'caption', observed: { brightness: 0.5, warmth: 0, contrast: 0.1, density: 0.1, negativeSpace: 0.1, negativeZone: 'üst', palette: ['#aabbcc'] } }] } as any;
+    const r = await createCopyPort().generate(req);
+    expect(JSON.parse(af.mock.calls[0][1].body)).toEqual(req);
+    expect(r.voice).toEqual(voice);
+    expect(r.rejected).toEqual([{ slotKey: 'feed:0', reasons: ['gorsel_gozlem_yok'] }]);
+    expect(r.responseId).toBeNull();
+  });
   it('oturum yoksa açık hata', async () => {
     failWith = new Error('Not authenticated');
     expect(await rejects(createCopyPort().generate({} as any))).toMatchObject({ code: 'network', message: 'Oturum açık değil.' });

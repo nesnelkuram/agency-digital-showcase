@@ -90,6 +90,8 @@ async function verifyInTransaction(tx: any, db: Db, p: { tenantId: string; proje
     const rec = issued.get(t.responseId);
     if (recomputed !== t.contentHash) badModel.push({ where: m.where, reason: 'hash_text_media_mismatch' });
     else if (!rec || rec.tenantId !== p.tenantId || rec.projectId !== p.projectId || rec.hashes?.[t.contentHash] !== m.mediaId) badModel.push({ where: m.where, reason: 'not_issued_by_server' });
+    // Ses kaynağı: istemci beyanı üretim kaydıyla AYNI olmalı. Beyan yoksa 'approved_bundle' sayılır (eski kayıtlar); geçici ton metni bu yolla onaylı gibi saklanamaz.
+    else if ((t.voiceSource ?? 'approved_bundle') !== (rec.voiceSource ?? 'approved_bundle')) badModel.push({ where: m.where, reason: 'voice_source_mismatch' });
   }
   if (badModel.length) return { code: 'provenance_invalid' as const, message: 'Model kaynaklı metin sunucu kaydıyla doğrulanamadı; model çıktısı olarak kaydedilemez (elle metin için source:"manual" kullanın).', details: badModel.slice(0, 20) };
   return null;

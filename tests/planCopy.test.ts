@@ -292,4 +292,27 @@ describe('POST /api/studio/plan-copy', () => {
     expect(r.body.accepted).toBeUndefined();
     expect(await call(body({ items: [feedItem(0, 'yok-medya')] }))).toMatchObject({ statusCode: 422, body: { code: 'media_invalid' } });
   });
+
+  it('REHBERSİZ AKIŞ (uç nokta): paket yok + ton yok → 412 (needs: tone_or_guide), model yok; ton varsa 200 ve voice.source=temporary_tone; sağlayıcı kapalıyken 503 (412 DEĞİL, rehber durumuna bakılmadan)', async () => {
+    endpointDb.current.data.delete(`${BRAND_VOICE_COLLECTION}/${brandVoiceDocId(T, P)}`);
+    const none = await call(body());
+    expect(none).toMatchObject({ statusCode: 412, body: { code: 'brand_voice_missing', details: { needs: 'tone_or_guide' } } });
+    expect(endpointModel.current).not.toHaveBeenCalled();
+    const obs = { brightness: 0.6, warmth: 0.1, contrast: 0.2, density: 0.2, negativeSpace: 0.3, negativeZone: 'üst', palette: ['#aa8855'] };
+    endpointModel.current = model(out([{ slotKey: 'feed:0', caption: 'Işık yumuşak, tonlar sıcak ve üstteki boşluk cümleye yer açıyor; sakin bir kadraj.', evidenceBasis: 'olculen_gorsel' }]));
+    const items = [{ ...feedItem(0, 'a1'), observed: obs }];
+    const ok = await call({ ...req(items), tempTone: { label: 'zarif' } });
+    expect(ok.statusCode).toBe(200);
+    expect(ok.body).toMatchObject({ draftOnly: true, voice: { source: 'temporary_tone', tone: { label: 'zarif' }, tempToneIgnored: false }, accepted: [{ slotKey: 'feed:0', evidenceBasis: 'olculen_gorsel' }] });
+    expect(ok.body.voice.assumptions.join(' ')).toMatch(/onaylı marka hafızası değildir/);
+    // sağlayıcı kapalı: 503, ton/rehber ne olursa olsun; model çağrılmaz
+    delete process.env.PLAN_COPY_AI_ENABLED;
+    (endpointModel.current as any).mockClear();
+    expect(await call({ ...req(items), tempTone: { label: 'zarif' } })).toMatchObject({ statusCode: 503, body: { code: 'feature_disabled' } });
+    expect(await call(body())).toMatchObject({ statusCode: 503, body: { code: 'feature_disabled' } });
+    expect(endpointModel.current).not.toHaveBeenCalled();
+    // geçersiz ton → 400
+    process.env.PLAN_COPY_AI_ENABLED = 'true';
+    expect((await call({ ...req(items), tempTone: { label: 'agresif' } })).statusCode).toBe(400);
+  });
 });

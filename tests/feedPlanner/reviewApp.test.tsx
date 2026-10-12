@@ -42,6 +42,9 @@ const fakeCopy = (over: Partial<CopyPort> = {}): CopyPort & { calls: CopyRequest
           return { slotKey: it.slotKey, mediaId: it.mediaId, role: it.role, text, evidenceBasis: 'persona_kanaat' as const, rationale: 'test', contentHash: String(seq).padStart(32, '0'), warnings: [] };
         }),
         rejected: [], notes: [], model: 'test-double', promptVersion: 'plan-copy-v1', responseId: `resp-${seq}`,
+        voice: req.tempTone
+          ? { source: 'temporary_tone' as const, tone: req.tempTone, guideVersion: null, assumptions: ['Geçici ton; onaylı marka hafızası değildir.'], tempToneIgnored: false }
+          : { source: 'approved_bundle' as const, tone: null, guideVersion: null, assumptions: [], tempToneIgnored: false },
       };
     }),
     ...over,
@@ -64,12 +67,22 @@ afterEach(() => {
 
 const feedIds = () =>
   Array.from({ length: 9 }, (_, i) => within(screen.getByTestId(`feed-slot-${i}`)).queryByRole('button', { name: /incele/ })?.getAttribute('aria-label')?.match(/: (\S+) incele/)?.[1] ?? null);
-const generate = async () => {
-  const btn = screen.getByText('Plan oluştur') as HTMLButtonElement;
+/** Yalnız GÖRSEL plan (model çağrılmaz) */
+const makePlan = async () => {
+  const btn = screen.getByTestId('make-plan') as HTMLButtonElement;
   await waitFor(() => expect(btn.disabled).toBe(false));
   fireEvent.click(btn);
   await settle();
 };
+/** Açık "Metinleri üret" */
+const makeText = async () => {
+  fireEvent.click(screen.getByTestId('gen-text'));
+  await settle();
+};
+const generate = async () => { await makePlan(); await makeText(); };
+/** Planda olmayan bir aday (atama denemeleri için) */
+const spareId = () => Array.from({ length: 14 }, (_, k) => `p${k}`).find((id) => !feedIds().includes(id))!;
+const status = (lane: string, i: number) => screen.getByTestId(`status-${lane}:${i}`);
 /** Üretim bitene kadar bekle: hiçbir slot meşgul değil */
 const settle = () => waitFor(() => expect(document.querySelector('[aria-busy="true"]')).toBeNull());
 const filled = async () => { await waitFor(() => expect(screen.getAllByTestId(/^caption-\d$/)).toHaveLength(9)); };
@@ -78,27 +91,56 @@ const choose = (name: string | RegExp) => fireEvent.click(screen.getByRole('menu
 const caption = (i: number) => screen.getByTestId(`caption-${i}`).textContent;
 const roleOf = (n: number) => screen.getByTestId(`story-slot-${n}`).querySelector('[data-testid="story-canvas"]')!.getAttribute('data-role');
 
-describe('ekran: etiketler, sayılar, ölçüm kapısı', () => {
-  it('kısa yerel etiket, uzun uyarılar ayrıntıda; aday ve arşiv ayrı sayılır; canlı çağrı yok', () => {
+
+describe('ana ekran: Instagram düzeni, tek ana eylem, ayrıntılar katlı', () => {
+  it('tek ana eylem "Post planı oluştur"; diğer eylemler "Gelişmiş ayarlar" içinde katlı; kütüphane/inceleme varsayılan kapalı', () => {
     const d = mkData();
     render(<App data={d} measure={measure} />);
+    const primaries = Array.from(document.querySelectorAll('.top button.primary')).map((b) => b.textContent);
+    expect(primaries).toEqual(['Post planı oluştur']);
+    const adv = screen.getByTestId('advanced') as HTMLDetailsElement;
+    expect(adv.open).toBe(false);
+    for (const t of ['Kalanları yeniden öner', 'Story oluştur', 'Story: kalanları yeniden öner']) expect(within(adv).getByText(t)).toBeTruthy();
+    expect(within(adv).getByText('Ayrıntılar').closest('details')).toBeTruthy();
+    expect(screen.getByTestId('toggle-panels').getAttribute('aria-expanded')).toBe('false');
+    expect(document.querySelector('.cols')!.className).toMatch(/no-panels/);
     expect(screen.getByText(/Yerel snapshot · model çalışmadı · canlı kütüphane bağlı değil/)).toBeTruthy();
-    expect(screen.getByText('Ayrıntılar').closest('details')).toBeTruthy();
+  });
+
+  it('Story şeridi feed\'in ÜSTÜNDE; feed 3 sütunlu ızgara', () => {
+    render(<App data={mkData()} measure={measure} />);
+    const strip = screen.getByLabelText('Story serisi');
+    const feedGrid = document.querySelector('.feed') as HTMLElement;
+    expect(strip.compareDocumentPosition(feedGrid) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(feedGrid.style.gridTemplateColumns).toMatch(/repeat\(3,/);
+  });
+
+  it('bir görsele tıklamak kütüphane/inceleme panellerini açar; düğmeyle tekrar kapanır', async () => {
+    renderApp();
+    await makePlan();
+    fireEvent.click(within(screen.getByTestId('feed-slot-0')).getByRole('button', { name: /incele/ }));
+    expect(document.querySelector('.cols')!.className).toMatch(/with-panels/);
+    fireEvent.click(screen.getByTestId('toggle-panels'));
+    expect(document.querySelector('.cols')!.className).toMatch(/no-panels/);
+  });
+
+  it('etiketler: aday ve arşiv ayrı sayılır (gelişmiş içinde); canlı çağrı yok', () => {
+    const d = mkData();
+    render(<App data={d} measure={measure} />);
     const counts = screen.getByTestId('counts').textContent!;
     expect(counts).toContain(`Aday havuzu ${d.candidates.length}`);
     expect(counts).toContain(`Arşiv (ayrı, havuza girmez) ${d.published.length}`);
-    expect(counts).not.toMatch(new RegExp(`(Aday havuzu|Kütüphane|Arşiv[^0-9]*) ${d.candidates.length + d.published.length}\\b`));
     expect(counts).toMatch(new RegExp(`Ölçüm \\d+/${d.candidates.length + d.published.length}`));
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it('Plan oluştur ölçümler bitene kadar kapalı ve nedeni söylenir', async () => {
+  it('Post planı oluştur ölçümler bitene kadar kapalı ve nedeni söylenir', async () => {
     const resolvers: (() => void)[] = [];
     const slow = vi.fn(() => new Promise<ReturnType<typeof aest>>((res) => resolvers.push(() => res(aest()))));
     renderApp({ measure: slow });
-    const btn = screen.getByText('Plan oluştur') as HTMLButtonElement;
+    const btn = screen.getByTestId('make-plan') as HTMLButtonElement;
     expect(btn.disabled).toBe(true);
-    expect(screen.getByTestId('counts').textContent).toMatch(/Ölçüm sürüyor/);
+    expect(screen.getByText(/Ölçüm sürüyor/)).toBeTruthy();
     for (let k = 0; k < 100 && btn.disabled; k++) {
       await waitFor(() => expect(resolvers.length > 0 || !btn.disabled).toBe(true));
       resolvers.splice(0).forEach((r) => r());
@@ -108,102 +150,355 @@ describe('ekran: etiketler, sayılar, ölçüm kapısı', () => {
   });
 });
 
-describe('MODEL YOK: şablon fallback ile başarı iddia edilmez', () => {
-  it('yerel inceleme (model bağlı değil): görseller yerleşir ama metin ÜRETİLMEZ; açık hata ve "TAMAMLANMADI" gösterilir, hiçbir slotta şablon metni yok', async () => {
-    render(<App data={mkData()} measure={measure} />);
-    expect(screen.getByTestId('copy-unavailable').textContent).toMatch(/Metin üretimi kapalı/);
-    await generate();
-    expect(feedIds().every(Boolean)).toBe(true);
-    expect(new Set(feedIds()).size).toBe(9);
-    expect(screen.queryAllByTestId(/^caption-\d$/)).toHaveLength(0); // hiçbir feed slotunda metin yok
-    expect(screen.queryByText(/şablon \(test\)/)).toBeNull();
-    expect(document.querySelector('.caption .tag')).toBeNull();
-    expect(screen.getByTestId('incomplete').textContent).toMatch(/TAMAMLANMADI/);
-    expect(screen.getByTestId('feed-slot-0').textContent).toMatch(/Metin üretilemedi: Metin üretim modeli bağlı değil/);
-    expect(screen.getAllByText(/Metin üretilemedi: Metin üretim modeli bağlı değil/).length).toBeGreaterThan(0);
+describe('GÖRSEL ÖNCE: plan ve yerleşim modeli ÇAĞIRMAZ; metin ayrı eylem', () => {
+  it('Post planı oluştur: 9 benzersiz görsel yerleşir, model HİÇ çağrılmaz, hiçbir slotta metin yok; durum "henüz üretilmedi" (hata değil)', async () => {
+    renderApp();
+    await makePlan();
+    const ids = feedIds();
+    expect(ids.every(Boolean)).toBe(true);
+    expect(new Set(ids).size).toBe(9);
+    expect(ids.some((id) => /^s\d$/.test(id!))).toBe(false); // hikâye kareleri feed'de tekrar etmez
+    expect(copy.calls).toHaveLength(0);
+    expect(screen.queryAllByTestId(/^caption-\d$/)).toHaveLength(0);
+    expect(status('feed', 0).getAttribute('data-kind')).toBe('pending');
+    expect(status('feed', 0).textContent).toBe('Metin henüz üretilmedi');
+    expect(screen.getByTestId('text-summary').textContent).toMatch(/görsel yerleşti · \d+ metin hazır · 9 görselin metni henüz üretilmedi/); // Story'deki plan metinleri sayılır, feed'in 9 görseli metinsiz
+  });
+
+  it('"Metinleri üret" açık eylemdir: tek partide, görsel yerinde; metin MODEL kaynaklı', async () => {
+    renderApp();
+    await makePlan();
+    const ids = feedIds();
+    await makeText();
+    expect(feedIds()).toEqual(ids);
+    for (let i = 0; i < 9; i++) expect(screen.getByTestId(`caption-${i}`).textContent).toMatch(/model · TR/);
+    expect(copy.calls).toHaveLength(1);
+    const feedItems = copy.calls[0].items.filter((it) => it.lane === 'feed');
+    expect(feedItems).toHaveLength(9);
+    expect(feedItems.map((it) => it.mediaId).sort()).toEqual([...ids].sort());
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it('model hata verirse (502 benzeri): görsel değişmez, hata nedeni görünür, mevcut öneri ve metni korunur', async () => {
+  it('istek ÖLÇÜLEN gözlemi taşır (palet/parlaklık/boş alan…); yalnız sayılar ve renkler, anlam yok', async () => {
     renderApp();
-    await generate();
-    await filled();
-    const ids = feedIds();
-    const cap = caption(0);
-    (copy.generate as any).mockRejectedValue(new PortError('Metin üretim modeli çağrısı başarısız; metin üretilmedi.', 'model_error', 502));
-    openMenu('feed', 1);
-    choose('Ele ve yenisini getir');
-    await waitFor(() => expect(screen.getByText(/Görsel ve metin birlikte yenilenemedi, mevcut öneri korundu: Metin üretim modeli çağrısı başarısız/)).toBeTruthy());
-    expect(feedIds()).toEqual(ids);
-    expect(caption(0)).toBe(cap);
-    expect(screen.getByText('Henüz elenen yok.')).toBeTruthy();
+    await makePlan();
+    await makeText();
+    const it0 = copy.calls[0].items.find((i) => i.slotKey === 'feed:0')!;
+    expect(it0.observed).toMatchObject({ brightness: 0.5, warmth: 0.1, contrast: 0.2, density: 0.3, negativeSpace: 0.2, negativeZone: 'dağınık' });
+    expect(it0.observed!.palette).toHaveLength(4);
   });
 
-  it('sunucu metni reddederse (doğrulama): aday atanmaz; neden gösterilir', async () => {
+  it('manuel atama görseli HEMEN geçerli taslak olarak yerleştirir: model çağrısı sıfır, metin yok, kaydedilebilir', async () => {
     renderApp();
-    (copy.generate as any).mockResolvedValue({ accepted: [], rejected: [{ slotKey: 'feed:4', reasons: ['kanıtsız_içerik:peynir'] }], notes: [], model: 'x', promptVersion: 'v', responseId: 'r' });
     fireEvent.click(screen.getByLabelText('Feed slot 5 seç'));
     fireEvent.click(screen.getByLabelText('p7 slota ata'));
-    await waitFor(() => expect(screen.getByText(/Atama yapılamadı \(görsel ve metin birlikte yazılır\): kanıtsız_içerik:peynir/)).toBeTruthy());
-    expect(within(screen.getByTestId('feed-slot-4')).queryByRole('button', { name: /incele/ })).toBeNull();
+    expect(within(screen.getByTestId('feed-slot-4')).getByRole('button', { name: /p7 incele/ })).toBeTruthy();
+    expect(status('feed', 4).textContent).toBe('Metin henüz üretilmedi');
+    expect(copy.calls).toHaveLength(0);
+    // gezinme, seçim, biçim ve kırpma da model çağırmaz
+    fireEvent.click(within(screen.getByTestId('feed-slot-4')).getByRole('button', { name: /incele/ }));
+    fireEvent.click(screen.getByLabelText(/Reels kapağı 9:16/));
+    fireEvent.change(screen.getByLabelText('Yakınlaştırma'), { target: { value: '1.4' } });
+    expect(copy.calls).toHaveLength(0);
+    expect(screen.queryAllByTestId(/^caption-\d$/)).toHaveLength(0);
+  });
+
+  it('aynı fotoğraf ikinci kez atanamaz; Kalsın işaretli slota atanamaz (anında, model yok)', () => {
+    renderApp();
+    fireEvent.click(screen.getByLabelText('Feed slot 5 seç'));
+    fireEvent.click(screen.getByLabelText('p7 slota ata'));
+    fireEvent.click(screen.getByLabelText('Feed slot 2 seç'));
+    fireEvent.click(screen.getByLabelText('p7 slota ata'));
+    expect(screen.getByText(/Atanamadı: planda\/hikâyede zaten var/)).toBeTruthy();
+    expect(within(screen.getByTestId('feed-slot-1')).queryByRole('button', { name: /incele/ })).toBeNull();
+    fireEvent.click(screen.getByLabelText('feed slot 5 kalsın'));
+    fireEvent.click(screen.getByLabelText('Feed slot 5: p7 incele'));
+    fireEvent.click(screen.getByLabelText('p8 slota ata'));
+    expect(screen.getByText(/Kilitli slota atanamaz/)).toBeTruthy();
+    expect(copy.calls).toHaveLength(0);
+  });
+
+  it('YENİ GÖRSELE ESKİ METİN TAŞINMAZ: metinli slota yeni görsel atanınca metin boşalır ("henüz üretilmedi")', async () => {
+    renderApp();
+    await generate();
+    const old = caption(0);
+    const spare = spareId();
+    fireEvent.click(screen.getByLabelText('Feed slot 1: ' + feedIds()[0] + ' incele'));
+    fireEvent.click(screen.getByLabelText(`${spare} slota ata`));
+    expect(feedIds()[0]).toBe(spare);
+    expect(screen.queryByTestId('caption-0')).toBeNull();
+    expect(old).toBeTruthy();
+    expect(status('feed', 0).textContent).toBe('Metin henüz üretilmedi');
+  });
+
+  it('tek slot "Metin üret" yalnız o slotu ister; "Metni yenile" yeni metin getirir', async () => {
+    renderApp();
+    await makePlan();
+    fireEvent.click(screen.getByTestId('gen-feed:3'));
+    await settle();
+    expect(copy.calls).toHaveLength(1);
+    expect(copy.calls[0].items.map((i) => i.slotKey)).toEqual(['feed:3']);
+    expect(screen.getByTestId('caption-3')).toBeTruthy();
+    expect(screen.queryByTestId('caption-2')).toBeNull();
+    const first = caption(3);
+    fireEvent.click(screen.getByTestId('gen-feed:3'));
+    await settle();
+    expect(copy.calls).toHaveLength(2);
+    expect(caption(3)).not.toBe(first);
   });
 });
 
-describe('plan, Kalsın, yeniden öner (görsel + metin tek sürüm)', () => {
-  it('Plan oluştur: 9 benzersiz öğe; her feed slotunun metni MODEL kaynaklı; hikâye kareleri feed\'de tekrar etmez; istek tek partide', async () => {
-    renderApp();
-    await generate();
-    await filled();
+describe('metin hatası görseli SİLMEZ: sağlayıcı kapalı (503) ile marka dili yokluğu (412) AYRI', () => {
+  it('yerel inceleme (model bağlı değil): görseller yerleşir, "Metinleri üret" → sağlayıcı kapalı durumu; görseller korunur; model çağrısı yok; şablon metni yok', async () => {
+    render(<App data={mkData()} measure={measure} />);
+    expect(screen.getByTestId('copy-unavailable').textContent).toMatch(/Metin üretimi kapalı/);
+    await makePlan();
     const ids = feedIds();
-    expect(new Set(ids).size).toBe(9);
-    expect(ids.some((id) => /^s\d$/.test(id!))).toBe(false);
-    for (let i = 0; i < 9; i++) expect(screen.getByTestId(`caption-${i}`).textContent).toMatch(/model · TR/);
-    const feedReq = copy.calls.find((r) => r.items.some((it) => it.lane === 'feed'))!;
-    expect(feedReq.items).toHaveLength(9);
-    expect(feedReq.items.map((it) => it.mediaId).sort()).toEqual([...ids].sort());
-    expect(feedReq.items.every((it) => it.role === 'caption')).toBe(true);
-    expect(screen.queryByTestId('incomplete')).toBeNull();
+    expect(ids.every(Boolean)).toBe(true);
+    fireEvent.click(screen.getByTestId('gen-text'));
+    await settle();
+    expect(feedIds()).toEqual(ids);
+    expect(status('feed', 0).getAttribute('data-kind')).toBe('provider_off');
+    expect(status('feed', 0).textContent).toMatch(/Görsel korundu/);
+    expect(screen.queryAllByTestId(/^caption-\d$/)).toHaveLength(0);
+    expect(screen.queryByText(/şablon \(test\)/)).toBeNull();
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it('Kalsın: yeniden önerde görsel VE metin sabit kalır; kalanlar birlikte yenilenir', async () => {
+  it('503 feature_disabled (üretim kapalı): görsel plan aynen kalır, durum "sağlayıcı yapılandırması", 412 metni YOK', async () => {
+    renderApp();
+    await makePlan();
+    const ids = feedIds();
+    (copy.generate as any).mockRejectedValue(new PortError('Plan metin üretimi kapalı (PLAN_COPY_AI_ENABLED).', 'feature_disabled', 503));
+    await makeText();
+    expect(feedIds()).toEqual(ids);
+    const st = status('feed', 2);
+    expect(st.getAttribute('data-kind')).toBe('provider_off');
+    expect(st.textContent).toMatch(/Metin üretimi kapalı \(sağlayıcı yapılandırması\)\. Görsel korundu\./);
+    expect(st.textContent).not.toMatch(/marka dili/i);
+    // plan yeniden kurulabilir / slot değiştirilebilir (hata görsel akışı kilitlemez)
+    openMenu('feed', 1);
+    choose('Ele ve yenisini getir');
+    expect(feedIds()[0]).not.toBe(ids[0]);
+  });
+
+  it('412 brand_voice_missing (sunucu): görsel korunur, durum "marka dili yok", 503 metni YOK', async () => {
+    renderApp();
+    await makePlan();
+    const ids = feedIds();
+    (copy.generate as any).mockRejectedValue(new PortError('Bu marka için onaylı marka dili yok.', 'brand_voice_missing', 412));
+    await makeText();
+    expect(feedIds()).toEqual(ids);
+    const st = status('feed', 0);
+    expect(st.getAttribute('data-kind')).toBe('needs_voice');
+    expect(st.textContent).toMatch(/Onaylı marka dili yok/);
+    expect(st.textContent).not.toMatch(/sağlayıcı yapılandırması/);
+  });
+
+  it('model hatası (502): görsel ve mevcut metinler korunur, hata nedeni görünür', async () => {
     renderApp();
     await generate();
-    await filled();
+    const ids = feedIds();
+    const cap = caption(0);
+    (copy.generate as any).mockRejectedValue(new PortError('Metin üretim modeli çağrısı başarısız; metin üretilmedi.', 'model_error', 502));
+    fireEvent.click(screen.getByTestId('gen-feed:4')); // metni olan slot yenilenmek istenir
+    await settle();
+    expect(feedIds()).toEqual(ids);
+    expect(caption(0)).toBe(cap);
+    expect(caption(4)).toBeTruthy(); // eski metin silinmedi
+    expect(status('feed', 4).textContent).toMatch(/Metin üretilemedi: Metin üretim modeli çağrısı başarısız.*Görsel korundu/);
+  });
+
+  it('sunucu metni reddederse (doğrulama): görsel yerinde, neden gösterilir; gözlem yoksa "gözlem yok" ayrı durumu', async () => {
+    renderApp();
+    await makePlan();
+    const ids = feedIds();
+    (copy.generate as any).mockResolvedValue({
+      accepted: [], rejected: [{ slotKey: 'feed:0', reasons: ['kanıtsız_içerik:peynir'] }, { slotKey: 'feed:1', reasons: ['gorsel_gozlem_yok'] }],
+      notes: [], model: 'x', promptVersion: 'v', responseId: 'r',
+    });
+    fireEvent.click(screen.getByTestId('gen-feed:0'));
+    await settle();
+    expect(feedIds()).toEqual(ids);
+    expect(status('feed', 0).getAttribute('data-kind')).toBe('rejected');
+    expect(status('feed', 0).textContent).toMatch(/kanıtsız_içerik:peynir/);
+    (copy.generate as any).mockResolvedValue({ accepted: [], rejected: [{ slotKey: 'feed:1', reasons: ['gorsel_gozlem_yok'] }], notes: [], model: 'x', promptVersion: 'v', responseId: 'r' });
+    fireEvent.click(screen.getByTestId('gen-feed:1'));
+    await settle();
+    expect(status('feed', 1).getAttribute('data-kind')).toBe('no_observation');
+    expect(status('feed', 1).textContent).toMatch(/Bu görselde gözlem yok/);
+  });
+
+  it('BAYAT YANIT: metin beklerken görsel değişirse gelen metin YENİ görsele yazılmaz', async () => {
+    renderApp();
+    await makePlan();
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    const real = (copy.generate as any).getMockImplementation();
+    (copy.generate as any).mockImplementation(async (req: CopyRequest) => { await gate; return real(req); });
+    fireEvent.click(screen.getByTestId('gen-feed:0'));
+    await waitFor(() => expect(screen.getByTestId('status-feed:0').textContent).toMatch(/üretiliyor/));
+    // metin beklerken slotun görseli reddedilir (slot boşalır, sürüm artar): meşgul slot atamaya kapalıdır ama ret serbesttir
+    const original = feedIds()[0]!;
+    openMenu('feed', 1);
+    choose('Gerekçeyle reddet…');
+    fireEvent.change(screen.getByLabelText('Sebep kategorisi'), { target: { value: 'görsel' } });
+    fireEvent.click(screen.getByText('Reddi kaydet'));
+    await waitFor(() => expect(feedIds()[0]).toBeNull());
+    release();
+    await waitFor(() => expect(screen.getByText(/Slot beklerken değişti, gelen metin yok sayıldı: Feed slot 1/)).toBeTruthy());
+    expect(screen.queryByTestId('caption-0')).toBeNull(); // eski görselin metni hiçbir yere YAZILMADI
+    expect(feedIds()[0]).toBeNull();
+    expect(original).toBeTruthy();
+  });
+});
+
+describe('REHBERSİZ GEÇİCİ TON', () => {
+  const renderNoGuide = (extra: Partial<React.ComponentProps<typeof App>> = {}) => render(<App data={mkData()} measure={measure} ports={portsWith(copy)} voice={{ approved: false }} {...extra} />);
+
+  it('marka dili yok: ton paneli görünür, plan BLOKLANMAZ; ton seçilmeden "Metinleri üret" ağ çağrısı YAPMAZ ve net "marka dili yok" der (görsel korunur)', async () => {
+    renderNoGuide();
+    expect(screen.getByTestId('tone-panel').textContent).toMatch(/onaylı marka dili yok/);
+    await makePlan();
+    const ids = feedIds();
+    expect(ids.every(Boolean)).toBe(true);
+    fireEvent.click(screen.getByTestId('gen-text'));
+    await settle();
+    expect(copy.calls).toHaveLength(0);
+    expect(status('feed', 0).getAttribute('data-kind')).toBe('needs_voice');
+    expect(feedIds()).toEqual(ids);
+  });
+
+  it('ton etiketi seçilince istek tempTone taşır; metin "geçici ton taslağı" ve varsayım uyarısıyla gösterilir; onaylı gibi gösterilmez', async () => {
+    renderNoGuide();
+    await makePlan();
+    fireEvent.click(screen.getByTestId('tone-chip-zarif'));
+    expect(screen.getByTestId('tone-chip-zarif').getAttribute('aria-pressed')).toBe('true');
+    await makeText();
+    expect(copy.calls[0].tempTone).toEqual({ label: 'zarif' });
+    expect(screen.getByTestId('caption-0').textContent).toMatch(/geçici ton taslağı/);
+    expect(screen.getByTestId('caption-0').textContent).not.toMatch(/model · TR/);
+    expect(screen.getByTestId('assume-feed:0').textContent).toMatch(/Varsayım: yalnız ölçülen görsel özellik ve seçilen geçici tondan türetildi; ürün\/içerik doğrulanmadı\. Onaylı marka dili değildir\./);
+    expect(screen.getByTestId('tone-panel').textContent).toMatch(/GEÇİCİDİR; onaylı marka hafızası değildir ve kaydedilmez/);
+  });
+
+  it('serbest ton tarifi de gönderilir (kırpılmış); etiket tekrar tıklanınca kalkar', async () => {
+    renderNoGuide();
+    await makePlan();
+    fireEvent.change(screen.getByTestId('tone-prompt'), { target: { value: '  sıcak,   kısa cümleler ' } });
+    fireEvent.click(screen.getByTestId('tone-chip-samimi'));
+    fireEvent.click(screen.getByTestId('tone-chip-samimi'));
+    await makeText();
+    expect(copy.calls[0].tempTone).toEqual({ prompt: 'sıcak, kısa cümleler' });
+  });
+
+  it('onaylı marka dili varsa ton paneli yok ve tempTone GÖNDERİLMEZ; sunucu ton yok sayarsa kullanıcı bilgilendirilir', async () => {
+    render(<App data={mkData()} measure={measure} ports={portsWith(copy)} voice={{ approved: true }} />);
+    expect(screen.queryByTestId('tone-panel')).toBeNull();
+    expect(screen.getByTestId('voice-approved')).toBeTruthy();
+    await makePlan();
+    await makeText();
+    expect(copy.calls[0].tempTone).toBeUndefined();
+    cleanup();
+    // bilinmiyor (null): ton gönderilir, sunucu onaylıyı seçip yok sayar
+    renderApp({ voice: { approved: null } });
+    await makePlan();
+    fireEvent.click(screen.getByTestId('tone-chip-lüks'));
+    (copy.generate as any).mockResolvedValueOnce({
+      accepted: [{ slotKey: 'feed:0', mediaId: 'x', role: 'caption', text: { caption: 'Onaylı rehberle yazılmış metin.' }, evidenceBasis: 'marka_rehberi', rationale: 'r', contentHash: 'a'.repeat(32), warnings: [] }],
+      rejected: [], notes: [], model: 'm', promptVersion: 'plan-copy-v2-guide', responseId: 'r1',
+      voice: { source: 'approved_guide', tone: null, guideVersion: 2, assumptions: [], tempToneIgnored: true },
+    });
+    fireEvent.click(screen.getByTestId('gen-feed:0'));
+    await settle();
+    expect(screen.getByText(/Onaylı marka dili kullanıldı; seçtiğiniz geçici ton yok sayıldı/)).toBeTruthy();
+    expect(screen.getByTestId('caption-0').textContent).toMatch(/marka rehberi · TR/);
+  });
+
+  it('"Marka dilini birlikte oluştur" yalnız onStartGuide verilince görünür ve çağırır', () => {
+    const onStartGuide = vi.fn();
+    renderNoGuide({ onStartGuide });
+    fireEvent.click(screen.getByTestId('start-guide'));
+    expect(onStartGuide).toHaveBeenCalledTimes(1);
+    cleanup();
+    renderNoGuide();
+    expect(screen.queryByTestId('start-guide')).toBeNull();
+  });
+
+  it('geçici ton metni taslağa voiceSource ile kaydedilir ve yeniden yüklemede "geçici ton taslağı" olarak döner', async () => {
+    const { st, persistence } = memoryStoreFactory();
+    render(<App data={mkData()} measure={measure} ports={portsWith(copy, persistence)} projectId="dieci" weekStart="2026-10-12" voice={{ approved: false }} />);
+    await makePlan();
+    fireEvent.click(screen.getByTestId('tone-chip-enerjik'));
+    await makeText();
+    await waitFor(() => expect((screen.getByTestId('save-draft') as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(screen.getByTestId('save-draft'));
+    await waitFor(() => expect(screen.getByTestId('persist-status').textContent).toMatch(/Sunucuda kayıtlı sürüm 1/));
+    expect(st.draft.feed[0].text).toMatchObject({ source: 'model', voiceSource: 'temporary_tone' });
+    expect(st.draft.feed[0].text.assumptions).toBeUndefined(); // varsayım listesi kalıcı alan değil
+    cleanup();
+    render(<App data={mkData()} measure={measure} ports={portsWith(copy, persistence)} projectId="dieci" weekStart="2026-10-12" voice={{ approved: false }} />);
+    await waitFor(() => expect(screen.getByTestId('persist-status').textContent).toMatch(/Kayıtlı taslak yüklendi/));
+    expect(screen.getByTestId('caption-0').textContent).toMatch(/geçici ton taslağı/);
+    expect(screen.getByTestId('assume-feed:0')).toBeTruthy();
+  });
+});
+
+describe('Kalsın ve yeniden öner (görsel plan; metin ayrı)', () => {
+  it('Kalsın: yeniden önerde görsel VE metin sabit kalır; kalanlar görselce yenilenir ve metinsiz kalır; model çağrılmaz', async () => {
+    renderApp();
+    await generate();
     const before = feedIds();
     const caps = Array.from({ length: 9 }, (_, i) => caption(i));
+    const calls = copy.calls.length;
     fireEvent.click(screen.getByLabelText('feed slot 1 kalsın'));
     fireEvent.click(screen.getByText('Kalanları yeniden öner'));
-    await settle();
     const after = feedIds();
     expect(after[0]).toBe(before[0]);
     expect(caption(0)).toBe(caps[0]);
     expect(after.every(Boolean)).toBe(true);
     expect(new Set(after).size).toBe(9);
-    // kilitsiz slotlarda görsel değiştiyse metni de birlikte değişmiştir (eski görsel + yeni metin karışımı yok)
-    for (let i = 1; i < 9; i++) expect(after[i] !== before[i]).toBe(caption(i) !== caps[i]);
-    const req = copy.calls.at(-1)!;
-    expect(req.items.map((it) => it.slotKey)).not.toContain('feed:0');
+    // görsel değiştiyse eski metin taşınmadı; değişmediyse metin aynen duruyor
+    for (let i = 1; i < 9; i++) {
+      if (after[i] !== before[i]) expect(screen.queryByTestId(`caption-${i}`)).toBeNull();
+      else expect(caption(i)).toBe(caps[i]);
+    }
+    expect(copy.calls.length).toBe(calls);
   });
 
-  it('yeniden öner sırasında model hata verirse: TÜM eski görsel+metinler korunur', async () => {
+  it('"Metinleri üret" Kalsın işaretli ve metni olan çifte dokunmaz; tek slot yenileme de kilitliyi değiştirmez', async () => {
     renderApp();
     await generate();
-    await filled();
-    const before = feedIds();
-    const caps = Array.from({ length: 9 }, (_, i) => caption(i));
-    (copy.generate as any).mockRejectedValue(new PortError('model kapalı', 'model_unavailable'));
-    fireEvent.click(screen.getByText('Kalanları yeniden öner'));
-    await waitFor(() => expect(screen.getAllByText(/Görsel ve metin birlikte yenilenemedi, mevcut öneri korundu/).length).toBeGreaterThan(0));
-    expect(feedIds()).toEqual(before);
-    for (let i = 0; i < 9; i++) expect(caption(i)).toBe(caps[i]);
+    const cap = caption(0);
+    fireEvent.click(screen.getByLabelText('feed slot 1 kalsın'));
+    const calls = copy.calls.length;
+    expect((screen.getByTestId('gen-feed:0') as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByTestId('gen-feed:0'));
+    await settle();
+    expect(caption(0)).toBe(cap);
+    expect(copy.calls.length).toBe(calls);
+  });
+
+  it('YENİDEN ÖNER: tohumlu varyasyon dahil kilitli slot, sert kısıtlar ve benzersizlik korunur (tekrar tekrar)', async () => {
+    renderApp();
+    await makePlan();
+    fireEvent.click(screen.getByLabelText('feed slot 3 kalsın'));
+    const locked = feedIds()[2];
+    for (let k = 0; k < 4; k++) {
+      fireEvent.click(screen.getByText('Kalanları yeniden öner'));
+      const ids = feedIds();
+      expect(ids[2]).toBe(locked);
+      expect(new Set(ids).size).toBe(9);
+      expect(ids.some((id) => /^(s\d|video1|wide1|other1|hist1)$/.test(id!))).toBe(false);
+    }
+    expect(copy.calls).toHaveLength(0);
   });
 });
 
-describe('menü: sağ tık, üç nokta, klavye', () => {
+describe('menü: sağ tık, üç nokta, klavye, düğme', () => {
   it('sağ tık menüyü açar; üç nokta düğmesi aria özellikleriyle aynı menüyü açar', async () => {
     renderApp();
-    await generate();
+    await makePlan();
     fireEvent.contextMenu(screen.getByTestId('feed-slot-2'));
     const menu = screen.getByRole('menu');
     expect(within(menu).getAllByRole('menuitem').map((b) => b.textContent)).toEqual(['Kalsın', 'Ele ve yenisini getir', 'Başka adayla değiştir', 'Gerekçeyle reddet…']);
@@ -219,7 +514,7 @@ describe('menü: sağ tık, üç nokta, klavye', () => {
 
   it('klavye: açılışta ilk öğeye odak, ok tuşları gezinir, Escape kapatır ve odak tetikleyiciye döner', async () => {
     renderApp();
-    await generate();
+    await makePlan();
     const trigger = screen.getByLabelText('feed slot 1 menü');
     trigger.focus();
     fireEvent.keyDown(trigger, { key: 'ArrowDown' });
@@ -238,43 +533,54 @@ describe('menü: sağ tık, üç nokta, klavye', () => {
   });
 });
 
-describe('Ele ve yenisini getir', () => {
-  it('slotu yeni öneriyle (aday + model metni TEK adımda) değiştirir; eleneni yerel geçmişe yazar, kütüphaneden silmez', async () => {
+describe('Ele ve yenisini getir (görsel; metin taşınmaz, model yok)', () => {
+  it('menüden: slot yeni görselle ANINDA değişir; eleneni yerel geçmişe (özgün metniyle) yazar; yeni görsel metinsiz; model çağrılmaz', async () => {
     renderApp();
     await generate();
-    await filled();
     const oldId = feedIds()[0]!;
     const oldCaption = caption(0);
+    const calls = copy.calls.length;
     openMenu('feed', 1);
     choose('Ele ve yenisini getir');
-    await waitFor(() => expect(feedIds()[0]).not.toBe(oldId));
-    const newId = feedIds()[0]!;
-    expect(caption(0)).not.toBe(oldCaption);
-    expect(caption(0)).toContain(newId); // metin YENİ görsel için üretildi
+    expect(feedIds()[0]).not.toBe(oldId);
+    expect(screen.queryByTestId('caption-0')).toBeNull(); // eski metin yeni görsele taşınmadı
+    expect(status('feed', 0).textContent).toBe('Metin henüz üretilmedi');
     expect(new Set(feedIds()).size).toBe(9);
     expect(within(screen.getByTestId('history')).getByLabelText(`geri getir ${oldId}`)).toBeTruthy();
-    expect(screen.getByLabelText(`${oldId} incele`)).toBeTruthy();
-    const last = copy.calls.at(-1)!;
-    expect(last.items).toEqual([{ slotKey: 'feed:0', mediaId: newId, lane: 'feed', role: 'caption' }]);
-    expect(last.avoidTexts?.length).toBeGreaterThan(0); // diğer slotların metinleri tekrar önleme için gönderilir
+    expect(within(screen.getByTestId('history')).getByText(new RegExp(oldCaption.replace(/^model · TR\s*/, '').slice(0, 14)))).toBeTruthy();
+    expect(screen.getByLabelText(`${oldId} incele`)).toBeTruthy(); // kütüphaneden silinmedi
+    expect(copy.calls.length).toBe(calls);
+  });
+
+  it('DÜĞME ALTERNATİFİ ("Yenisini getir") ve klavye (odak + Enter) aynı sonucu verir', async () => {
+    renderApp();
+    await makePlan();
+    const oldId = feedIds()[4]!;
+    const btn = screen.getByLabelText('feed slot 5 ele ve yenisini getir') as HTMLButtonElement;
+    btn.focus();
+    expect(document.activeElement).toBe(btn);
+    fireEvent.click(btn); // klavyede odaktaki düğmede Enter/Boşluk = click
+    expect(feedIds()[4]).not.toBe(oldId);
+    expect(within(screen.getByTestId('history')).getByLabelText(`geri getir ${oldId}`)).toBeTruthy();
+    // Kalsın işaretli slotta düğme kapalı
+    fireEvent.click(screen.getByLabelText('feed slot 2 kalsın'));
+    expect((screen.getByLabelText('feed slot 2 ele ve yenisini getir') as HTMLButtonElement).disabled).toBe(true);
   });
 
   it('elenen aday arka arkaya eleme ve yeniden önerde geri gelmez', async () => {
     renderApp();
-    await generate();
-    await filled();
+    await makePlan();
     const seen: string[] = [feedIds()[0]!];
     for (let k = 0; k < 3; k++) {
       const prev = feedIds()[0];
       openMenu('feed', 1);
       choose('Ele ve yenisini getir');
-      await waitFor(() => expect(feedIds()[0]).not.toBe(prev));
+      expect(feedIds()[0]).not.toBe(prev);
       const id = feedIds()[0]!;
       expect(seen).not.toContain(id);
       seen.push(id);
     }
     fireEvent.click(screen.getByText('Kalanları yeniden öner'));
-    await settle();
     const planned = feedIds();
     for (const dropped of seen.slice(0, -1)) expect(planned).not.toContain(dropped);
   });
@@ -282,14 +588,13 @@ describe('Ele ve yenisini getir', () => {
   it('Kalsın işaretli öneri elenemez; neden gösterilir; görsel ve metin korunur; model çağrılmaz', async () => {
     renderApp();
     await generate();
-    await filled();
     const id = feedIds()[2]!;
     const cap = caption(2);
     fireEvent.click(screen.getByLabelText('feed slot 3 kalsın'));
     const calls = copy.calls.length;
     openMenu('feed', 3);
     choose('Ele ve yenisini getir');
-    expect(screen.getByText(/Kalsın işaretli öneri yenilenemez/)).toBeTruthy();
+    expect(screen.getByText(/Kalsın işaretli öneri elenemez/)).toBeTruthy();
     expect(feedIds()[2]).toBe(id);
     expect(caption(2)).toBe(cap);
     expect(copy.calls.length).toBe(calls);
@@ -298,12 +603,10 @@ describe('Ele ve yenisini getir', () => {
   it('geçmişten geri getir: aday ve ÖZGÜN metniyle döner; geçmişten çıkar', async () => {
     renderApp();
     await generate();
-    await filled();
     const oldId = feedIds()[0]!;
     const oldCaption = caption(0);
     openMenu('feed', 1);
     choose('Ele ve yenisini getir');
-    await waitFor(() => expect(feedIds()[0]).not.toBe(oldId));
     const replacement = feedIds()[0]!;
     fireEvent.click(screen.getByLabelText(`geri getir ${oldId}`));
     expect(feedIds()[0]).toBe(oldId);
@@ -312,18 +615,14 @@ describe('Ele ve yenisini getir', () => {
     expect(screen.getByLabelText(`geri getir ${replacement}`)).toBeTruthy();
   });
 
-  it('çift tıklama güvenli: aynı menü öğesine iki kez basmak yalnız bir eleme ve bir model çağrısı yazar', async () => {
+  it('çift tıklama güvenli: aynı menü öğesine iki kez basmak yalnız bir eleme yazar (sürüm koruması)', async () => {
     renderApp();
-    await generate();
-    await filled();
-    const calls = copy.calls.length;
+    await makePlan();
     openMenu('feed', 1);
     const item = screen.getByRole('menuitem', { name: 'Ele ve yenisini getir' });
     fireEvent.click(item);
     fireEvent.click(item);
-    await settle();
     expect(within(screen.getByTestId('history')).getAllByText('Geri getir').length).toBe(1);
-    expect(copy.calls.length).toBe(calls + 1);
     expect(new Set(feedIds()).size).toBe(9);
   });
 });
@@ -337,7 +636,6 @@ describe('QA senaryoları (yalnız ?qa=..., açık etiketli)', () => {
     renderApp({ qa: 'exhausted' });
     expect(screen.getByTestId('qa-banner').textContent).toMatch(/alternatif yok/);
     await generate();
-    await filled();
     expect(feedIds().every(Boolean)).toBe(true);
     const id = feedIds()[0];
     const cap = caption(0);
@@ -353,7 +651,6 @@ describe('QA senaryoları (yalnız ?qa=..., açık etiketli)', () => {
   it('error: hata durumunda mevcut öneri korunur ve açıklama gösterilir', async () => {
     renderApp({ qa: 'error' });
     await generate();
-    await filled();
     const id = feedIds()[0];
     openMenu('feed', 1);
     choose('Ele ve yenisini getir');
@@ -377,7 +674,6 @@ describe('Story: gerçek seri kimliği, başlık hiyerarşisi, bant yok', () => 
   it('seri YALNIZ açık kimlikten: aynı gün olsa da farklı seri/kimliksiz kareler ayrı başlık alır; roller seriesKey\'e göre', async () => {
     renderApp();
     await waitFor(() => expect(screen.getByTestId('story-slot-0')).toBeTruthy());
-    // dokuz kare de "Pazartesi": gün seri kanıtı olsaydı hepsi tek seri olurdu
     expect([0, 1, 2, 3, 4, 5, 6, 7, 8].map(roleOf)).toEqual(['headline', 'body', 'none', 'headline', 'body', 'headline', 'headline', 'headline', 'headline']);
     expect(screen.getByTestId('seri-0').textContent).toMatch(/seri: A \(1\/3\)/);
     expect(screen.getByTestId('seri-5').textContent).toMatch(/tek kare/);
@@ -390,43 +686,45 @@ describe('Story: gerçek seri kimliği, başlık hiyerarşisi, bant yok', () => 
     expect([0, 1, 2, 3, 4].map(roleOf)).toEqual(['headline', 'headline', 'headline', 'headline', 'headline']);
   });
 
-  it('GERÇEK ÜRÜN kimliği (productId) seri kurar; aynı ürünle değişen kare seriyi korur ve model isteği seri kimliği/konum/boyut taşır', async () => {
-    // s0-s2 ve havuzdaki tüm p* adaylar aynı doğrulanmış ürüne bağlı; planın kendi seri adı yok
+  it('GERÇEK ÜRÜN kimliği (productId) seri kurar; aynı ürünle değişen kare seriyi korur; model ÇAĞRILMAZ, "Metin üret" isteği seri kimliği/konum/boyut taşır', async () => {
     const d = mkData((c) => (/^(s[012]|p\d+)$/.test(c.id) ? { ...c, productId: 'the-ghosting', ...(c.weekFrame ? { weekFrame: { ...c.weekFrame, seriesKey: undefined } } : {}) } : c));
     render(<App data={d} measure={measure} ports={portsWith(copy)} />);
     await waitFor(() => expect(screen.getByTestId('seri-1').textContent).toMatch(/seri: the-ghosting \(2\/3\)/));
     expect([0, 1, 2].map(roleOf)).toEqual(['headline', 'body', 'none']);
-    await waitFor(() => expect((screen.getByText('Plan oluştur') as HTMLButtonElement).disabled).toBe(false));
+    await waitFor(() => expect((screen.getByTestId('make-plan') as HTMLButtonElement).disabled).toBe(false));
     openMenu('story', 2);
     choose('Başka adayla değiştir');
+    expect(copy.calls).toHaveLength(0);
+    expect(roleOf(1)).toBe('body'); // seri korundu: yine açıklama, başlık değil
+    expect(status('story', 1).textContent).toBe('Metin henüz üretilmedi'); // eski metin taşınmadı
+    fireEvent.click(screen.getByTestId('gen-story:1'));
     await settle();
     const req = copy.calls.at(-1)!.items.find((it) => it.slotKey === 'story:1')!;
     expect(req).toMatchObject({ lane: 'story', role: 'body', seriesKey: 'the-ghosting', seriesPosition: 1, seriesSize: 3 });
-    expect(roleOf(1)).toBe('body'); // seri korundu: yine açıklama, başlık değil
     expect(screen.getByTestId('story-slot-1').querySelector('.storytext .h')).toBeNull();
     expect(screen.getByTestId('story-slot-1').querySelector('.storytext .b')).toBeTruthy();
   });
 
-  it('başlık yalnız serinin ilk karesinde; seriyi bölen değişim kimlikli olmayan adayı BAĞIMSIZ başlık yapar ve metni yeniden üretir', async () => {
+  it('seriyi bölen değişim: kimliksiz aday BAĞIMSIZ başlık olur, uymayan metinler BOŞALIR (model çağrılmaz); "Metinleri üret" başlık ister', async () => {
     renderApp();
     await waitFor(() => expect(screen.getByTestId('story-slot-0')).toBeTruthy());
     expect([0, 1, 2, 3, 4, 5].map(roleOf)).toEqual(['headline', 'body', 'none', 'headline', 'body', 'headline']);
-    await waitFor(() => expect((screen.getByText('Plan oluştur') as HTMLButtonElement).disabled).toBe(false));
+    await waitFor(() => expect((screen.getByTestId('make-plan') as HTMLButtonElement).disabled).toBe(false));
     openMenu('story', 2);
     choose('Başka adayla değiştir');
+    expect(copy.calls).toHaveLength(0);
+    expect(roleOf(1)).toBe('headline');
+    expect(roleOf(2)).toBe('headline'); // eski "metinsiz" kare artık bağımsız
+    expect(screen.getByTestId('story-slot-1').querySelector('.storytext .h')).toBeNull(); // metni boşaldı
+    fireEvent.click(screen.getByTestId('gen-text'));
     await settle();
-    // yeni aday seri kimliği taşımıyor → A serisi bölündü: her kare bağımsız ve başlıklı; model başlık üretti
-    await waitFor(() => expect(roleOf(1)).toBe('headline'));
-    const c1 = screen.getByTestId('story-slot-1');
-    expect(c1.querySelector('.storytext .h')).toBeTruthy();
-    expect(c1.querySelector('.storytext .b')).toBeNull();
-    expect(roleOf(2)).toBe('headline'); // eski "metinsiz" kare artık bağımsız → başlık gerekir
+    const story = copy.calls.flatMap((r) => r.items).filter((it) => it.lane === 'story');
+    expect(story.length).toBeGreaterThan(0);
+    expect(story.every((it) => it.role === 'headline' && it.seriesKey === null)).toBe(true);
     await waitFor(() => expect(screen.getByTestId('story-slot-2').querySelector('.storytext .h')).toBeTruthy());
-    const last = copy.calls.flatMap((r) => r.items).filter((it) => it.lane === 'story');
-    expect(last.every((it) => it.role === 'headline' && it.seriesKey === null)).toBe(true);
   });
 
-  it('metin fotoğrafın üstünde: zemin/bant/panel stili yok; yazı sakin bölgeye ve gerekirse gölgeyle yerleşir', async () => {
+  it('metin fotoğrafın üstünde: zemin/bant/panel stili yok; yazı sakin bölgeye yerleşir', async () => {
     renderApp();
     await waitFor(() => expect(screen.getByTestId('story-slot-0')).toBeTruthy());
     const canvas = screen.getByTestId('story-slot-0').querySelector('[data-testid="story-canvas"]')!;
@@ -440,10 +738,9 @@ describe('Story: gerçek seri kimliği, başlık hiyerarşisi, bant yok', () => 
 });
 
 describe('önceki davranışlar korunur', () => {
-  it('gerekçeli ret: kategori olmadan kaydedilmez; kaydedilince seçimden dışlanır, slot yenisiyle (model metniyle) dolar ve gerekçe saklanır', async () => {
+  it('gerekçeli ret: kategori olmadan kaydedilmez; kaydedilince seçimden dışlanır, slot yeni GÖRSELLE (metinsiz) dolar ve gerekçe saklanır', async () => {
     renderApp();
     await generate();
-    await filled();
     const victim = feedIds()[3]!;
     openMenu('feed', 4);
     choose('Gerekçeyle reddet…');
@@ -451,37 +748,21 @@ describe('önceki davranışlar korunur', () => {
     expect(save.disabled).toBe(true);
     fireEvent.change(screen.getByLabelText('Sebep kategorisi'), { target: { value: 'tekrar' } });
     fireEvent.change(screen.getByLabelText('Sebep açıklaması'), { target: { value: 'geçen haftaya benziyor' } });
+    const calls = copy.calls.length;
     fireEvent.click(save);
     await waitFor(() => expect(feedIds()).not.toContain(victim));
-    await settle();
     expect(feedIds().every(Boolean)).toBe(true);
-    expect(caption(3)).toContain(feedIds()[3]!);
+    expect(screen.queryByTestId('caption-3')).toBeNull(); // yeni görsel metinsiz
+    expect(copy.calls.length).toBe(calls);
     fireEvent.click(screen.getByText('Kalanları yeniden öner'));
-    await settle();
     expect(feedIds()).not.toContain(victim);
     fireEvent.click(screen.getByLabelText(`${victim} incele`));
     expect(screen.getByText(/Reddedildi · Tekrar: geçen haftaya benziyor/)).toBeTruthy();
   });
 
-  it('kütüphaneden boş slota ata (görsel+model metni birlikte); aynı fotoğraf ikinci kez atanamaz; Kalsın işaretli slota atanamaz', async () => {
-    renderApp();
-    fireEvent.click(screen.getByLabelText('Feed slot 5 seç'));
-    fireEvent.click(screen.getByLabelText('p7 slota ata'));
-    await waitFor(() => expect(within(screen.getByTestId('feed-slot-4')).getByRole('button', { name: /p7 incele/ })).toBeTruthy());
-    expect(screen.getByTestId('caption-4').textContent).toMatch(/model · TR/);
-    fireEvent.click(screen.getByLabelText('Feed slot 2 seç'));
-    fireEvent.click(screen.getByLabelText('p7 slota ata'));
-    await waitFor(() => expect(screen.getByText(/Atanamadı: planda\/hikâyede zaten var/)).toBeTruthy());
-    expect(within(screen.getByTestId('feed-slot-1')).queryByRole('button', { name: /incele/ })).toBeNull();
-    fireEvent.click(screen.getByLabelText('feed slot 5 kalsın'));
-    fireEvent.click(screen.getByLabelText('Feed slot 5: p7 incele'));
-    fireEvent.click(screen.getByLabelText('p8 slota ata'));
-    await waitFor(() => expect(screen.getByText(/Kilitli slota atanamaz/)).toBeTruthy());
-  });
-
   it('yakınlaştırma feed hücresine ve önizlemeye aynı kırpmayı uygular', async () => {
     renderApp();
-    await generate();
+    await makePlan();
     fireEvent.click(within(screen.getByTestId('feed-slot-0')).getByRole('button', { name: /incele/ }));
     const before = within(screen.getByTestId('feed-slot-0')).getByTestId('cropped').getAttribute('data-crop');
     fireEvent.change(screen.getByLabelText('Yakınlaştırma'), { target: { value: '2' } });
@@ -492,15 +773,13 @@ describe('önceki davranışlar korunur', () => {
 
   it('biçim değişimi slot plan durumuna yazılır: Reels kapağında fotoğraf kalır', async () => {
     renderApp();
-    await generate();
-    await filled();
+    await makePlan();
     const idBefore = feedIds()[1];
     fireEvent.click(within(screen.getByTestId('feed-slot-1')).getByRole('button', { name: /incele/ }));
     fireEvent.click(screen.getByLabelText(/Reels kapağı 9:16/));
     expect(within(screen.getByTestId('feed-slot-1')).getByText(/Reels kapağı 9:16/)).toBeTruthy();
     expect(feedIds()[1]).toBe(idBefore);
     fireEvent.click(screen.getByText('Kalanları yeniden öner'));
-    await settle();
     expect(within(screen.getByTestId('feed-slot-1')).getByText(/Reels kapağı 9:16/)).toBeTruthy();
   });
 
@@ -513,7 +792,6 @@ describe('önceki davranışlar korunur', () => {
     expect(within(screen.getByTestId('story-slot-0')).getByText(/kalsın/)).toBeTruthy();
     openMenu('story', 6);
     choose('Başka adayla değiştir');
-    await settle();
     expect(within(screen.getByTestId('story-slot-5')).queryByRole('button', { name: /s5 incele/ })).toBeNull();
     fireEvent.click(screen.getByText('Haftalık plana dön'));
     expect(within(screen.getByTestId('story-slot-5')).getByRole('button', { name: /s5 incele/ })).toBeTruthy();
@@ -522,22 +800,62 @@ describe('önceki davranışlar korunur', () => {
   });
 });
 
-describe('kalıcı taslak (port): kaydet, yeniden yükle, çakışma', () => {
-  const memoryStore = () => {
-    const st: { version: number; draft: any } = { version: 0, draft: null };
-    const persistence: NonNullable<PlannerPorts['persistence']> = {
-      load: vi.fn(async () => (st.draft ? { version: st.version, draft: JSON.parse(JSON.stringify(st.draft)) } : null)),
-      save: vi.fn(async (a: any) => {
-        if (a.expectedVersion !== st.version) throw new PortError('Taslak başka bir yerde değişmiş.', 'version_conflict', 409);
-        st.version += 1;
-        st.draft = JSON.parse(JSON.stringify(a.draft));
-        return { version: st.version, replayed: false };
-      }),
-    };
-    return { st, persistence };
+function memoryStoreFactory() {
+  const st: { version: number; draft: any } = { version: 0, draft: null };
+  const persistence: NonNullable<PlannerPorts['persistence']> = {
+    load: vi.fn(async () => (st.draft ? { version: st.version, draft: JSON.parse(JSON.stringify(st.draft)) } : null)),
+    save: vi.fn(async (a: any) => {
+      if (a.expectedVersion !== st.version) throw new PortError('Taslak başka bir yerde değişmiş.', 'version_conflict', 409);
+      st.version += 1;
+      st.draft = JSON.parse(JSON.stringify(a.draft));
+      return { version: st.version, replayed: false };
+    }),
   };
+  return { st, persistence };
+}
+
+describe('kalıcı taslak (port): kaydet, yeniden yükle, çakışma', () => {
+  const memoryStore = memoryStoreFactory;
   const WEEK = '2026-10-12';
   const mount = (persistence: PlannerPorts['persistence']) => render(<App data={mkData()} measure={measure} ports={portsWith(copy, persistence)} projectId="dieci" weekStart={WEEK} />);
+
+  it('METİNSİZ taslak kaydedilir: görsel plan + Kalsın + kırpma yeterlidir; metin alanları null; model çağrılmaz', async () => {
+    const { st, persistence } = memoryStore();
+    mount(persistence);
+    await makePlan();
+    fireEvent.click(screen.getByLabelText('feed slot 1 kalsın'));
+    await waitFor(() => expect((screen.getByTestId('save-draft') as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(screen.getByTestId('save-draft'));
+    await waitFor(() => expect(screen.getByTestId('persist-status').textContent).toMatch(/Sunucuda kayıtlı sürüm 1/));
+    expect(st.draft.feed.every((s: any) => s && s.text === null)).toBe(true);
+    expect(st.draft.feed[0]).toMatchObject({ locked: true, text: null });
+    expect(copy.calls).toHaveLength(0);
+    // "kaydedildi" metin üretildi anlamına gelmez
+    expect(status('feed', 0).textContent).toBe('Metin henüz üretilmedi');
+  });
+
+  it('METİNSİZ taslak YENİDEN YÜKLENİR: aynı görseller/Kalsın/kırpma, metin yok ("henüz üretilmedi"), otomatik model çağrısı yok', async () => {
+    const { persistence } = memoryStore();
+    const first = mount(persistence);
+    await makePlan();
+    fireEvent.click(screen.getByLabelText('feed slot 2 kalsın'));
+    const ids = feedIds();
+    await waitFor(() => expect((screen.getByTestId('save-draft') as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(screen.getByTestId('save-draft'));
+    await waitFor(() => expect(screen.getByTestId('persist-status').textContent).toMatch(/Sunucuda kayıtlı sürüm 1/));
+    first.unmount();
+    cleanup();
+    mount(persistence);
+    await waitFor(() => expect(screen.getByTestId('persist-status').textContent).toMatch(/Kayıtlı taslak yüklendi \(sürüm 1\)/));
+    expect(feedIds()).toEqual(ids);
+    expect(within(screen.getByTestId('feed-slot-1')).getByText(/kalsın/)).toBeTruthy();
+    expect(screen.queryAllByTestId(/^caption-\d$/)).toHaveLength(0);
+    expect(status('feed', 0).textContent).toBe('Metin henüz üretilmedi');
+    expect(copy.calls).toHaveLength(0);
+    // yüklenmiş metinsiz taslağa sonradan metin üretilebilir
+    await makeText();
+    expect(screen.getAllByTestId(/^caption-\d$/)).toHaveLength(9);
+  });
 
   it('"Taslağı kaydet" yalnız değişiklik varken açık; kaydedince sürüm görünür; istek tam kapsam taşır (kilit, model metni, kırpma, Story serisi)', async () => {
     const { st, persistence } = memoryStore();
@@ -545,7 +863,6 @@ describe('kalıcı taslak (port): kaydet, yeniden yükle, çakışma', () => {
     const save = screen.getByTestId('save-draft') as HTMLButtonElement;
     expect(save.disabled).toBe(true);
     await generate();
-    await filled();
     fireEvent.click(screen.getByLabelText('feed slot 1 kalsın'));
     fireEvent.click(within(screen.getByTestId('feed-slot-0')).getByRole('button', { name: /incele/ }));
     fireEvent.change(screen.getByLabelText('Yakınlaştırma'), { target: { value: '1.5' } });
@@ -556,11 +873,11 @@ describe('kalıcı taslak (port): kaydet, yeniden yükle, çakışma', () => {
     const sent = (persistence.save as any).mock.calls[0][0];
     expect(sent).toMatchObject({ weekStart: WEEK, expectedVersion: 0 });
     expect(sent.idempotencyKey).toMatch(/^[A-Za-z0-9-]{16,64}$/);
-    expect(st.draft.feed[0]).toMatchObject({ locked: true, text: { source: 'model', lang: 'tr', responseId: expect.any(String), contentHash: expect.any(String) }, crop: { zoom: 1.5 } });
+    expect(st.draft.feed[0]).toMatchObject({ locked: true, text: { source: 'model', lang: 'tr', responseId: expect.any(String), contentHash: expect.any(String), voiceSource: 'approved_bundle' }, crop: { zoom: 1.5 } });
     expect(st.draft.story[0]).toMatchObject({ format: 'story', seriesKey: 'A' });
     expect(st.draft.story[3]).toMatchObject({ seriesKey: 'B' });
-    expect(st.draft.story[5].seriesKey).toBeNull(); // tek kare: seri yok
-    expect(st.draft.story[1].text).toMatchObject({ source: 'plan' }); // plan metni model metni gibi işaretlenmez
+    expect(st.draft.story[5].seriesKey).toBeNull();
+    expect(st.draft.story[1].text).toMatchObject({ source: 'plan' });
     expect(save.disabled).toBe(true);
   });
 
@@ -568,7 +885,6 @@ describe('kalıcı taslak (port): kaydet, yeniden yükle, çakışma', () => {
     const { persistence } = memoryStore();
     const first = mount(persistence);
     await generate();
-    await filled();
     fireEvent.click(screen.getByLabelText('feed slot 2 kalsın'));
     const ids = feedIds();
     const caps = Array.from({ length: 9 }, (_, i) => caption(i));
@@ -591,9 +907,8 @@ describe('kalıcı taslak (port): kaydet, yeniden yükle, çakışma', () => {
   it('SÜRÜM ÇAKIŞMASI: başka yerde değişmiş taslakta kayıt reddedilir, çakışma açıkça gösterilir ve güncel sürüm yüklenebilir', async () => {
     const { st, persistence } = memoryStore();
     mount(persistence);
-    await generate();
-    await filled();
-    st.version = 5; // başka bir oturum yazdı
+    await makePlan();
+    st.version = 5;
     st.draft = null;
     fireEvent.click(screen.getByLabelText('feed slot 1 kalsın'));
     await waitFor(() => expect((screen.getByTestId('save-draft') as HTMLButtonElement).disabled).toBe(false));
@@ -607,8 +922,7 @@ describe('kalıcı taslak (port): kaydet, yeniden yükle, çakışma', () => {
     const { persistence } = memoryStore();
     (persistence.save as any).mockRejectedValue(new PortError('Taslaktaki medya bu marka kütüphanesinde geçerli değil.', 'media_invalid', 422));
     mount(persistence);
-    await generate();
-    await filled();
+    await makePlan();
     fireEvent.click(screen.getByLabelText('feed slot 1 kalsın'));
     await waitFor(() => expect((screen.getByTestId('save-draft') as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(screen.getByTestId('save-draft'));

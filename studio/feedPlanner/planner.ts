@@ -35,7 +35,19 @@ export interface PlanState {
   seq: number;
 }
 
+/** Tohumlu varyasyon bandı: en iyi puandan en fazla bu kadar (0-100) düşük, sert kısıtları geçmiş adaylar arasından seçilir. */
+export const VARIATION_BAND = 3;
+
+/** Deterministik karma (tohum + slot + aday): rastgele sayı üreteci yok, aynı girdi aynı seçimi verir */
+function seededRank(seed: number, slot: number, id: string): number {
+  let h = 2166136261 ^ seed;
+  for (const ch of `${slot}|${id}`) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  return (h >>> 0) / 4294967296;
+}
+
 export interface PlanCtx {
+  /** Varsa: en iyi puanın VARIATION_BAND içindeki (sert kısıtları geçen) adaylar arasından tohumla seçilir. Yoksa en iyi puan (deterministik). */
+  seed?: number;
   brand: string;
   byId: Map<string, Candidate>;
   /** Diğer şeridin kullandığı varlıklar: tekrar edilmez */
@@ -145,6 +157,7 @@ function evaluate(i: number, state: PlanState, ctx: PlanCtx, exclude: Set<string
   const eliminated: Partial<Record<HardReason, number>> = {};
   let best: Candidate | null = null;
   let bestScore = -1;
+  const scored: Array<{ c: Candidate; s: number }> = [];
   for (const c of pool) {
     if (exclude.has(c.id) || dismissed.has(c.id)) continue;
     const r = hardCheck(c, format, { brand: ctx.brand, rejected, inPlan });
@@ -153,10 +166,17 @@ function evaluate(i: number, state: PlanState, ctx: PlanCtx, exclude: Set<string
       continue;
     }
     const s = scoreCandidate(c, format, neighbors, planned, published).total;
+    scored.push({ c, s });
     if (!best || s > bestScore || (s === bestScore && c.id < best.id)) {
       best = c;
       bestScore = s;
     }
+  }
+  if (best && ctx.seed !== undefined) {
+    // Varyasyon yalnız sert kısıtları (yayımlanmış/marka/tekrar/format/hazırlık) GEÇMİŞ ve komşu uyumu/yayın geçmişi dahil puanı en iyiye yakın adaylar arasında
+    const band = scored.filter((x) => x.s >= bestScore - VARIATION_BAND);
+    band.sort((a, b) => seededRank(ctx.seed!, i, a.c.id) - seededRank(ctx.seed!, i, b.c.id) || (a.c.id < b.c.id ? -1 : 1));
+    best = band[0].c;
   }
   return { best, eliminated, pool: pool.length };
 }

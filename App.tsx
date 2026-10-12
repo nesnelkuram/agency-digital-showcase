@@ -11,6 +11,7 @@ import { getActiveHomepageVideosAsMedia } from './shared/services/homepageVideoS
 import { MediaContent } from './types';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { TenantProvider } from '@/contexts/TenantContext';
+import { StudioUploadProvider } from '@/studio/contexts/StudioUploadContext';
 
 // Lazy load heavy components
 const Header3D = lazy(() => import('./components/Header3D'));
@@ -222,6 +223,8 @@ const HomePage: React.FC = () => {
 const App: React.FC = () => {
   return (
     <AuthProvider>
+      {/* Yükleme kuyruğu rotaların üstünde yaşar: sayfa/marka değişimi yüklemeyi kesmez */}
+      <StudioUploadProvider>
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<HomePage />} />
@@ -406,6 +409,7 @@ const App: React.FC = () => {
           }
         />
       </Routes>
+      </StudioUploadProvider>
     </AuthProvider>
   );
 };

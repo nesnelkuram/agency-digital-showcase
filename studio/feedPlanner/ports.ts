@@ -23,6 +23,8 @@ export interface CopyResponse {
   provider?: string | null;
   requestedModel?: string;
   requestId?: string | null;
+  /** Sunucunun kullandığı ses kaynağı ve varsayımlar. approved_* her zaman geçici tona üstündür. */
+  voice?: { source: 'approved_bundle' | 'approved_guide' | 'temporary_tone'; tone: { label?: string; prompt?: string } | null; guideVersion: number | null; assumptions: string[]; tempToneIgnored: boolean };
   usage?: { inputTokens: number | null; outputTokens: number | null; totalTokens: number | null; cachedTokens: number | null; reasoningTokens: number | null; costUsd: number | null };
 }
 

@@ -96,3 +96,28 @@
 .planner-scope .cellbar .status { font-size:11px; color:var(--muted); }
 .planner-scope .cellbar .status.err { color:var(--accent); }
 .planner-scope .cellbar .seri { font-size:10px; color:var(--muted); }
+.planner-scope .home .cols.no-panels { grid-template-columns: minmax(0, 560px); grid-template-areas: "center"; justify-content: center; }
+.planner-scope .home .cols.no-panels .panel.left, .planner-scope .home .cols.no-panels .panel.right { display: none; }
+.planner-scope .home .cols.with-panels { grid-template-columns: 260px minmax(0,1fr) 340px; }
+.planner-scope button.big { font-size: 15px; padding: 11px 20px; border-radius: 99px; }
+.planner-scope .home .strip .cell.story { flex: 0 0 84px; }
+.planner-scope .home .strip { padding-top: 2px; }
+.planner-scope .home .feed { gap: 3px; }
+.planner-scope .home .feed .cell { border-radius: 4px; }
+.planner-scope .textpanel { margin-top: 14px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+.planner-scope .textrow { display: flex; justify-content: space-between; gap: 10px; align-items: center; flex-wrap: wrap; }
+.planner-scope .textrow p { margin: 0; }
+.planner-scope .tonebox { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.planner-scope .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.planner-scope .chipbtn { border-radius: 99px; padding: 4px 12px; }
+.planner-scope .chipbtn.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+.planner-scope .tonebox input[type="text"] { width: 100%; box-sizing: border-box; font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
+.planner-scope details.advanced { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 6px; }
+.planner-scope details.advanced > summary { font-size: 13px; font-weight: 600; }
+.planner-scope .cellbar .assume { color: var(--warn); }
+.planner-scope .cellbar .status[data-kind="pending"] { color: var(--muted); }
+.planner-scope .cellbar .status[data-kind="provider_off"], .planner-scope .cellbar .status[data-kind="needs_voice"], .planner-scope .cellbar .status[data-kind="no_observation"] { color: var(--warn); }
+@media (max-width: 1000px) {
+  .planner-scope .home .cols.no-panels { grid-template-columns: minmax(0, 1fr); }
+  .planner-scope .home .cols.with-panels { grid-template-columns: 1fr; }
+}

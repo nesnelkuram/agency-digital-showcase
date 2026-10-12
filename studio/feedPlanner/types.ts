@@ -1,3 +1,5 @@
+import type { EvidenceBasis } from '../../shared/planner/copyContract';
+
 /** Instagram feed + Story planlama çalışma alanı: ortak tipler (yalnız yerel inceleme). */
 
 export type FormatId = 'feed-1x1' | 'feed-4x5' | 'reels-cover' | 'story';
@@ -73,6 +75,8 @@ export interface Candidate {
   productId?: string | null;
 }
 
+export type VoiceSource = 'approved_bundle' | 'approved_guide' | 'temporary_tone';
+
 /** Öneri metni rolü: feed caption'ı; Story'de başlık yalnız serinin ilk karesinde, devamı küçük açıklama veya metinsiz. */
 export type TextRole = 'caption' | 'headline' | 'body' | 'none';
 
@@ -88,7 +92,11 @@ export interface SlotText {
   templateId?: string;
   register?: string;
   /** Yalnız model kaynaklı metinde: sunucunun doğruladığı kanıt temeli, içerik hash'i ve yanıt kimliği */
-  evidenceBasis?: 'dogrulanmis_urun' | 'katalog_gozlem' | 'persona_kanaat' | 'hesap_ornegi' | 'yok_metinsiz';
+  evidenceBasis?: EvidenceBasis;
+  /** Yalnız model metninde: hangi ses kaynağı kullanıldı. temporary_tone = onaylı rehber YOK, geçici ton taslağı (kalıcı marka hafızası değil). */
+  voiceSource?: VoiceSource;
+  /** Yalnız geçici ton taslağında: varsayımlar (gösterim için; kalıcı saklanmaz) */
+  assumptions?: string[];
   contentHash?: string;
   responseId?: string;
   promptVersion?: string;

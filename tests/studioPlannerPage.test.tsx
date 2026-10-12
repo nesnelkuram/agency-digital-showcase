@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor, cleanup } from '@testing-library/react';
+import { render, screen, waitFor, cleanup, fireEvent } from '@testing-library/react';
 import { scopeCss } from '../scripts/scope-planner-css.mjs';
 import fs from 'node:fs';
 
@@ -13,13 +13,25 @@ vi.mock('@/studio/feedPlanner/live/livePorts', () => ({
   createCopyPort: () => ({ available: true, generate: vi.fn() }),
   createPersistencePort: () => ({ load: vi.fn(async () => null), save: vi.fn() }),
 }));
-vi.mock('@/lib/firebase/apiClient', () => ({ authenticatedFetch: vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ exists: false }) })) }));
+const af = vi.hoisted(() => ({ fn: null as any }));
+vi.mock('@/lib/firebase/apiClient', () => ({ authenticatedFetch: (...a: any[]) => af.fn(...a) }));
+vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { uid: 'u1', role: 'admin' } }) }));
+const okJson = (b: unknown) => ({ ok: true, status: 200, json: async () => b });
+/** URL'ye göre yanıt: marka sesi paketi ve konuşmalı rehber durumu */
+const voiceApi = (o: { bundle?: any; guide?: any; fail?: boolean } = {}) => {
+  af.fn = vi.fn(async (url: string) => {
+    if (o.fail) throw new Error('ağ');
+    if (url.startsWith('/api/studio/brand-voice')) return okJson(o.bundle ?? { exists: false });
+    if (url.startsWith('/api/studio/brand-guide')) return okJson(o.guide ?? { draft: null, approved: null, bundleExists: false, aiEnabled: true });
+    return okJson({});
+  });
+};
 vi.mock('@/studio/feedPlanner/review/loadPixels', () => ({ measureImage: async () => null }));
 import StudioPlannerPage, { mondayOf } from '@/studio/pages/StudioPlannerPage';
 
 const readiness = { static: 'ok', carousel: 'ok', story: 'ok', reels: 'error' };
 const dto = (id: string, o: any = {}) => ({ id, kind: 'photo', width: 1080, height: 1350, path: `p/${id}.jpg`, thumbPath: null, catalog: null, verifiedProductIds: [], usage: { usedInPostCount: 0, approvedUseCount: 0, pendingUseCount: 0 }, readiness, ...o });
-beforeEach(() => { fetchInv.mockReset(); failInv = null; });
+beforeEach(() => { fetchInv.mockReset(); failInv = null; voiceApi(); });
 afterEach(() => cleanup());
 
 describe('yetkili Studio planlayıcı sayfası', () => {
@@ -47,6 +59,45 @@ describe('yetkili Studio planlayıcı sayfası', () => {
     await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/Katalog yüklenemedi: Katalog 500 sayfadan uzun/));
     expect(screen.getByRole('alert').textContent).toMatch(/planlayıcı açılmadı/);
     expect(screen.queryByTestId('counts')).toBeNull();
+  });
+
+  it('MARKA DİLİ YOK: plan BLOKLANMAZ (geçici ton paneli), kart "birlikte oluştur" sunar ve konuşma penceresini açar', async () => {
+    fetchInv.mockResolvedValue({ items: [dto('a1'), dto('a2')], excluded: [], pages: 1 });
+    render(<StudioPlannerPage />);
+    await waitFor(() => expect(screen.getByTestId('tone-panel')).toBeTruthy());
+    expect(screen.getByTestId('tone-panel').textContent).toMatch(/onaylı marka dili yok/);
+    await waitFor(() => expect((screen.getByTestId('make-plan') as HTMLButtonElement).disabled).toBe(false));
+    expect(screen.getByTestId('brand-voice-missing').textContent).toMatch(/Plan akışı bloklanmaz/);
+    expect(screen.queryByTestId('guide-chat')).toBeNull();
+    fireEvent.click(screen.getByTestId('start-guide')); // planlayıcıdaki düğme
+    expect(screen.getByTestId('guide-chat')).toBeTruthy();
+  });
+
+  it('ONAYLI REHBER varsa ton paneli yok, "onaylı rehber kullanılır"; kart sürümü gösterir', async () => {
+    voiceApi({ guide: { draft: null, bundleExists: false, aiEnabled: true, approved: { version: 2, guide: {}, contentKey: 'a'.repeat(32), approvedAt: 1, approvedBy: 'u1' } } });
+    fetchInv.mockResolvedValue({ items: [dto('a1')], excluded: [], pages: 1 });
+    render(<StudioPlannerPage />);
+    await waitFor(() => expect(screen.getByTestId('voice-approved')).toBeTruthy());
+    expect(screen.queryByTestId('tone-panel')).toBeNull();
+    expect(screen.getByTestId('brand-guide-status').textContent).toMatch(/sürüm 2/);
+  });
+
+  it('yüklü marka sesi paketi varsa da onaylı sayılır', async () => {
+    voiceApi({ bundle: { exists: true, valid: true, account: 'dieci', captionCount: 3, excluded: [], guideHashes: {}, verifiedProducts: [] } });
+    fetchInv.mockResolvedValue({ items: [dto('a1')], excluded: [], pages: 1 });
+    render(<StudioPlannerPage />);
+    await waitFor(() => expect(screen.getByTestId('voice-approved')).toBeTruthy());
+    expect(screen.queryByTestId('tone-panel')).toBeNull();
+  });
+
+  it('marka dili durumu okunamazsa: BİLİNMİYOR — "yok" denmez, plan bloklanmaz, ton isteğe bağlı; karar sunucuda', async () => {
+    voiceApi({ fail: true });
+    fetchInv.mockResolvedValue({ items: [dto('a1')], excluded: [], pages: 1 });
+    render(<StudioPlannerPage />);
+    await waitFor(() => expect(screen.getByTestId('tone-panel')).toBeTruthy());
+    expect(screen.getByTestId('tone-panel').textContent).toMatch(/\(isteğe bağlı\)/);
+    expect(screen.getByTestId('tone-panel').textContent).not.toMatch(/onaylı marka dili yok/);
+    await waitFor(() => expect((screen.getByTestId('make-plan') as HTMLButtonElement).disabled).toBe(false));
   });
 
   it('hafta her zaman Pazartesi\'ye yuvarlanır', () => {

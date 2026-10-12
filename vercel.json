@@ -18,7 +18,7 @@
     "api/workflow/execute-step-internal.ts": {
       "maxDuration": 300
     },
-    "{api/marketing/{agent-chat-v2,agent-execute-action,analyze-campaign,analyze-competitor,forecast-budget,sync-breakdowns,sync-campaigns,sync-performance}.ts,api/studio/plan-copy.ts,api/transcribe-video.ts,api/workflow/complete-step.ts}": {
+    "{api/marketing/{agent-chat-v2,agent-execute-action,analyze-campaign,analyze-competitor,forecast-budget,sync-breakdowns,sync-campaigns,sync-performance}.ts,api/studio/{brand-guide,plan-copy}.ts,api/transcribe-video.ts,api/workflow/complete-step.ts}": {
       "maxDuration": 120
     },
     "api/workflow/execute-agent.ts": {

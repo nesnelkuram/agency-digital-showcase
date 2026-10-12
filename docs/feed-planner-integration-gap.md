@@ -111,3 +111,45 @@ Hepsi yerel kod ve testtir; dağıtım, canlı veri yazımı ve gerçek model ç
 - **Kayıt:** yanıt kimliği (`gen-…`), isteğe bağlı `x-request-id`, gerçekte çalışan model, usage ve sağlayıcının bildirdiği maliyet (`usage.cost`, USD) yanıtta ve `planner_copy_issued` kaydında; maliyet bildirilmezse `null` (yerel tahmin yok).
 - `vercel.json`: `api/studio/plan-copy.ts` için `maxDuration: 120` eklendi (adaptör zaman aşımı 100 sn).
 - Marka bağlamı, Türkçe doğrulama, Kalsın, ele-yenile, kalıcı taslak ve proje kapsamı değişmedi.
+
+## 9. Tek ilerleme çubuğu, görsel-önce planlayıcı, rehbersiz ton, marka dilini birlikte oluşturma
+
+Yalnız yerel kod ve mock testtir; dağıtım, push, canlı yapılandırma/veri yazımı, gerçek model çağrısı ve aktif Studio sekmesine müdahale yoktur.
+
+**1) Uygulama genelinde yükleme** (`studio/library/uploadService.ts`, `studio/contexts/StudioUploadContext.tsx`, `studio/components/UploadTray.tsx`)
+- Kuyruk sayfada değil `<AuthProvider>` altında, rotaların üstünde yaşar; Studio içi/dışı gezinme, sayfa unmount'u ve marka değişimi yüklemeyi **kesmez**.
+- Her iş oluşturulurken **tenant + proje + marka adı + işi başlatan kullanıcı sabit bağlanır**; sonraki marka/tenant değişimi hedefi değiştirmez. Kuyruk yalnız **oturum** değişince (çıkış/başka kullanıcı) iptal edilir; yazılmakta olan katalog kaydı geri alınamaz (arka planda biter, arayüze/bildirime yansımaz).
+- Varsayılan görünüm **tek toplam bar**: `bitenler/toplam` yalnız **katalog kaydı yazılan** dosyaları sayar; bar bayt oranıdır, "kayıt bekleyen" ayrı yazılır. Ayrıntı açılınca dosya durumları, tek tek ve toplu duraklat/devam/iptal/tekrar dene.
+- Kararlı kimlikler, tamamlanan adımlar, kısmi tamamlanma, write-once/dedupe korunur: aynı dosya (ad+boyut+lastModified) aynı oturumda kuyruktaysa/bittiyse yeniden eklenmez; iptal/hatalı dosya yeniden eklenirse **aynı varlık kimliğiyle** kaldığı adımdan sürer.
+- **Bağımlılık hatası** (`getDeps` reddi): işler sırada bekler, hata görünür; **otomatik yeniden deneme yoktur**, yalnız açık "Tekrar dene" tam bir yeni deneme yapar.
+- Tarayıcı kapanırsa/yenilenirse kuyruk bellekte olduğu için gider: biten dosyalar kalır, yarım kalanlar için dosyalar **yeniden seçilmelidir** (arayüz bunu yazar). Garanti verilmez. Dosya içeriği özeti (hash) yoktur: kuyruktan kaldırılan bir dosya yeniden seçilirse yeni varlık açılır.
+
+**2) Görsel / metin ayrımı** (`studio/feedPlanner/review/App.tsx`)
+- "Post planı oluştur", elle atama, "Ele ve yenisini getir", "Başka adayla değiştir", ret sonrası doldurma, gezinme, seçim, biçim, kırpma **modeli çağırmaz**. Görsel hemen geçerli taslaktır; yeni görsele **eski metin taşınmaz**.
+- Metin yalnız açık **"Metinleri üret"** (veya slottaki "Metin üret/Metni yenile") ile gelir. Durumlar ayrı: *henüz üretilmedi* (hata değil) · *üretiliyor* · *sağlayıcı kapalı (503)* · *onaylı marka dili yok (412)* · *gözlem yok* · *doğrulamadan geçmedi* · *hata*. Hiçbirinde görsel silinmez; bayat yanıt (slot beklerken değişti) yazılmaz.
+- Kalsın görsel+metin çiftini korur; "Metinleri üret" ve slot yenileme Kalsın'lı ve metni olan çifte dokunmaz.
+- Metinsiz taslak kaydedilir ve yeniden yüklenir; "kaydedildi" metin üretildi anlamına gelmez.
+
+**3) Rehbersiz geçici ton** (`api/_lib/planCopy/planCopy.ts`, `shared/planner/copyContract.ts`)
+- Ses kaynağı önceliği (onaylı olan **her zaman** geçici tona üstündür): yüklü marka sesi paketi → insan onaylı konuşmalı rehber → seçilen **geçici ton** → hiçbiri yoksa `412 brand_voice_missing` (`details.needs: tone_or_guide`). Sağlayıcı kapalı `503 feature_disabled` bundan **ayrıdır** (rehber durumuna bakılmadan).
+- Geçici ton: etiket (enerjik/zarif/lüks/samimi/minimal/eğlenceli) ve/veya serbest tarif (≤300 karakter, tek satır, işaretleme temizlenir, yalnız `<tone>` VERİ bloğuna girer). **Olgu kaynağı değildir**; kalıcı onaylı marka hafızası değildir ve hiçbir yere yazılmaz (yalnız `planner_copy_issued` kaydında `voiceSource: temporary_tone`).
+- Gözlem: katalog (sunucuda yüklenir) ve/veya istemcinin **ölçtüğü** piksel istatistikleri (palet, parlaklık, renk dengesi, kontrast, yoğunluk, boş alan; sunucu Türkçe tarife çevirir). İkisi de yoksa slot modele **gitmez**: `gorsel_gozlem_yok` (hepsi öyleyse model çağrılmaz, ücret yok).
+- Doğrulama: yeni kanıt temelleri `olculen_gorsel` (yalnız ölçüm; içerik değil) ve `marka_rehberi`; rehbersiz modda persona/hesap/doğrulanmış ürün temelleri reddedilir; ürün/yiyecek/fiyat/saat/ödül/kampanya uydurma lexicon + yasak kalıplarla reddedilir (tarifteki olgu kelimesi kanıt sayılmaz). Varsayımlar yanıtta (`voice.assumptions`) ve slotta işaretlenir.
+- Taslakta `voiceSource` saklanır; sunucu üretim kaydıyla karşılaştırır (`voice_source_mismatch`): geçici ton metni onaylı gibi kaydedilemez.
+
+**4) Marka dilini birlikte oluştur** (`/api/studio/brand-guide`, `api/_lib/brandGuide/brandGuide.ts`, `studio/components/BrandGuideChat.tsx`) — **yazı dili**, ses/audio değil
+- Yönlendirmeli sorular veya serbest brief → AI **taslak** (OpenRouter, strict json_schema; kapalıysa 503) → insan düzenler (`save`) → **yalnız yönetici + açık `confirm:true` + taslağın tam sürümü/içerik anahtarı** ile `brand_guides`'a onaylı sürüm yazılır (değişmez sürüm kopyası `brand_guide_versions`). AI hiçbir yolda onaylı rehbere yazamaz.
+- Olgu uydurma koruması: ad/ne yapar/hedef kitle/örnekler kullanıcının sözleri (modelden alınmaz); `facts` brief'te dayanağı olmayanlar düşer ve açık soruya çevrilir; eksik alanlar sorulur.
+- Mevcut onaylı rehber korunur: yeni onay `expectedApprovedVersion` ister (sessiz ezme yok), sürüm +1; yüklü marka sesi paketi varsa onay `409 bundle_guide_exists`.
+- İyimser sürüm + idempotency (tenant+uid+eylem+anahtar), tenant/proje kimlik doğrulamasından. **Üretim çift ücretli çağrıya karşı korunur:** model çağrısından önce atomik `pending` rezervasyonu (anahtar kaydı + proje kilidi); eşzamanlı aynı anahtar → `request_pending` (model çağrılmaz), tamamlanmış → replay, başarısız → aynı hata (yeni deneme yeni anahtarla bilinçli), süresi dolmuş → `request_expired` (kör yeniden deneme yok), farklı yük → `idempotency_conflict`.
+
+**5) Yapılandırma bulgusu (yalnız ad/hedef metadatası; değer okunmadı)**
+- 503 mesajı "Plan metin üretimi kapalı (PLAN_COPY_AI_ENABLED)" kodda **yalnız** `process.env.PLAN_COPY_AI_ENABLED !== 'true'` iken üretilir (`copySuggestState`, anahtar eksikliği ayrı mesajdır).
+- `vercel env ls production`: 23 değişkenden **`OPENROUTER_API_KEY` (Secret, Production) vardır; `PLAN_COPY_AI_ENABLED` ve `PLAN_COPY_MODEL` Production, Preview ve Development'ta tanımlı değildir.** Sabahki izole dağıtımın `--env` bayrağı o dağıtıma özgüdür; yeni dağıtıma taşınmaz (bu çıkarım dağıtım bayrağı geçmişi doğrulanmadığı için olasılıktır, ama bayrağın projede tanımsız olması ölçülmüş bir gerçektir).
+- Önerilen (BU ÇALIŞMADA UYGULANMADI, kullanıcı adımı): Production'a `PLAN_COPY_AI_ENABLED=true` ekleyin, istenirse doğrulanmış OpenRouter kimliğiyle `PLAN_COPY_MODEL`; ardından yeniden dağıtın. Aynı bayrak marka rehberi taslağı üretimini de açar. Aktif yükleme sürerken dağıtım/yenileme yapmayın (aşağıya bakın).
+
+**Kalan sınırlar**
+- Gerçek model/OpenRouter bu çalışmada hiç çağrılmadı; model kimliği, çıktı kalitesi, gecikme, maliyet doğrulanmadı. Ölçülen-görsel temelli metin kalitesi (renk/ışık cümleleri) gerçek modelle denenmedi.
+- Tohumlu varyasyon bandı (3 puan) sezgiseldir; kırpma otomatik optimize edilmez (varsayılan odak katalog konu konumundan; puanda "kırpma" = görünen kesir).
+- Konuşmalı rehber arayüzü ve tüm yeni akışlar gerçek tarayıcıda denenmedi (bileşen/birim/mock/emülatör testleri).
+- Dağıtım öncesi: açık bir Studio sekmesinde yükleme sürüyorsa, eski kod sekmede çalıştığı için gezinme yüklemeyi iptal eder; yeni dağıtımla eski karma adlı parçalar (chunk) 404 olabilir. Yüklemeler bitmeden dağıtmayın; sonra sekmeyi yenileyin.

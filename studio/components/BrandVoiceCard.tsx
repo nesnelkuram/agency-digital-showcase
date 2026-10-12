@@ -22,8 +22,12 @@ async function api(projectId: string, init?: { bundle: unknown }): Promise<any> 
   return body;
 }
 
-/** Marka sesi paketi durumu ve (yalnız yönetici) yükleme. Paket, scripts/build-brand-voice-bundle.mjs ile yerelde üretilir; rehber METNİ bu ekranda gösterilmez. */
-const BrandVoiceCard: React.FC<{ projectId: string }> = ({ projectId }) => {
+/**
+ * Marka dili durumu. Ana yol: "Marka dilini birlikte oluştur" (konuşma → taslak → yönetici onayı). Manuel paket yükleme yalnız
+ * gelişmiş/yönetici yoludur (scripts/build-brand-voice-bundle.mjs ile yerelde üretilir); rehber METNİ bu ekranda gösterilmez.
+ * Marka dili yokluğu planı BLOKLAMAZ: geçici plan tonuyla metin üretilebilir (onaylı marka hafızası değildir).
+ */
+const BrandVoiceCard: React.FC<{ projectId: string; onStartGuide?: () => void; guideVersion?: number | null }> = ({ projectId, onStartGuide, guideVersion }) => {
   const [status, setStatus] = useState<Status | null>(null);
   const [message, setMessage] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -51,10 +55,14 @@ const BrandVoiceCard: React.FC<{ projectId: string }> = ({ projectId }) => {
   };
 
   return (
-    <section className="panel" aria-label="Marka sesi paketi" data-testid="brand-voice-card" style={{ margin: '0 16px 12px' }}>
-      <h2 style={{ marginTop: 0 }}>Marka sesi paketi</h2>
+    <section className="panel" aria-label="Marka dili" data-testid="brand-voice-card" style={{ margin: '0 16px 12px' }}>
+      <h2 style={{ marginTop: 0 }}>Marka dili</h2>
       {!status && !message && <p className="small muted">Durum okunuyor…</p>}
-      {status && !status.exists && <p className="warn" role="status">Yüklenmemiş: metin üretimi bu marka için çalışmaz (412). Aşağıdan yönetici olarak paketi yükleyin.</p>}
+      {guideVersion != null && <p className="small" data-testid="brand-guide-status">Onaylı marka rehberi: sürüm {guideVersion} (konuşmayla oluşturuldu, yönetici onaylı).</p>}
+      {status && !status.exists && guideVersion == null && (
+        <p className="small" role="status" data-testid="brand-voice-missing">Onaylı marka dili yok. Plan akışı bloklanmaz: bir plan tonu seçip metin üretebilir ya da marka dilini birlikte oluşturabilirsiniz.</p>
+      )}
+      {onStartGuide && <button onClick={onStartGuide} data-testid="brand-guide-open">{guideVersion != null ? 'Marka dilini güncelle' : 'Marka dilini birlikte oluştur'}</button>}
       {status?.exists && status.valid === false && <p className="warn" role="alert">Saklanan paket geçersiz: {status.errors?.join(' · ')}</p>}
       {status?.exists && status.valid !== false && (
         <p className="small" data-testid="brand-voice-status">
@@ -63,9 +71,12 @@ const BrandVoiceCard: React.FC<{ projectId: string }> = ({ projectId }) => {
           <br />Rehber özetleri: {Object.entries(status.guideHashes ?? {}).map(([k, v]) => `${k} ${String(v).slice(0, 8)}`).join(' · ')}
         </p>
       )}
-      <label className="field">Paket dosyası (.json; yalnız yönetici)
-        <input type="file" accept="application/json,.json" disabled={busy} onChange={(e) => { void onFile(e.target.files?.[0]); e.target.value = ''; }} />
-      </label>
+      <details className="advanced">
+        <summary>Gelişmiş: marka sesi paketi yükle (yönetici)</summary>
+        <label className="field">Paket dosyası (.json; yalnız yönetici)
+          <input type="file" accept="application/json,.json" disabled={busy} onChange={(e) => { void onFile(e.target.files?.[0]); e.target.value = ''; }} />
+        </label>
+      </details>
       {message && <p className={message.kind === 'err' ? 'err small' : 'small'} role={message.kind === 'err' ? 'alert' : 'status'}>{message.text}</p>}
     </section>
   );

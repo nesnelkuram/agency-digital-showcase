@@ -11,11 +11,25 @@ beforeEach(() => af.mockReset());
 afterEach(() => cleanup());
 
 describe('marka sesi paketi kartı', () => {
-  it('yüklenmemişse açıkça söyler (metin üretimi çalışmaz)', async () => {
+  it('onaylı marka dili yoksa BLOKLAMAZ: plan akışının sürdüğünü söyler, "birlikte oluştur" ana yoldur, manuel paket yüklemesi gelişmiş bölümde katlıdır', async () => {
     af.mockResolvedValue(res({ exists: false }));
-    render(<BrandVoiceCard projectId="p1" />);
-    await waitFor(() => expect(screen.getByText(/Yüklenmemiş: metin üretimi bu marka için çalışmaz/)).toBeTruthy());
+    const onStartGuide = vi.fn();
+    render(<BrandVoiceCard projectId="p1" onStartGuide={onStartGuide} />);
+    await waitFor(() => expect(screen.getByTestId('brand-voice-missing').textContent).toMatch(/Onaylı marka dili yok\. Plan akışı bloklanmaz/));
+    expect(screen.queryByText(/412|çalışmaz/)).toBeNull();
     expect(af.mock.calls[0][0]).toBe('/api/studio/brand-voice?projectId=p1');
+    fireEvent.click(screen.getByTestId('brand-guide-open'));
+    expect(onStartGuide).toHaveBeenCalledTimes(1);
+    const adv = screen.getByText(/Gelişmiş: marka sesi paketi yükle/).closest('details') as HTMLDetailsElement;
+    expect(adv.open).toBe(false);
+    expect(adv.contains(screen.getByLabelText(/Paket dosyası/))).toBe(true);
+  });
+  it('onaylı rehber varsa sürümü gösterir ve "eksik" uyarısı vermez', async () => {
+    af.mockResolvedValue(res({ exists: false }));
+    render(<BrandVoiceCard projectId="p1" guideVersion={3} onStartGuide={() => {}} />);
+    await waitFor(() => expect(screen.getByTestId('brand-guide-status').textContent).toMatch(/sürüm 3/));
+    expect(screen.queryByTestId('brand-voice-missing')).toBeNull();
+    expect(screen.getByTestId('brand-guide-open').textContent).toBe('Marka dilini güncelle');
   });
   it('yüklüyse durumu gösterir; rehber METNİ yok, yalnız özet', async () => {
     af.mockResolvedValue(res({ exists: true, valid: true, account: 'dieci', captionCount: 38, excluded: [{ id: 'P10', reason: 'üçüncü taraf' }], guideHashes: { persona: 'abcdef0123456789' }, verifiedProducts: [{ id: 'a', name: 'A' }], updatedAt: 1760000000000 }));

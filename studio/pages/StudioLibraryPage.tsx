@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Upload, Loader2, Film, Pause, Play, X, RotateCcw, Archive, ArchiveRestore, Images } from 'lucide-react';
+import { Upload, Loader2, Film, X, Archive, ArchiveRestore, Images } from 'lucide-react';
 import { useStudio } from '../StudioLayout';
 import { useLibraryUpload } from '../hooks/useLibraryUpload';
 import {
@@ -23,79 +23,12 @@ import {
   type BrandMediaKind,
   type BrandMediaStatus,
 } from '@/shared/types/brandMedia';
-import type { UploadItem } from '../library/uploadRunner';
 import ReadinessNotice from '../components/ReadinessNotice';
 import { AssetIntegrations, CanvaFolderPanel } from '../components/MediaIntegrations';
-import { notifyUploadComplete } from '../mediaIntegrationsApi';
 import { checkInstagramReadiness } from '@/shared/social/instagramReadiness';
 
 type KindFilter = 'all' | BrandMediaKind;
 type UsageFilter = 'all' | 'used' | 'unused';
-
-const UPLOAD_STATUS: Record<UploadItem['status'], string> = {
-  queued: 'Sırada',
-  uploading: 'Yükleniyor',
-  paused: 'Duraklatıldı',
-  saving: 'Kaydediliyor',
-  done: 'Kütüphaneye eklendi',
-  error: 'Hata',
-  canceled: 'İptal edildi',
-};
-
-const UploadRow: React.FC<{
-  item: UploadItem;
-  onPause: () => void;
-  onResume: () => void;
-  onCancel: () => void;
-  onRetry: () => void;
-  onDismiss: () => void;
-}> = ({ item, onPause, onResume, onCancel, onRetry, onDismiss }) => {
-  const active = ['queued', 'uploading', 'paused', 'saving'].includes(item.status);
-  return (
-    <div className="glass-tile p-2.5 space-y-1.5" data-testid="upload-row">
-      <div className="flex items-center justify-between gap-2">
-        <p className="font-grotesk text-sm text-[#171717] truncate">{item.file.name}</p>
-        <span className="font-grotesk text-[11px] text-neutral-500 shrink-0">
-          {formatBytesDecimal(item.file.size)} · {UPLOAD_STATUS[item.status]}
-        </span>
-      </div>
-      <div className="h-1.5 rounded-full bg-neutral-100 overflow-hidden">
-        <div
-          className={`h-full ${item.status === 'error' ? 'bg-red-400' : item.status === 'canceled' ? 'bg-neutral-300' : 'bg-[#171717]'}`}
-          style={{ width: `${item.progress}%` }}
-        />
-      </div>
-      {item.error && <p className="font-grotesk text-xs text-red-600">{item.error}</p>}
-      <div className="flex gap-1.5">
-        {item.status === 'uploading' && (
-          <button onClick={onPause} className="inline-flex items-center gap-1 px-2 py-1 border border-neutral-200 rounded-lg font-grotesk text-xs">
-            <Pause className="w-3 h-3" /> Duraklat
-          </button>
-        )}
-        {item.status === 'paused' && (
-          <button onClick={onResume} className="inline-flex items-center gap-1 px-2 py-1 border border-neutral-200 rounded-lg font-grotesk text-xs">
-            <Play className="w-3 h-3" /> Devam
-          </button>
-        )}
-        {active && item.status !== 'saving' && (
-          <button onClick={onCancel} className="inline-flex items-center gap-1 px-2 py-1 border border-red-200 text-red-700 rounded-lg font-grotesk text-xs">
-            <X className="w-3 h-3" /> İptal
-          </button>
-        )}
-        {item.status === 'error' && (
-          <button onClick={onRetry} className="inline-flex items-center gap-1 px-2 py-1 border border-neutral-200 rounded-lg font-grotesk text-xs">
-            <RotateCcw className="w-3 h-3" /> Tekrar dene
-          </button>
-        )}
-        {!active && (
-          <button onClick={onDismiss} className="px-2 py-1 font-grotesk text-xs text-neutral-500">
-            Listeden kaldır
-          </button>
-        )}
-      </div>
-    </div>
-  );
-};
 
 const AssetDetail: React.FC<{
   asset: BrandMediaAsset;
@@ -307,14 +240,12 @@ const StudioLibraryPage: React.FC = () => {
     load();
   }, [load]);
 
+  // Kuyruk uygulama düzeyinde yaşar (UploadTray); Canva/AI kataloglama bildirimi de orada, sayfadan bağımsız gider.
   const upload = useLibraryUpload({
     tenantId,
     projectId,
-    onAssetCreated: (assetId) => {
-      load();
-      // Canva senkronu ve AI kataloglama ayrı, kalıcı işler: biri başarısız/kapalıysa diğeri ve yükleme etkilenmez
-      if (projectId) void notifyUploadComplete(projectId, assetId);
-    },
+    projectName: project?.name,
+    onAssetCreated: () => load(),
   });
 
   const tagFilter = normalizeTag(tag);
@@ -383,22 +314,11 @@ const StudioLibraryPage: React.FC = () => {
       )}
 
       {upload.items.length > 0 && (
-        <div className="space-y-2">
-          {upload.busy && (
-            <p className="font-grotesk text-xs text-neutral-500">Yükleme sürerken sayfayı yenilerseniz yarım kalan dosya baştan yüklenir.</p>
-          )}
-          {upload.items.map((it) => (
-            <UploadRow
-              key={it.key}
-              item={it}
-              onPause={() => upload.pause(it.key)}
-              onResume={() => upload.resume(it.key)}
-              onCancel={() => upload.cancel(it.key)}
-              onRetry={() => upload.retry(it.key)}
-              onDismiss={() => upload.dismiss(it.key)}
-            />
-          ))}
-        </div>
+        <p className="font-grotesk text-xs text-neutral-500" data-testid="upload-moved-note">
+          {upload.items.filter((i) => ['queued', 'uploading', 'paused', 'saving'].includes(i.status)).length > 0
+            ? 'Yüklemeler sağ alttaki tek ilerleme çubuğunda sürüyor; sayfadan veya markadan ayrılabilirsiniz.'
+            : 'Bu markanın yüklemeleri sağ alttaki çubukta listelenir.'}
+        </p>
       )}
 
       <div className="flex flex-wrap items-center gap-2">

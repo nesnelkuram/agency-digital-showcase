@@ -81,7 +81,7 @@ describe('istek: yalnız OpenRouter, yapılandırılmış çıktı, sessiz yedek
     const it = s.properties.items.items;
     expect(it.additionalProperties).toBe(false);
     expect(it.required.sort()).toEqual(['body', 'caption', 'evidenceBasis', 'headline', 'rationale', 'slotKey']);
-    expect(it.properties.evidenceBasis.enum).toEqual(['dogrulanmis_urun', 'katalog_gozlem', 'persona_kanaat', 'hesap_ornegi', 'yok_metinsiz']);
+    expect(it.properties.evidenceBasis.enum).toEqual(['dogrulanmis_urun', 'katalog_gozlem', 'persona_kanaat', 'hesap_ornegi', 'olculen_gorsel', 'marka_rehberi', 'yok_metinsiz']);
     expect(CopyOutputSchema.safeParse(output([item('feed:0', GOOD)])).success).toBe(true);
   });
 });

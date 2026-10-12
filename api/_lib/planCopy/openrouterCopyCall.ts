@@ -33,6 +33,9 @@ export class OpenRouterError extends Error {
 }
 
 export interface OpenRouterDeps {
+  /** Başka bir yapılandırılmış çıktı için (ör. marka rehberi taslağı); yoksa plan-copy çıktı şeması */
+  schema?: z.ZodType;
+  schemaName?: string;
   /** Test için; yoksa küresel fetch */
   fetchImpl?: typeof fetch;
   /** Test için; yoksa process.env.OPENROUTER_API_KEY (çağrı anında okunur) */
@@ -69,7 +72,16 @@ function stopReasonOf(choice: any): string | null {
   }
 }
 
+function jsonSchemaOf(schema: z.ZodType): Record<string, unknown> {
+  const { $schema, ...rest } = z.toJSONSchema(schema, { target: 'draft-7' }) as Record<string, unknown>;
+  void $schema;
+  return rest;
+}
+
 export function openrouterCopyCall(deps: OpenRouterDeps = {}): CopyModelCall {
+  const outSchema: z.ZodType = deps.schema ?? CopyOutputSchema;
+  const schemaName = deps.schemaName ?? COPY_SCHEMA_NAME;
+  const jsonSchema = deps.schema ? jsonSchemaOf(deps.schema) : copyJsonSchema();
   return async ({ model, system, user }) => {
     const apiKey = deps.apiKey ?? process.env.OPENROUTER_API_KEY;
     if (!apiKey || !apiKey.trim()) throw new OpenRouterError('OPENROUTER_API_KEY tanımlı değil', null, 'no_api_key');
@@ -89,7 +101,7 @@ export function openrouterCopyCall(deps: OpenRouterDeps = {}): CopyModelCall {
           model,
           max_tokens: deps.maxTokens ?? COPY_MAX_TOKENS,
           messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
-          response_format: { type: 'json_schema', json_schema: { name: COPY_SCHEMA_NAME, strict: true, schema: copyJsonSchema() } },
+          response_format: { type: 'json_schema', json_schema: { name: schemaName, strict: true, schema: jsonSchema } },
           provider: { allow_fallbacks: false, require_parameters: true },
           usage: { include: true },
         }),
@@ -110,7 +122,7 @@ export function openrouterCopyCall(deps: OpenRouterDeps = {}): CopyModelCall {
       const content = choice?.message?.content;
       if (typeof content === 'string' && content.trim()) {
         try {
-          const check = CopyOutputSchema.safeParse(JSON.parse(content));
+          const check = outSchema.safeParse(JSON.parse(content));
           parsed = check.success ? check.data : null;
         } catch {
           parsed = null;

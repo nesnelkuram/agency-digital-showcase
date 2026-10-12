@@ -205,6 +205,46 @@ describe('kalıcı taslak deposu (sahte Firestore)', () => {
     expect(await save(db, { draft: bad(null), idempotencyKey: KEY(63) })).toMatchObject({ version: 1 });
   });
 
+  it('SES KAYNAĞI: geçici ton metni onaylı gibi saklanamaz — voiceSource üretim kaydıyla AYNI olmalı (beyan yoksa onaylı paket sayılır); plan/manual metin voiceSource taşıyamaz', async () => {
+    const rk = Object.keys(Object.fromEntries(provenanceDocs())).find((x) => x.startsWith('planner_copy_issued/'))!;
+    /** Taslaktaki TÜM model metinlerine aynı ses etiketini koyar (üç metin aynı üretim kaydındandır) */
+    const labeled = (v: string | undefined) => {
+      const d = draft();
+      const lab = (sl: any) => (sl && sl.text?.source === 'model' ? { ...sl, text: { ...sl.text, ...(v ? { voiceSource: v } : {}) } } : sl);
+      return { ...d, feed: d.feed.map(lab), story: d.story.map(lab) } as any;
+    };
+    const mismatches = (e: DraftError) => (e.details as Array<{ reason: string }>).filter((x) => x.reason === 'voice_source_mismatch').length;
+    // kayıt: geçici ton
+    db.data.set(rk, { ...db.data.get(rk), voiceSource: 'temporary_tone' });
+    // 1) etiketi sildi (onaylıymış gibi) → üç model metni de reddedilir
+    const e1 = await err(save(db, { idempotencyKey: KEY(80) }));
+    expect(e1).toMatchObject({ status: 422, code: 'provenance_invalid' });
+    expect(mismatches(e1)).toBe(3);
+    // 2) başka bir onaylı kaynak iddiası → red
+    for (const [k, v] of [[81, 'approved_guide'], [82, 'approved_bundle']] as const) {
+      const e = await err(save(db, { draft: labeled(v), idempotencyKey: KEY(k) }));
+      expect(e).toMatchObject({ code: 'provenance_invalid' });
+      expect(mismatches(e)).toBe(3);
+    }
+    // 3) doğru etiket → kabul ve saklanır
+    expect(await save(db, { draft: labeled('temporary_tone'), idempotencyKey: KEY(83) })).toMatchObject({ version: 1 });
+    expect((await loadDraft(db, { tenantId: T, projectId: P, weekStart: '2026-10-12' }))!.draft.feed[0]!.text).toMatchObject({ source: 'model', voiceSource: 'temporary_tone' });
+    // 4) kayıt onaylı rehber ise geçici ton etiketi taşıyan metin reddedilir (ters yön); doğru etiket kabul
+    db.data.set(rk, { ...db.data.get(rk), voiceSource: 'approved_guide' });
+    expect(mismatches(await err(save(db, { draft: labeled('temporary_tone'), expectedVersion: 1, idempotencyKey: KEY(84) })))).toBe(3);
+    expect(await save(db, { draft: labeled('approved_guide'), expectedVersion: 1, idempotencyKey: KEY(85) })).toMatchObject({ version: 2 });
+    // 5) ESKİ kayıt (voiceSource alanı yok) + beyan yok → onaylı paket sayılır (geriye uyum)
+    const old = { ...db.data.get(rk) };
+    delete old.voiceSource;
+    db.data.set(rk, old);
+    expect(await save(db, { draft: labeled(undefined), expectedVersion: 2, idempotencyKey: KEY(86) })).toMatchObject({ version: 3 });
+    // 6) plan/manual metin voiceSource taşıyamaz; geçersiz değer şema reddi
+    const d = draft();
+    const withFeed0 = (text: any) => ({ ...d, feed: [{ ...d.feed[0]!, text }, ...d.feed.slice(1)] }) as any;
+    expect(await err(save(db, { draft: withFeed0({ caption: 'Elle yazıldı.', source: 'manual', lang: 'tr', voiceSource: 'approved_guide' }), expectedVersion: 3, idempotencyKey: KEY(87) }))).toMatchObject({ status: 422, code: 'draft_invalid' });
+    expect(await err(save(db, { draft: withFeed0({ ...d.feed[0]!.text!, voiceSource: 'uydurma' }), expectedVersion: 3, idempotencyKey: KEY(88) }))).toMatchObject({ code: 'draft_invalid' });
+  });
+
   it('MODEL KAYNAĞI: istemciden gelen source:model/contentHash/responseId GÜVENİLMEZ — metin değiştirilmiş, hash uydurulmuş veya sunucuda üretilmemiş ise 422 provenance_invalid; elle metin source:manual ile açıkça ayrılır', async () => {
     const withFeed0 = (text: any) => draft({ feed: [{ ...draft().feed[0]!, text }, ...draft().feed.slice(1)] as any });
     const real = draft().feed[0]!.text!;

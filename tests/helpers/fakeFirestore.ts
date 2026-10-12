@@ -3,12 +3,14 @@ type Filter = { field: string; op: '==' | 'in' | '>=' | '<=' | '<' | '>'; value:
 
 export function fakeFirestore() {
   const data = new Map<string, any>();
+  let chain: Promise<unknown> = Promise.resolve();
   const ref = (path: string) => ({
     path,
     id: path.split('/').pop()!,
     get: async () => ({ exists: data.has(path), id: path.split('/').pop()!, data: () => data.get(path) }),
     set: async (v: any, opts?: { merge?: boolean }) => void data.set(path, opts?.merge ? { ...(data.get(path) || {}), ...v } : { ...v }),
     update: async (p: any) => void data.set(path, { ...data.get(path), ...p }),
+    delete: async () => void data.delete(path),
   });
   type Order = { field: string; dir: 'asc' | 'desc' };
   const val = (r: { id: string; v: any }, f: string) => (f === '__name__' ? r.id : r.v?.[f]);
@@ -56,11 +58,19 @@ export function fakeFirestore() {
   return {
     data,
     collection: (c: string) => ({ doc: (id: string) => ref(`${c}/${id}`), ...query(c) }),
-    runTransaction: async (fn: any) =>
-      fn({
-        get: (r: any) => r.get(),
-        update: (r: any, p: any) => data.set(r.path, { ...data.get(r.path), ...p }),
-        set: (r: any, v: any, opts?: { merge?: boolean }) => data.set(r.path, opts?.merge ? { ...(data.get(r.path) || {}), ...v } : { ...v }),
-      }),
+    // Transaction'lar SIRAYLA çalışır (gerçek Firestore'un çakışmada yeniden deneyerek sağladığı serileştirmeyi taklit eder):
+    // gövde await içerse bile iki eşzamanlı transaction iç içe geçmez.
+    runTransaction: (fn: any) => {
+      const run = chain.then(() =>
+        fn({
+          get: (r: any) => r.get(),
+          update: (r: any, p: any) => data.set(r.path, { ...data.get(r.path), ...p }),
+          set: (r: any, v: any, opts?: { merge?: boolean }) => data.set(r.path, opts?.merge ? { ...(data.get(r.path) || {}), ...v } : { ...v }),
+          delete: (r: any) => void data.delete(r.path),
+        })
+      );
+      chain = run.then(() => undefined, () => undefined);
+      return run;
+    },
   };
 }

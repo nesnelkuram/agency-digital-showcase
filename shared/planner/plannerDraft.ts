@@ -14,6 +14,7 @@ export const DRAFT_SLOTS = 9;
 export const MAX_DISMISSED = 200;
 export const MAX_REJECTED = 200;
 export const MAX_DRAFT_BYTES = 120_000;
+export const VOICE_SOURCES = ['approved_bundle', 'approved_guide', 'temporary_tone'] as const;
 export const FEED_FORMATS = ['feed-1x1', 'feed-4x5', 'reels-cover'] as const;
 export const FEEDBACK_CATEGORIES = ['görsel', 'metin', 'marka_sesi', 'ürün_bilgisi', 'format', 'zamanlama', 'tekrar', 'diğer'] as const;
 export const FEEDBACK_SCOPES = ['content_only', 'brand_context'] as const;
@@ -26,6 +27,8 @@ export interface DraftText {
   source: 'model' | 'plan' | 'manual';
   lang: 'tr' | 'en' | 'unknown';
   evidenceBasis?: (typeof EVIDENCE_BASES)[number];
+  /** Model metninin ses kaynağı; sunucu, kayıtlı üretim kaydıyla karşılaştırır (geçici ton metni onaylı gibi saklanamaz) */
+  voiceSource?: (typeof VOICE_SOURCES)[number];
   contentHash?: string;
   responseId?: string;
   promptVersion?: string;
@@ -66,7 +69,7 @@ export type DraftCheck = { ok: true; draft: PlannerDraft } | { ok: false; errors
 function validText(t: unknown, p: string, e: string[]) {
   if (t === null) return;
   if (!isObj(t)) { e.push(`${p}: metin nesne veya null olmalı`); return; }
-  exactKeys(t, ['headline', 'body', 'caption', 'source', 'lang', 'evidenceBasis', 'contentHash', 'responseId', 'promptVersion'], p, e);
+  exactKeys(t, ['headline', 'body', 'caption', 'source', 'lang', 'evidenceBasis', 'voiceSource', 'contentHash', 'responseId', 'promptVersion'], p, e);
   for (const k of ['headline', 'body', 'caption'] as const) {
     const v = t[k];
     if (v !== undefined && (typeof v !== 'string' || v.length === 0 || v.length > maxLen[k])) e.push(`${p}.${k}: boş olmayan metin ≤ ${maxLen[k]} olmalı`);
@@ -76,11 +79,12 @@ function validText(t: unknown, p: string, e: string[]) {
   if (t.source !== 'model' && t.source !== 'plan' && t.source !== 'manual') e.push(`${p}.source geçersiz`);
   if (t.lang !== 'tr' && t.lang !== 'en' && t.lang !== 'unknown') e.push(`${p}.lang geçersiz`);
   if (t.evidenceBasis !== undefined && !(EVIDENCE_BASES as readonly string[]).includes(t.evidenceBasis as string)) e.push(`${p}.evidenceBasis geçersiz`);
+  if (t.voiceSource !== undefined && !(VOICE_SOURCES as readonly string[]).includes(t.voiceSource as string)) e.push(`${p}.voiceSource geçersiz`);
   if (t.contentHash !== undefined && (typeof t.contentHash !== 'string' || !/^[0-9a-f]{32}$/.test(t.contentHash))) e.push(`${p}.contentHash geçersiz`);
   if (t.responseId !== undefined && (typeof t.responseId !== 'string' || t.responseId.length > 128)) e.push(`${p}.responseId geçersiz`);
   if (t.promptVersion !== undefined && (typeof t.promptVersion !== 'string' || t.promptVersion.length > 40)) e.push(`${p}.promptVersion geçersiz`);
   if (t.source === 'model' && (t.contentHash === undefined || t.responseId === undefined)) e.push(`${p}: model kaynaklı metin contentHash ve responseId taşımalı`);
-  if ((t.source === 'plan' || t.source === 'manual') && (t.contentHash !== undefined || t.responseId !== undefined || t.evidenceBasis !== undefined || t.promptVersion !== undefined)) e.push(`${p}: ${String(t.source)} metni model kanıtı alanları taşıyamaz (doğrulanmamış metin model çıktısı gibi sunulamaz)`);
+  if ((t.source === 'plan' || t.source === 'manual') && (t.contentHash !== undefined || t.responseId !== undefined || t.evidenceBasis !== undefined || t.promptVersion !== undefined || t.voiceSource !== undefined)) e.push(`${p}: ${String(t.source)} metni model kanıtı alanları taşıyamaz (doğrulanmamış metin model çıktısı gibi sunulamaz)`);
 }
 
 function validSlot(s: unknown, lane: 'feed' | 'story', p: string, e: string[]): string | null {

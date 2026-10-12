@@ -6,6 +6,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { readFileSync } from 'fs';
 import { fakeFirestore } from './helpers/fakeFirestore';
+import { resolveFunctionConfig } from './helpers/vercelFunctions';
 import { effectiveCatalog, type ImageCatalog } from '@/api/_lib/mediaAnalysis/spec';
 import { CORRECTIONS, loadEffectiveCatalog, saveCorrection } from '@/api/_lib/mediaAnalysis/correctionStore';
 import {
@@ -382,7 +383,7 @@ describe('uçtan uca: yükleme → analiz → düzeltme → taslak öneri → me
 
 describe('süre bütçesi: SDK zaman aşımı < lease < platform süresi (yerel vercel.json)', () => {
   const vercel = JSON.parse(readFileSync('vercel.json', 'utf8'));
-  const dur = (f: string) => vercel.functions[f]?.maxDuration;
+  const dur = (f: string) => resolveFunctionConfig(vercel.functions, f)?.maxDuration;
 
   it('maxDuration açık ve model zaman aşımını kapsıyor', () => {
     expect(dur('api/media/analyze.ts')).toBeGreaterThanOrEqual(CATALOG_TIMEOUT_MS / 1000 + 30);
