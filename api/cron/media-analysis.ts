@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getAdminDb, getAdminStorage } from '../_lib/firebaseAdmin.js';
-import { mediaAnalysisSinceMs, mediaAnalysisState } from '../_lib/integrations/config.js';
+import { mediaAnalysisSinceMs, mediaAnalysisState, storageBucketName } from '../_lib/integrations/config.js';
 import { processAnalysisQueue, reconcileNewMedia, RECONCILE_BUDGET_MS, WORK_START_DEADLINE_MS } from '../_lib/mediaAnalysis/autoQueue.js';
 import { firestoreAnalysisStore, type BrandMediaLike } from '../_lib/mediaAnalysis/runner.js';
 import { openrouterVisionCall } from '../_lib/mediaAnalysis/openrouterVisionCall.js';
@@ -50,7 +50,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           store: firestoreAnalysisStore(db),
           readBytes: async (path: string) => {
             if (!path.startsWith(`brand-media/${asset.tenantId}/${asset.projectId}/${asset.id}/`)) throw new Error('Kaynak yolu varlığa ait değil');
-            const [buf] = await storage.bucket(process.env.FIREBASE_STORAGE_BUCKET).file(path).download();
+            const [buf] = await storage.bucket(storageBucketName()).file(path).download();
             return buf;
           },
           callModel,

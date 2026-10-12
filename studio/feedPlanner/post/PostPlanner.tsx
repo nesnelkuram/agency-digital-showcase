@@ -39,6 +39,8 @@ export interface PostPlannerProps {
   /** guideVersion/bundle: UI'ye zaten gelen BİLİNEN onaylı marka dili sürümü (canlı abonelik değil); değişirse yaratıcı aşamalar eski olur, insan metni korunur */
   voice?: { approved: boolean | null; guideVersion?: string | number | null; bundle?: boolean };
   onStartGuide?: () => void;
+  /** Görsel analizi (AI): konu açıklaması + kompozisyon kararı. Yoksa analiz düğmeleri gösterilmez. `run` tek görsel için 1 model çağrısıdır; `refresh` envanteri sessizce yeniler. */
+  analysis?: { run: (assetId: string) => Promise<{ ok: true } | { ok: false; message: string; fatal?: boolean }>; refresh: () => Promise<void> };
   /** Nihai kırpım görünümünün piksel ölçümü (test için enjekte edilir) */
   measureCrop?: MeasureCropFn;
   /** Başlangıç sayısı */
@@ -48,6 +50,8 @@ export interface PostPlannerProps {
 const DEFAULT_PORTS = reviewPorts();
 const TONE_LABEL_TR: Record<ToneLabel, string> = { enerjik: 'Enerjik', zarif: 'Zarif', lüks: 'Lüks', samimi: 'Samimi', minimal: 'Minimal', eğlenceli: 'Eğlenceli' };
 const FACT_LABEL = { tam: 'tam kare görünür', 'yalnız_konu': 'yalnız ana konu', yok: 'görünür olgu yok' } as const;
+/** Görselin metne esas olacak konu açıklaması veya kompozisyon kararı yoksa metin üretilemez (sunucu da böyle durur). */
+const needsAnalysis = (c: Candidate | undefined) => !!c && (!c.visual || !(c.note ?? '').trim());
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
 type MiniCell = Pick<LayoutCell, 'idx' | 'assetId' | 'assetLock' | 'posLock' | 'kind'> & { id?: string | null; note?: string; crop?: CropEdit | null };
@@ -82,7 +86,7 @@ export default function PostPlanner(props: PostPlannerProps) {
 }
 
 function PostPlannerInner({
-  candidates, published = [], historySource, ports = DEFAULT_PORTS, projectId, tenantId, userId, weekStart = '', voice = { approved: null }, onStartGuide, measureCrop = measureImageCrop, initialCount = 9,
+  candidates, published = [], historySource, ports = DEFAULT_PORTS, projectId, tenantId, userId, weekStart = '', voice = { approved: null }, onStartGuide, analysis, measureCrop = measureImageCrop, initialCount = 9,
 }: PostPlannerProps) {
   const [plan, setPlanState] = useState<PostPlan>(() => emptyPostPlan());
   const planRef = useRef(plan);
@@ -319,6 +323,7 @@ function PostPlannerInner({
     const p0 = post();
     const b0 = bind();
     if (!p0 || !b0) return skip('Post silindi.');
+    if (analysis && needsAnalysis(allByIdRef.current.get(p0.assetId))) return skip('Görsel henüz analiz edilmedi: önce “Eksik görselleri analiz et”.');
     if (!force && p0.text && p0.text.source === 'manual') return skip('Elle yazılmış/düzenlenmiş metin korunur.');
     if (!force && p0.text && captionStatus(getEntry(id), p0.text, b0) === 'geçerli') return skip('Geçerli model metni zaten var.');
     if (selectionStatus(getEntry(id), b0) !== 'geçerli') {
@@ -372,6 +377,29 @@ function PostPlannerInner({
     bulkRef.current.running = false;
     if (aliveRef.current) setBulk((b) => (b ? { ...b, phase: 'done', cur: null, rows: [...rows], halted } : b));
   };
+  // ── Görsel analizi: açık eylem; görsel başına 1 model çağrısı, sırayla. Başarısızlık/kapalı → durur ve nedeni gösterilir. ──
+  const [an, setAn] = useState<null | { phase: 'run' | 'done'; total: number; index: number; ok: number; fails: Array<{ id: string; msg: string }>; halted?: string }>(null);
+  const anRef = useRef({ cancel: false, running: false });
+  const runAnalysis = async (ids: string[]) => {
+    if (!analysis || anRef.current.running || !ids.length) return;
+    anRef.current = { cancel: false, running: true };
+    let ok = 0;
+    const fails: Array<{ id: string; msg: string }> = [];
+    let halted: string | undefined;
+    setAn({ phase: 'run', total: ids.length, index: 0, ok: 0, fails: [] });
+    for (let i = 0; i < ids.length; i++) {
+      if (anRef.current.cancel) { halted = 'Durduruldu; kalan görseller analiz edilmedi.'; break; }
+      if (!aliveRef.current) break;
+      setAn((a) => (a ? { ...a, index: i + 1 } : a));
+      const r = await analysis.run(ids[i]);
+      if (r.ok) ok++; else { fails.push({ id: ids[i], msg: r.message }); if (r.fatal) { halted = r.message; break; } }
+      setAn((a) => (a ? { ...a, ok, fails: [...fails] } : a));
+    }
+    anRef.current.running = false;
+    try { if (ok) await analysis.refresh(); } catch { /* yenileme hatası analiz sonucunu bozmaz */ }
+    if (aliveRef.current) setAn((a) => (a ? { ...a, phase: 'done', ok, fails, halted } : a));
+  };
+
   /** Tek post için tek tık: fikir → ilk fikir → caption. Elle metin varsa AÇIK tıklama = üzerine yazma onayı; eskisi geçmişte saklanır. */
   const [oneBusy, setOneBusy] = useState(false);
   const [oneMsg, setOneMsg] = useState<{ postId: string; text: string } | null>(null);
@@ -434,6 +462,8 @@ function PostPlannerInner({
   const withText = plan.posts.filter((p) => statusOf(p).caption === 'geçerli').length;
   const withIdea = plan.posts.filter((p) => statusOf(p).selection === 'geçerli').length;
   const withCheck = plan.posts.filter((p) => statusOf(p).check === 'geçerli').length;
+  const missingIds = analysis ? [...new Set(plan.posts.filter((p) => needsAnalysis(allById.get(p.assetId))).map((p) => p.assetId))] : [];
+  const analysing = an?.phase === 'run';
   const toneOn = (l: ToneLabel) => tone.label === l;
   const profile = profileAfterStep(plan.posts, historyM, stepNow, plan.crops);
   const chrono = chronology(plan.posts, plan.crops);
@@ -489,7 +519,7 @@ function PostPlannerInner({
 
         <section className="genbar" aria-label="Yaratıcı metin" data-testid="post-text-panel">
           <div className="genrow">
-            <button className="primary big" onClick={() => setBulk({ phase: 'confirm', withCheck: false, total: n, index: 0, cur: null, rows: [] })} disabled={!n || !ready || !ports.creative.available || anyBusy || bulk?.phase === 'run' || bulk?.phase === 'confirm'} data-testid="bulk-open" title={ready ? undefined : 'Kırpım ölçümleri bitince açılır'}>Tüm postlar için metin üret</button>
+            <button className="primary big" onClick={() => setBulk({ phase: 'confirm', withCheck: false, total: n, index: 0, cur: null, rows: [] })} disabled={!n || !ready || !ports.creative.available || anyBusy || analysing || bulk?.phase === 'run' || bulk?.phase === 'confirm'} data-testid="bulk-open" title={ready ? undefined : 'Kırpım ölçümleri bitince açılır'}>Tüm postlar için metin üret</button>
             <span className="small" data-testid="post-text-summary">{n === 0 ? 'Önce post planını oluşturun.' : `${withText}/${n} postta metin var`}{withIdea || withCheck ? ` · ${withIdea} seçilmiş fikir · ${withCheck} kontrol` : ''}</span>
             {voice.approved === true ? <span className="pill" data-testid="post-voice-approved">Marka dili: onaylı rehber</span> : (
               <details className="tonedrop" data-testid="post-tone-panel">
@@ -509,9 +539,22 @@ function PostPlannerInner({
               </details>
             )}
           </div>
+          {analysis && (missingIds.length > 0 || an) && (
+            <div className="analysisbar" data-testid="analysis-bar">
+              {missingIds.length > 0 && !analysing && <p className="small"><strong>{missingIds.length} görselin analizi yok.</strong> Konu açıklaması olmadan metin yazılmaz (görmediği şeyi uydurmasın diye). <button className="primary" onClick={() => void runAnalysis(missingIds)} disabled={anyBusy || bulk?.phase === 'run'} data-testid="analysis-run-all">Eksik görselleri analiz et ({missingIds.length} çağrı)</button></p>}
+              {analysing && an && <p className="small" role="status" data-testid="analysis-progress">Görseller analiz ediliyor: {an.index}/{an.total} <button onClick={() => { anRef.current.cancel = true; }} data-testid="analysis-stop">Durdur</button></p>}
+              {an?.phase === 'done' && (
+                <div className="small" role="status" data-testid="analysis-summary">
+                  <strong>{an.ok}</strong> görsel analiz edildi{an.fails.length ? `, ${an.fails.length} başarısız` : ''}. <button onClick={() => setAn(null)} data-testid="analysis-dismiss">Kapat</button>
+                  {an.halted && <p className="warn small" data-testid="analysis-halted">{an.halted}</p>}
+                  {an.fails.length > 0 && <ul>{an.fails.slice(0, 5).map((f) => <li key={f.id}>{f.id}: {f.msg}</li>)}</ul>}
+                </div>
+              )}
+            </div>
+          )}
           {bulk?.phase === 'confirm' && (
             <div className="bulkconfirm" role="dialog" aria-label="Toplu metin üretimi onayı" data-testid="bulk-confirm">
-              <p className="small"><strong>{n} post</strong> için sırayla: fikir → <strong>ilk fikir otomatik seçilir</strong> → caption. Yaklaşık <strong>{bulk.withCheck ? n * 3 : n * 2} model çağrısı</strong>. Elle yazdığınız metinler ve sizin seçtiğiniz fikirler korunur; sonradan post başına değiştirebilirsiniz.</p>
+              <p className="small"><strong>{n} post</strong> için sırayla: fikir → <strong>ilk fikir otomatik seçilir</strong> → caption. Yaklaşık <strong>{bulk.withCheck ? n * 3 : n * 2} model çağrısı</strong>. Elle yazdığınız metinler ve sizin seçtiğiniz fikirler korunur; sonradan post başına değiştirebilirsiniz.{missingIds.length > 0 ? ` ${missingIds.length} görsel analiz edilmediği için atlanacak.` : ''}</p>
               <label className="small"><input type="checkbox" checked={bulk.withCheck} onChange={(e) => setBulk({ ...bulk, withCheck: e.target.checked })} data-testid="bulk-check-option" /> Bağımsız kontrolü de çalıştır (post başına +1 çağrı)</label>
               <div className="actions">
                 <button className="primary" onClick={() => void startBulk()} data-testid="bulk-start">Başlat</button>
@@ -590,12 +633,15 @@ function PostPlannerInner({
             {selPost && selCand && selCrop && (
               <div data-testid="post-crop-panel">
                 <h2 className="pp-sidehead">{selPost.id} <span className="small muted">· {selPost.assetId}</span></h2>
+                {analysis && needsAnalysis(selCand) && (
+                  <p className="small pp-needan" data-testid="post-needs-analysis">Bu görsel henüz analiz edilmedi; metin yazılamaz. <button className="primary" onClick={() => void runAnalysis([selPost.assetId])} disabled={analysing || anyBusy} data-testid="analysis-run-one">{analysing ? 'Analiz ediliyor…' : 'Bu görseli analiz et'}</button></p>
+                )}
                 <div className="pp-textblock">
                   <label className="field"><strong>Metin (caption)</strong>
                     <textarea value={draftText} onChange={(e) => setDraftText(e.target.value)} rows={6} data-testid="post-edit-text" placeholder="Elle yazın ya da aşağıdaki düğmeyle ürettirin" />
                   </label>
                   <div className="actions">
-                    <button className="primary" onClick={() => void generateOne(selPost)} disabled={!ready || !ports.creative.available || oneBusy || bulk?.phase === 'run' || !!running[selPost.id]} data-testid="post-gen-this">{oneBusy || running[selPost.id] ? 'Yazılıyor…' : selPost.text ? 'Yeniden yaz' : 'Bu post için metin yaz'}</button>
+                    <button className="primary" onClick={() => void generateOne(selPost)} disabled={!ready || !ports.creative.available || oneBusy || analysing || bulk?.phase === 'run' || !!running[selPost.id] || (!!analysis && needsAnalysis(selCand))} data-testid="post-gen-this">{oneBusy || running[selPost.id] ? 'Yazılıyor…' : selPost.text ? 'Yeniden yaz' : 'Bu post için metin yaz'}</button>
                     <button onClick={() => saveManual(selPost, draftText)} data-testid="post-save-text" disabled={draftText === (selPost.text?.text ?? '')}>Elle yazdığımı kaydet</button>
                     {(oneBusy || running[selPost.id]) && <button onClick={() => { oneCancelRef.current = true; cancelRole(selPost.id); }} data-testid="post-gen-cancel">İptal</button>}
                   </div>

@@ -153,3 +153,70 @@ describe('toplu metin üretimi', () => {
     expect(screen.getByTestId('text-history').textContent).toMatch(/Benim elle yazdığım metin/);
   });
 });
+
+// ── Görsel analizi: analiz yoksa metin yazılmaz; açık eylemle analiz edilir, envanter yenilenir, sonra metin yazılır ──
+describe('görsel analizi', () => {
+  const analyzed = () => candidates().map((c) => ({ ...c, visual: { decision: null, provenance: { sourceSha256: 's', analysisKey: 'k' } } as any }));
+  const bare = () => candidates().map((c) => ({ ...c, note: '' }));
+  const withAnalysis = (port: Port, cands: any[], analysis: any) => (
+    <PostPlanner candidates={cands} projectId="dieci" tenantId="t1" userId="u1" initialCount={4} measureCrop={measure} ports={portsWith(port)} voice={{ approved: true }} analysis={analysis} />
+  );
+
+  it('analizi olmayan görseller için uyarı + toplu analiz düğmesi; analiz bitmeden metin düğmeleri kapalı, toplu üretim atlar (model çağrısı yok)', async () => {
+    const port = mkPort();
+    const analysis = { run: vi.fn(async () => ({ ok: true as const })), refresh: vi.fn(async () => {}) };
+    render(withAnalysis(port, bare(), analysis));
+    await waitFor(() => expect(btn('post-plan-btn').disabled).toBe(false));
+    click('post-plan-btn');
+    expect(screen.getByTestId('analysis-bar').textContent).toMatch(/4 görselin analizi yok/);
+    fireEvent.click(screen.getByLabelText('p1 incele'));
+    expect(screen.getByTestId('post-needs-analysis')).toBeTruthy();
+    expect(btn('post-gen-this').disabled).toBe(true);
+    await waitFor(() => expect(btn('bulk-open').disabled).toBe(false));
+    click('bulk-open');
+    expect(screen.getByTestId('bulk-confirm').textContent).toMatch(/4 görsel analiz edilmediği için atlanacak/);
+    click('bulk-start');
+    await finished();
+    expect(port.run).not.toHaveBeenCalled();
+    expect(screen.getAllByTestId(/^bulk-row-/).every((r) => /analiz edilmedi/.test(r.textContent!))).toBe(true);
+  });
+
+  it('"Eksik görselleri analiz et": görsel başına 1 çağrı, sırayla; sonunda envanter yenilenir; analiz gelince metin üretimi açılır', async () => {
+    const port = mkPort();
+    let rerenderFn: (ui: React.ReactElement) => void = () => {};
+    const analysis: any = { run: vi.fn(async () => ({ ok: true as const })), refresh: vi.fn(async () => { rerenderFn(withAnalysis(port, analyzed(), analysis)); }) };
+    const r = render(withAnalysis(port, bare(), analysis));
+    rerenderFn = r.rerender;
+    await waitFor(() => expect(btn('post-plan-btn').disabled).toBe(false));
+    click('post-plan-btn');
+    click('analysis-run-all');
+    await waitFor(() => expect(screen.getByTestId('analysis-summary').textContent).toMatch(/4 görsel analiz edildi/));
+    expect(analysis.run).toHaveBeenCalledTimes(4);
+    expect(new Set(analysis.run.mock.calls.map((c: any[]) => c[0])).size).toBe(4);
+    expect(analysis.refresh).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId('post-needs-analysis')).toBeNull();
+    await waitFor(() => expect(btn('bulk-open').disabled).toBe(false));
+    click('bulk-open');
+    click('bulk-start');
+    await finished();
+    expect(port.count('caption')).toBe(4);
+  });
+
+  it('analiz kapalıysa (feature_disabled) ilk hatada DURUR ve sunucunun nedeni görünür; kalan görseller için çağrı yok', async () => {
+    const port = mkPort();
+    const analysis = { run: vi.fn(async () => ({ ok: false as const, message: 'Medya AI analizi kapalı (MEDIA_AI_ANALYSIS_ENABLED).', fatal: true })), refresh: vi.fn(async () => {}) };
+    render(withAnalysis(port, bare(), analysis));
+    await waitFor(() => expect(btn('post-plan-btn').disabled).toBe(false));
+    click('post-plan-btn');
+    click('analysis-run-all');
+    await waitFor(() => expect(screen.getByTestId('analysis-halted').textContent).toMatch(/MEDIA_AI_ANALYSIS_ENABLED/));
+    expect(analysis.run).toHaveBeenCalledTimes(1);
+    expect(analysis.refresh).not.toHaveBeenCalled();
+  });
+
+  it('analiz prop\'u yoksa (başka ekranlar) analiz uyarısı çıkmaz ve davranış eskisi gibidir', async () => {
+    const port = mkPort();
+    await setup(port);
+    expect(screen.queryByTestId('analysis-bar')).toBeNull();
+  });
+});

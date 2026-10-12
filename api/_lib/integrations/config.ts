@@ -8,6 +8,9 @@ export type FeatureState = { enabled: true } | { enabled: false; reason: string;
 
 const has = (name: string) => typeof process.env[name] === 'string' && process.env[name]!.trim().length > 0;
 
+/** Sunucunun depolama kovası: açık değişken yoksa istemciyle paylaşılan VITE_ değeri (getMediaSourcePolicy ile aynı kural). */
+export const storageBucketName = (): string => (process.env.FIREBASE_STORAGE_BUCKET || process.env.VITE_FIREBASE_STORAGE_BUCKET || '').trim();
+
 export const CANVA_REQUIRED_ENV = ['CANVA_CLIENT_ID', 'CANVA_CLIENT_SECRET', 'CANVA_REDIRECT_URI', 'INTEGRATION_TOKEN_KEY', 'FIREBASE_STORAGE_BUCKET'] as const;
 /** Medya analizi OpenRouter üzerinden çalışır (plan metin üretimiyle aynı sağlayıcı); ANTHROPIC_API_KEY ne gerekir ne yeterlidir, sessiz yedek yoktur */
 export const MEDIA_AI_REQUIRED_ENV = ['OPENROUTER_API_KEY', 'FIREBASE_STORAGE_BUCKET'] as const;
@@ -21,7 +24,7 @@ export function canvaSyncState(): FeatureState {
 
 export function mediaAnalysisState(): FeatureState {
   if (process.env.MEDIA_AI_ANALYSIS_ENABLED !== 'true') return { enabled: false, reason: 'Medya AI analizi kapalı (MEDIA_AI_ANALYSIS_ENABLED).' };
-  const missing = MEDIA_AI_REQUIRED_ENV.filter((n) => !has(n));
+  const missing = MEDIA_AI_REQUIRED_ENV.filter((n) => (n === 'FIREBASE_STORAGE_BUCKET' ? !storageBucketName() : !has(n)));
   if (missing.length) return { enabled: false, reason: 'AI yapılandırması eksik.', missing: [...missing] };
   const raw = process.env.MEDIA_AI_MODEL?.trim();
   if (raw && !MEDIA_AI_ALLOWED_MODELS.includes(raw)) return { enabled: false, reason: `MEDIA_AI_MODEL geçersiz (izinli: ${MEDIA_AI_ALLOWED_MODELS.join(', ')}).` };

@@ -6,6 +6,7 @@ import PostPlanner from '../feedPlanner/post/PostPlanner';
 import { useAuth } from '@/contexts/AuthContext';
 import '../feedPlanner/review/scoped.css';
 import { candidateFromInventory } from '../feedPlanner/integration/fromInventory';
+import { runMediaAnalysis } from '../mediaIntegrationsApi';
 import { createBlobResolver, createCopyPort, createCreativePort, createPersistencePort, fetchInventory } from '../feedPlanner/live/livePorts';
 import type { PlannerPorts } from '../feedPlanner/ports';
 import BrandVoiceCard from '../components/BrandVoiceCard';
@@ -50,14 +51,17 @@ const StudioPlannerPage: React.FC = () => {
   const blobs = useMemo(() => createBlobResolver(), [scopeKey]);
   useEffect(() => () => blobs.dispose(), [blobs]);
 
-  useEffect(() => {
-    if (!project) return;
+  /** Kütüphaneyi yükler. `silent`: mevcut ekran/plan KORUNUR (analizden sonra yenileme); aksi halde yükleme ekranı. */
+  const loadInventory = useCallback((silent: boolean): { cancel: () => void; done: Promise<void> } => {
     let alive = true;
+    if (!project) return { cancel: () => {}, done: Promise.resolve() };
     const at = scopeKey;
-    setLoaded(null);
-    setError(null);
-    setProgress({ loaded: 0, pages: 0 });
-    fetchInventory(project.id, (loaded, pages) => alive && setProgress({ loaded, pages }))
+    if (!silent) {
+      setLoaded(null);
+      setError(null);
+      setProgress({ loaded: 0, pages: 0 });
+    }
+    const done = fetchInventory(project.id, (loaded, pages) => alive && !silent && setProgress({ loaded, pages }))
       .then((inv) => {
         if (!alive || scopeRef.current !== at) return;
         const notes: string[] = [];
@@ -79,10 +83,29 @@ const StudioPlannerPage: React.FC = () => {
           inventoryNotes: notes,
         } });
       })
-      .catch((e) => alive && scopeRef.current === at && setError(e?.message ?? 'Katalog yüklenemedi'))
-      .finally(() => alive && scopeRef.current === at && setProgress(null));
-    return () => { alive = false; };
+      .catch((e) => { if (alive && scopeRef.current === at && !silent) setError(e?.message ?? 'Katalog yüklenemedi'); })
+      .finally(() => { if (alive && scopeRef.current === at && !silent) setProgress(null); });
+    return { cancel: () => { alive = false; }, done };
   }, [project?.id, project?.name, week, scopeKey]);
+  useEffect(() => {
+    const l = loadInventory(false);
+    return () => l.cancel();
+  }, [loadInventory]);
+
+  /** Tek görselin AI analizi (kullanıcının açık eylemi; görsel başına 1 model çağrısı). Kapalıysa sunucunun dürüst nedeni gösterilir. */
+  const analysis = useMemo(() => (project ? {
+    run: async (assetId: string): Promise<{ ok: true } | { ok: false; message: string; fatal?: boolean }> => {
+      try {
+        const r = await runMediaAnalysis(project.id, assetId);
+        const rec = r?.analysis;
+        if (rec && rec.status === 'done') return { ok: true as const };
+        return { ok: false as const, message: rec?.error?.message ? `Analiz tamamlanamadı: ${rec.error.message}` : 'Analiz tamamlanamadı.' };
+      } catch (e: any) {
+        return { ok: false as const, message: e?.message ?? 'Analiz başarısız.', fatal: e?.code === 'feature_disabled' || e?.code === 'model_config_invalid' };
+      }
+    },
+    refresh: () => loadInventory(true).done,
+  } : undefined), [project?.id, loadInventory]);
 
   const ports = useMemo<PlannerPorts | null>(
     () => (project ? { mode: 'studio', imageSrc: blobs.resolve, copy: createCopyPort(), creative: createCreativePort(), persistence: createPersistencePort(project.id) } : null),
@@ -123,6 +146,7 @@ const StudioPlannerPage: React.FC = () => {
               weekStart={week}
               voice={{ approved: voice.loading ? null : voice.approved, guideVersion: voice.guideVersion, bundle: voice.bundle }}
               onStartGuide={() => setGuideOpen(true)}
+              analysis={analysis}
             />
           </div>
           <div role="tabpanel" id="panel-story" aria-labelledby="tab-story" hidden={tab !== 'story'}>

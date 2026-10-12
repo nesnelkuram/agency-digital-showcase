@@ -1,7 +1,7 @@
 import type { VercelResponse } from '@vercel/node';
 import { withAuth, AuthenticatedRequest } from '../_lib/withAuth.js';
 import { getAdminDb, getAdminStorage } from '../_lib/firebaseAdmin.js';
-import { mediaAnalysisState } from '../_lib/integrations/config.js';
+import { mediaAnalysisState, storageBucketName } from '../_lib/integrations/config.js';
 import { enqueueAnalysis, processAnalysisJob, queueJobId, readQueueView } from '../_lib/mediaAnalysis/autoQueue.js';
 import { loadEffectiveCatalog, loadCorrection, loadLatestCatalog, saveCorrection, toCorrectionView } from '../_lib/mediaAnalysis/correctionStore.js';
 import { resolveVerifiedProductNames } from '../_lib/mediaAnalysis/productNames.js';
@@ -113,7 +113,7 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
       readBytes: async (path: string) => {
         // Yalnız bu varlığın klasöründen okunur
         if (!path.startsWith(`brand-media/${asset.tenantId}/${asset.projectId}/${asset.id}/`)) throw new Error('Kaynak yolu varlığa ait değil');
-        const [buf] = await storage.bucket(process.env.FIREBASE_STORAGE_BUCKET).file(path).download();
+        const [buf] = await storage.bucket(storageBucketName()).file(path).download();
         return buf;
       },
       callModel: openrouterVisionCall(),
