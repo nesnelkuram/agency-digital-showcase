@@ -59,7 +59,8 @@ describe('sınıflandırma: yalnız bilinen biçimler; serbest sağlayıcı metn
   ];
   it.each(cases)('upstream 400 ailesi — %s', async (_n, status, msg, cat) => {
     const e = await failure(callWith(reply(status, evil(msg))));
-    expect(e.failure).toEqual({ code: `http_${status}`, message: CATEGORY_MESSAGES[cat as keyof typeof CATEGORY_MESSAGES], category: cat, status, requestId: 'req-abc12345', model: CATALOG_MODEL });
+    expect(e.failure).toEqual({ code: `http_${status}`, message: CATEGORY_MESSAGES[cat as keyof typeof CATEGORY_MESSAGES], category: cat, status, model: CATALOG_MODEL });
+    expect(e.failure).not.toHaveProperty('requestId'); // doğrulanamayan istek kimliği OMIT (fail-closed)
     noLeak(e.failure); noLeak(e.message);
     expect(e.status).toBe(status);
   });
@@ -85,9 +86,10 @@ describe('sınıflandırma: yalnız bilinen biçimler; serbest sağlayıcı metn
     expect(classifyProviderFailure(null, undefined)).toBe('unknown');
   });
 
-  it('bozuk / JSON olmayan gövde: ayrıştırma hatası metni sızmaz, genel güvenli açıklama + durum + requestId', async () => {
+  it('bozuk / JSON olmayan gövde: ayrıştırma hatası metni sızmaz, genel güvenli açıklama + durum (kimliksiz)', async () => {
     const e = await failure(callWith(reply(400, '__throw__')));
-    expect(e.failure).toMatchObject({ code: 'http_400', category: 'bad_request', status: 400, requestId: 'req-abc12345' });
+    expect(e.failure).toMatchObject({ code: 'http_400', category: 'bad_request', status: 400 });
+    expect(e.failure).not.toHaveProperty('requestId');
     noLeak(e.failure); noLeak(e.message); noLeak(e.stack ?? '');
     for (const body of [null, 'metin', 42, [], { error: 'düz metin ' + SECRET }, { error: { message: { nested: SECRET } } }]) {
       const f = await failure(callWith(reply(400, body)));
@@ -114,14 +116,50 @@ describe('sınıflandırma: yalnız bilinen biçimler; serbest sağlayıcı metn
 });
 
 describe('requestId / model / code: exact allowlist, biçim eşleşmesi yeterli değil', () => {
-  it('requestId: opak güvenli kimlik geçer; JWT/Bearer/anahtar/trim/uzun/kısa/bozuk atılır', () => {
-    for (const ok of ['req-abc12345', 'gen-1a2b3c4d5e', '0f8fad5b-d9cb-469f-a165-70867728950e', 'abc123.def_456:x']) expect(safeRequestId(ok)).toBe(ok);
-    const bad = [
-      ' req-abc12345', 'req-abc12345 ', 'req-abc12345\n', SECRET, 'sk-abc1234567', 'Bearer abc123456', 'bearer-abc123', 'or-v1-abcdef1234', 'key_abcdef1234',
-      'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2lnbmF0dXJl', 'aaaaaaaaaa.bbbbbbbbbb.cccccccccc', 'ghp_abcdef123456', 'AKIAABCDEFGH1234', 'x'.repeat(65), 'abc12',
-      'a'.repeat(48), 'req token=abc', 'req/abc123', '', null, undefined, 12345, {},
-    ];
-    for (const b of bad) expect(safeRequestId(b as any), String(b)).toBeNull();
+  const MARKER = 'PRIVATE_FIXTURE_DO_NOT_PERSIST';
+  const FREE_TEXT = [
+    MARKER, `req-${MARKER}`, 'req-PRIVATEFIXTUREDONOTPERSIST', 'req-PRIVATE1', 'req-Alice123', 'req-AyseYilmazMusteri', 'req-Ayse_Yilmaz_1', 'req-ayse@ornek.com', 'Ayse Yilmaz', 'hesap:acme-ltd-42',
+    'customer_secret_abc', 'req-customersecretabc', 'musteri adi', 'tenant_t1_project_p1', 'req-tokenAbcdefghij1', 'Bearer abc123456789',
+  ];
+  const ALL_SHAPES = [
+    // mock fixture ve iki kısa req- örneği: biçimleri "doğru görünse" bile kanıt yok → reddedilir
+    'req-abc12345', 'req-9fA3kL0qZx81Mn27', 'req-12345678', 'req-a1b2c3d4', 'req-0123456789abcdef0123456789abcdef01234567',
+    // üretim kimliği (generationId) requestId DEĞİLDİR; UUID/başka biçimler belgesiz
+    'gen-1a2b3c4d5e', 'gen-tts-1791408882-gsi0JmqAdk574VPMDHMH', '0f8fad5b-d9cb-469f-a165-70867728950e', 'abc123.def_456:x', 'rq-1', 'abc12345',
+    ' req-abc12345', 'req-abc12345 ', 'req-abc12345\n', 'REQ-abc12345',
+    SECRET, 'sk-abc1234567', 'Bearer abc123456', 'or-v1-abcdef1234', 'key_abcdef1234', 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2lnbmF0dXJl', 'aaaaaaaaaa.bbbbbbbbbb.cccccccccc',
+    'ghp_abcdef123456', 'AKIAABCDEFGH1234', 'ASIAABCDEFGH123456', 'AIzaSyA-abcdefghijk1234', 'AIzaSyD0123456789abcdefghijklmnopqrstu', 'req-AKIAABCDEFGH1234', 'req-ASIAABCDEFGH123456',
+    'x'.repeat(65), '', null, undefined, 12345, {}, ['req-abc12345'],
+    ...FREE_TEXT,
+  ];
+  it('requestId FAIL-CLOSED: belgeli tam biçim/kaynak kanıtı yok → safeRequestId HER girdide null (kısa req- örnekleri, gen-, UUID, serbest metin, PII, token-benzeri dahil)', () => {
+    for (const b of ALL_SHAPES) expect(safeRequestId(b as any), String(b)).toBeNull();
+  });
+
+  it('gizlilik: PRIVATE_FIXTURE_DO_NOT_PERSIST ve serbest kişi/hesap metni (req-PRIVATE1, req-Alice123 dahil) sanitizeStoredError / buildProviderFailure / tam Error JSON\'una GEÇMEZ; kimlik hiçbir yolda saklanmaz', async () => {
+    const okBody = analysisOutput({ subject: 's', description: 'd', tags: [], visibleObjects: [], foodCategories: [], composition: { shotType: 'orta_plan', orientation: 'dikey', hasTextOverlay: false, subjectPlacement: 'merkez', negativeSpace: true }, productIdentity: { status: 'belirsiz', note: 'n' }, usageSuggestions: [], peoplePresent: false, uncertainties: [], planningNotes: [], overallConfidence: 'orta' });
+    for (const t of [...FREE_TEXT, 'req-abc12345', 'req-9fA3kL0qZx81Mn27']) {
+      const stored = sanitizeStoredError({ code: 'http_400', message: t, requestId: t, category: 'schema_unsupported' });
+      expect(stored!.requestId, t).toBeUndefined();
+      expect(JSON.stringify(stored)).not.toContain(t);
+      const built = buildProviderFailure({ status: 400, body: { error: { message: 'json_schema' } }, requestId: t, model: CATALOG_MODEL });
+      expect(built.requestId, t).toBeUndefined();
+      expect(JSON.stringify(built)).not.toContain(t);
+      const e = await failure(callWith(reply(400, { error: { message: 'json_schema' } }, t)));
+      expect(e.failure?.requestId, t).toBeUndefined();
+      const dump = [JSON.stringify(e), e.message, String(e), JSON.stringify(e.failure)].join('\n');
+      expect(dump).not.toContain(t);
+      // başarı yolunda da kalıcı kayda gitmez
+      const ok = await callWith({ ok: true, status: 200, headers: { get: (k: string) => (k === 'x-request-id' ? t : null) }, json: async () => ({ id: 'gen-1', model: CATALOG_MODEL, choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(okBody) } }], usage: {} }) });
+      expect(ok.requestId, t).toBeNull();
+    }
+  });
+
+  it('gizlilik: kayıtlı eski/serbest requestId (hata ve üst düzey) yetkili GET/POST yanıtından ve kuyruk görünümünden düşer', async () => {
+    // endpoint testleri aşağıdaki describe\'da; burada saf izdüşüm
+    const stored = sanitizeStoredError({ code: 'unknown', message: MARKER, requestId: MARKER, model: MARKER });
+    expect(JSON.stringify(stored)).not.toContain(MARKER);
+    expect(stored).toEqual({ code: 'unknown', message: GENERIC_STORED_MESSAGE });
   });
 
   it('model: yalnız izinli kimlikler (spec.ts ile birebir); biçimi uyan ama listede olmayan değer atılır', () => {
@@ -141,7 +179,7 @@ describe('requestId / model / code: exact allowlist, biçim eşleşmesi yeterli 
     expect(out).toEqual({ code: 'unknown', message: GENERIC_STORED_MESSAGE });
     noLeak(out);
     const good = sanitizeStoredError({ code: 'http_400', message: 'rastgele ' + PII, category: 'schema_unsupported', status: 400, requestId: 'req-abc12345', model: CATALOG_MODEL, x: 1 });
-    expect(good).toEqual({ code: 'http_400', message: CATEGORY_MESSAGES.schema_unsupported, category: 'schema_unsupported', status: 400, requestId: 'req-abc12345', model: CATALOG_MODEL });
+    expect(good).toEqual({ code: 'http_400', message: CATEGORY_MESSAGES.schema_unsupported, category: 'schema_unsupported', status: 400, model: CATALOG_MODEL }); // requestId kimliksiz (fail-closed)
     expect(sanitizeStoredError(null)).toBeNull();
     expect(sanitizeStoredError('metin')).toBeNull();
   });
@@ -158,7 +196,7 @@ describe('requestId / model / code: exact allowlist, biçim eşleşmesi yeterli 
 
   it('describeAnalysisFailure: HTTP, model ve istek kimliğini allowlist\'li alanlardan gösterir; bozuk girdi güvenli', () => {
     const f = buildProviderFailure({ status: 400, body: { error: { message: 'response_format json_schema' } }, requestId: 'req-abc12345', model: CATALOG_MODEL });
-    expect(describeAnalysisFailure(f)).toBe(`Görsel analizi başarısız: ${CATEGORY_MESSAGES.schema_unsupported} (HTTP 400 · model ${CATALOG_MODEL} · istek kimliği req-abc12345).`);
+    expect(describeAnalysisFailure(f)).toBe(`Görsel analizi başarısız: ${CATEGORY_MESSAGES.schema_unsupported} (HTTP 400 · model ${CATALOG_MODEL}).`);
     expect(describeAnalysisFailure({ code: 'x y', message: SECRET, model: 'a/b', requestId: SECRET })).not.toContain(SECRET);
     expect(describeAnalysisFailure(undefined)).toMatch(/ayrıntı kaydedilmemiş/);
     expect(FAILURE_CATEGORIES.every((c) => !!CATEGORY_MESSAGES[c])).toBe(true);
@@ -182,13 +220,23 @@ describe('runner: kalıcı kayıt YALNIZ güvenli alanlar; yeniden deneme davran
     return analyzeBrandMedia(asset(), { store, readBytes: async () => Buffer.from('x'), callModel, now: () => 1 });
   };
 
-  it('upstream 400: kayıt kodu http_400 (geriye uyumlu) + kategori/durum/requestId/model; yeniden denenmez; sızıntı yok', async () => {
+  it('upstream 400: kayıt kodu http_400 (geriye uyumlu) + kategori/durum/model (kimliksiz); yeniden denenmez; sızıntı yok', async () => {
     fetchMock.mockReset();
     fetchMock.mockResolvedValue(reply(400, evil('Provider does not support response_format json_schema')));
     const rec = await run(openrouterVisionCall({ apiKey: 'or-test', fetchImpl: fetchMock as any }));
-    expect(rec).toMatchObject({ status: 'failed', retryable: false, error: { code: 'http_400', category: 'schema_unsupported', status: 400, requestId: 'req-abc12345', model: CATALOG_MODEL } });
+    expect(rec).toMatchObject({ status: 'failed', retryable: false, error: { code: 'http_400', category: 'schema_unsupported', status: 400, model: CATALOG_MODEL } });
+    expect(rec.error).not.toHaveProperty('requestId');
     noLeak(rec.error); noLeak(rec);
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('adaptör doğrulamasa bile kalıcı kayıt istek kimliği SAKLAMAZ (serbest metin / gen- / UUID / req- hepsi null)', async () => {
+    const okOut = analysisOutput({ subject: 's', description: 'd', tags: [], visibleObjects: [], foodCategories: [], composition: { shotType: 'orta_plan', orientation: 'dikey', hasTextOverlay: false, subjectPlacement: 'merkez', negativeSpace: true }, productIdentity: { status: 'belirsiz', note: 'n' }, usageSuggestions: [], peoplePresent: false, uncertainties: [], planningNotes: [], overallConfidence: 'orta' });
+    for (const [rid, expected] of [['PRIVATE_FIXTURE_DO_NOT_PERSIST', null], ['gen-abc123xyz', null], ['0f8fad5b-d9cb-469f-a165-70867728950e', null], ['req-9fA3kL0qZx81Mn27', null], ['req-PRIVATE1', null], ['req-Alice123', null]] as const) {
+      const rec = await run(async () => ({ id: 'g', stopReason: 'end_turn', parsed: okOut, provider: 'openrouter' as const, modelUsed: CATALOG_MODEL, requestId: rid }));
+      expect(rec.requestId, rid).toBe(expected);
+      expect(JSON.stringify(rec)).not.toContain('PRIVATE_FIXTURE');
+    }
   });
 
   it('429/5xx geçici (retryable) kalır; 401/402/400 kalıcı', async () => {
@@ -256,14 +304,16 @@ describe('yetkili yanıt ve kuyruk görünümü: eski kayıtlardan serbest hata 
   });
   afterEach(() => { for (const k of ENV) { if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k]; } });
 
-  it('POST: sağlayıcı 400 → endpoint HTTP 200 + başarısız kayıt; istemci mesajı görsel analizi hatası olarak ayrışır, model/HTTP/istek kimliği görünür', async () => {
+  it('POST: sağlayıcı 400 → endpoint HTTP 200 + başarısız kayıt; istemci mesajı görsel analizi hatası olarak ayrışır, model/HTTP görünür (istek kimliği yok)', async () => {
     fetchMock.mockResolvedValue(reply(400, evil('Provider does not support response_format json_schema')));
     const r = await call('POST');
     expect(r.statusCode).toBe(200);
-    expect(r.body.analysis).toMatchObject({ status: 'failed', error: { code: 'http_400', category: 'schema_unsupported', status: 400, requestId: 'req-abc12345', model: CATALOG_MODEL } });
+    expect(r.body.analysis).toMatchObject({ status: 'failed', error: { code: 'http_400', category: 'schema_unsupported', status: 400, model: CATALOG_MODEL } });
+    expect(r.body.analysis.error).not.toHaveProperty('requestId');
     noLeak(r.body);
     const msg = describeAnalysisFailure(r.body.analysis.error);
-    expect(msg).toMatch(/^Görsel analizi başarısız: Olası neden:.*HTTP 400.*istek kimliği req-abc12345/);
+    expect(msg).toMatch(/^Görsel analizi başarısız: Olası neden:.*HTTP 400.*model /);
+    expect(msg).not.toMatch(/istek kimliği/);
     // kalıcı kayıt da güvenli
     noLeak([...h.db.data.entries()].filter(([k]) => k.startsWith('media_ai_')));
   });
@@ -288,6 +338,17 @@ describe('yetkili yanıt ve kuyruk görünümü: eski kayıtlardan serbest hata 
     const r = await call('GET');
     expect(r.body.analysis).toMatchObject({ key, status: 'failed', attempts: 2, error: { code: 'http_400', message: GENERIC_STORED_MESSAGE } });
     noLeak(r.body);
+  });
+
+  it('GET: eski kayıttaki üst düzey requestId serbest metinse yanıttan düşer (hiçbir biçim korunmaz)', async () => {
+    for (const [rid, expected] of [['PRIVATE_FIXTURE_DO_NOT_PERSIST', null], ['rq-1', null], ['req-9fA3kL0qZx81Mn27', null], ['req-PRIVATE1', null]] as const) {
+      const key = 'k-' + String(rid).slice(0, 6);
+      h.db.data.set(`media_ai_analyses/${key}`, { key, tenantId: T, projectId: P, sourceId: 'a1', status: 'done', requestId: rid, result: null });
+      h.db.data.set(`media_ai_analysis_latest/${T}_${P}_a1`, { tenantId: T, projectId: P, sourceId: 'a1', key });
+      const r = await call('GET');
+      expect(r.body.analysis.requestId, rid).toBe(expected);
+      expect(JSON.stringify(r.body)).not.toContain('PRIVATE_FIXTURE');
+    }
   });
 
   it('kuyruk görünümü lastError aynı allowlist\'ten geçer (eski serbest metin / sahte kod / ek alan düşer)', async () => {
@@ -315,7 +376,7 @@ describe('yetkili yanıt ve kuyruk görünümü: eski kayıtlardan serbest hata 
     await call('POST');
     const docs = [...h.db.data.entries()].filter(([k]) => k.startsWith('media_ai_analyses/'));
     expect(docs).toHaveLength(1);
-    expect(docs[0][1].error).toEqual({ code: 'http_400', message: CATEGORY_MESSAGES.parameter_unsupported, category: 'parameter_unsupported', status: 400, requestId: 'req-abc12345', model: CATALOG_MODEL });
+    expect(docs[0][1].error).toEqual({ code: 'http_400', message: CATEGORY_MESSAGES.parameter_unsupported, category: 'parameter_unsupported', status: 400, model: CATALOG_MODEL });
     void firestoreAnalysisStore; void analysisOutput;
   });
 });
@@ -327,7 +388,8 @@ describe('istemci mesajı: sunucu isteği hatası ≠ görsel analizi (sağlayı
     const f = buildProviderFailure({ status: 400, body: { error: { message: 'response_format json_schema' } }, requestId: 'req-abc12345', model: CATALOG_MODEL });
     const o = await analysisOutcome(async () => ({ enabled: true, analysis: { status: 'failed', error: f } }));
     expect(o).toEqual({ ok: false, message: describeAnalysisFailure(f) });
-    expect((o as any).message).toMatch(/^Görsel analizi başarısız: .*HTTP 400.*req-abc12345/);
+    expect((o as any).message).toMatch(/^Görsel analizi başarısız: .*HTTP 400.*model /);
+    expect((o as any).message).not.toMatch(/istek kimliği/);
     expect((o as any).message).not.toMatch(/Analiz isteği sunucuda/);
   });
 
@@ -345,5 +407,65 @@ describe('istemci mesajı: sunucu isteği hatası ≠ görsel analizi (sağlayı
     expect(await analysisOutcome(async () => ({}))).toMatchObject({ ok: false, message: expect.stringContaining('kayıt döndürülmedi') });
     const o = await analysisOutcome(async () => ({ analysis: { status: 'failed', error: { code: 'customer_secret_abc', message: SECRET, model: 'account/private-key', requestId: SECRET } } }));
     noLeak((o as any).message);
+  });
+});
+
+describe('TAM Error nesnesi: enumerable alanlar (status, code, failure) dahil hiçbir çıktıda ham sağlayıcı kodu/metni yok', () => {
+  const HUGE = 'Z'.repeat(200_000);
+  const hostileCodes: unknown[] = [
+    `sekret_${SECRET}`, SECRET, PII, URLQ, HUGE, { nested: { token: SECRET, pii: PII }, deep: [HUGE] }, [SECRET], 'ASIAABCDEFGH123456', 'AIzaSyD0123456789abcdefghijklmnopqrstu',
+    1e308, -5, 99999, 4.5, true, null, '400', 'http_400; DROP', 'customer_secret_abc',
+  ];
+  const dumpAll = (e: any) => {
+    // JSON.stringify(error) yalnız enumerable alanları yazar; ek olarak message/stack/name/failure ve tüm own property değerleri taranır
+    const own = Object.getOwnPropertyNames(e).map((k) => { try { return String(typeof e[k] === 'object' ? JSON.stringify(e[k]) : e[k]); } catch { return ''; } });
+    return [JSON.stringify(e), e.message, String(e), ...own].join('\n');
+  };
+  const hostileTexts = [SECRET, PII, URLQ, 'GIZLI123', 'ZZZZZZZZZZ', 'ASIAABCDEFGH123456', 'AIzaSyD0123456789abcdefghijklmnopqrstu', 'customer_secret_abc', 'DROP', 'nested', 'ham-metadata'];
+  const check = (e: any) => {
+    const t = dumpAll(e);
+    for (const l of hostileTexts) expect(t, `sızıntı: ${l.slice(0, 20)}`).not.toContain(l);
+    expect(t.length).toBeLessThan(2500);
+    // alan şekilleri sınırlı/exact
+    expect(e.status === null || (Number.isInteger(e.status) && e.status >= 100 && e.status <= 599)).toBe(true);
+    expect(e.code === null || safeErrorCode(e.code) !== null).toBe(true);
+    expect(Object.keys(e).sort()).toEqual(['code', 'failure', 'status']);
+  };
+
+  it.each(hostileCodes.map((c, i) => [i, c] as const))('HTTP hata dalı: error.code = hostile #%s', async (_i, code) => {
+    const e = await failure(callWith(reply(400, { error: { code, message: `${PII} json_schema`, metadata: { raw: SECRET } } })));
+    check(e);
+    expect(e.code).toBe('http_400');
+    expect(e.failure?.code).toBe('http_400');
+  });
+
+  it.each(hostileCodes.map((c, i) => [i, c] as const))('gövde-içi (HTTP 200) hata dalı: error.code = hostile #%s', async (_i, code) => {
+    const e = await failure(callWith(reply(200, { error: { code, message: `${PII} schema`, metadata: { raw: SECRET } } })));
+    check(e);
+    // yalnız doğrulanmış 100..599 sayısal/üç haneli kod durum olur; diğer her şey provider_error
+    const ok = typeof code === 'number' ? Number.isInteger(code) && code >= 100 && code <= 599 : typeof code === 'string' && /^\d{3}$/.test(code) && Number(code) >= 100 && Number(code) <= 599;
+    expect(e.code).toBe(ok ? `http_${Number(code)}` : 'provider_error');
+  });
+
+  it('hata HTTP durumları (ham status alanı da bounded): 429/502/600/0', async () => {
+    for (const s of [429, 502, 600, 0]) {
+      const e = await failure(callWith(reply(s, { error: { code: SECRET, message: PII } })));
+      expect(dumpAll(e)).not.toContain(SECRET);
+      expect(dumpAll(e)).not.toContain(PII);
+      expect(e.status === null || (e.status >= 100 && e.status <= 599)).toBe(true);
+    }
+  });
+
+  it('Copy adaptörü davranışı DEĞİŞMEDİ: ham sağlayıcı kodu orada eskisi gibi code alanına gider (bu görevin kapsamı dışı)', async () => {
+    const { openrouterCopyCall } = await import('@/api/_lib/planCopy/openrouterCopyCall');
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValue(reply(400, { error: { code: 'invalid_request_error', message: 'x' } }));
+    const call = openrouterCopyCall({ apiKey: 'or-test', fetchImpl: fetchMock as any });
+    let err: any;
+    try { await call({ system: 's', user: 'u', model: CATALOG_MODEL } as any); } catch (e) { err = e; }
+    expect(err).toBeInstanceOf(OpenRouterError);
+    expect(err.status).toBe(400);
+    expect(err.code).toBe('invalid_request_error');
+    expect(err.failure).toBeUndefined();
   });
 });

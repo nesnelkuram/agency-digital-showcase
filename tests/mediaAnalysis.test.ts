@@ -58,7 +58,7 @@ const asset = (over: Partial<BrandMediaLike['storage']> = {}, kind: 'photo' | 'v
 });
 
 const usageDetail = { inputTokens: 5000, outputTokens: 600, totalTokens: 5600, cachedTokens: 0, reasoningTokens: 120, costUsd: 0.0031 };
-const okCall = () => vi.fn<ModelCall>(async () => ({ id: 'gen-1', stopReason: 'end_turn', usageDetail, parsed: analysisOutput(catalog), provider: 'openrouter', modelUsed: 'anthropic/claude-haiku-5.5', requestId: 'rq-1' }));
+const okCall = () => vi.fn<ModelCall>(async () => ({ id: 'gen-1', stopReason: 'end_turn', usageDetail, parsed: analysisOutput(catalog), provider: 'openrouter', modelUsed: 'anthropic/claude-haiku-5.5', requestId: 'req-1aB2cD34' }));
 
 describe('kaynak seçimi (orijinal / önizleme açıkça)', () => {
   it('API sınırına uyan orijinal → original; büyük orijinal → studio_preview; boyut bilinmiyorsa önizleme', () => {
@@ -78,7 +78,7 @@ describe('analiz çalıştırıcısı', () => {
     const r = await analyzeBrandMedia(asset(), { store, readBytes: async () => Buffer.from('jpegbytes'), callModel: call, now: () => 1000 });
     expect(call).toHaveBeenCalledTimes(1);
     expect(call.mock.calls[0][0]).toMatchObject({ model: 'anthropic/claude-haiku-5.5', mediaType: 'image/jpeg' });
-    expect(r).toMatchObject({ status: 'done', model: 'anthropic/claude-haiku-5.5', modelUsed: 'anthropic/claude-haiku-5.5', provider: 'openrouter', requestId: 'rq-1', promptVersion: 'media-catalog-v3', schemaVersion: '3', catalogSchemaVersion: '2', visualSchemaVersion: 'visual-decision-3', visualPromptVersion: 'visual-decision-prompt-3', sourceQuality: 'original', responseId: 'gen-1', visualStatus: 'ok' });
+    expect(r).toMatchObject({ status: 'done', model: 'anthropic/claude-haiku-5.5', modelUsed: 'anthropic/claude-haiku-5.5', provider: 'openrouter', requestId: null, promptVersion: 'media-catalog-v3', schemaVersion: '3', catalogSchemaVersion: '2', visualSchemaVersion: 'visual-decision-3', visualPromptVersion: 'visual-decision-prompt-3', sourceQuality: 'original', responseId: 'gen-1', visualStatus: 'ok' });
     expect(r.sourceSha256).toMatch(/^[a-f0-9]{64}$/);
     // Maliyet SAĞLAYICININ bildirdiği değerdir; yerel tahmin yoktur
     expect(r.costUsd).toBe(0.0031);

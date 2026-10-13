@@ -71,9 +71,9 @@ describe('OpenRouter görsel girişi + yapılandırılmış yanıt (sahte fetch;
   });
 
   it('yanıt: ham JSON iki alanıyla döner; yanıt kimliği, çalışan model, istek kimliği, usage ve SAĞLAYICI maliyeti korunur', async () => {
-    const f = fakeFetch({ body: okBody(analysisOutput(catalog)), headers: { 'x-request-id': 'rq-9' } });
+    const f = fakeFetch({ body: okBody(analysisOutput(catalog)), headers: { 'x-request-id': 'req-9aB3xK72' } });
     const r = await run(f);
-    expect(r).toMatchObject({ id: 'gen-vis-1', stopReason: 'end_turn', provider: 'openrouter', modelUsed: 'anthropic/claude-haiku-5.5-20261007', requestId: 'rq-9' });
+    expect(r).toMatchObject({ id: 'gen-vis-1', stopReason: 'end_turn', provider: 'openrouter', modelUsed: 'anthropic/claude-haiku-5.5-20261007', requestId: null }); // x-request-id doğrulanamaz → OMIT (fail-closed)
     expect((r.parsed as any).catalog.subject).toBe('s');
     expect(Object.keys(r.parsed as any).sort()).toEqual(['catalog', 'visual']);
     expect(r.usageDetail).toEqual({ inputTokens: 2100, outputTokens: 900, totalTokens: 3000, cachedTokens: 0, reasoningTokens: 300, costUsd: 0.0027 });

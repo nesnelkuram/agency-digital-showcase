@@ -10,10 +10,16 @@ import { checkLibraryAccess } from '../_lib/integrations/libraryAccess.js';
 import { analyzeBrandMedia, firestoreAnalysisStore, type BrandMediaLike } from '../_lib/mediaAnalysis/runner.js';
 import { openrouterVisionCall } from '../_lib/mediaAnalysis/openrouterVisionCall.js';
 import { resolveMediaModel } from '../_lib/mediaAnalysis/spec.js';
-import { sanitizeStoredError } from '../../shared/mediaAnalysisError.js';
+import { safeRequestId, sanitizeStoredError } from '../../shared/mediaAnalysisError.js';
 
 /** Yanıta giden kayıtta hata YALNIZ allowlist'li alanlarla (eski kayıtlardaki serbest metin dahil) çıkar */
-const withSafeError = <T extends { error?: unknown } | null>(rec: T): T => (rec && rec.error ? { ...rec, error: sanitizeStoredError(rec.error) } : rec);
+const withSafeError = <T extends { error?: unknown; requestId?: unknown } | null>(rec: T): T => {
+  if (!rec) return rec;
+  const out: any = { ...rec };
+  if (rec.error) out.error = sanitizeStoredError(rec.error);
+  if ('requestId' in rec) out.requestId = safeRequestId(rec.requestId); // eski kayıttaki belgesiz/serbest kimlik yanıta çıkmaz
+  return out;
+};
 
 /**
  * Tek Studio görseli için AI analizi (OpenRouter: konu kataloğu + kompozisyon kararı; varsayılan Haiku 5.5). Varsayılan KAPALI.

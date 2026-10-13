@@ -33,6 +33,7 @@ import {
   NO_API_KEY_MESSAGE,
   REFUSAL_MESSAGE,
   SCHEMA_INVALID_MESSAGE,
+  safeRequestId,
   safeStatus,
   sanitizeStoredError,
   type SafeAnalysisError,
@@ -235,7 +236,7 @@ export async function analyzeBrandMedia(asset: BrandMediaLike, deps: AnalysisDep
       costUsd: res.usageDetail?.costUsd ?? null,
       provider: res.provider ?? null,
       modelUsed: res.modelUsed ?? null,
-      requestId: res.requestId ?? null,
+      requestId: safeRequestId(res.requestId), // kalıcı kayıt doğrulanmamış kimlik saklamaz (safeRequestId şimdilik daima null; fail-closed)
       stopReason: res.stopReason,
       responseId: res.id,
       durationMs: now() - started,

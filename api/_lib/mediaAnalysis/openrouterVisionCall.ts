@@ -20,7 +20,7 @@ import { OPENROUTER_URL, OpenRouterError, normalizeUsage } from '../planCopy/ope
 import { ANALYSIS_USER_PROMPT, AnalysisOutputSchema, VISUAL_SYSTEM_PROMPT } from './visualSpec.js';
 import { CATALOG_SYSTEM_PROMPT } from './spec.js';
 import type { ModelCall } from './runner.js';
-import { buildProviderFailure } from '../../../shared/mediaAnalysisError.js';
+import { buildProviderFailure, safeRequestId, safeStatus } from '../../../shared/mediaAnalysisError.js';
 
 export const ANALYSIS_SCHEMA_NAME = 'media_analysis_output';
 export const ANALYSIS_SYSTEM_PROMPT = `${CATALOG_SYSTEM_PROMPT}\n${VISUAL_SYSTEM_PROMPT}`;
@@ -98,13 +98,15 @@ export function openrouterVisionCall(deps: OpenRouterVisionDeps = {}): ModelCall
       }
       // Gövde/serbest sağlayıcı metni (olası hassas içerik) mesaja KOPYALANMAZ ve saklanmaz: yalnız allowlist'li kategori, durum,
       // istek kimliği ve istenen model (shared/mediaAnalysisError). Bilinmeyen/ayrıştırılamayan gövde → genel güvenli açıklama.
+      // OpenRouterError'un TÜM sayılabilir alanları (status, code, failure) bounded/exact güvenli değerlerdir: sağlayıcının ham `error.code`
+      // değeri (özel/uzun/nested/sır olabilir) hiçbir alana taşınmaz; JSON.stringify(error) de sızdıramaz. Metin sabittir.
       if (!res.ok) {
         const f = buildProviderFailure({ status: res.status, body: data, requestId, model });
-        throw new OpenRouterError(`OpenRouter isteği başarısız (${res.status})`, res.status, data?.error?.code != null ? String(data.error.code) : null, f);
+        throw new OpenRouterError(`OpenRouter isteği başarısız (${safeStatus(res.status) ?? 'bilinmiyor'})`, safeStatus(res.status), f.code, f);
       }
       if (data?.error) {
         const f = buildProviderFailure({ status: null, body: data, requestId, model, inBody: true });
-        throw new OpenRouterError('OpenRouter hata döndürdü', typeof data.error.code === 'number' ? data.error.code : null, data.error.code != null ? String(data.error.code) : null, { ...f, code: f.status ? `http_${f.status}` : 'provider_error' });
+        throw new OpenRouterError('OpenRouter hata döndürdü', f.status ?? null, f.code, f);
       }
       const choice = data?.choices?.[0];
       let parsed: unknown = null;
@@ -122,7 +124,7 @@ export function openrouterVisionCall(deps: OpenRouterVisionDeps = {}): ModelCall
         parsed,
         provider: 'openrouter',
         modelUsed: typeof data?.model === 'string' ? data.model : null,
-        requestId,
+        requestId: safeRequestId(requestId), // belgeli sözleşme yok → şimdilik daima null (fail-closed); sözleşme kanıtlanırsa safeRequestId genişler
         usageDetail: normalizeUsage(data?.usage),
       };
     } finally {

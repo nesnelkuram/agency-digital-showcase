@@ -52,7 +52,7 @@ const CATALOG = {
   uncertainties: ['sos içeriği görünmüyor'], planningNotes: [], overallConfidence: 'orta',
 };
 const orBody = (content: unknown, over: Record<string, unknown> = {}) => ({
-  ok: true, status: 200, headers: { get: () => 'rq-1' },
+  ok: true, status: 200, headers: { get: () => 'req-1aB2cD34' },
   json: async () => ({ id: 'gen-1', model: 'anthropic/claude-haiku-5.5-20261007', choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(content) } }], usage: { prompt_tokens: 1800, completion_tokens: 700, total_tokens: 2500, cost: 0.0021 }, ...over }),
 });
 const post = async (body: Record<string, unknown>) => {
@@ -114,7 +114,7 @@ describe('yükleme → kuyruk → OpenRouter → kayıt (uçtan uca, sahte ağ)'
     const latest = h.db.data.get('media_ai_analysis_latest/t1_p1_a1');
     const rec = h.db.data.get(`media_ai_analyses/${latest.key}`);
     expect(rec).toMatchObject({
-      status: 'done', provider: 'openrouter', model: 'anthropic/claude-haiku-5.5', modelUsed: 'anthropic/claude-haiku-5.5-20261007', requestId: 'rq-1',
+      status: 'done', provider: 'openrouter', model: 'anthropic/claude-haiku-5.5', modelUsed: 'anthropic/claude-haiku-5.5-20261007', requestId: null,
       promptVersion: 'media-catalog-v3', schemaVersion: '3', catalogSchemaVersion: '2', visualSchemaVersion: 'visual-decision-3', visualPromptVersion: 'visual-decision-prompt-3',
       sourceQuality: 'original', visualStatus: 'ok', costUsd: 0.0021,
     });

@@ -5,8 +5,8 @@
  * Ham metin yalnız SINIFLANDIRMA için okunur (anahtar sözcük → kategori); çıktı her zaman bu dosyadaki SABİT açıklamadır.
  * Bu yüzden regex ile "sır maskeleme" yoktur: hassas içerik çıktıya zaten geçemez. Bilinmeyen/ayrıştırılamayan hata →
  * `bad_request`/`unknown` genel açıklaması. `code` ve `model` EXACT allowlist'ten (bilinen yerel kodlar + http_100..599; izinli model kimlikleri)
- * geçer; biçim eşleşmesi yeterli sayılmaz. requestId opaktır (her sırdan ayırt edilemez): kesin biçim + bilinen token/JWT/Bearer/anahtar
- * örüntüleri reddedilir, kırpma toleransı yoktur. KATEGORİ bir TANILAMA SINIFLANDIRMASIDIR (anahtar sözcük), kesin kök neden DEĞİLDİR:
+ * geçer; biçim eşleşmesi yeterli sayılmaz. requestId bu sürümde daima OMIT edilir (bkz. safeRequestId, fail-closed); bilinmeyen
+ * biçim OMIT edilir, kırpma toleransı yoktur. KATEGORİ bir TANILAMA SINIFLANDIRMASIDIR (anahtar sözcük), kesin kök neden DEĞİLDİR:
  * birden çok kategoriyi çağrıştıran ya da tanınmayan metin `bad_request` (sınıflandırılamadı) olur.
  */
 
@@ -95,22 +95,24 @@ export function safeErrorCode(v: unknown): string | null {
 /** İzinli medya analizi modelleri (api/_lib/mediaAnalysis/spec.ts ALLOWED_MEDIA_MODELS ile birebir; testle doğrulanır) */
 export const ALLOWED_ERROR_MODELS = ['anthropic/claude-haiku-5.5', 'anthropic/claude-sonnet-5.5'] as const;
 const MODEL_SET = new Set<string>(ALLOWED_ERROR_MODELS);
-const REQUEST_ID_RE = /^[A-Za-z0-9][A-Za-z0-9_.:-]{5,63}$/;
 
 export function safeStatus(v: unknown): number | null {
   const n = typeof v === 'string' && /^\d{3}$/.test(v) ? Number(v) : v;
   return typeof n === 'number' && Number.isInteger(n) && n >= 100 && n <= 599 ? n : null;
 }
-/** Opak istek kimliği: yalnız kısa [A-Za-z0-9_.:-]; anahtar/Bearer benzeri değerler reddedilir */
-export function safeRequestId(v: unknown): string | null {
-  if (typeof v !== 'string' || !REQUEST_ID_RE.test(v)) return null; // kırpma toleransı yok: boşluklu/satır sonlu değer atılır
-  // Bilinen sır/token biçimleri: JWT (eyJ…/üç parçalı), Bearer, sk-/pk-/or-/ghp_/xox*/AKIA/AIza önekleri, uzun hex/base64 benzeri anahtarlar
-  if (/^(sk|pk|rk|or|key|bearer|token|secret|ghp|gho|xox[a-z])[-_.:]/i.test(v)) return null;
-  if (/^(AKIA|ASIA|AIza)/.test(v)) return null; // ayırıcısız bulut anahtar önekleri (AWS/Google)
-  if (/^eyJ/.test(v) || /^[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}$/.test(v)) return null;
-  if (/(?:sk-|bearer|api[-_]?key|secret|password|token)/i.test(v)) return null;
-  if (/^[A-Za-z0-9_-]{40,}$/.test(v) && !/^[0-9a-f-]{36}$/i.test(v)) return null; // uzun opak dizi (UUID hariç): anahtar olabilir
-  return v;
+/**
+ * İstek kimliği — FAIL-CLOSED: bu sürümde HİÇBİR değer kabul edilmez, daima null (alan OMIT edilir).
+ * Neden: sağlayıcının `x-request-id` başlığı için belgeli tam biçim/kaynak eşleşmesi BULUNAMADI (OpenRouter dokümanı, okunma 2026-10-13:
+ * `x-request-id` belgelenmemiş; belgeli olanlar `X-Generation-Id`/gövde `id` = üretim kimliği `gen-…` ve generation verisindeki
+ * `request_id` = `req-…`; bu ikisi bu başlığın biçimi için KANIT DEĞİLDİR). Tahmini allowlist/heuristik (önek, uzunluk, harf dizisi)
+ * keyfi özel metni (`req-Alice123`, `req-PRIVATE1`) geçirdiği için KULLANILMAZ. Üretim kimliği (generationId) ayrı bir kavramdır ve
+ * requestId'ye KARIŞTIRILMAZ.
+ * Gelecekte belgeli bir sözleşme (başlık adı + tam biçim) kanıtlanırsa yalnız bu fonksiyon exact sözleşmeyle genişletilir; çağıranlar
+ * (adaptör, runner, uç nokta, hata kaydı) zaten buradan geçtiği için başka değişiklik gerekmez. Kimlik olmadan tanılama kategori +
+ * durum + model ile sürer.
+ */
+export function safeRequestId(_v: unknown): string | null {
+  return null;
 }
 export function safeModelId(v: unknown): string | null {
   return typeof v === 'string' && MODEL_SET.has(v) ? v : null;
