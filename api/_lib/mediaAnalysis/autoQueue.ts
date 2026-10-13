@@ -12,6 +12,7 @@
  */
 
 import { analyzeBrandMedia, type AnalysisDeps, type BrandMediaLike } from './runner.js';
+import { SOURCE_ERROR_MESSAGE, sanitizeStoredError, type SafeAnalysisError } from '../../../shared/mediaAnalysisError.js';
 export { parseActivationSince } from '../integrations/config.js';
 
 type Db = any;
@@ -47,7 +48,7 @@ export interface AnalysisQueueJob {
   leaseOwner?: string | null;
   leaseUntil?: number | null;
   analysisKey?: string | null;
-  lastError?: { code: string; message: string } | null;
+  lastError?: SafeAnalysisError | null;
   createdAt: number;
   updatedAt: number;
 }
@@ -167,7 +168,7 @@ export interface QueueJobView {
   /** Lease şu anda geçerli mi (sunucu saatine göre) */
   leaseActive: boolean;
   leaseUntil: number | null;
-  lastError: { code: string; message: string } | null;
+  lastError: SafeAnalysisError | null;
   analysisKey: string | null;
   createdAt: number | null;
   updatedAt: number | null;
@@ -184,7 +185,7 @@ export async function readQueueView(db: Db, tenantId: string, projectId: string,
   if (!j || j.tenantId !== tenantId || j.projectId !== projectId || j.assetId !== assetId) return null;
   const state: QueueState = j.state === 'pending' || j.state === 'done' || j.state === 'skipped' || j.state === 'failed' ? j.state : 'failed';
   const leaseUntil = toMs(j.leaseUntil);
-  const err = j.lastError && typeof j.lastError === 'object' ? { code: String(j.lastError.code ?? '').slice(0, 60), message: String(j.lastError.message ?? '').slice(0, 300) } : null;
+  const err = sanitizeStoredError(j.lastError);
   return {
     state,
     attempts: typeof j.attempts === 'number' ? j.attempts : 0,
@@ -257,7 +258,7 @@ export async function processAnalysisJob(db: Db, id: string, deps: QueueWorkerDe
   } catch (e: any) {
     // Kaynak okunamadı vb. (model çağrısı başlamadı): sınırlı yeniden deneme
     const state: QueueState = job.attempts < QUEUE_MAX_ATTEMPTS ? 'pending' : 'failed';
-    await finishJob(db, id, deps.owner, { state, nextAttemptAt: deps.now() + QUEUE_RETRY_MS * job.attempts, lastError: { code: 'source_error', message: String(e?.message || e).slice(0, 200) }, updatedAt: deps.now() });
+    await finishJob(db, id, deps.owner, { state, nextAttemptAt: deps.now() + QUEUE_RETRY_MS * job.attempts, lastError: { code: 'source_error', message: SOURCE_ERROR_MESSAGE }, updatedAt: deps.now() });
     return state;
   }
 }

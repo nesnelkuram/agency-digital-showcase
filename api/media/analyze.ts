@@ -10,6 +10,10 @@ import { checkLibraryAccess } from '../_lib/integrations/libraryAccess.js';
 import { analyzeBrandMedia, firestoreAnalysisStore, type BrandMediaLike } from '../_lib/mediaAnalysis/runner.js';
 import { openrouterVisionCall } from '../_lib/mediaAnalysis/openrouterVisionCall.js';
 import { resolveMediaModel } from '../_lib/mediaAnalysis/spec.js';
+import { sanitizeStoredError } from '../../shared/mediaAnalysisError.js';
+
+/** Yanıta giden kayıtta hata YALNIZ allowlist'li alanlarla (eski kayıtlardaki serbest metin dahil) çıkar */
+const withSafeError = <T extends { error?: unknown } | null>(rec: T): T => (rec && rec.error ? { ...rec, error: sanitizeStoredError(rec.error) } : rec);
 
 /**
  * Tek Studio görseli için AI analizi (OpenRouter: konu kataloğu + kompozisyon kararı; varsayılan Haiku 5.5). Varsayılan KAPALI.
@@ -47,7 +51,7 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
       const now = Date.now();
       const latest = await db.collection('media_ai_analysis_latest').doc(`${req.tenantId}_${pid}_${assetId}`).get();
       const rec = latest.exists ? await db.collection('media_ai_analyses').doc(latest.data().key).get() : null;
-      const analysis = rec?.exists && rec.data().tenantId === req.tenantId && rec.data().projectId === pid ? rec.data() : null;
+      const analysis = rec?.exists && rec.data().tenantId === req.tenantId && rec.data().projectId === pid ? withSafeError(rec.data()) : null;
       const [queueR, corrR] = await Promise.allSettled([readQueueView(db, req.tenantId, pid, assetId, now), loadCorrection(db, req.tenantId, pid, assetId)]);
       const queue = queueR.status === 'fulfilled' ? { state: 'ok' as const, job: queueR.value } : { state: 'unavailable' as const };
       if (queueR.status === 'rejected') console.error('media/analyze queue read error:', (queueR.reason as any)?.message);
@@ -125,7 +129,7 @@ export default withAuth(async (req: AuthenticatedRequest, res: VercelResponse) =
     }
     const asset: BrandMediaLike = { id: assetId, tenantId: a.tenantId, projectId: a.projectId, kind: a.kind, status: a.status, storage: a.storage };
     const record = await analyzeBrandMedia(asset, analysisDeps(asset), modelSel.model);
-    return res.status(200).json({ enabled: true, analysis: record });
+    return res.status(200).json({ enabled: true, analysis: withSafeError(record) });
   } catch (error: any) {
     console.error('media/analyze error:', error?.message);
     return res.status(500).json({ error: 'Analiz yapılamadı' });

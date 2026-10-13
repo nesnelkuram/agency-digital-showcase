@@ -20,6 +20,7 @@ import { OPENROUTER_URL, OpenRouterError, normalizeUsage } from '../planCopy/ope
 import { ANALYSIS_USER_PROMPT, AnalysisOutputSchema, VISUAL_SYSTEM_PROMPT } from './visualSpec.js';
 import { CATALOG_SYSTEM_PROMPT } from './spec.js';
 import type { ModelCall } from './runner.js';
+import { buildProviderFailure } from '../../../shared/mediaAnalysisError.js';
 
 export const ANALYSIS_SCHEMA_NAME = 'media_analysis_output';
 export const ANALYSIS_SYSTEM_PROMPT = `${CATALOG_SYSTEM_PROMPT}\n${VISUAL_SYSTEM_PROMPT}`;
@@ -95,9 +96,16 @@ export function openrouterVisionCall(deps: OpenRouterVisionDeps = {}): ModelCall
       } catch {
         data = null;
       }
-      // Gövde (olası hassas içerik) mesaja KOPYALANMAZ; yalnız durum ve sağlayıcı hata kodu
-      if (!res.ok) throw new OpenRouterError(`OpenRouter isteği başarısız (${res.status})`, res.status, data?.error?.code != null ? String(data.error.code) : null);
-      if (data?.error) throw new OpenRouterError('OpenRouter hata döndürdü', typeof data.error.code === 'number' ? data.error.code : null, data.error.code != null ? String(data.error.code) : null);
+      // Gövde/serbest sağlayıcı metni (olası hassas içerik) mesaja KOPYALANMAZ ve saklanmaz: yalnız allowlist'li kategori, durum,
+      // istek kimliği ve istenen model (shared/mediaAnalysisError). Bilinmeyen/ayrıştırılamayan gövde → genel güvenli açıklama.
+      if (!res.ok) {
+        const f = buildProviderFailure({ status: res.status, body: data, requestId, model });
+        throw new OpenRouterError(`OpenRouter isteği başarısız (${res.status})`, res.status, data?.error?.code != null ? String(data.error.code) : null, f);
+      }
+      if (data?.error) {
+        const f = buildProviderFailure({ status: null, body: data, requestId, model, inBody: true });
+        throw new OpenRouterError('OpenRouter hata döndürdü', typeof data.error.code === 'number' ? data.error.code : null, data.error.code != null ? String(data.error.code) : null, { ...f, code: f.status ? `http_${f.status}` : 'provider_error' });
+      }
       const choice = data?.choices?.[0];
       let parsed: unknown = null;
       const content = choice?.message?.content;

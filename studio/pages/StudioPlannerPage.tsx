@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import '../feedPlanner/review/scoped.css';
 import { candidateFromInventory } from '../feedPlanner/integration/fromInventory';
 import { runMediaAnalysis } from '../mediaIntegrationsApi';
+import { analysisOutcome, type AnalysisOutcome } from '../mediaAnalysisOutcome';
 import { createBlobResolver, createCopyPort, createCreativePort, createPersistencePort, fetchInventory } from '../feedPlanner/live/livePorts';
 import type { PlannerPorts } from '../feedPlanner/ports';
 import BrandGuideChat from '../components/BrandGuideChat';
@@ -95,16 +96,7 @@ const StudioPlannerPage: React.FC = () => {
 
   /** Tek görselin AI analizi (kullanıcının açık eylemi; görsel başına 1 model çağrısı). Kapalıysa sunucunun dürüst nedeni gösterilir. */
   const analysis = useMemo(() => (project ? {
-    run: async (assetId: string): Promise<{ ok: true } | { ok: false; message: string; fatal?: boolean }> => {
-      try {
-        const r = await runMediaAnalysis(project.id, assetId);
-        const rec = r?.analysis;
-        if (rec && rec.status === 'done') return { ok: true as const };
-        return { ok: false as const, message: rec?.error?.message ? `Analiz tamamlanamadı: ${rec.error.message}` : 'Analiz tamamlanamadı.' };
-      } catch (e: any) {
-        return { ok: false as const, message: e?.message ?? 'Analiz başarısız.', fatal: e?.code === 'feature_disabled' || e?.code === 'model_config_invalid' };
-      }
-    },
+    run: (assetId: string): Promise<AnalysisOutcome> => analysisOutcome(() => runMediaAnalysis(project.id, assetId)),
     refresh: () => loadInventory(true).done,
   } : undefined), [project?.id, loadInventory]);
 

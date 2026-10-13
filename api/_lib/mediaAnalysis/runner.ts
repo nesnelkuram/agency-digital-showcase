@@ -25,6 +25,18 @@ import {
 import { parseAnalysisOutput } from './visualSpec';
 import type { VisualDecision } from '../../../shared/planner/visualDecision';
 import type { CopyUsage } from '../planCopy/planCopy';
+import {
+  BAD_MEDIA_TYPE_MESSAGE,
+  CATEGORY_MESSAGES,
+  EXHAUSTED_MESSAGE,
+  NETWORK_MESSAGE,
+  NO_API_KEY_MESSAGE,
+  REFUSAL_MESSAGE,
+  SCHEMA_INVALID_MESSAGE,
+  safeStatus,
+  sanitizeStoredError,
+  type SafeAnalysisError,
+} from '../../../shared/mediaAnalysisError';
 
 export const MAX_ANALYSIS_ATTEMPTS = 3;
 /** Model zaman aşımı (120 sn) + kaynak indirme/yazma payı: lease çağrı sürerken düşmez → ikinci çalıştırıcı aynı işi almaz */
@@ -75,7 +87,8 @@ export interface AnalysisRecord {
   stopReason?: string | null;
   responseId?: string | null;
   durationMs?: number | null;
-  error?: { code: string; message: string } | null;
+  /** Allowlist'li güvenli hata (shared/mediaAnalysisError): sağlayıcı ham metni/gövdesi ASLA saklanmaz */
+  error?: SafeAnalysisError | null;
   createdAt: number;
   updatedAt: number;
 }
@@ -139,6 +152,25 @@ export function isRetryableModelError(e: any): boolean {
   const status = typeof e?.status === 'number' ? e.status : null;
   if (status === null) return e?.code !== 'no_api_key'; // bağlantı/zaman aşımı; anahtar yokluğu yeniden denemeyle düzelmez
   return status === 408 || status === 429 || status === 529 || status >= 500;
+}
+
+/**
+ * Fırlatılan hatadan SAKLANACAK güvenli kaydı üretir. e.message ASLA kopyalanmaz (depolama/ağ/SDK hataları yol, kimlik veya
+ * içerik taşıyabilir): sağlayıcı hatası adaptörün allowlist'li `failure` alanından, diğerleri sabit iletilerden kurulur.
+ */
+export function failureOf(e: any): SafeAnalysisError {
+  const f = sanitizeStoredError(e?.failure);
+  if (f && e?.failure) return f;
+  if (e?.code === 'no_api_key') return { code: 'no_api_key', message: NO_API_KEY_MESSAGE };
+  if (e?.code === 'bad_media_type') return { code: 'bad_media_type', message: BAD_MEDIA_TYPE_MESSAGE, status: 400 };
+  const status = safeStatus(e?.status);
+  if (status) {
+    // failure taşımayan eski/başka adaptör: yalnız durum → kategori
+    const category = status === 401 || status === 403 ? 'auth' : status === 402 ? 'credits' : status === 429 ? 'rate_limit' : status >= 500 ? 'upstream_error' : 'bad_request';
+    return { code: `http_${status}`, message: CATEGORY_MESSAGES[category], category, status };
+  }
+  const timeout = e?.name === 'AbortError';
+  return { code: 'network', message: timeout ? CATEGORY_MESSAGES.timeout : NETWORK_MESSAGE, ...(timeout ? { category: 'timeout' as const } : {}) };
 }
 
 export async function analyzeBrandMedia(asset: BrandMediaLike, deps: AnalysisDeps, model = CATALOG_MODEL): Promise<AnalysisRecord> {
@@ -213,10 +245,10 @@ export async function analyzeBrandMedia(asset: BrandMediaLike, deps: AnalysisDep
     };
     const out = res.parsed == null ? null : parseAnalysisOutput(res.parsed);
     if (res.stopReason === 'refusal') {
-      await deps.store.update(key, owner, { ...base, status: 'failed', retryable: false, result: null, visual: null, error: { code: 'refusal', message: 'Model bu görseli işlemeyi reddetti' } });
+      await deps.store.update(key, owner, { ...base, status: 'failed', retryable: false, result: null, visual: null, error: { code: 'refusal', message: REFUSAL_MESSAGE } });
     } else if (!out || !out.ok) {
       const truncated = res.stopReason === 'max_tokens';
-      await deps.store.update(key, owner, { ...base, status: 'failed', retryable: truncated, result: null, visual: null, error: { code: truncated ? 'truncated' : 'schema_invalid', message: 'Yapılandırılmış çıktı alınamadı' } });
+      await deps.store.update(key, owner, { ...base, status: 'failed', retryable: truncated, result: null, visual: null, error: { code: truncated ? 'truncated' : 'schema_invalid', message: SCHEMA_INVALID_MESSAGE } });
     } else {
       await deps.store.update(key, owner, {
         ...base,
@@ -236,7 +268,7 @@ export async function analyzeBrandMedia(asset: BrandMediaLike, deps: AnalysisDep
       leaseUntil: null,
       leaseOwner: null,
       durationMs: now() - started,
-      error: { code: e?.status ? `http_${e.status}` : e?.code === 'no_api_key' ? 'no_api_key' : 'network', message: String(e?.message || e).slice(0, 300) },
+      error: failureOf(e),
       updatedAt: now(),
     });
   }
@@ -272,7 +304,7 @@ export function firestoreAnalysisStore(db: any): AnalysisStore {
         const d = decideClaim(existing, now);
         if (d === 'skip') return { claimed: false, record: existing! };
         if (d === 'exhaust') {
-          const closed = { ...existing!, status: 'failed' as const, retryable: false, leaseUntil: null, leaseOwner: null, error: { code: 'attempts_exhausted', message: 'Deneme sınırı doldu (yarım kalan çağrı)' }, updatedAt: now };
+          const closed = { ...existing!, status: 'failed' as const, retryable: false, leaseUntil: null, leaseOwner: null, error: { code: 'attempts_exhausted', message: EXHAUSTED_MESSAGE }, updatedAt: now };
           tx.set(ref(k), closed);
           return { claimed: false, record: closed };
         }

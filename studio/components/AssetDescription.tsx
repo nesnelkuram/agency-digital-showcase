@@ -328,6 +328,7 @@ const Loaded: React.FC<{ data: any; dims?: { w: number; h: number }; onReread: (
   const ov = human?.overrides ?? {};
   const humanKeys = Object.keys(ov);
   const status: string | null = rec?.status ?? null;
+  const errBits = [rec?.error?.status ? `HTTP ${rec.error.status}` : null, rec?.error?.model ? `model ${rec.error.model}` : null, rec?.error?.requestId ? `istek kimliği ${rec.error.requestId}` : null].filter(Boolean).join(' · ');
   const done = status === 'done';
   const ai = done ? rec?.result ?? null : null; // HAM AI sonucu: insan alanlarıyla birleştirilmiş görünüm değil
   const comp = ai?.composition ?? null;
@@ -386,7 +387,8 @@ const Loaded: React.FC<{ data: any; dims?: { w: number; h: number }; onReread: (
       {status === 'failed' && (
         <p data-testid="desc-failed" role="alert" className="font-grotesk text-sm text-red-600">
           Analiz başarısız: {rec.error?.message || 'neden kaydedilmemiş'}
-          {rec.error?.code ? ` (${rec.error.code})` : ''}. {rec.retryable ? 'Sunucu yeniden denemeye uygun görüyor; bu panel analiz başlatmaz.' : 'Otomatik yeniden deneme yok.'}
+          {rec.error?.code ? ` (${rec.error.code})` : ''}
+          {errBits ? ` — ${errBits}` : ''}. {rec.retryable ? 'Sunucu yeniden denemeye uygun görüyor; bu panel analiz başlatmaz.' : 'Otomatik yeniden deneme yok.'}
         </p>
       )}
       {status === 'unsupported' && (

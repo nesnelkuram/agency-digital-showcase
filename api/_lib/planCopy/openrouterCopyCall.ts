@@ -12,6 +12,7 @@
  */
 import { z } from 'zod/v4';
 import { CopyOutputSchema, type CopyModelCall, type CopyUsage } from './planCopy.js';
+import type { SafeAnalysisError } from '../../../shared/mediaAnalysisError.js';
 
 export const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 export const COPY_MAX_TOKENS = 6000;
@@ -27,8 +28,11 @@ export function copyJsonSchema(): Record<string, unknown> {
 }
 
 export class OpenRouterError extends Error {
-  constructor(message: string, public status: number | null, public code: string | null) {
+  /** Medya analizi adaptörü: allowlist'li güvenli hata (shared/mediaAnalysisError); diğer tüketiciler vermez */
+  public failure?: SafeAnalysisError;
+  constructor(message: string, public status: number | null, public code: string | null, failure?: SafeAnalysisError) {
     super(message);
+    this.failure = failure;
   }
 }
 

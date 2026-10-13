@@ -137,10 +137,11 @@ describe('kuyruk durumu (gerçek veri; yalnız okuma)', () => {
     noSideEffects();
   });
 
-  it('failed / skipped / done ve son hata aynen taşınır', async () => {
-    docs['media_ai_queue/t1_p1_a1'] = job({ state: 'failed', attempts: 3, lastError: { code: 'http_529', message: 'Model meşgul' } });
+  it('failed / skipped / done ve son hata allowlist\'li alanlarla taşınır; eski kayıttaki serbest metin SIZMAZ', async () => {
+    docs['media_ai_queue/t1_p1_a1'] = job({ state: 'failed', attempts: 3, lastError: { code: 'http_529', message: 'Model meşgul', category: 'upstream_error', status: 529, secretField: 'x' } });
     let r = await get();
-    expect(r.body.queue.job).toMatchObject({ state: 'failed', attempts: 3, lastError: { code: 'http_529', message: 'Model meşgul' } });
+    expect(r.body.queue.job).toMatchObject({ state: 'failed', attempts: 3, lastError: { code: 'http_529', category: 'upstream_error', status: 529, message: expect.stringContaining('Sağlayıcı tarafında geçici bir hata') } });
+    expect(JSON.stringify(r.body)).not.toMatch(/Model meşgul|secretField/);
     docs['media_ai_queue/t1_p1_a1'] = job({ state: 'skipped', lastError: { code: 'not_active_photo', message: 'Varlık analize uygun değil' } });
     r = await get();
     expect(r.body.queue.job).toMatchObject({ state: 'skipped', lastError: { code: 'not_active_photo' } });
