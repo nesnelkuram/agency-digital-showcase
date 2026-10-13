@@ -287,7 +287,15 @@ export function decideClaim(existing: AnalysisRecord | null, now: number): 'new'
     if ((existing.leaseUntil || 0) > now) return 'skip';
     return existing.attempts < MAX_ANALYSIS_ATTEMPTS ? 'retry' : 'exhaust';
   }
-  if (existing.status === 'failed') return existing.retryable && existing.attempts < MAX_ANALYSIS_ATTEMPTS ? 'retry' : 'skip';
+  if (existing.status === 'failed') {
+    if (existing.attempts >= MAX_ANALYSIS_ATTEMPTS) return 'skip';
+    if (existing.retryable) return 'retry';
+    // Tanılama eklenmeden ÖNCE kaydedilmiş sağlayıcı HTTP hatası (kategori yok): neden kayıtlı olmadığı için kullanıcı hiçbir ayrıntı
+    // göremiyordu ve kayıt hep "skip" ediliyordu. Bir sonraki açık analiz isteğinde TEK kez yeniden denenir; yeni kayıt kategori taşır,
+    // böylece döngü olmaz ve deneme sınırı (MAX_ANALYSIS_ATTEMPTS) aşılmaz.
+    const e = existing.error as { code?: unknown; category?: unknown } | null | undefined;
+    return typeof e?.code === 'string' && /^http_\d{3}$/.test(e.code) && !e.category ? 'retry' : 'skip';
+  }
   return 'skip';
 }
 

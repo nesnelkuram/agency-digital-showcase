@@ -469,3 +469,49 @@ describe('TAM Error nesnesi: enumerable alanlar (status, code, failure) dahil hi
     expect(err.failure).toBeUndefined();
   });
 });
+
+import { decideClaim, MAX_ANALYSIS_ATTEMPTS } from '@/api/_lib/mediaAnalysis/runner';
+
+describe('tanılama öncesi (kategorisiz) 400 kayıtları: ayrıntı görünsün diye TEK kez yeniden denenir, döngü yok', () => {
+  const rec = (over: Partial<AnalysisRecord>) => ({ status: 'failed', retryable: false, attempts: 1, error: { code: 'http_400', message: 'OpenRouter isteği başarısız (400)' }, ...over }) as AnalysisRecord;
+  it('eski http_NNN kaydı (kategori yok) → retry; kategorili yeni kayıt / diğer kalıcı hatalar / deneme sınırı → skip', () => {
+    expect(decideClaim(rec({}), 1)).toBe('retry');
+    expect(decideClaim(rec({ error: { code: 'http_402', message: 'OpenRouter isteği başarısız (402)' } }), 1)).toBe('retry');
+    expect(decideClaim(rec({ error: { code: 'http_400', message: CATEGORY_MESSAGES.schema_unsupported, category: 'schema_unsupported', status: 400 } }), 1)).toBe('skip');
+    for (const code of ['refusal', 'schema_invalid', 'no_api_key', 'unsupported', 'attempts_exhausted', 'network']) expect(decideClaim(rec({ error: { code, message: 'x' } }), 1), code).toBe('skip');
+    expect(decideClaim(rec({ attempts: MAX_ANALYSIS_ATTEMPTS }), 1)).toBe('skip');
+    expect(decideClaim(rec({ status: 'done' }), 1)).toBe('skip');
+  });
+
+  it('uçtan uca: eski 400 kaydı bir sonraki analizde yeniden denenir, yeni hata ayrıntı taşır; ardından tekrar çağrı YAPILMAZ', async () => {
+    const m = new Map<string, AnalysisRecord>();
+    const store = {
+      get: async (k: string) => m.get(k) ?? null,
+      claim: async (k: string, init: AnalysisRecord, now: number) => {
+        const ex = m.get(k) ?? null; const d = decideClaim(ex, now);
+        if (d === 'skip') return { claimed: false, record: ex! };
+        const r = d === 'new' ? init : { ...ex!, status: 'running' as const, attempts: ex!.attempts + 1, leaseUntil: init.leaseUntil, leaseOwner: init.leaseOwner, error: null };
+        m.set(k, r); return { claimed: true, record: r };
+      },
+      update: async (k: string, _o: string, p: Partial<AnalysisRecord>) => { m.set(k, { ...m.get(k)!, ...p }); return true; },
+      setLatest: async () => {},
+    };
+    const a = { id: 'a1', tenantId: T, projectId: P, kind: 'photo' as const, status: 'active', storage: { path: 'x', contentType: 'image/jpeg', size: 10, width: 800, height: 1000 } };
+    // 1) eski sürüm gibi: tanılamasız kalıcı 400
+    const legacyCall = vi.fn(async () => { throw Object.assign(new Error('OpenRouter isteği başarısız (400)'), { status: 400 }); });
+    const first = await analyzeBrandMedia(a, { store, readBytes: async () => Buffer.from('x'), callModel: legacyCall as any, now: () => 1 });
+    m.set(first.key, { ...first, error: { code: 'http_400', message: 'OpenRouter isteği başarısız (400)' } }); // kategori yok (eski biçim)
+    expect(describeAnalysisFailure(m.get(first.key)!.error)).toMatch(/tanılama eklenmeden önce/);
+    // 2) yeni sürüm: yeniden denenir, ayrıntı kaydedilir
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValue(reply(400, { error: { message: 'Provider does not support response_format json_schema' } }));
+    const second = await analyzeBrandMedia(a, { store, readBytes: async () => Buffer.from('x'), callModel: openrouterVisionCall({ apiKey: 'or-test', fetchImpl: fetchMock as any }), now: () => 2 });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(second).toMatchObject({ status: 'failed', attempts: 2, error: { code: 'http_400', category: 'schema_unsupported', status: 400, model: CATALOG_MODEL } });
+    expect(describeAnalysisFailure(second.error)).toMatch(/Olası neden: sağlayıcı yapılandırılmış/);
+    // 3) üçüncü istek: kategori var → skip, yeni çağrı yok
+    const third = await analyzeBrandMedia(a, { store, readBytes: async () => Buffer.from('x'), callModel: openrouterVisionCall({ apiKey: 'or-test', fetchImpl: fetchMock as any }), now: () => 3 });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(third.attempts).toBe(2);
+  });
+});

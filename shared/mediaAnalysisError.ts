@@ -203,5 +203,6 @@ export function describeAnalysisFailure(raw: unknown): string {
   const e = sanitizeStoredError(raw);
   if (!e) return 'Görsel analizi tamamlanamadı (ayrıntı kaydedilmemiş).';
   const bits = [e.status ? `HTTP ${e.status}` : null, e.model ? `model ${e.model}` : null, e.requestId ? `istek kimliği ${e.requestId}` : null].filter(Boolean);
-  return `Görsel analizi başarısız: ${e.message}${bits.length ? ` (${bits.join(' · ')})` : ''}.`;
+  const legacy = !e.category && /^http_\d{3}$/.test(e.code) ? ' Bu kayıt tanılama eklenmeden önce oluştu; nedeni kaydedilmemiş, yeniden analiz edilince ayrıntı görünür.' : '';
+  return `Görsel analizi başarısız: ${e.message}${bits.length ? ` (${bits.join(' · ')})` : ''}.${legacy}`;
 }
