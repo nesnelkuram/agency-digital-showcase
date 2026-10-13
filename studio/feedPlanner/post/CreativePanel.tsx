@@ -18,6 +18,8 @@ export interface CreativePanelProps {
   status: { ideas: StageStatus; selection: StageStatus; caption: StageStatus; check: StageStatus };
   running: { role: CreativeRole } | null;
   failures: Partial<Record<CreativeRole, Failure>>;
+  /** Görsel plan onayı ("Görsel planı tamamladım" veya Metin üret) geçerli mi; değilse yaratıcı roller başlatılmaz */
+  done: boolean;
   /** Son kırpımın piksel ölçümleri tamam mı (değilse roller açılmaz) */
   ready: boolean;
   available: boolean;
@@ -71,7 +73,7 @@ export default function CreativePanel(p: CreativePanelProps) {
     setSel(e.selection ? { mainMessage: e.selection.mainMessage, creativeAngle: e.selection.creativeAngle, note: e.selection.note } : { mainMessage: '', creativeAngle: '', note: '' });
   }, [p.postId, e.selection?.rev]); // eslint-disable-line react-hooks/exhaustive-deps
   const busy = !!p.running;
-  const off = !p.ready || busy || !p.available;
+  const off = !p.done || !p.ready || busy || !p.available;
   const ideasOk = p.status.ideas === 'geçerli';
   const selOk = p.status.selection === 'geçerli';
   const left = (r: CreativeRole) => attemptsLeft(e, r, p.binding);
@@ -84,7 +86,8 @@ export default function CreativePanel(p: CreativePanelProps) {
     <section className="creative" aria-label="Yaratıcı akış" data-testid="creative-panel" style={{ marginTop: 12, borderTop: '1px solid var(--line)', paddingTop: 10 }}>
       <h3>Yaratıcı akış · Post 4:5 son kırpım</h3>
       <p className="small muted">Fikir → sizin seçiminiz/düzenlemeniz → Türkçe caption → bağımsız kontrol. Her adım AYRI ve açık bir eylemdir (tek düğme = tek model çağrısı); seçim olmadan caption yazılmaz; kontrol yayın başlatmaz. Yayın yok.</p>
-      {!p.ready && <p className="small" role="status" data-testid="creative-measuring">Son kırpımın ölçümü sürüyor; roller ölçüm bitince açılır.</p>}
+      {!p.done && <p className="small" role="status" data-testid="creative-needs-approval">Önce “Görsel planı tamamladım” kutusunu işaretleyin (ya da üstteki “Metin üret”e basın: plan bu haliyle onaylanır). Kırpım bitmeden yaratıcı roller başlatılmaz.</p>}
+      {p.done && !p.ready && <p className="small" role="status" data-testid="creative-measuring">Son kırpımın ölçümü sürüyor; roller ölçüm bitince açılır.</p>}
       {!p.available && <div className="shortage" role="alert" data-testid="creative-unavailable"><strong>Yaratıcı roller kapalı.</strong> {p.unavailableReason} Görsel plan etkilenmez.</div>}
 
       <div className="chips" role="list" aria-label="Aşama durumları" style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>

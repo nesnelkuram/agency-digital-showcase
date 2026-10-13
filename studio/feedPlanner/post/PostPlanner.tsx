@@ -11,12 +11,13 @@ import { ImageSrcContext, PlannerImg } from '../review/imageSource';
 import { measureImageCrop } from '../review/loadPixels';
 import {
   MAX_POSTS, POST_FORMAT, POST_RATIO, POST_SIZE, addPosts, applyTexts, arrangePlan, capacityOf, cropVersionOf, deletePost, effectiveCrop, eligiblePool, emptyPostPlan, evaluatePlan,
-  movePost, planPosts, replacePost, resolveDelete, setAssetLock, setCrop, setManualText, setPositionLock, undoLast,
+  movePost, planPosts, replacePost, resolveDelete, setAssetLock, setCrop, setManualText, setPositionLock, undoLast, visualPlanSig,
   type Conflict, type ConflictOption, type CropEdit, type LayoutCell, type OpResult, type Post, type PostEnv, type PostPlan,
 } from './postPlan';
 import { chronology, gridShape, planShape, profileAfterStep, snapshotInfo, sortHistory } from './postViews';
 import { CropMeasurer, postWindow, type MeasureCropFn } from './cropMeasure';
 import CreativePanel from './CreativePanel';
+import type { PostDraft, PostDraftStore } from './draftStore';
 import './postPlanner.css';
 import {
   STALE_LABEL, acceptCaption, acceptCheck, acceptIdeas, adoptParked, bindingSig, canRun, captionDraftOf, captionStatus, checkStatus, discardParked, editSelection, emptyEntry, failureOf,
@@ -39,6 +40,8 @@ export interface PostPlannerProps {
   /** guideVersion/bundle: UI'ye zaten gelen BİLİNEN onaylı marka dili sürümü (canlı abonelik değil); değişirse yaratıcı aşamalar eski olur, insan metni korunur */
   voice?: { approved: boolean | null; guideVersion?: string | number | null; bundle?: boolean };
   onStartGuide?: () => void;
+  /** Studio oturum belleği: ayarlara gidip dönünce plan + yaratıcı durum + insan metni korunur (yenileme/kapanışta kaybolur) */
+  draftStore?: PostDraftStore;
   /** Görsel analizi (AI): konu açıklaması + kompozisyon kararı. Yoksa analiz düğmeleri gösterilmez. `run` tek görsel için 1 model çağrısıdır; `refresh` envanteri sessizce yeniler. */
   analysis?: { run: (assetId: string) => Promise<{ ok: true } | { ok: false; message: string; fatal?: boolean }>; refresh: () => Promise<void> };
   /** Nihai kırpım görünümünün piksel ölçümü (test için enjekte edilir) */
@@ -50,7 +53,7 @@ export interface PostPlannerProps {
 const DEFAULT_PORTS = reviewPorts();
 const TONE_LABEL_TR: Record<ToneLabel, string> = { enerjik: 'Enerjik', zarif: 'Zarif', lüks: 'Lüks', samimi: 'Samimi', minimal: 'Minimal', eğlenceli: 'Eğlenceli' };
 const FACT_LABEL = { tam: 'tam kare görünür', 'yalnız_konu': 'yalnız ana konu', yok: 'görünür olgu yok' } as const;
-/** Görselin metne esas olacak konu açıklaması veya kompozisyon kararı yoksa metin üretilemez (sunucu da böyle durur). */
+/** Metne esas ANLAMSAL kanıt (konu/nesne açıklaması) veya kırpım doğrulaması için kompozisyon kararı yoksa analiz gerekir. Kompozisyon/kadraj tarifi caption kanıtı DEĞİLDİR (sunucu yalnız katalog gözleminden yazar). */
 const needsAnalysis = (c: Candidate | undefined) => !!c && (!c.visual || !(c.note ?? '').trim());
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
@@ -86,13 +89,21 @@ export default function PostPlanner(props: PostPlannerProps) {
 }
 
 function PostPlannerInner({
-  candidates, published = [], historySource, ports = DEFAULT_PORTS, projectId, tenantId, userId, weekStart = '', voice = { approved: null }, onStartGuide, analysis, measureCrop = measureImageCrop, initialCount = 9,
+  candidates, published = [], historySource, ports = DEFAULT_PORTS, projectId, tenantId, userId, weekStart = '', voice = { approved: null }, onStartGuide, draftStore, analysis, measureCrop = measureImageCrop, initialCount = 9,
 }: PostPlannerProps) {
-  const [plan, setPlanState] = useState<PostPlan>(() => emptyPostPlan());
+  const scopeKey = `${tenantId ?? ''}|${projectId}|${userId ?? ''}`;
+  /** Aynı kapsamın bellekteki taslağı (yalnız ilk kurulumda okunur; başka kapsamın taslağı okunmaz) */
+  const restored = useRef<PostDraft | undefined>(draftStore?.get(scopeKey)).current;
+  const [restoredNote, setRestoredNote] = useState(!!restored && restored.plan.posts.length > 0);
+  const [plan, setPlanState] = useState<PostPlan>(() => restored?.plan ?? emptyPostPlan());
   const planRef = useRef(plan);
   const setPlan = (p: PostPlan) => { planRef.current = p; setPlanState(p); };
-  const [count, setCount] = useState(String(initialCount));
-  const [sel, setSel] = useState<string | null>(null);
+  const [count, setCount] = useState(restored?.count ?? String(initialCount));
+  const [sel, setSel] = useState<string | null>(restored?.sel ?? null);
+  /** "Görsel planı tamamladım" onayı GÖRSEL plan imzasına bağlıdır: görsel/sıra/kırpım değişince geçersizleşir */
+  const [doneSig, setDoneSig] = useState<string | null>(restored?.doneSig ?? null);
+  const doneRef = useRef<string | null>(doneSig);
+  doneRef.current = doneSig;
   const [conflict, setConflict] = useState<Conflict | null>(null);
   const [msgs, setMsgs] = useState<string[]>([]);
   const [tick, setTick] = useState(0);
@@ -103,15 +114,18 @@ function PostPlannerInner({
     return () => {
       aliveRef.current = false;
       acs.forEach((ac) => ac.abort()); // kapsam/sekme kapanırken uçuştaki istekler iptal; yanıtları zaten yok sayılır
+      // Ayarlara gidilirken yarıda kalan üretim iptal edilir: taslağa işlenir, dönünce dürüstçe söylenir
+      const cur = draftStore?.get(scopeKey);
+      const cut = Object.keys(runningRef.current);
+      if (draftStore && cur && (cut.length || batchRef.current.running)) draftStore.set(scopeKey, { ...cur, interrupted: cut.length ? cut : ['toplu işlem'] });
     };
   }, []);
-  const [tone, setTone] = useState<TempTone>({});
+  const [tone, setTone] = useState<TempTone>(restored?.tone ?? {});
   const toneRef = useRef(tone);
   toneRef.current = tone;
   const [step, setStep] = useState<number | null>(null);
   const [draftText, setDraftText] = useState('');
 
-  const scopeKey = `${tenantId ?? ''}|${projectId}|${userId ?? ''}`;
   const measurer = useMemo(() => new CropMeasurer(measureCrop, ports.imageSrc, () => setTick((t) => t + 1), 3, scopeKey), [measureCrop, ports.imageSrc, scopeKey]);
   useEffect(() => {
     measurer.revive();
@@ -175,7 +189,7 @@ function PostPlannerInner({
   };
 
   // ── Aşama 3: yaratıcı roller (fikir → SEÇİM → caption → bağımsız kontrol). Her rol AYRI, açık kullanıcı eylemidir; planlama/düzenleme model çağırmaz. ──
-  const [entries, setEntriesState] = useState<Record<string, Entry>>({});
+  const [entries, setEntriesState] = useState<Record<string, Entry>>(restored?.entries ?? {});
   const entriesRef = useRef(entries);
   const putEntry = (e: Entry) => { const m = { ...entriesRef.current, [e.postId]: e }; entriesRef.current = m; setEntriesState(m); };
   const getEntry = (id: string) => entriesRef.current[id] ?? emptyEntry(id);
@@ -229,6 +243,7 @@ function PostPlannerInner({
     const failSig = `${sigNow}#${roleCtx(role, getEntry(postId), post.text)}`;
     const fail = (f: Failure) => { lastFailRef.current = f; setFailure(postId, role, { f, sig: failSig }); };
     if (runningRef.current[postId]) return; // post başına aynı anda TEK rol
+    if (doneRef.current === null || doneRef.current !== visualPlanSig(pl)) return fail({ kind: 'engellendi', message: 'Görsel plan onaylanmadı veya onaydan sonra değişti; yaratıcı roller başlatılmadı.' });
     if (!ports.creative.available) return fail({ kind: 'kapalı', message: ports.creative.unavailableReason ?? 'Yaratıcı roller bağlı değil.' });
     const entry = getEntry(postId);
     // MODEL ÇAĞRISINDAN ÖNCE sürüm/seçim/kilit/insan-metni koruması (sunucu ayrıca doğrular)
@@ -309,119 +324,190 @@ function PostPlannerInner({
     setRunningFor(postId, null); // belirteç geçersiz: gelecek yanıt (başarı/hata) yok sayılır
     setFailure(postId, r.role, { f: { kind: 'iptal', message: 'İptal edildi. Sağlayıcıda tamamlanmış olabilir ama yanıt yok sayıldı; kısmi sonuç kabul edilmedi.' }, sig: r.failSig });
   };
-  // ── Toplu metin üretimi: AÇIK tek kullanıcı eylemi. Her post için sırayla fikir → (ilk fikir otomatik seçilir) → caption [→ kontrol].
-  // Elle yazılmış metin, kullanıcının zaten geçerli seçtiği fikir ve geçerli model metni KORUNUR; eski kanıt/sürüm korumaları tek tek rollerle aynıdır.
-  type BulkRow = { postId: string; outcome: 'üretildi' | 'atlandı' | 'hata'; note: string };
-  const [bulk, setBulk] = useState<null | { phase: 'confirm' | 'run' | 'done'; withCheck: boolean; total: number; index: number; cur: string | null; rows: BulkRow[]; halted?: string }>(null);
-  const bulkRef = useRef({ cancel: false, running: false });
-  const bulkOne = async (id: string, withCheck: boolean, force = false): Promise<Omit<BulkRow, 'postId'> & { fatal?: string }> => {
-    const post = () => planRef.current.posts.find((p) => p.id === id);
-    const bind = () => { const p = post(); return p ? bindingOf(planRef.current, p) : null; };
-    const skip = (note: string) => ({ outcome: 'atlandı' as const, note });
-    const bad = (note: string) => ({ outcome: 'hata' as const, note });
-    const failNote = () => { const f = lastFailRef.current; return f ? { note: f.message, fatal: f.kind === 'kapalı' ? f.message : undefined } : { note: 'Yanıt kabul edilmedi (bağlam değişti veya iptal edildi).' }; };
-    const p0 = post();
-    const b0 = bind();
-    if (!p0 || !b0) return skip('Post silindi.');
-    if (analysis && needsAnalysis(allByIdRef.current.get(p0.assetId))) return skip('Görsel henüz analiz edilmedi: önce “Eksik görselleri analiz et”.');
-    if (!force && p0.text && p0.text.source === 'manual') return skip('Elle yazılmış/düzenlenmiş metin korunur.');
-    if (!force && p0.text && captionStatus(getEntry(id), p0.text, b0) === 'geçerli') return skip('Geçerli model metni zaten var.');
-    if (selectionStatus(getEntry(id), b0) !== 'geçerli') {
-      let e = getEntry(id);
-      if (ideasStatus(e, b0) !== 'geçerli' || !e.ideas) {
-        await runRole(id, 'ideas', force && !!e.ideas);
-        if (!aliveRef.current) return bad('Sekme kapandı.');
-        const b1 = bind();
-        e = getEntry(id);
-        if (!b1 || !e.ideas || ideasStatus(e, b1) !== 'geçerli') return { outcome: 'hata', ...failNote() };
+  // ── "Metin üret": TEK açık kullanıcı eylemi. Önce eksik ANLAMSAL görsel analizini (mevcut analiz fonksiyonuyla) tamamlar, sonra her post için üç fikri hazırlar.
+  // Fikir SEÇİMİ her zaman insandır: sessiz varsayılan seçim YOK. Caption, seçtiğiniz fikirle AYRI açık eylemle yazılır. Hazır/güncel analiz ve fikirler yeniden çağrılmaz;
+  // elle yazılmış metin ve seçtiğiniz fikir korunur; eksikler sessizce atlanmaz, kısmi iş "tamamlandı" diye sunulmaz.
+  type BatchRow = { postId: string; outcome: 'hazır' | 'atlandı' | 'hata'; note: string };
+  type Batch = { kind: 'metin' | 'caption'; phase: 'confirm' | 'run' | 'done'; stage: 'analiz' | 'fikir' | 'caption'; total: number; index: number; cur: string | null; rows: BatchRow[]; halted?: string; counts: { analysis: number; ideas: number; captions: number } };
+  const [batch, setBatch] = useState<Batch | null>(null);
+  const batchRef = useRef({ cancel: false, running: false });
+  const postNow = (id: string) => planRef.current.posts.find((p) => p.id === id);
+  const bindNow = (id: string) => { const p = postNow(id); return p ? bindingOf(planRef.current, p) : null; };
+  const selectionReady = (id: string) => { const b = bindNow(id); return !!b && selectionStatus(getEntry(id), b) === 'geçerli'; };
+  const ideasReady = (id: string) => { const b = bindNow(id); const e = getEntry(id); return !!b && !!e.ideas && ideasStatus(e, b) === 'geçerli'; };
+  const approvePlan = () => { const sig = visualPlanSig(planRef.current); doneRef.current = sig; setDoneSig(sig); };
+  const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+  const MEASURE_WAIT_MS = 30_000; // yeni kırpım ölçümü için ÜST SINIR (takılı kalma yok; aşılırsa görünür hata)
+  const SEMANTIC_WAIT_MS = 2_000; // analiz sonrası yenilenen anlamsal veri için üst sınır
+  const srcOf = (asset: string) => allByIdRef.current.get(asset)?.visual?.provenance.sourceSha256 ?? null;
+  /**
+   * Uzun işlemin BAŞLANGIÇ anındaki bağlam: görsel plan imzası + kaynak piksel özetleri. İşlem sürerken iptal / kapsam / plan (görsel, sıra, kırpım) / kaynak
+   * değişirse `guard()` neden döndürür: işlem durur ve onay YENİ plana/kaynağa TAŞINMAZ (onay geri alınır).
+   */
+  const startGuard = (assetIds: string[]) => {
+    const sig0 = visualPlanSig(planRef.current);
+    const src0 = new Map(assetIds.map((a) => [a, srcOf(a)] as const));
+    return (): { why: string; revoke: boolean } | null => {
+      if (batchRef.current.cancel) return { why: 'Durduruldu.', revoke: false };
+      if (!aliveRef.current) return { why: 'Sekme veya kapsam kapandı.', revoke: false };
+      if (visualPlanSig(planRef.current) !== sig0) return { why: 'Görsel plan (görsel / sıra / kırpım) işlem sürerken değişti; onay yeni plana taşınmadı. “Metin üret”e yeniden basın.', revoke: true };
+      for (const [a, s0] of src0) { const s1 = srcOf(a); if (s0 !== null && s1 !== null && s0 !== s1) return { why: `Görselin kaynağı (${a}) işlem sürerken değişti; onay yeni kaynağa taşınmadı. “Metin üret”e yeniden basın.`, revoke: true }; }
+      return null;
+    };
+  };
+  /** Yeni (yenilenen) görsellerin kırpım ölçümü hazır olana kadar SINIRLI bekler; anlamsal veri `semantic` süresinde gelmezse beklemeyi bırakır (yazım yine de engellenir). */
+  const settle = async (assets: string[], guard: ReturnType<typeof startGuard>): Promise<{ stop: { why: string; revoke: boolean } | null; timedOut?: string }> => {
+    const t0 = Date.now();
+    for (;;) {
+      const g = guard();
+      if (g) return { stop: g };
+      const fresh = assets.every((a) => !needsAnalysis(allByIdRef.current.get(a)));
+      if (readyRef.current && (fresh || Date.now() - t0 > SEMANTIC_WAIT_MS)) return { stop: null };
+      if (Date.now() - t0 > MEASURE_WAIT_MS) return { stop: null, timedOut: `Kırpım ölçümü ${MEASURE_WAIT_MS / 1000} sn içinde tamamlanmadı; yaratıcı roller başlatılmadı. Bir süre sonra “Metin üret”e yeniden basın.` };
+      await sleep(50);
+    }
+  };
+  const analysisNeeded = (ids: string[]) => (analysis ? [...new Set(ids.map((id) => postNow(id)?.assetId).filter((a): a is string => !!a && needsAnalysis(allByIdRef.current.get(a))))] : []);
+  const metinTargets = (ids: string[], single: boolean) => ids.filter((id) => { const p = postNow(id); return !!p && (single || p.text?.source !== 'manual'); });
+  const captionTargets = () => plan.posts.filter((p) => statusOf(p).selection === 'geçerli' && statusOf(p).caption !== 'geçerli' && p.text?.source !== 'manual').map((p) => p.id);
+  const openMetinConfirm = () => {
+    const ids = metinTargets(plan.posts.map((p) => p.id).reverse(), false);
+    setBatch({ kind: 'metin', phase: 'confirm', stage: 'analiz', total: ids.length, index: 0, cur: null, rows: [], counts: { analysis: analysisNeeded(ids).length, ideas: ids.filter((id) => !selectionReady(id) && !ideasReady(id)).length, captions: 0 } });
+  };
+  const openCaptionConfirm = () => setBatch({ kind: 'caption', phase: 'confirm', stage: 'caption', total: captionTargets().length, index: 0, cur: null, rows: [], counts: { analysis: 0, ideas: 0, captions: captionTargets().length } });
+
+  const metinUret = async (ids: string[], single = false) => {
+    if (batchRef.current.running) return;
+    batchRef.current = { cancel: false, running: true };
+    const targets = metinTargets(ids, single);
+    const guard = startGuard([...new Set(targets.map((id) => postNow(id)?.assetId).filter((a): a is string => !!a))]);
+    approvePlan(); // bu tıklama görsel planı BU HALİYLE onaylar (onay kutusuyla aynı imza); plan/kaynak değişirse geri alınır
+    const rows: BatchRow[] = ids.filter((i) => !targets.includes(i)).map((postId) => ({ postId, outcome: 'atlandı' as const, note: 'Elle yazılmış metin korunur; bu post için fikir üretilmedi.' }));
+    const needAn = analysisNeeded(targets);
+    const failedAssets = new Map<string, string>();
+    let halted: string | undefined;
+    let refreshError: string | undefined;
+    const upd = (patch: Partial<Batch>) => setBatch((b) => (b ? { ...b, ...patch } : b));
+    const finish = () => { batchRef.current.running = false; if (aliveRef.current) setBatch((b) => (b ? { ...b, phase: 'done', cur: null, rows: [...rows], halted } : b)); };
+    /** Koruma tetiklenince: kalan postlar açıkça "atlandı" yazılır, gerekirse onay geri alınır, iş "tamamlandı" sayılmaz */
+    const stopWith = (g: { why: string; revoke: boolean }, rest: string[]) => {
+      for (const r of rest) rows.push({ postId: r, outcome: 'atlandı', note: g.why });
+      halted = g.why;
+      if (g.revoke && aliveRef.current) { doneRef.current = null; setDoneSig(null); }
+      finish();
+    };
+    setBatch({ kind: 'metin', phase: 'run', stage: needAn.length ? 'analiz' : 'fikir', total: needAn.length || targets.length, index: 0, cur: null, rows: [...rows], counts: { analysis: needAn.length, ideas: 0, captions: 0 } });
+    // 1) Eksik anlamsal analiz (görsel başına 1 çağrı, sırayla; hazır/güncel olan çağrılmaz)
+    let analysed = 0;
+    for (let i = 0; i < needAn.length; i++) {
+      const g = guard();
+      if (g) { if (!aliveRef.current) { batchRef.current.running = false; return; } return stopWith(g, targets); }
+      upd({ stage: 'analiz', index: i + 1, total: needAn.length, cur: null });
+      const r = await analysis!.run(needAn[i]);
+      if (r.ok) analysed++;
+      else { failedAssets.set(needAn[i], r.message); if (r.fatal) { halted = r.message; break; } }
+    }
+    if (!aliveRef.current) { batchRef.current.running = false; return; }
+    {
+      const g = guard();
+      if (g) return stopWith(g, targets);
+    }
+    // 2) Envanteri yenile → yeni kırpım ölçümlerinin hazır olmasını SINIRLI bekle (eski onayla yeni görsele üretim başlatma)
+    if (analysed) {
+      try { await analysis!.refresh(); } catch (e: any) { refreshError = e?.message ? String(e.message) : 'bilinmeyen hata'; }
+      if (!aliveRef.current) { batchRef.current.running = false; return; }
+    }
+    upd({ stage: 'fikir', index: 0, cur: null });
+    const waited = await settle(refreshError ? [] : needAn.filter((a) => !failedAssets.has(a)), guard); // yenileme zaten başarısızsa anlamsal veriyi bekleme: hata hemen görünür
+    if (waited.stop) { if (!aliveRef.current) { batchRef.current.running = false; return; } return stopWith(waited.stop, targets); }
+    if (waited.timedOut) { halted = waited.timedOut; for (const id of targets) rows.push({ postId: id, outcome: 'hata', note: waited.timedOut }); return finish(); }
+    const ready: string[] = [];
+    for (const id of targets) {
+      const post = postNow(id);
+      if (!post) { rows.push({ postId: id, outcome: 'atlandı', note: 'Post silindi.' }); continue; }
+      if (analysis && needsAnalysis(allByIdRef.current.get(post.assetId))) {
+        rows.push({ postId: id, outcome: 'hata', note: failedAssets.get(post.assetId) ?? (refreshError ? `Analiz tamamlandı ama görsel listesi yenilenemedi: ${refreshError}` : halted) ?? 'Görselde konu bilgisi oluşmadı (analiz sonucu boş).' });
+        continue;
       }
-      if (e.ideas!.status !== 'ok' || !e.ideas!.ideas.length) return skip(`Bilgi yetersiz: ${e.ideas!.missingInfo ?? 'görselden yeterli bilgi çıkarılamadı'}`);
-      const b2 = bind();
-      if (!b2) return skip('Post silindi.');
-      const r = selectIdea(getEntry(id), e.ideas!.ideas[0].id, b2);
-      if (!r.ok) return bad(r.why);
-      putEntry(r.entry);
+      ready.push(id);
     }
-    await runRole(id, 'caption', force && !!p0.text);
-    if (!aliveRef.current) return bad('Sekme kapandı.');
-    const pp = post();
-    const bb = bind();
-    if (!pp || !bb || captionStatus(getEntry(id), pp.text, bb) !== 'geçerli') return { outcome: 'hata', ...failNote() };
-    if (withCheck) {
-      await runRole(id, 'check');
-      const fc = lastFailRef.current;
-      return { outcome: 'üretildi', note: fc ? `Caption hazır; kontrol yapılamadı: ${fc.message}` : 'Fikir seçildi, caption ve kontrol hazır.' };
-    }
-    return { outcome: 'üretildi', note: 'İlk fikir seçildi, caption hazır (kontrol ayrı adım).' };
-  };
-  const startBulk = async () => {
-    if (bulkRef.current.running) return;
-    bulkRef.current = { cancel: false, running: true };
-    const withCheck = bulk?.withCheck ?? false;
-    const order = planRef.current.posts.slice().reverse().map((p) => p.id); // yayın sırası: önceki postlar sonrakilerin "yakın geçmişi" olur
-    const rows: BulkRow[] = [];
-    setBulk({ phase: 'run', withCheck, total: order.length, index: 0, cur: null, rows: [] });
+    // 3) Fikirler (post başına 1 çağrı; hazır fikir ya da seçili fikir varsa çağrılmaz)
+    upd({ total: ready.length, index: 0, rows: [...rows] });
     let streak = 0;
-    let halted: string | undefined;
-    for (let i = 0; i < order.length; i++) {
-      if (bulkRef.current.cancel) { halted = 'İptal edildi; kalan postlar işlenmedi.'; break; }
-      if (!aliveRef.current) break;
-      setBulk((b) => (b ? { ...b, index: i + 1, cur: order[i] } : b));
-      const r = await bulkOne(order[i], withCheck);
-      rows.push({ postId: order[i], outcome: r.outcome, note: r.note });
-      setBulk((b) => (b ? { ...b, rows: [...rows] } : b));
-      streak = r.outcome === 'hata' ? streak + 1 : 0;
-      if (r.fatal) { halted = `Durduruldu: ${r.fatal}`; break; }
-      if (streak >= 3) { halted = 'Art arda 3 hata: gereksiz ücret oluşmasın diye durduruldu.'; break; }
+    for (let i = 0; i < ready.length; i++) {
+      const g = guard();
+      if (g) { if (!aliveRef.current) { batchRef.current.running = false; return; } return stopWith(g, ready.slice(i)); }
+      const id = ready[i];
+      upd({ index: i + 1, cur: id });
+      if (selectionReady(id)) { rows.push({ postId: id, outcome: 'hazır', note: 'Seçtiğiniz fikir korunuyor.' }); streak = 0; continue; }
+      const e0 = getEntry(id);
+      if (ideasReady(id) && e0.ideas && e0.ideas.status === 'ok' && e0.ideas.ideas.length) { rows.push({ postId: id, outcome: 'hazır', note: 'Fikirler zaten hazır (tekrar çağrılmadı): bir tanesini seçin.' }); streak = 0; continue; }
+      const w = await settle([], guard); // ölçüm yeniden sürüyorsa (başka bir değişiklikten) sınırlı bekle
+      if (w.stop) { if (!aliveRef.current) { batchRef.current.running = false; return; } return stopWith(w.stop, ready.slice(i)); }
+      if (w.timedOut) { halted = w.timedOut; for (const r of ready.slice(i)) rows.push({ postId: r, outcome: 'hata', note: w.timedOut }); return finish(); }
+      await runRole(id, 'ideas');
+      if (!aliveRef.current) { batchRef.current.running = false; return; }
+      const e = getEntry(id);
+      const b = bindNow(id);
+      if (b && e.ideas && ideasStatus(e, b) === 'geçerli') {
+        if (e.ideas.status === 'ok' && e.ideas.ideas.length) rows.push({ postId: id, outcome: 'hazır', note: 'Üç fikir hazır: bir tanesini SİZ seçin.' });
+        else rows.push({ postId: id, outcome: 'atlandı', note: `Bilgi yetersiz: ${e.ideas.missingInfo ?? 'görselden yeterli bilgi çıkarılamadı'}` });
+        streak = 0;
+      } else {
+        const f = lastFailRef.current;
+        rows.push({ postId: id, outcome: 'hata', note: f?.message ?? 'Yanıt kabul edilmedi (bağlam değişti veya iptal edildi).' });
+        streak++;
+        if (f?.kind === 'kapalı') { halted = f.message; break; }
+        if (streak >= 3) { halted = 'Art arda 3 hata: gereksiz ücret oluşmasın diye durduruldu.'; break; }
+      }
+      upd({ rows: [...rows] });
     }
-    bulkRef.current.running = false;
-    if (aliveRef.current) setBulk((b) => (b ? { ...b, phase: 'done', cur: null, rows: [...rows], halted } : b));
-  };
-  // ── Görsel analizi: açık eylem; görsel başına 1 model çağrısı, sırayla. Başarısızlık/kapalı → durur ve nedeni gösterilir. ──
-  const [an, setAn] = useState<null | { phase: 'run' | 'done'; total: number; index: number; ok: number; fails: Array<{ id: string; msg: string }>; halted?: string }>(null);
-  const anRef = useRef({ cancel: false, running: false });
-  const runAnalysis = async (ids: string[]) => {
-    if (!analysis || anRef.current.running || !ids.length) return;
-    anRef.current = { cancel: false, running: true };
-    let ok = 0;
-    const fails: Array<{ id: string; msg: string }> = [];
-    let halted: string | undefined;
-    setAn({ phase: 'run', total: ids.length, index: 0, ok: 0, fails: [] });
-    for (let i = 0; i < ids.length; i++) {
-      if (anRef.current.cancel) { halted = 'Durduruldu; kalan görseller analiz edilmedi.'; break; }
-      if (!aliveRef.current) break;
-      setAn((a) => (a ? { ...a, index: i + 1 } : a));
-      const r = await analysis.run(ids[i]);
-      if (r.ok) ok++; else { fails.push({ id: ids[i], msg: r.message }); if (r.fatal) { halted = r.message; break; } }
-      setAn((a) => (a ? { ...a, ok, fails: [...fails] } : a));
-    }
-    anRef.current.running = false;
-    try { if (ok) await analysis.refresh(); } catch { /* yenileme hatası analiz sonucunu bozmaz */ }
-    if (aliveRef.current) setAn((a) => (a ? { ...a, phase: 'done', ok, fails, halted } : a));
+    finish();
   };
 
-  /** Tek post için tek tık: fikir → ilk fikir → caption. Elle metin varsa AÇIK tıklama = üzerine yazma onayı; eskisi geçmişte saklanır. */
-  const [oneBusy, setOneBusy] = useState(false);
-  const [oneMsg, setOneMsg] = useState<{ postId: string; text: string } | null>(null);
-  const oneCancelRef = useRef(false);
-  const generateOne = async (post: Post) => {
-    if (oneBusy || runningRef.current[post.id]) return;
-    oneCancelRef.current = false;
-    setOneBusy(true);
-    setOneMsg(null);
-    if (post.text?.source === 'manual') { overwriteRef.current = { ...overwriteRef.current, [post.id]: true }; setOverwrite((m) => ({ ...m, [post.id]: true })); }
-    try {
-      const r = await bulkOne(post.id, false, true);
-      if (!aliveRef.current) return;
-      setOneMsg({ postId: post.id, text: oneCancelRef.current ? 'İptal edildi.' : r.outcome === 'üretildi' ? 'Metin hazır. Beğenmezseniz “Yeniden yaz”a basın ya da kendiniz düzenleyin.' : r.note });
-    } finally {
-      if (aliveRef.current) { setOneBusy(false); setOverwrite((m) => ({ ...m, [post.id]: false })); }
-      overwriteRef.current = { ...overwriteRef.current, [post.id]: false };
+  /** Seçtiğiniz fikirlerle caption: yalnız İNSAN seçimi olan, geçerli metni olmayan postlar; sırayla, post başına 1 çağrı. */
+  const captionSelected = async () => {
+    if (batchRef.current.running) return;
+    batchRef.current = { cancel: false, running: true };
+    approvePlan();
+    const ids = captionTargets();
+    const rows: BatchRow[] = [];
+    let halted: string | undefined;
+    let streak = 0;
+    const guard = startGuard([...new Set(ids.map((id) => postNow(id)?.assetId).filter((x): x is string => !!x))]);
+    setBatch({ kind: 'caption', phase: 'run', stage: 'caption', total: ids.length, index: 0, cur: null, rows: [], counts: { analysis: 0, ideas: 0, captions: ids.length } });
+    for (let i = 0; i < ids.length; i++) {
+      const g = guard();
+      if (g) {
+        if (!aliveRef.current) break;
+        for (const r of ids.slice(i)) rows.push({ postId: r, outcome: 'atlandı', note: g.why });
+        halted = g.why;
+        if (g.revoke) { doneRef.current = null; setDoneSig(null); }
+        break;
+      }
+      const id = ids[i];
+      setBatch((b) => (b ? { ...b, index: i + 1, cur: id } : b));
+      await runRole(id, 'caption');
+      if (!aliveRef.current) break;
+      const post = postNow(id);
+      const b = bindNow(id);
+      if (post && b && captionStatus(getEntry(id), post.text, b) === 'geçerli') { rows.push({ postId: id, outcome: 'hazır', note: 'Caption seçtiğiniz fikirle yazıldı (kontrol ayrı adım).' }); streak = 0; }
+      else {
+        const f = lastFailRef.current;
+        rows.push({ postId: id, outcome: 'hata', note: f?.message ?? 'Yanıt kabul edilmedi (bağlam değişti veya iptal edildi).' });
+        streak++;
+        if (f?.kind === 'kapalı') { halted = f.message; break; }
+        if (streak >= 3) { halted = 'Art arda 3 hata: gereksiz ücret oluşmasın diye durduruldu.'; break; }
+      }
+      setBatch((bb) => (bb ? { ...bb, rows: [...rows] } : bb));
     }
+    batchRef.current.running = false;
+    if (aliveRef.current) setBatch((bb) => (bb ? { ...bb, phase: 'done', cur: null, rows: [...rows], halted } : bb));
   };
-  const stopBulk = () => {
-    bulkRef.current.cancel = true;
-    const cur = bulk?.cur;
+  const startBatch = () => { if (batch?.kind === 'caption') void captionSelected(); else void metinUret(plan.posts.map((p) => p.id).reverse()); };
+  const stopBatch = () => {
+    batchRef.current.cancel = true;
+    const cur = batch?.cur;
     if (cur) cancelRole(cur);
   };
   const withBinding = (postId: string, fn: (e: Entry, cur: Binding) => { ok: true; entry: Entry } | { ok: false; why: string }) => {
@@ -451,6 +537,7 @@ function PostPlannerInner({
   const selCrop = selPost && selCand ? effectiveCrop(plan, selCand) : null;
   useEffect(() => { setDraftText(selPost?.text?.text ?? ''); }, [selPost?.id, selPost?.text?.text]);
 
+  const done = doneSig !== null && doneSig === visualPlanSig(plan);
   const anyBusy = Object.keys(running).length > 0;
   const bindings = new Map(plan.posts.map((p) => [p.id, bindingOf(plan, p)] as const));
   const selBinding = selPost ? bindings.get(selPost.id) ?? null : null;
@@ -462,43 +549,75 @@ function PostPlannerInner({
   const withText = plan.posts.filter((p) => statusOf(p).caption === 'geçerli').length;
   const withIdea = plan.posts.filter((p) => statusOf(p).selection === 'geçerli').length;
   const withCheck = plan.posts.filter((p) => statusOf(p).check === 'geçerli').length;
-  const missingIds = analysis ? [...new Set(plan.posts.filter((p) => needsAnalysis(allById.get(p.assetId))).map((p) => p.assetId))] : [];
-  const analysing = an?.phase === 'run';
   const toneOn = (l: ToneLabel) => tone.label === l;
   const profile = profileAfterStep(plan.posts, historyM, stepNow, plan.crops);
   const chrono = chronology(plan.posts, plan.crops);
   const profShape = gridShape(profile.length);
   const last = plan.lastChange;
 
+  // Taslak: plan + yaratıcı durum + insan metni oturum belleğine yazılır (Marka Kiti/ayarlara gidip dönünce korunur).
+  useEffect(() => {
+    if (!draftStore) return;
+    if (plan.posts.length === 0 && Object.keys(entries).length === 0) draftStore.clear(scopeKey);
+    else draftStore.set(scopeKey, { plan, entries, tone, count, sel, doneSig, savedAt: Date.now(), interrupted: [] });
+  }, [draftStore, scopeKey, plan, entries, tone, count, sel, doneSig]);
+  // Yenileme/kapatma gerçek kayıptır: plan varken tarayıcı uyarısı
+  const hasPlan = plan.posts.length > 0;
+  useEffect(() => {
+    if (!hasPlan) return;
+    const h = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', h);
+    return () => window.removeEventListener('beforeunload', h);
+  }, [hasPlan]);
+
+  const metinBusy = batch?.phase === 'run';
+  const doneBox = (
+    <label className="radio small donebox"><input type="checkbox" checked={done} onChange={(e) => setDoneSig(e.target.checked ? visualPlanSig(planRef.current) : null)} disabled={!n} data-testid="post-visual-done" /> Görsel planı tamamladım</label>
+  );
+  const planBtn = (
+    <button className={n ? '' : 'primary big'} onClick={onPlan} disabled={!ready || anyBusy || metinBusy} data-testid="post-plan-btn" title={ready ? undefined : 'Kırpılmış görünüm ölçümleri tamamlanana kadar kapalı'}>
+      {n ? 'Yeniden planla (kilitler korunur)' : 'Yeni post planı oluştur'}
+    </button>
+  );
+
+  // ── BOŞ YÜZEY: tek birincil eylem ──
+  if (n === 0) {
+    return (
+      <ImageSrcContext.Provider value={ports.imageSrc}>
+        <main className="shell post-planner pp-emptyscreen" data-testid="post-planner">
+          <section className="pp-hero" aria-label="Post planlayıcı">
+            <h1>Post Planlayıcı</h1>
+            {planBtn}
+            {!ready && <p className="counts" role="status" data-testid="post-measure-progress">Görseller hazırlanıyor ({measured}/{toMeasure}); bitince plan oluşturulabilir.</p>}
+            {ready && eligibleNow === 0 && <p className="small" role="status" data-testid="post-empty">Planlanabilir görsel yok. Kütüphaneye uygun fotoğraf ekleyin.</p>}
+            {ready && eligibleNow > 0 && <p className="small muted" data-testid="post-empty">{eligibleNow} uygun görsel hazır. Plan oluşturmak model çağırmaz.</p>}
+            {msgs.length > 0 && <div className="shortage" role="status" data-testid="post-messages">{msgs.map((m, i) => <p key={i}>{m}</p>)}</div>}
+            <div className="feed pp-feed" data-testid="post-grid" hidden aria-hidden="true" />
+          </section>
+        </main>
+      </ImageSrcContext.Provider>
+    );
+  }
+
   return (
     <ImageSrcContext.Provider value={ports.imageSrc}>
       <main className="shell post-planner" data-testid="post-planner">
+        {restoredNote && (
+          <p className="notice small" role="status" data-testid="post-restored-note">
+            Planınız ve yazdığınız metinler bu oturumda korundu.{restored && restored.interrupted.length ? ` Ayrılırken yarıda kalan üretim iptal edildi (${restored.interrupted.join(', ')}); gerekirse yeniden başlatın.` : ''} Sayfayı yenilerseniz ya da kapatırsanız kaybolur. <button onClick={() => setRestoredNote(false)} data-testid="post-restored-dismiss">Tamam</button>
+          </p>
+        )}
         <header className="top pp-top">
           <div>
             <h1>Post Planlayıcı</h1>
-            <p className="muted small">Instagram post · {POST_SIZE.w}×{POST_SIZE.h} (4:5) · taslak: {ports.persistence ? 'kalıcılık bu sekmede kullanılmaz' : 'kalıcılık yok'}; canlıya hiçbir şey gönderilmez.</p>
+            <p className="muted small">Instagram post · {POST_SIZE.w}×{POST_SIZE.h} (4:5) · taslak; canlıya hiçbir şey gönderilmez.</p>
           </div>
           <div className="actions">
-            <label className="field" style={{ margin: 0 }}>Post sayısı
-              <input type="number" min={1} max={MAX_POSTS} value={count} onChange={(e) => setCount(e.target.value)} data-testid="post-count" aria-label="Post sayısı" style={{ width: 60 }} />
-            </label>
-            <button className={n ? '' : 'primary big'} onClick={onPlan} disabled={!ready || anyBusy} data-testid="post-plan-btn" title={ready ? undefined : 'Kırpılmış görünüm ölçümleri tamamlanana kadar kapalı'}>
-              {n ? 'Yeniden planla (kilitler korunur)' : 'Post planı oluştur'}
-            </button>
-            <button onClick={() => op((p, e) => addPosts(p, 1, e))} disabled={!n || !ready} data-testid="post-add">Post ekle</button>
-            <button onClick={() => op((p, e) => arrangePlan(p, e))} disabled={n < 2 || !ready} data-testid="post-arrange">Sırayı iyileştir</button>
-            <button onClick={() => op((p, e) => undoLast(p, e))} disabled={!plan.undo.length} data-testid="post-undo">Geri al{plan.undo.length ? ` (${plan.undo[plan.undo.length - 1].label})` : ''}</button>
+            <button className="primary big" onClick={openMetinConfirm} disabled={!ready || !ports.creative.available || anyBusy || metinBusy || batch?.phase === 'confirm'} data-testid="bulk-open" title={ready ? undefined : 'Kırpım ölçümleri bitince açılır'}>Metin üret</button>
           </div>
         </header>
-
         {!ready && <p className="counts" role="status" data-testid="post-measure-progress">Kırpılmış (4:5) görünümler ölçülüyor ({measured}/{toMeasure}): plan eksik ölçümle kurulmasın diye düğme kapalı.</p>}
-        <p className="counts" data-testid="post-capacity">
-          Uygun aday: <strong>{n ? cap.available + n : eligibleNow}</strong> · planda <strong>{n}</strong>{plan.requested ? ` / istenen ${plan.requested}` : ''}
-          {cap.note ? ` — ${cap.note}` : ''}
-        </p>
-        {evaluation && <p className="counts" data-testid="post-plan-score">Plan uyumu (sezgisel, kayıtlı analiz + nihai kırpım): <strong>{evaluation.total}</strong>/100{evaluation.notes.length ? ` · ${evaluation.notes.join(' · ')}` : ''}</p>}
         {msgs.length > 0 && <div className="shortage" role="status" data-testid="post-messages">{msgs.map((m, i) => <p key={i}>{m}</p>)}</div>}
-
 
         {conflict && (
           <div className="rejectbox" role="dialog" aria-label="Silme çatışması" data-testid="post-conflict">
@@ -516,12 +635,12 @@ function PostPlannerInner({
           </div>
         )}
 
-
         <section className="genbar" aria-label="Yaratıcı metin" data-testid="post-text-panel">
           <div className="genrow">
-            <button className="primary big" onClick={() => setBulk({ phase: 'confirm', withCheck: false, total: n, index: 0, cur: null, rows: [] })} disabled={!n || !ready || !ports.creative.available || anyBusy || analysing || bulk?.phase === 'run' || bulk?.phase === 'confirm'} data-testid="bulk-open" title={ready ? undefined : 'Kırpım ölçümleri bitince açılır'}>Tüm postlar için metin üret</button>
-            <span className="small" data-testid="post-text-summary">{n === 0 ? 'Önce post planını oluşturun.' : `${withText}/${n} postta metin var`}{withIdea || withCheck ? ` · ${withIdea} seçilmiş fikir · ${withCheck} kontrol` : ''}</span>
-            {voice.approved === true ? <span className="pill" data-testid="post-voice-approved">Marka dili: onaylı rehber</span> : (
+            <span className="small" data-testid="post-text-summary">{withText}/{n} postta metin var{withIdea || withCheck ? ` · ${withIdea} seçilmiş fikir · ${withCheck} kontrol` : ''}</span>
+            {captionTargets().length > 0 && <button onClick={openCaptionConfirm} disabled={!ready || !ports.creative.available || anyBusy || metinBusy || batch?.phase === 'confirm'} data-testid="caption-selected-open">Seçtiğim fikirlerle caption yaz ({captionTargets().length})</button>}
+            {doneBox}
+            {voice.approved === true ? null : (
               <details className="tonedrop" data-testid="post-tone-panel">
                 <summary>Ton: <strong>{tone.label || tone.prompt ? [tone.label ? TONE_LABEL_TR[tone.label] : null, tone.prompt ? 'özel tarif' : null].filter(Boolean).join(' + ') : 'sade (varsayılan)'}</strong></summary>
                 <div className="tonebox">
@@ -534,51 +653,69 @@ function PostPlannerInner({
                     <input type="text" maxLength={MAX_TONE_PROMPT} value={tone.prompt ?? ''} onChange={(e) => setTone((cur) => ({ ...cur, prompt: e.target.value }))} data-testid="post-tone-prompt" placeholder="ör. mahalle kahvecisi gibi, sade ve rahat" />
                   </label>
                   <p className="small muted" data-testid="post-tone-default-note">Ton seçmezseniz sade, tarafsız bir üslup kullanılır; marka kişiliği varsayılmaz. Bu ton geçicidir, onaylı marka dili değildir.</p>
-                  {onStartGuide && <button onClick={onStartGuide} data-testid="post-start-guide">Marka dilini birlikte oluştur</button>}
+                  {onStartGuide && <button onClick={onStartGuide} data-testid="post-start-guide">Marka dili ayarları (Marka Kiti)</button>}
                 </div>
               </details>
             )}
           </div>
-          {analysis && (missingIds.length > 0 || an) && (
-            <div className="analysisbar" data-testid="analysis-bar">
-              {missingIds.length > 0 && !analysing && <p className="small"><strong>{missingIds.length} görselin analizi yok.</strong> Konu açıklaması olmadan metin yazılmaz (görmediği şeyi uydurmasın diye). <button className="primary" onClick={() => void runAnalysis(missingIds)} disabled={anyBusy || bulk?.phase === 'run'} data-testid="analysis-run-all">Eksik görselleri analiz et ({missingIds.length} çağrı)</button></p>}
-              {analysing && an && <p className="small" role="status" data-testid="analysis-progress">Görseller analiz ediliyor: {an.index}/{an.total} <button onClick={() => { anRef.current.cancel = true; }} data-testid="analysis-stop">Durdur</button></p>}
-              {an?.phase === 'done' && (
-                <div className="small" role="status" data-testid="analysis-summary">
-                  <strong>{an.ok}</strong> görsel analiz edildi{an.fails.length ? `, ${an.fails.length} başarısız` : ''}. <button onClick={() => setAn(null)} data-testid="analysis-dismiss">Kapat</button>
-                  {an.halted && <p className="warn small" data-testid="analysis-halted">{an.halted}</p>}
-                  {an.fails.length > 0 && <ul>{an.fails.slice(0, 5).map((f) => <li key={f.id}>{f.id}: {f.msg}</li>)}</ul>}
-                </div>
+          {doneSig !== null && !done && <p className="small" role="status" data-testid="post-done-stale">Görsel plan (görsel / sıra / kırpım) onaydan sonra değişti: yaratıcı adımlar için yeniden onaylayın ya da “Metin üret”e basın.</p>}
+          {batch?.phase === 'confirm' && (
+            <div className="bulkconfirm" role="dialog" aria-label="Metin üretimi onayı" data-testid="bulk-confirm">
+              {batch.kind === 'metin' ? (
+                <p className="small">
+                  <strong>{n} post</strong> için sırayla: {batch.counts.analysis > 0 ? <><strong>{batch.counts.analysis} görselin analizi eksik, önce o yapılır</strong>, sonra </> : ''}her post için <strong>üç fikir hazırlanır</strong> (yaklaşık <strong>{batch.counts.analysis + batch.counts.ideas} model çağrısı</strong>). <strong>Fikri siz seçersiniz</strong>; caption seçtiğiniz fikirle yazılır. Hazır analiz/fikirler tekrar çağrılmaz; elle yazdığınız metinler korunur. Başlatınca görsel plan bu haliyle onaylanır.
+                </p>
+              ) : (
+                <p className="small">Seçtiğiniz fikirlerle <strong>{batch.counts.captions} caption</strong> yazılır (yaklaşık {batch.counts.captions} model çağrısı). Fikri siz seçmiştiniz; elle yazılmış metinler korunur.</p>
               )}
-            </div>
-          )}
-          {bulk?.phase === 'confirm' && (
-            <div className="bulkconfirm" role="dialog" aria-label="Toplu metin üretimi onayı" data-testid="bulk-confirm">
-              <p className="small"><strong>{n} post</strong> için sırayla: fikir → <strong>ilk fikir otomatik seçilir</strong> → caption. Yaklaşık <strong>{bulk.withCheck ? n * 3 : n * 2} model çağrısı</strong>. Elle yazdığınız metinler ve sizin seçtiğiniz fikirler korunur; sonradan post başına değiştirebilirsiniz.{missingIds.length > 0 ? ` ${missingIds.length} görsel analiz edilmediği için atlanacak.` : ''}</p>
-              <label className="small"><input type="checkbox" checked={bulk.withCheck} onChange={(e) => setBulk({ ...bulk, withCheck: e.target.checked })} data-testid="bulk-check-option" /> Bağımsız kontrolü de çalıştır (post başına +1 çağrı)</label>
               <div className="actions">
-                <button className="primary" onClick={() => void startBulk()} data-testid="bulk-start">Başlat</button>
-                <button onClick={() => setBulk(null)} data-testid="bulk-cancel-confirm">Vazgeç</button>
+                <button className="primary" onClick={startBatch} data-testid="bulk-start">Başlat</button>
+                <button onClick={() => setBatch(null)} data-testid="bulk-cancel-confirm">Vazgeç</button>
               </div>
             </div>
           )}
-          {bulk?.phase === 'run' && (
-            <p className="small" role="status" data-testid="bulk-progress">Metin üretiliyor: {bulk.index}/{bulk.total}{bulk.cur ? ` · ${bulk.cur}` : ''} <button onClick={stopBulk} data-testid="bulk-stop">Durdur</button></p>
+          {batch?.phase === 'run' && (
+            <p className="small" role="status" data-testid="bulk-progress">
+              {batch.stage === 'analiz' ? 'Görseller analiz ediliyor' : batch.stage === 'fikir' ? 'Fikirler hazırlanıyor' : 'Caption yazılıyor'}: {batch.index}/{batch.total}{batch.cur ? ` · ${batch.cur}` : ''} <button onClick={stopBatch} data-testid="bulk-stop">Durdur</button>
+            </p>
           )}
-          {bulk && bulk.phase !== 'confirm' && bulk.rows.length > 0 && (
-            <div data-testid="bulk-summary" data-phase={bulk.phase}>
-              <p className="small"><strong>{bulk.rows.filter((r) => r.outcome === 'üretildi').length}</strong> üretildi · {bulk.rows.filter((r) => r.outcome === 'atlandı').length} atlandı · {bulk.rows.filter((r) => r.outcome === 'hata').length} hata{bulk.phase === 'done' ? ' · bitti ' : ''}{bulk.phase === 'done' && <button onClick={() => setBulk(null)} data-testid="bulk-dismiss">Kapat</button>}</p>
-              {bulk.halted && <p className="warn small" role="status" data-testid="bulk-halted">{bulk.halted}</p>}
-              <details><summary className="small">Post başına sonuç</summary><ul className="small">{bulk.rows.map((r) => <li key={r.postId} data-testid={`bulk-row-${r.postId}`} data-outcome={r.outcome}>{r.postId}: {r.outcome} — {r.note}</li>)}</ul></details>
-            </div>
-          )}
+          {batch && batch.phase !== 'confirm' && batch.rows.length > 0 && (() => {
+            const ok = batch.rows.filter((r) => r.outcome === 'hazır').length;
+            const skipped = batch.rows.filter((r) => r.outcome === 'atlandı').length;
+            const bad = batch.rows.filter((r) => r.outcome === 'hata').length;
+            const incomplete = bad > 0 || skipped > 0 || !!batch.halted;
+            return (
+              <div data-testid="bulk-summary" data-phase={batch.phase}>
+                <p className="small">
+                  <strong>{ok}</strong> post {batch.kind === 'metin' ? 'için fikirler hazır' : 'için caption yazıldı'} · {skipped} atlandı · {bad} hata
+                  {batch.phase === 'done' ? (incomplete ? ' · İŞ EKSİK KALDI' : batch.kind === 'metin' ? ' · şimdi her post için bir fikir seçin' : ' · bitti') : ''}{' '}
+                  {batch.phase === 'done' && <button onClick={() => setBatch(null)} data-testid="bulk-dismiss">Kapat</button>}
+                </p>
+                {batch.halted && <p className="warn small" role="status" data-testid="bulk-halted">{batch.halted}</p>}
+                <details open={bad > 0 || skipped > 0}><summary className="small">Post başına sonuç</summary><ul className="small">{batch.rows.map((r) => <li key={r.postId} data-testid={`bulk-row-${r.postId}`} data-outcome={r.outcome}>{r.postId}: {r.outcome} — {r.note}</li>)}</ul></details>
+              </div>
+            );
+          })()}
           {!ports.creative.available && <div className="shortage" role="alert" data-testid="post-copy-unavailable"><strong>Yaratıcı fikir/metin kapalı.</strong> {ports.creative.unavailableReason} Görsel plan etkilenmez.</div>}
         </section>
+
+        <div className="pp-tools small">
+          <label className="field" style={{ margin: 0 }}>Post sayısı
+            <input type="number" min={1} max={MAX_POSTS} value={count} onChange={(e) => setCount(e.target.value)} data-testid="post-count" aria-label="Post sayısı" style={{ width: 56 }} />
+          </label>
+          {planBtn}
+          <button onClick={() => op((p, e) => addPosts(p, 1, e))} disabled={!ready} data-testid="post-add">Post ekle</button>
+          <button onClick={() => op((p, e) => arrangePlan(p, e))} disabled={n < 2 || !ready} data-testid="post-arrange">Sırayı iyileştir</button>
+          <button onClick={() => op((p, e) => undoLast(p, e))} disabled={!plan.undo.length} data-testid="post-undo">Geri al{plan.undo.length ? ` (${plan.undo[plan.undo.length - 1].label})` : ''}</button>
+        </div>
+        <p className="counts" data-testid="post-capacity">
+          Uygun aday: <strong>{cap.available + n}</strong> · planda <strong>{n}</strong>{plan.requested ? ` / istenen ${plan.requested}` : ''}
+          {cap.note ? ` — ${cap.note}` : ''}
+        </p>
 
         <div className="pp-cols">
           <section className="pp-center" aria-label="Post planı">
             <h2 className="pp-h">Plan düzeni · profil sırası (yeni → eski) · {n} post{shape.partial ? ` · son sıra kısmi (${shape.lastRowFilled}/3)` : ''}</h2>
-            {n === 0 && <p className="small muted pp-emptystate" data-testid="post-empty">Henüz plan yok. Post sayısını girip "Post planı oluştur"a basın; planlama model çağırmaz.</p>}
             <div className="feed pp-feed" data-testid="post-grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
               {plan.posts.map((p, i) => {
                 const c = allById.get(p.assetId);
@@ -595,6 +732,7 @@ function PostPlannerInner({
                     {c && e ? (
                       <button className="pick" onClick={() => setSel(p.id)} aria-label={`${p.id} incele`}>
                         <CroppedImage c={c} format={POST_FORMAT} focus={e.focus} zoom={e.zoom} />
+                        {(p.assetLock || p.posLock) && <span className="lockbadge" aria-hidden="true">🔒</span>}
                       </button>
                     ) : <div className="pick empty" role="alert">Varlık havuzda yok ({p.assetId})</div>}
                     <div className="cellbar">
@@ -602,15 +740,17 @@ function PostPlannerInner({
                       <span className="small meta" data-testid={`post-lockstate-${p.id}`}>
                         {p.posLock ? 'Görsel + konum kilitli' : p.assetLock ? 'Görsel kilitli · konum serbest' : 'Kilit yok'}
                       </span>
-                      <span className="cellact">
-                        <button aria-label={`${p.id} görseli koru`} aria-pressed={p.assetLock} onClick={() => op((pl) => setAssetLock(pl, p.id, !p.assetLock, p.version))}>{p.assetLock ? '🔒 Görsel' : 'Görseli koru'}</button>
-                      <button aria-label={`${p.id} yerini de koru`} aria-pressed={p.posLock} onClick={() => op((pl) => setPositionLock(pl, p.id, !p.posLock, p.version))}>{p.posLock ? '📌 Yer' : 'Yerini koru'}</button>
+                      {sel === p.id && (
+                      <span className="cellact" data-testid={`post-actions-${p.id}`}>
+                        <button aria-label={`${p.id} görseli koru`} aria-pressed={p.assetLock} onClick={() => op((pl) => setAssetLock(pl, p.id, !p.assetLock, p.version))}>{p.assetLock ? 'Görsel korunuyor ✓' : 'Görseli koru'}</button>
+                      <button aria-label={`${p.id} yerini de koru`} aria-pressed={p.posLock} onClick={() => op((pl) => setPositionLock(pl, p.id, !p.posLock, p.version))}>{p.posLock ? 'Yeri de korunuyor ✓' : 'Yerini de koru'}</button>
                       <button aria-label={`${p.id} değiştir`} disabled={p.assetLock} onClick={() => op((pl, ev) => replacePost(pl, p.id, 'replace', ev, p.version))}>Değiştir</button>
                       <button aria-label={`${p.id} ele ve yenisini getir`} disabled={p.assetLock} onClick={() => op((pl, ev) => replacePost(pl, p.id, 'dismiss', ev, p.version))}>Ele, yenisini getir</button>
                       <button aria-label={`${p.id} sil`} disabled={p.assetLock} onClick={() => op((pl, ev) => deletePost(pl, p.id, ev, p.version))}>Sil</button>
                       <button aria-label={`${p.id} öne al`} disabled={i === 0} onClick={() => op((pl, ev) => movePost(pl, p.id, -1, ev))}>◀</button>
                       <button aria-label={`${p.id} geriye al`} disabled={i === n - 1} onClick={() => op((pl, ev) => movePost(pl, p.id, 1, ev))}>▶</button>
                       </span>
+                      )}
                       <span className="small muted meta" data-testid={`post-score-${p.id}`} title={per?.notes.join(' · ')}>uyum {per ? Math.round(per.total) : '–'}</span>
                       {run && <span className="status" data-testid={`post-busy-${p.id}`}>{run.role === 'ideas' ? 'Fikirler' : run.role === 'caption' ? 'Caption' : 'Kontrol'} üretiliyor…</span>}
                       {!run && lastFail && <span className="status err" data-testid={`post-error-${p.id}`}>{lastFail.f.message}</span>}
@@ -625,31 +765,38 @@ function PostPlannerInner({
                 );
               })}
             </div>
-
           </section>
 
           <aside className="pp-side" aria-label="Seçili post">
-            {!selPost && <div className="pp-pickhint">Bir postun üstüne tıklayın: metnini yazın, kırpımını ayarlayın.</div>}
+            {!selPost && <div className="pp-pickhint">Bir postun üstüne tıklayın: metnini yazın, kırpımını ve kilitlerini ayarlayın.</div>}
             {selPost && selCand && selCrop && (
               <div data-testid="post-crop-panel">
                 <h2 className="pp-sidehead">{selPost.id} <span className="small muted">· {selPost.assetId}</span></h2>
-                {analysis && needsAnalysis(selCand) && (
-                  <p className="small pp-needan" data-testid="post-needs-analysis">Bu görsel henüz analiz edilmedi; metin yazılamaz. <button className="primary" onClick={() => void runAnalysis([selPost.assetId])} disabled={analysing || anyBusy} data-testid="analysis-run-one">{analysing ? 'Analiz ediliyor…' : 'Bu görseli analiz et'}</button></p>
-                )}
+                {analysis && needsAnalysis(selCand) && <p className="small pp-needan" data-testid="post-needs-analysis">Bu görselin anlamsal analizi yok; “Metin üret” önce onu yapar.</p>}
                 <div className="pp-textblock">
                   <label className="field"><strong>Metin (caption)</strong>
-                    <textarea value={draftText} onChange={(e) => setDraftText(e.target.value)} rows={6} data-testid="post-edit-text" placeholder="Elle yazın ya da aşağıdaki düğmeyle ürettirin" />
+                    <textarea value={draftText} onChange={(e) => setDraftText(e.target.value)} rows={6} data-testid="post-edit-text" placeholder="Elle yazın ya da fikir seçip caption yazdırın" />
                   </label>
                   <div className="actions">
-                    <button className="primary" onClick={() => void generateOne(selPost)} disabled={!ready || !ports.creative.available || oneBusy || analysing || bulk?.phase === 'run' || !!running[selPost.id] || (!!analysis && needsAnalysis(selCand))} data-testid="post-gen-this">{oneBusy || running[selPost.id] ? 'Yazılıyor…' : selPost.text ? 'Yeniden yaz' : 'Bu post için metin yaz'}</button>
+                    <button className="primary" onClick={() => void metinUret([selPost.id], true)} disabled={!ready || !ports.creative.available || anyBusy || metinBusy} data-testid="post-gen-this">{metinBusy || running[selPost.id] ? 'Hazırlanıyor…' : 'Bu post için metin üret'}</button>
+                    {statusOf(selPost).selection === 'geçerli' && (
+                      <button className="primary" onClick={() => { approvePlan(); void runRole(selPost.id, 'caption', !!selPost.text && statusOf(selPost).caption === 'geçerli'); }} disabled={!ready || !ports.creative.available || !!running[selPost.id] || metinBusy} data-testid="post-caption-this">{selPost.text && statusOf(selPost).caption === 'geçerli' ? 'Seçtiğim fikirle yeniden yaz' : 'Seçtiğim fikirle caption yaz'}</button>
+                    )}
                     <button onClick={() => saveManual(selPost, draftText)} data-testid="post-save-text" disabled={draftText === (selPost.text?.text ?? '')}>Elle yazdığımı kaydet</button>
-                    {(oneBusy || running[selPost.id]) && <button onClick={() => { oneCancelRef.current = true; cancelRole(selPost.id); }} data-testid="post-gen-cancel">İptal</button>}
                   </div>
-                  {oneMsg && oneMsg.postId === selPost.id && <p className="small" role="status" data-testid="post-gen-msg">{oneMsg.text}</p>}
-                  {selPost.text && <p className="small muted">{selPost.text.source === 'manual' ? 'Bu metni siz yazdınız; yeniden yazılırsa eskisi geçmişte saklanır.' : selPost.text.voiceSource === 'temporary_tone' ? 'Model taslağı · geçici ton.' : 'Model taslağı.'}</p>}
+                  <p className="small muted" data-testid="post-next-step">
+                    {(() => {
+                      const st = statusOf(selPost);
+                      if (running[selPost.id]) return 'Üretim sürüyor…';
+                      if (st.caption === 'geçerli') return selPost.text?.source === 'manual' ? 'Bu metni siz yazdınız; yeniden yazılırsa eskisi geçmişte saklanır.' : 'Metin hazır. İsterseniz aşağıdan bağımsız kontrol edin.';
+                      if (st.selection === 'geçerli') return 'Fikir seçildi: “Seçtiğim fikirle caption yaz” ile devam edin.';
+                      if (st.ideas === 'geçerli') return 'Fikirler hazır: aşağıdan birini SİZ seçin.';
+                      return 'Başlamak için “Bu post için metin üret”: eksik analiz tamamlanır, üç fikir hazırlanır, seçim sizdedir.';
+                    })()}
+                  </p>
                 </div>
-                <details className="pp-detail" data-testid="pp-steps">
-                  <summary>Adım adım: fikir seç, caption yaz, kontrol et</summary>
+                <details className="pp-detail" data-testid="pp-steps" open={!!(entries[selPost.id]?.ideas) || !!running[selPost.id] || undefined}>
+                  <summary>Fikirler, caption ve kontrol (adım adım)</summary>
                   {selBinding && (
                   <CreativePanel
                     postId={selPost.id}
@@ -660,6 +807,7 @@ function PostPlannerInner({
                     status={statusOf(selPost)}
                     running={running[selPost.id] ? { role: running[selPost.id].role } : null}
                     failures={Object.fromEntries(Object.entries(failures[selPost.id] ?? {}).filter(([k, v]) => v && v.sig === `${bindingSig(selBinding)}#${roleCtx(k as CreativeRole, entries[selPost.id] ?? emptyEntry(selPost.id), selPost.text)}`).map(([k, v]) => [k, v!.f]))}
+                    done={done}
                     ready={ready}
                     available={ports.creative.available}
                     unavailableReason={ports.creative.unavailableReason}
@@ -719,7 +867,9 @@ function PostPlannerInner({
         </div>
 
         <details className="pp-more">
-          <summary>Önizleme: son işlem, yayın sırası ve profil görünümü</summary>
+          <summary>Plan ayrıntıları ve önizleme: uyum, son işlem, yayın sırası, profil görünümü</summary>
+          {evaluation && <p className="counts" data-testid="post-plan-score">Plan uyumu (sezgisel, kayıtlı analiz + nihai kırpım): <strong>{evaluation.total}</strong>/100{evaluation.notes.length ? ` · ${evaluation.notes.join(' · ')}` : ''}</p>}
+
             {last && (
               <section className="lastchange" aria-label="Son işlem" data-testid="post-lastchange">
                 <h3>Son işlem: {last.label}</h3>
@@ -759,7 +909,7 @@ function PostPlannerInner({
               <p className="small" data-testid="snapshot-label"><strong>Mevcut yayınlar = geçmiş SNAPSHOT.</strong> {snap.note}</p>
             </section>
         </details>
-        <p className="small muted" data-testid="post-memory-note">Bu sürümde Post planı ve yaratıcı durum yalnız bu sekmenin belleğindedir (sayfa yenilenince / sekme değişip kapanınca kaybolur); yayın geçmişi bağlı değildir.</p>
+        <p className="small muted" data-testid="post-memory-note">Post planı ve yaratıcı durum yalnız bu sekmenin belleğindedir: Marka Kiti/ayarlara gidip dönünce korunur; sayfayı yenilerseniz ya da sekmeyi kapatırsanız kaybolur (kalıcı kayıt yok). Yayın geçmişi bağlı değildir.</p>
       </main>
     </ImageSrcContext.Provider>
   );

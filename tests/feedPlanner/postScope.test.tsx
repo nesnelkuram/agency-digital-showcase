@@ -20,17 +20,38 @@ const start = async () => {
   fireEvent.click(screen.getByLabelText('p1 incele'));
 };
 const ok = (text: string) => ({ responseId: text, accepted: [{ slotKey: 'feed:0', text: { caption: text }, contentHash: 'h', evidenceBasis: 'katalog_gozlem', crop: { version: 0, facts: 'tam' } }], rejected: [], promptVersion: 'mock' });
+const gen = async () => {
+  fireEvent.click(screen.getByTestId('post-visual-done'));
+  fireEvent.click(screen.getByTestId('post-gen-one'));
+};
 const zoom = (v: string) => fireEvent.change(screen.getByLabelText('Yakınlaştırma'), { target: { value: v } });
 afterEach(cleanup);
 
-describe('görsel plan onayı yok', () => {
-  it('onay kutusu yoktur; kırpım değişince roller ölçüm bitince yeniden açılır (kapalı kalmaz)', async () => {
+describe('görsel plan onayı', () => {
+  it('kırpım değişince onay düşer ve yaratıcı roller kapanır; yeniden onaylayınca açılır', async () => {
     render(el(vi.fn()));
     await start();
-    expect(screen.queryByTestId('post-visual-done')).toBeNull();
-    await waitFor(() => expect((screen.getByTestId('ideas-run') as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(screen.getByTestId('post-visual-done'));
+    expect((screen.getByTestId('post-visual-done') as HTMLInputElement).checked).toBe(true);
+    expect((screen.getByTestId('ideas-run') as HTMLButtonElement).disabled).toBe(false);
     zoom('2');
-    await waitFor(() => expect((screen.getByTestId('ideas-run') as HTMLButtonElement).disabled).toBe(false));
+    expect((screen.getByTestId('post-visual-done') as HTMLInputElement).checked).toBe(false);
+    expect((screen.getByTestId('ideas-run') as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByTestId('post-done-stale')).toBeTruthy();
+    fireEvent.click(screen.getByTestId('post-visual-done'));
+    expect((screen.getByTestId('post-visual-done') as HTMLInputElement).checked).toBe(true);
+    expect(screen.queryByTestId('post-done-stale')).toBeNull();
+  });
+
+  it('görsel değiştirme (replace) de onayı düşürür; insan metni düzenlemesi onayı BOZMAZ', async () => {
+    render(el(vi.fn()));
+    await start();
+    fireEvent.click(screen.getByTestId('post-visual-done'));
+    fireEvent.change(screen.getByTestId('post-edit-text'), { target: { value: 'insan yazdı' } });
+    fireEvent.click(screen.getByTestId('post-save-text'));
+    expect((screen.getByTestId('post-visual-done') as HTMLInputElement).checked).toBe(true);
+    fireEvent.click(screen.getByLabelText('p1 değiştir'));
+    expect((screen.getByTestId('post-visual-done') as HTMLInputElement).checked).toBe(false);
   });
 });
 

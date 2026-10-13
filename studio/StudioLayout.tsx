@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Outlet, Link, NavLink, useNavigate, useParams, useOutletContext } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CalendarDays, FileText, Palette, LogOut, ChevronDown, Loader2, Images, LayoutGrid } from 'lucide-react';
@@ -8,6 +8,8 @@ import { resolveStudioTimeZone } from '@/shared/time/zonedTime';
 import { NotificationsProvider } from '@/admin/contexts/NotificationsContext';
 import NotificationDropdown from '@/admin/components/NotificationDropdown';
 import { getStudioProjects, setStudioTimeZone, studioLinkFor, type StudioProject } from './studioData';
+import { createPostDraftStore, type PostDraftStore } from './feedPlanner/post/draftStore';
+import { LeaveGuard } from './leaveGuard';
 
 export interface StudioContext {
   projects: StudioProject[];
@@ -17,6 +19,8 @@ export interface StudioContext {
   /** Markanın saat dilimi (tenant ayarı; yoksa açıkça varsayılan) — takvim ve tarih gösterimi */
   timeZone: string;
   timeZoneIsDefault: boolean;
+  /** Post planı taslağı oturum belleği: Studio sayfaları arası geçişte korunur; yenileme/kapanışta kaybolur (kalıcı kayıt yok) */
+  plannerDrafts?: PostDraftStore;
 }
 
 export function useStudio(): StudioContext {
@@ -42,6 +46,13 @@ const StudioLayout: React.FC = () => {
   const [projects, setProjects] = useState<StudioProject[]>([]);
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
+  const plannerDrafts = useRef<PostDraftStore>(createPostDraftStore()).current;
+  // Taslak yalnız bellektedir: Post planlayıcı kapalıyken (ör. Marka Kiti) de yenileme/kapatma gerçek kayıptır → tarayıcı uyarısı
+  useEffect(() => {
+    const h = (e: BeforeUnloadEvent) => { if (plannerDrafts.hasWork()) { e.preventDefault(); e.returnValue = ''; } };
+    window.addEventListener('beforeunload', h);
+    return () => window.removeEventListener('beforeunload', h);
+  }, [plannerDrafts]);
 
   const reloadProjects = useCallback(async () => {
     if (!user) return;
@@ -68,11 +79,18 @@ const StudioLayout: React.FC = () => {
   const project = projects.find((p) => p.id === projectId) || null;
 
   const handleSignOut = async () => {
+    // Çıkış, bellekteki Post planını/metinleri KAYBETTİRİR (kalıcı kayıt yok): açık vazgeçme yolu sun
+    if (plannerDrafts.hasWork() && !window.confirm('Kaydedilmemiş Post planınız ve metinleriniz bu oturumun belleğinde tutuluyor; çıkış yaparsanız kaybolur. Yine de çıkış yapılsın mı?')) return;
     await signOut();
+    plannerDrafts.clearAll(); // taslak, çıkış GERÇEKTEN yapılınca atılır (signOut başarısızsa korunur)
     navigate('/admin/login');
   };
 
+  const discardDrafts = useCallback(() => plannerDrafts.clearAll(), [plannerDrafts]);
+  const hasDraftWork = useCallback(() => plannerDrafts.hasWork(), [plannerDrafts]);
+
   return (
+    <LeaveGuard hasWork={hasDraftWork} discard={discardDrafts}>
     <NotificationsProvider>
       <div className="studio-bg">
         <header className="sticky top-0 z-40 bg-white/25 backdrop-blur-xl border-b border-white/50">
@@ -184,11 +202,12 @@ const StudioLayout: React.FC = () => {
               </Link>
             </div>
           ) : (
-            <Outlet context={{ projects, project, tenantId, reloadProjects, timeZone, timeZoneIsDefault } satisfies StudioContext} />
+            <Outlet context={{ projects, project, tenantId, reloadProjects, timeZone, timeZoneIsDefault, plannerDrafts } satisfies StudioContext} />
           )}
         </main>
       </div>
     </NotificationsProvider>
+    </LeaveGuard>
   );
 };
 

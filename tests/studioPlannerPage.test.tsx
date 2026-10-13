@@ -1,6 +1,7 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, cleanup, fireEvent } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { scopeCss } from '../scripts/scope-planner-css.mjs';
 import fs from 'node:fs';
 
@@ -31,6 +32,8 @@ const voiceApi = (o: { bundle?: any; guide?: any; fail?: boolean } = {}) => {
 };
 vi.mock('@/studio/feedPlanner/review/loadPixels', () => ({ measureImage: async () => null, measureImageCrop: async () => null }));
 import StudioPlannerPage, { mondayOf } from '@/studio/pages/StudioPlannerPage';
+/** Sayfa, Marka Kiti'ne yönlendirme için router ister */
+const view = (ui: React.ReactElement) => <MemoryRouter>{ui}</MemoryRouter>;
 
 const readiness = { static: 'ok', carousel: 'ok', story: 'ok', reels: 'error' };
 const dto = (id: string, o: any = {}) => ({ id, kind: 'photo', width: 1080, height: 1350, path: `p/${id}.jpg`, thumbPath: null, catalog: null, verifiedProductIds: [], usage: { usedInPostCount: 0, approvedUseCount: 0, pendingUseCount: 0 }, readiness, ...o });
@@ -43,7 +46,7 @@ describe('yetkili Studio planlayıcı sayfası', () => {
       onProgress?.(3, 2);
       return { items: [dto('a1'), dto('a2'), dto('bad', { width: null })], excluded: [{ id: 'x1', reason: 'inconsistent_asset' }], pages: 2 };
     });
-    render(<StudioPlannerPage />);
+    render(view(<StudioPlannerPage />));
     await waitFor(() => expect(screen.getByTestId('counts').textContent).toMatch(/Aday havuzu 2/));
     expect(fetchInv).toHaveBeenCalledWith('p1', expect.any(Function));
     expect(screen.getByText(/Studio · gerçek kütüphane ve katalog/)).toBeTruthy();
@@ -51,14 +54,14 @@ describe('yetkili Studio planlayıcı sayfası', () => {
     expect(screen.getByText(/3 kayıt, 2 sayfada yüklendi/)).toBeTruthy();
     expect(screen.getByText(/bad: boyut bilgisi geçersiz/)).toBeTruthy();
     expect(screen.getByText(/x1: depolama kaydı tutarsız/)).toBeTruthy();
-    expect(screen.getByTestId('brand-voice-card')).toBeTruthy();
+    expect(screen.queryByTestId('brand-voice-card')).toBeNull(); // marka dili yönetimi Marka Kiti'ndedir; planlayıcı yüzeyini doldurmaz
     expect(screen.getByTestId('persist-status').textContent).toMatch(/Henüz kaydedilmedi|Kayıtlı taslak/);
     expect(screen.queryByTestId('copy-unavailable')).toBeNull(); // port bağlı
   });
 
   it('katalog yüklenemezse planlayıcı AÇILMAZ (eksik liste ile çalışmaz) ve neden gösterilir', async () => {
     failInv = new Error('Katalog 500 sayfadan uzun; yükleme tamamlanamadı (liste eksik).');
-    render(<StudioPlannerPage />);
+    render(view(<StudioPlannerPage />));
     await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/Katalog yüklenemedi: Katalog 500 sayfadan uzun/));
     expect(screen.getByRole('alert').textContent).toMatch(/planlayıcı açılmadı/);
     expect(screen.queryByTestId('counts')).toBeNull();
@@ -66,11 +69,11 @@ describe('yetkili Studio planlayıcı sayfası', () => {
 
   it('MARKA DİLİ YOK: plan BLOKLANMAZ (geçici ton paneli), kart "birlikte oluştur" sunar ve konuşma penceresini açar', async () => {
     fetchInv.mockResolvedValue({ items: [dto('a1'), dto('a2')], excluded: [], pages: 1 });
-    render(<StudioPlannerPage />);
+    render(view(<StudioPlannerPage />));
     await waitFor(() => expect(screen.getByTestId('tone-panel')).toBeTruthy());
     expect(screen.getByTestId('tone-panel').textContent).toMatch(/onaylı marka dili yok/);
     await waitFor(() => expect((screen.getByTestId('make-story-plan') as HTMLButtonElement).disabled).toBe(false));
-    expect(screen.getByTestId('brand-voice-missing').textContent).toMatch(/Plan akışı bloklanmaz/);
+    expect(screen.queryByTestId('brand-voice-missing')).toBeNull();
     expect(screen.queryByTestId('guide-chat')).toBeNull();
     fireEvent.click(screen.getByTestId('start-guide')); // planlayıcıdaki düğme
     expect(screen.getByTestId('guide-chat')).toBeTruthy();
@@ -79,16 +82,16 @@ describe('yetkili Studio planlayıcı sayfası', () => {
   it('ONAYLI REHBER varsa ton paneli yok, "onaylı rehber kullanılır"; kart sürümü gösterir', async () => {
     voiceApi({ guide: { draft: null, bundleExists: false, aiEnabled: true, approved: { version: 2, guide: {}, contentKey: 'a'.repeat(32), approvedAt: 1, approvedBy: 'u1' } } });
     fetchInv.mockResolvedValue({ items: [dto('a1')], excluded: [], pages: 1 });
-    render(<StudioPlannerPage />);
+    render(view(<StudioPlannerPage />));
     await waitFor(() => expect(screen.getByTestId('voice-approved')).toBeTruthy());
     expect(screen.queryByTestId('tone-panel')).toBeNull();
-    expect(screen.getByTestId('brand-guide-status').textContent).toMatch(/sürüm 2/);
+    expect(screen.queryByTestId('brand-guide-status')).toBeNull(); // sürüm/idare metni Marka Kiti'nde; tüketim arka planda sürer
   });
 
   it('yüklü marka sesi paketi varsa da onaylı sayılır', async () => {
     voiceApi({ bundle: { exists: true, valid: true, account: 'dieci', captionCount: 3, excluded: [], guideHashes: {}, verifiedProducts: [] } });
     fetchInv.mockResolvedValue({ items: [dto('a1')], excluded: [], pages: 1 });
-    render(<StudioPlannerPage />);
+    render(view(<StudioPlannerPage />));
     await waitFor(() => expect(screen.getByTestId('voice-approved')).toBeTruthy());
     expect(screen.queryByTestId('tone-panel')).toBeNull();
   });
@@ -96,7 +99,7 @@ describe('yetkili Studio planlayıcı sayfası', () => {
   it('marka dili durumu okunamazsa: BİLİNMİYOR — "yok" denmez, plan bloklanmaz, ton isteğe bağlı; karar sunucuda', async () => {
     voiceApi({ fail: true });
     fetchInv.mockResolvedValue({ items: [dto('a1')], excluded: [], pages: 1 });
-    render(<StudioPlannerPage />);
+    render(view(<StudioPlannerPage />));
     await waitFor(() => expect(screen.getByTestId('tone-panel')).toBeTruthy());
     expect(screen.getByTestId('tone-panel').textContent).toMatch(/\(isteğe bağlı\)/);
     expect(screen.getByTestId('tone-panel').textContent).not.toMatch(/onaylı marka dili yok/);
@@ -105,13 +108,16 @@ describe('yetkili Studio planlayıcı sayfası', () => {
 
   it('POST ve STORY AYRI SEKMELER: varsayılan Post Planlayıcı; Story sekmesi yalnız Story şeridini taşır (feed şeridi / "Post planı oluştur" yok); ikisi de bağlı kalır', async () => {
     fetchInv.mockResolvedValue({ items: [dto('a1'), dto('a2')], excluded: [], pages: 1 });
-    render(<StudioPlannerPage />);
+    render(view(<StudioPlannerPage />));
     await waitFor(() => expect(screen.getByTestId('post-planner')).toBeTruthy());
     expect(screen.getByTestId('tab-post').getAttribute('aria-selected')).toBe('true');
     expect(screen.getByTestId('tab-story').getAttribute('aria-selected')).toBe('false');
     expect(document.getElementById('panel-post')!.hidden).toBe(false);
     expect(document.getElementById('panel-story')!.hidden).toBe(true);
-    expect(screen.getByTestId('post-plan-btn').textContent).toBe('Post planı oluştur');
+    expect(screen.getByTestId('post-plan-btn').textContent).toBe('Yeni post planı oluştur');
+    // Hafta/tarih Post yüzeyinde YOK; yalnız Story sekmesinde
+    expect(document.getElementById('panel-post')!.querySelector('input[type="date"]')).toBeNull();
+    expect(document.getElementById('panel-story')!.querySelector('[data-testid="story-week"]')).toBeTruthy();
     // Story sekmesi: feed şeridi yok, eski "Post planı oluştur" yok
     expect(screen.queryByTestId('make-plan')).toBeNull();
     expect(screen.queryByTestId('feed-slot-0')).toBeNull();
@@ -120,18 +126,21 @@ describe('yetkili Studio planlayıcı sayfası', () => {
     expect(screen.getByTestId('tab-story').getAttribute('aria-selected')).toBe('true');
     expect(document.getElementById('panel-story')!.hidden).toBe(false);
     expect(document.getElementById('panel-post')!.hidden).toBe(true);
-    // Post planlayıcı marka dili durumunu kendi (ayrı kimlikli) panelinde gösterir
+    // Post planlayıcı plan oluşunca marka dili durumunu kendi (ayrı kimlikli) panelinde gösterir
+    fireEvent.click(screen.getByTestId('tab-post'));
+    await waitFor(() => expect((screen.getByTestId('post-plan-btn') as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(screen.getByTestId('post-plan-btn'));
     await waitFor(() => expect(screen.getByTestId('post-tone-panel')).toBeTruthy());
   });
 
   it('KAPSAM GEÇİŞİ (tenant/proje): eski kapsamın GEÇ envanter yanıtı yeni kapsama yazılmaz; yeni kapsam kendi verisini yükler; eski veri hiçbir anda çizilmez', async () => {
     const pending: Array<(v: any) => void> = [];
     fetchInv.mockImplementation(() => new Promise((r) => pending.push(r)));
-    const { rerender } = render(<StudioPlannerPage />);
+    const { rerender } = render(view(<StudioPlannerPage />));
     await waitFor(() => expect(pending.length).toBe(1));
     studioCtx.project = { id: 'p2', name: 'Baska' };
     studioCtx.tenantId = 't2';
-    rerender(<StudioPlannerPage />);
+    rerender(view(<StudioPlannerPage />));
     await waitFor(() => expect(pending.length).toBe(2));
     pending[0]({ items: [dto('eski1'), dto('eski2')], excluded: [], pages: 1 }); // ESKİ kapsam geç döndü
     await Promise.resolve();
@@ -145,10 +154,10 @@ describe('yetkili Studio planlayıcı sayfası', () => {
   it('KAPSAM GEÇİŞİ: yalnız tenant değişse bile (aynı proje kimliği) veri atılır ve yeniden yüklenir; eski kapsamın GEÇ HATASI yeni kapsamda hata göstermez', async () => {
     const pending: Array<{ ok: (v: any) => void; no: (e: Error) => void }> = [];
     fetchInv.mockImplementation(() => new Promise((ok, no) => pending.push({ ok, no })));
-    const { rerender } = render(<StudioPlannerPage />);
+    const { rerender } = render(view(<StudioPlannerPage />));
     await waitFor(() => expect(pending.length).toBe(1));
     studioCtx.tenantId = 't2';
-    rerender(<StudioPlannerPage />);
+    rerender(view(<StudioPlannerPage />));
     await waitFor(() => expect(pending.length).toBe(2));
     pending[0].no(new Error('ESKİ KAPSAM HATASI'));
     await Promise.resolve();

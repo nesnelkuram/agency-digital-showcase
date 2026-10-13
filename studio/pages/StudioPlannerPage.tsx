@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useStudio } from '../StudioLayout';
 import PlannerApp, { type ReviewData } from '../feedPlanner/review/App';
 import PostPlanner from '../feedPlanner/post/PostPlanner';
@@ -9,7 +10,6 @@ import { candidateFromInventory } from '../feedPlanner/integration/fromInventory
 import { runMediaAnalysis } from '../mediaIntegrationsApi';
 import { createBlobResolver, createCopyPort, createCreativePort, createPersistencePort, fetchInventory } from '../feedPlanner/live/livePorts';
 import type { PlannerPorts } from '../feedPlanner/ports';
-import BrandVoiceCard from '../components/BrandVoiceCard';
 import BrandGuideChat from '../components/BrandGuideChat';
 import { loadVoiceState, type VoiceState } from '../brandGuideApi';
 
@@ -23,7 +23,8 @@ const REASONS: Record<string, string> = { inconsistent_asset: 'depolama kaydı t
 
 /** Yetkili haftalık planlayıcı: gerçek kütüphane (sayfalı), gerçek model hattı, kalıcı taslak. Örnek/yerel veri yok. */
 const StudioPlannerPage: React.FC = () => {
-  const { project, tenantId } = useStudio();
+  const { project, tenantId, plannerDrafts } = useStudio();
+  const navigate = useNavigate();
   // Yetkili kullanıcı: plan, yaratıcı durum ve insan metni YALNIZ bu kullanıcının oturumuna aittir; aynı tenant+proje içinde UID değişirse hepsi sıfırlanır
   const { user } = useAuth();
   const uid = user?.uid ?? '';
@@ -115,13 +116,6 @@ const StudioPlannerPage: React.FC = () => {
 
   return (
     <div className="planner-scope" data-testid="studio-planner">
-      <div className="shell" style={{ paddingBottom: 0 }}>
-        <label className="field" style={{ maxWidth: 260 }}>Hafta (Pazartesi)
-          <input type="date" value={week} onChange={(e) => e.target.value && setWeek(mondayOf(new Date(`${e.target.value}T12:00:00`)))} />
-        </label>
-      </div>
-      <BrandVoiceCard projectId={project.id} guideVersion={voice.guideVersion} onStartGuide={() => setGuideOpen(true)} />
-      {guideOpen && <div style={{ margin: '0 16px 12px' }}><BrandGuideChat projectId={project.id} onClose={() => setGuideOpen(false)} onApproved={refreshVoice} /></div>}
       {progress && (
         <p className="counts" role="status" style={{ padding: '0 16px' }}><Loader2 className="inline w-3.5 h-3.5 animate-spin" /> Katalog yükleniyor: {progress.loaded} kayıt · {progress.pages} sayfa</p>
       )}
@@ -135,7 +129,7 @@ const StudioPlannerPage: React.FC = () => {
           </div>
           <div role="tabpanel" id="panel-post" aria-labelledby="tab-post" hidden={tab !== 'post'}>
             <PostPlanner
-              key={`post-${scopeKey}-${week}`}
+              key={`post-${scopeKey}`}
               candidates={data.candidates}
               published={data.published}
               historySource="Yayımlanmış geçmiş snapshot'ı"
@@ -143,13 +137,20 @@ const StudioPlannerPage: React.FC = () => {
               projectId={project.id}
               tenantId={tenantId}
               userId={uid}
-              weekStart={week}
               voice={{ approved: voice.loading ? null : voice.approved, guideVersion: voice.guideVersion, bundle: voice.bundle }}
-              onStartGuide={() => setGuideOpen(true)}
+              onStartGuide={() => navigate(`/studio/${project.id}/marka#marka-dili`)}
+              draftStore={plannerDrafts}
               analysis={analysis}
             />
           </div>
           <div role="tabpanel" id="panel-story" aria-labelledby="tab-story" hidden={tab !== 'story'}>
+            {/* Hafta/tarih yalnız Story'ye aittir (Post planı haftaya bağlı değildir); Post yüzeyini doldurmaz */}
+            <div className="shell" style={{ paddingBottom: 0 }}>
+              <label className="field" style={{ maxWidth: 260 }}>Hafta (Pazartesi)
+                <input type="date" value={week} onChange={(e) => e.target.value && setWeek(mondayOf(new Date(`${e.target.value}T12:00:00`)))} data-testid="story-week" />
+              </label>
+            </div>
+            {guideOpen && <div style={{ margin: '0 16px 12px' }}><BrandGuideChat projectId={project.id} onClose={() => setGuideOpen(false)} onApproved={refreshVoice} /></div>}
             <PlannerApp key={`${scopeKey}-${week}`} data={data} ports={ports} projectId={project.id} tenantId={tenantId} weekStart={week} lanes={['story']} voice={{ approved: voice.loading ? null : voice.approved }} onStartGuide={() => setGuideOpen(true)} />
           </div>
         </>

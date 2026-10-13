@@ -38,8 +38,8 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 const renderPlanner = (candidates: Candidate[], props: Partial<React.ComponentProps<typeof PostPlanner>> = {}) =>
   render(<PostPlanner candidates={candidates} ports={portsOf()} projectId="dieci" tenantId="t1" weekStart="2026-10-12" measureCrop={measureCrop} voice={{ approved: true }} {...props} />);
-const plan = async (n: number) => {
-  fireEvent.change(screen.getByTestId('post-count'), { target: { value: String(n) } });
+/** Boş yüzeyde sayı alanı yoktur: N, `initialCount` ile verilir; "Yeni post planı oluştur" tıklanır. */
+const plan = async () => {
   const btn = screen.getByTestId('post-plan-btn') as HTMLButtonElement;
   await waitFor(() => expect(btn.disabled).toBe(false));
   fireEvent.click(btn);
@@ -47,14 +47,46 @@ const plan = async (n: number) => {
 const cells = () => Array.from(document.querySelectorAll('[data-testid^="post-cell-"]')) as HTMLElement[];
 const cellIds = () => cells().map((c) => c.getAttribute('data-testid')!.replace('post-cell-', ''));
 const assetsNow = () => cells().map((c) => c.getAttribute('data-asset')!);
-const btn = (name: string | RegExp) => screen.getByRole('button', { name });
+/** Düzenleme düğmeleri YALNIZ seçili postta açılır: kullanıcı gibi önce postu seçer. */
+const btn = (name: string | RegExp) => {
+  const m = typeof name === 'string' ? /^(p\d+) / .exec(name) : null;
+  if (m && !screen.queryByRole('button', { name })) fireEvent.click(within(cellOf(m[1])).getByLabelText(`${m[1]} incele`));
+  return screen.getByRole('button', { name });
+};
 const cellOf = (id: string) => screen.getByTestId(`post-cell-${id}`);
+
+describe('sade yüzey: boş ekran tek eylem; düzenleme yalnız seçili postta', () => {
+  it('boş Post ekranı yalnız "Yeni post planı oluştur" gösterir (sayı, hafta, rehber, ton, Metin üret, teknik duvar YOK); plan sonrası Metin üret ve sayı kontrolü çıkar', async () => {
+    renderPlanner(pool(10), { initialCount: 4 });
+    expect(screen.getAllByRole('button').map((b) => b.textContent)).toEqual(['Yeni post planı oluştur']);
+    for (const id of ['post-count', 'bulk-open', 'post-tone-panel', 'post-visual-done', 'post-text-panel', 'post-capacity', 'post-plan-score']) expect(screen.queryByTestId(id), id).toBeNull();
+    expect(screen.queryByText(/hafta|rehber|SNAPSHOT|rubric|sürüm/i)).toBeNull();
+    await plan();
+    await waitFor(() => expect(cells()).toHaveLength(4));
+    expect(screen.getByTestId('bulk-open').textContent).toBe('Metin üret');
+    expect(screen.getByTestId('post-count')).toBeTruthy();
+  });
+
+  it('düzenleme düğmeleri (kilit/değiştir/ele/sil/sırala) seçili değilken YOKTUR; postu seçince yalnız o postta açılır', async () => {
+    renderPlanner(pool(10), { initialCount: 4 });
+    await plan();
+    await waitFor(() => expect(cells()).toHaveLength(4));
+    expect(screen.queryByRole('button', { name: 'p1 sil' })).toBeNull();
+    expect(screen.queryByTestId('post-actions-p1')).toBeNull();
+    fireEvent.click(within(cellOf('p1')).getByLabelText('p1 incele'));
+    expect(screen.getByRole('button', { name: 'p1 sil' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'p2 sil' })).toBeNull();
+    fireEvent.click(within(cellOf('p2')).getByLabelText('p2 incele'));
+    expect(screen.queryByRole('button', { name: 'p1 sil' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'p2 sil' })).toBeTruthy();
+  });
+});
 
 describe('N post, kısmi satır, kapasite, marka izolasyonu (UI)', () => {
   it('N=7: 7 post, son sıra kısmi (1/3); planlama model ve ağ çağırmaz; metin yok', async () => {
-    renderPlanner(pool(14));
-    expect((screen.getByTestId('post-plan-btn') as HTMLButtonElement).textContent).toBe('Post planı oluştur');
-    await plan(7);
+    renderPlanner(pool(14), { initialCount: 7 });
+    expect((screen.getByTestId('post-plan-btn') as HTMLButtonElement).textContent).toBe('Yeni post planı oluştur');
+    await plan();
     await waitFor(() => expect(cells()).toHaveLength(7));
     expect(screen.getByText(/Plan düzeni · profil sırası \(yeni → eski\) · 7 post · son sıra kısmi \(1\/3\)/)).toBeTruthy();
     expect(new Set(assetsNow()).size).toBe(7);
@@ -66,13 +98,13 @@ describe('N post, kısmi satır, kapasite, marka izolasyonu (UI)', () => {
   });
 
   it('N=9: tam satırlar (kısmi uyarısı yok); aday azlığı: 4 aday / N=7 → 4 post ve açık kapasite bilgisi, tekrar yok', async () => {
-    renderPlanner(pool(14));
-    await plan(9);
+    renderPlanner(pool(14), { initialCount: 9 });
+    await plan();
     await waitFor(() => expect(cells()).toHaveLength(9));
     expect(screen.getByText(/9 post$/)).toBeTruthy();
     cleanup();
-    renderPlanner(pool(4));
-    await plan(7);
+    renderPlanner(pool(4), { initialCount: 7 });
+    await plan();
     await waitFor(() => expect(cells()).toHaveLength(4));
     expect(new Set(assetsNow()).size).toBe(4);
     expect(screen.getByTestId('post-capacity').textContent).toMatch(/İstenen 7 post; yalnız 4 uygun görsel var\. Eksik 3 post sahte veya tekrarlı görselle DOLDURULMADI/);
@@ -83,8 +115,8 @@ describe('N post, kısmi satır, kapasite, marka izolasyonu (UI)', () => {
     const own = pool(3);
     const foreign = pool(4).map((c) => ({ ...c, id: `x-${c.id}`, brand: 'baska' }));
     const pub = [cand('h1', { brand: 'dieci', published: true, origin: 'history', date: '2026-09-01' }), cand('h2', { brand: 'baska', published: true, origin: 'history', date: '2026-09-02' })];
-    renderPlanner([...own, ...foreign], { published: pub });
-    await plan(9);
+    renderPlanner([...own, ...foreign], { published: pub, initialCount: 9 });
+    await plan();
     await waitFor(() => expect(cells()).toHaveLength(3));
     expect(assetsNow().sort()).toEqual(['p00', 'p01', 'p02']);
     const profile = screen.getByTestId('view-profile');
@@ -111,8 +143,8 @@ describe('N post, kısmi satır, kapasite, marka izolasyonu (UI)', () => {
 
 describe('iki kilit, değiştir/ele, sil (UI)', () => {
   it('İKİ AYRI KİLİT: "Görseli koru" yalnız görseli tutar (konum serbest); "Yerini de koru" ikisini tutar; kilitliyken değiştir/ele/sil kapalı', async () => {
-    renderPlanner(pool(10));
-    await plan(4);
+    renderPlanner(pool(10), { initialCount: 4 });
+    await plan();
     await waitFor(() => expect(cells()).toHaveLength(4));
     const id = cellIds()[1];
     expect(screen.getByTestId(`post-lockstate-${id}`).textContent).toBe('Kilit yok');
@@ -130,8 +162,8 @@ describe('iki kilit, değiştir/ele, sil (UI)', () => {
   });
 
   it('DEĞİŞTİR ve ELE post sayısını korur; kimlik aynı, görsel farklı; Geri al eski görseli döndürür; sıfır model çağrısı', async () => {
-    renderPlanner(pool(10));
-    await plan(4);
+    renderPlanner(pool(10), { initialCount: 4 });
+    await plan();
     await waitFor(() => expect(cells()).toHaveLength(4));
     const before = assetsNow();
     const id = cellIds()[2];
@@ -152,8 +184,8 @@ describe('iki kilit, değiştir/ele, sil (UI)', () => {
   });
 
   it('SİL post sayısını düşürür ve kendiliğinden yeni görsel EKLEMEZ; önce/sonra önizlemesi ve Geri al', async () => {
-    renderPlanner(pool(10));
-    await plan(5);
+    renderPlanner(pool(10), { initialCount: 5 });
+    await plan();
     await waitFor(() => expect(cells()).toHaveLength(5));
     const ids0 = cellIds();
     fireEvent.click(btn(`${ids0[1]} sil`));
@@ -168,8 +200,8 @@ describe('iki kilit, değiştir/ele, sil (UI)', () => {
   });
 
   it('SİLME ↔ KONUM KİLİDİ ÇATIŞMASI: önizleme + seçenekler; Vazgeç hiçbir şeyi değiştirmez; onay konum kilidini kaldırıp siler; Geri al kilidi döndürür', async () => {
-    renderPlanner(pool(10));
-    await plan(4);
+    renderPlanner(pool(10), { initialCount: 4 });
+    await plan();
     await waitFor(() => expect(cells()).toHaveLength(4));
     const ids0 = cellIds();
     fireEvent.click(btn(`${ids0[3]} görseli koru`));
@@ -198,8 +230,8 @@ describe('iki kilit, değiştir/ele, sil (UI)', () => {
   });
 
   it('çatışma YOKSA önizleme sorulmaz: konum kilitli post başka yerde kalır', async () => {
-    renderPlanner(pool(10));
-    await plan(5);
+    renderPlanner(pool(10), { initialCount: 5 });
+    await plan();
     await waitFor(() => expect(cells()).toHaveLength(5));
     const ids0 = cellIds();
     fireEvent.click(btn(`${ids0[1]} görseli koru`));
@@ -211,8 +243,8 @@ describe('iki kilit, değiştir/ele, sil (UI)', () => {
   });
 
   it('Post ekle sayıyı artırır (sona); sıra butonları kilitli olmayanı taşır; Sırayı iyileştir kilitliyi sabit tutar', async () => {
-    renderPlanner(pool(10));
-    await plan(3);
+    renderPlanner(pool(10), { initialCount: 3 });
+    await plan();
     await waitFor(() => expect(cells()).toHaveLength(3));
     const ids0 = cellIds();
     fireEvent.click(screen.getByTestId('post-add'));
@@ -235,8 +267,8 @@ describe('yayın sırası ve profil görünümü (UI)', () => {
   ];
 
   it('kronolojik sıra profil sırasının tersidir; profil görünümü plan + SNAPSHOT geçmişi birleştirir; yeni gönderi başa gelir; snapshot etiketi tarihli', async () => {
-    renderPlanner(pool(8), { published: hist(), historySource: "Instagram arşivi snapshot'ı" });
-    await plan(4);
+    renderPlanner(pool(8), { published: hist(), historySource: "Instagram arşivi snapshot'ı", initialCount: 4 });
+    await plan();
     await waitFor(() => expect(cells()).toHaveLength(4));
     const planAssets = assetsNow();
     const chrono = Array.from(screen.getByTestId('view-chrono').querySelectorAll('.item')).map((e) => [e.getAttribute('data-order'), e.getAttribute('data-asset')]);
@@ -259,8 +291,8 @@ describe('yayın sırası ve profil görünümü (UI)', () => {
   });
 
   it('geçmiş yoksa dürüst not: "mevcut yayın geçmişi bağlı değil"; önizleme canlıya hiçbir şey göndermez', async () => {
-    renderPlanner(pool(5));
-    await plan(3);
+    renderPlanner(pool(5), { initialCount: 3 });
+    await plan();
     await waitFor(() => expect(cells()).toHaveLength(3));
     expect(screen.getByTestId('snapshot-label').textContent).toMatch(/mevcut yayın geçmişi bağlı değil/);
     expect(fetchSpy).not.toHaveBeenCalled();
@@ -278,8 +310,8 @@ describe('kırpım paneli: sürümlü manuel kırpım, orijinal korunur, görün
   });
 
   it('kırpım sürümü artar, yalnız o varlık yeniden ölçülür (diğerleri dokunulmaz); orijinal kaynak boyutu değişmez; çıktı 1080×1350', async () => {
-    renderPlanner(landscape(6));
-    await plan(3);
+    renderPlanner(landscape(6), { initialCount: 3 });
+    await plan();
     await waitFor(() => expect(cells()).toHaveLength(3));
     const first = measureCrop.mock.calls.length;
     const ids0 = cellIds();
@@ -298,8 +330,8 @@ describe('kırpım paneli: sürümlü manuel kırpım, orijinal korunur, görün
   });
 
   it('caption için görünür olgu kapsamı: konu kırpımda görünürse "yalnız ana konu"; manuel kırpım konuyu dışarıda bırakırsa "görünür olgu yok" ve nedeni', async () => {
-    renderPlanner(landscape(4).map(withVisual));
-    await plan(2);
+    renderPlanner(landscape(4).map(withVisual), { initialCount: 2 });
+    await plan();
     await waitFor(() => expect(cells()).toHaveLength(2));
     const id = cellIds()[0];
     fireEvent.click(within(cellOf(id)).getByLabelText(`${id} incele`));

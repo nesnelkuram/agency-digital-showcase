@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { authenticatedFetch } from '@/lib/firebase/apiClient';
 
 interface Status {
@@ -32,8 +32,11 @@ const BrandVoiceCard: React.FC<{ projectId: string; onStartGuide?: () => void; g
   const [message, setMessage] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
 
+  const pidRef = useRef(projectId);
+  pidRef.current = projectId;
   const refresh = useCallback(() => {
-    api(projectId).then(setStatus).catch((e) => setMessage({ kind: 'err', text: `Durum okunamadı: ${e.message}` }));
+    const at = projectId; // eski projenin geç durum yanıtı yeni projede gösterilmez
+    api(projectId).then((st) => { if (pidRef.current === at) setStatus(st); }).catch((e) => { if (pidRef.current === at) setMessage({ kind: 'err', text: `Durum okunamadı: ${e.message}` }); });
   }, [projectId]);
   useEffect(refresh, [refresh]);
 
