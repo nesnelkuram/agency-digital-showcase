@@ -12,6 +12,7 @@
 
 export const FAILURE_CATEGORIES = [
   'schema_unsupported', // yapılandırılmış çıktı (json_schema/response_format) kabul edilmedi
+  'schema_too_complex', // şema sağlayıcının derleme/karmaşıklık sınırını aştı
   'parameter_unsupported', // istek parametresi (reasoning/max_tokens/...) desteklenmiyor
   'routing_unavailable', // require_parameters ile uyumlu sağlayıcı/uç nokta yok
   'image_rejected', // görsel türü/boyutu/içeriği kabul edilmedi
@@ -32,6 +33,7 @@ const CATEGORY_SET = new Set<string>(FAILURE_CATEGORIES);
 /** Kategori → SABİT, güvenli Türkçe açıklama (sağlayıcı metni içermez). `Olası` ifadeler sınıflandırmanın kesin kök neden olmadığını belirtir */
 export const CATEGORY_MESSAGES: Record<FailureCategory, string> = {
   schema_unsupported: 'Olası neden: sağlayıcı yapılandırılmış (JSON şema) çıktı isteğini kabul etmedi',
+  schema_too_complex: 'Olası neden: çıktı şeması sağlayıcının karmaşıklık/derleme sınırını aştı',
   parameter_unsupported: 'Olası neden: sağlayıcı isteğin bir parametresini desteklemiyor',
   routing_unavailable: 'Olası neden: istenen parametreleri destekleyen uygun sağlayıcı/uç nokta bulunamadı',
   image_rejected: 'Olası neden: sağlayıcı görseli kabul etmedi (tür, boyut veya içerik)',
@@ -128,19 +130,45 @@ const TEXT_RULES: Array<[FailureCategory, RegExp, boolean]> = [
   ['moderation', /moderation|flagged|content[ _-]?policy|safety|prohibited/, false],
   ['routing_unavailable', /no endpoints? found|require_parameters|no allowed providers/, false],
   ['input_too_large', /context[ _-]?(length|window)|too many tokens|maximum context|prompt is too long|token limit/, false],
-  ['image_rejected', /image|media[ _-]?type|base64|mime|payload too large|request entity/, false],
+  ['image_rejected', /image|media[ _-]?type|base64|mime|payload too large|request entity|exceeds? .{0,20}(mb|megabyte|bytes)|too large/, false],
   ['schema_unsupported', /json[ _-]?schema|response[ _-]?format|structured|schema/, false],
   ['model_unavailable', /model.*(not found|not exist|invalid|unavailable|unknown)|invalid model|unknown model/, false],
   ['parameter_unsupported', /parameter|reasoning|max_tokens|unsupported|not supported|temperature|unrecognized/, true],
 ];
 function classifyText(raw: string): FailureCategory | null {
-  const t = raw.toLowerCase().slice(0, 2000);
+  const t = raw.toLowerCase().slice(0, 4000);
+  // Bilinen sağlayıcı ifadeleri ("schema is too complex for compilation", "compiled grammar is too large"): şema kategorisinin özel hâli
+  if (/(schema|grammar).{0,40}(too (complex|large|big)|exceed)|too (complex|large).{0,40}(schema|grammar|compil)|union types?/.test(t)) {
+    return /image|base64|mime|media[ _-]?type/.test(t) ? null : 'schema_too_complex';
+  }
   const strong = TEXT_RULES.filter(([, re, weak]) => !weak && re.test(t)).map(([c]) => c);
   // "No endpoints found … response_format/parameters" yönlendirme hatasının bilinen biçimi: şema/parametre sözcükleri onu bozmaz
   if (strong.includes('routing_unavailable')) return strong.every((c) => c === 'routing_unavailable' || c === 'schema_unsupported') ? 'routing_unavailable' : null;
   if (strong.length) return strong.length === 1 ? strong[0] : null;
   const weak = TEXT_RULES.filter(([, re, w]) => w && re.test(t)).map(([c]) => c);
   return weak.length === 1 ? weak[0] : null;
+}
+
+/** OpenRouter'ın BELGELİ `error.metadata.error_type` değerleri (docs: Typed error codes, HTTP 400) → kategori. EXACT eşleşme; başka değer yok sayılır. */
+const ERROR_TYPE_CATEGORY: Record<string, FailureCategory> = {
+  context_length_exceeded: 'input_too_large',
+  max_tokens_exceeded: 'input_too_large',
+  token_limit_exceeded: 'input_too_large',
+  string_too_long: 'input_too_large',
+  invalid_image: 'image_rejected',
+  image_too_large: 'image_rejected',
+  image_too_small: 'image_rejected',
+  unsupported_image_format: 'image_rejected',
+  image_download_failed: 'image_rejected',
+};
+
+/** Serbest `metadata.raw` (dize ya da nesne) yalnız SINIFLANDIRMA için düzleştirilir; kopyalanmaz, saklanmaz */
+function flattenForClassification(v: unknown, depth = 0): string {
+  if (typeof v === 'string') return v.slice(0, 2000);
+  if (!v || typeof v !== 'object' || depth > 3) return '';
+  let out = '';
+  for (const x of Object.values(v as Record<string, unknown>).slice(0, 20)) { out += ' ' + flattenForClassification(x, depth + 1); if (out.length > 4000) break; }
+  return out;
 }
 
 export function classifyProviderFailure(status: number | null, body: unknown): FailureCategory {
@@ -152,7 +180,9 @@ export function classifyProviderFailure(status: number | null, body: unknown): F
   // 400/403/404/413/422 ve gövde-içi hatalar: nedeni yalnız sağlayıcı alanlarından SINIFLANDIR (kopyalama yok)
   const err = body && typeof body === 'object' ? (body as any).error : null;
   if (err && typeof err === 'object') {
-    const parts = [err.message, err.type, err.param, typeof err.code === 'string' ? err.code : null, err.metadata?.reasons ? 'moderation' : null]
+    const typed = typeof err.metadata?.error_type === 'string' ? ERROR_TYPE_CATEGORY[err.metadata.error_type] : undefined;
+    if (typed) return typed;
+    const parts = [err.message, err.type, err.param, typeof err.code === 'string' ? err.code : null, err.metadata?.reasons ? 'moderation' : null, flattenForClassification(err.metadata?.raw)]
       .filter((x) => typeof x === 'string')
       .join(' ');
     const c = classifyText(parts);

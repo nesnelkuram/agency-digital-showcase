@@ -154,8 +154,14 @@ export function estimateCostUsd(model: string, u: UsageLike): { usd: number; tie
 
 // ── Kaynak ve tekrar önleme ──
 
-/** Claude API: görsel başına base64 ≤ 10 MB; temkinli ham sınır */
-export const ANALYSIS_MAX_RAW_BYTES = 7_000_000;
+/**
+ * Görsel başına base64 sınırı: doğrudan Claude API 10 MB, ama Amazon Bedrock ve Google Cloud 5 MB
+ * (https://platform.claude.com/docs/en/build-with-claude/vision, okunma 2026-10-13). OpenRouter modeli bu sağlayıcılardan birine
+ * yönlendirebildiği için sınır EN DAR değere göre seçilir: base64 = ⌈ham/3⌉·4 → ham ≤ 3,5 MB ⇒ base64 ≈ 4,67 MB < 5 MB.
+ * Daha büyük orijinaller Studio önizlemesine (studio_preview, açıkça işaretli) düşer; önizleme yoksa "desteklenmiyor" der.
+ * (Eski değer 7 MB ham ≈ 9,3 MB base64 idi: Bedrock/Vertex'e düşen büyük orijinaller 400 ile reddedilebilir.)
+ */
+export const ANALYSIS_MAX_RAW_BYTES = 3_500_000;
 export const ANALYSIS_MAX_DIMENSION = 8000;
 export const ANALYSIS_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 

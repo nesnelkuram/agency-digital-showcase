@@ -2,7 +2,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { analyzeBrandMedia, decideClaim, isRetryableModelError, selectAnalysisSource, type AnalysisRecord, type AnalysisStore, type BrandMediaLike, type ModelCall } from '@/api/_lib/mediaAnalysis/runner';
 import { analysisOutput, visual } from './helpers/visualFixture';
-import { CATALOG_MODEL, CATALOG_SYSTEM_PROMPT, ImageCatalogSchema, analysisKey, estimateCostUsd, normalizeCatalog, toPlannerLine, type ImageCatalog } from '@/api/_lib/mediaAnalysis/spec';
+import { ANALYSIS_MAX_RAW_BYTES, CATALOG_MODEL, CATALOG_SYSTEM_PROMPT, ImageCatalogSchema, analysisKey, estimateCostUsd, normalizeCatalog, toPlannerLine, type ImageCatalog } from '@/api/_lib/mediaAnalysis/spec';
 
 const catalog: ImageCatalog = {
   subject: 'masada tatlı ve kahve',
@@ -61,6 +61,14 @@ const usageDetail = { inputTokens: 5000, outputTokens: 600, totalTokens: 5600, c
 const okCall = () => vi.fn<ModelCall>(async () => ({ id: 'gen-1', stopReason: 'end_turn', usageDetail, parsed: analysisOutput(catalog), provider: 'openrouter', modelUsed: 'anthropic/claude-haiku-5.5', requestId: 'req-1aB2cD34' }));
 
 describe('kaynak seçimi (orijinal / önizleme açıkça)', () => {
+  it('görsel boyut sınırı Bedrock/Vertex 5 MB base64 sınırına göre: ham ≤ 3,5 MB orijinal; üstü önizlemeye düşer (base64 her zaman < 5 MB)', () => {
+    expect(ANALYSIS_MAX_RAW_BYTES).toBe(3_500_000);
+    expect(Math.ceil(ANALYSIS_MAX_RAW_BYTES / 3) * 4).toBeLessThan(5_000_000);
+    expect(selectAnalysisSource(asset({ size: 3_500_000, width: 3000, height: 4000 }))).toMatchObject({ quality: 'original' });
+    expect(selectAnalysisSource(asset({ size: 3_500_001, width: 3000, height: 4000 }))).toMatchObject({ quality: 'studio_preview', path: 'brand-media/t1/p1/a1/thumb.jpg' });
+    expect(selectAnalysisSource(asset({ size: 6_900_000, width: 3000, height: 4000, thumbPath: undefined }))).toHaveProperty('unsupported'); // eskiden orijinal sayılıp 400 alabilirdi
+  });
+
   it('API sınırına uyan orijinal → original; büyük orijinal → studio_preview; boyut bilinmiyorsa önizleme', () => {
     expect(selectAnalysisSource(asset())).toMatchObject({ quality: 'original' });
     expect(selectAnalysisSource(asset({ size: 17_400_000, width: 3840, height: 5760 }))).toMatchObject({ quality: 'studio_preview', path: 'brand-media/t1/p1/a1/thumb.jpg' });

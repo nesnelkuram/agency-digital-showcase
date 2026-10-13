@@ -37,7 +37,7 @@ const reply = (status: number, body: unknown, rid: string | null = 'req-abc12345
   json: async () => { if (body === '__throw__') throw new SyntaxError(`Unexpected token <html> ${SECRET}`); return body; },
 });
 const evil = (message: string, extra: Record<string, unknown> = {}) => ({
-  error: { code: 400, message: `${message} | Authorization: Bearer ${SECRET} | ${PII} | ${URLQ} | PROMPT_PARCASI`, metadata: { raw: `data:image/jpeg;base64,${B64} ham-metadata`, provider_name: 'Azure' }, ...extra },
+  error: { code: 400, message: `${message} | Authorization: Bearer ${SECRET} | ${PII} | ${URLQ} | PROMPT_PARCASI`, metadata: { raw: `blob:${B64} ham-metadata`, provider_name: 'Azure' }, ...extra },
 });
 const callWith = (r: unknown, model = CATALOG_MODEL) => {
   fetchMock.mockReset();
@@ -56,6 +56,9 @@ describe('sınıflandırma: yalnız bilinen biçimler; serbest sağlayıcı metn
     ['model', 400, 'The model does not exist', 'model_unavailable'],
     ['moderasyon', 403, 'Input flagged by moderation', 'moderation'],
     ['sınıflandırılamayan', 400, 'Provider returned error', 'bad_request'],
+    ['şema karmaşıklığı', 400, 'Schema is too complex for compilation', 'schema_too_complex'],
+    ['derlenmiş gramer', 400, 'The compiled grammar is too large', 'schema_too_complex'],
+    ['görsel boyutu', 400, 'messages.0.content.1.image.source.base64: image exceeds 5 MB maximum', 'image_rejected'],
   ];
   it.each(cases)('upstream 400 ailesi — %s', async (_n, status, msg, cat) => {
     const e = await failure(callWith(reply(status, evil(msg))));
@@ -513,5 +516,30 @@ describe('tanılama öncesi (kategorisiz) 400 kayıtları: ayrıntı görünsün
     const third = await analyzeBrandMedia(a, { store, readBytes: async () => Buffer.from('x'), callModel: openrouterVisionCall({ apiKey: 'or-test', fetchImpl: fetchMock as any }), now: () => 3 });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(third.attempts).toBe(2);
+  });
+});
+
+describe('OpenRouter 400 sarmalayıcısı: gerçek neden metadata içinde — yalnız SINIFLANDIRMAYA girer, asla saklanmaz', () => {
+  const wrapped = (metadata: Record<string, unknown>) => ({ error: { code: 400, message: 'Provider returned error', metadata } });
+  it('metadata.raw içindeki bilinen upstream ifadesi kategoriye eşlenir; raw metni (PII/sır/URL/base64 dahil) çıktıda YOK', async () => {
+    const raw = `{"type":"error","error":{"type":"invalid_request_error","message":"messages.0.content.1.image.source.base64: image exceeds 5 MB maximum: 9.3 MB > 5 MB"}} user=${PII} ${URLQ} Bearer ${SECRET}`;
+    const e = await failure(callWith(reply(400, wrapped({ raw, provider_name: 'Azure' }))));
+    expect(e.failure).toMatchObject({ code: 'http_400', category: 'image_rejected', status: 400, model: CATALOG_MODEL });
+    noLeak(e.failure); noLeak(e.message); noLeak(JSON.stringify(e));
+    const obj = await failure(callWith(reply(400, wrapped({ raw: { error: { message: 'Schema is too complex for compilation', who: PII } } }))));
+    expect(obj.failure?.category).toBe('schema_too_complex');
+    noLeak(obj.failure);
+  });
+
+  it('belgeli metadata.error_type değerleri EXACT tabloyla eşlenir (görsel / bağlam); bilinmeyen değer yok sayılır ve sızmaz', () => {
+    const t = (error_type: unknown) => classifyProviderFailure(400, wrapped({ error_type }));
+    for (const v of ['image_too_large', 'invalid_image', 'unsupported_image_format', 'image_download_failed', 'image_too_small']) expect(t(v), v).toBe('image_rejected');
+    for (const v of ['context_length_exceeded', 'max_tokens_exceeded', 'token_limit_exceeded', 'string_too_long']) expect(t(v), v).toBe('input_too_large');
+    for (const v of ['invalid_request', 'invalid_prompt', 'ozel_sir_' + SECRET, { x: PII }, null]) expect(t(v as any)).toBe('bad_request');
+  });
+
+  it('raw içinde birden çok kategori çağrışımı varsa kesin neden iddia edilmez (bad_request)', () => {
+    expect(classifyProviderFailure(400, wrapped({ raw: 'unexpected image in response_format' }))).toBe('bad_request');
+    expect(classifyProviderFailure(400, wrapped({ raw: 'Provider returned error' }))).toBe('bad_request');
   });
 });
